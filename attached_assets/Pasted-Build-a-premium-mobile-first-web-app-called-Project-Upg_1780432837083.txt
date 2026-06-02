@@ -1,0 +1,335 @@
+Build a premium mobile-first web app called Project Upgrade.
+
+Project Upgrade is a strict AI whole-person transformation coach. It helps users upgrade their body, weight, muscle, skin, energy, sleep, discipline, workouts, and daily routine.
+
+This app is for:
+
+* Skinny people who want to gain weight and build muscle
+* Overweight people who want to lose fat and feel better
+* Fit people who want to maintain, get leaner, improve performance, and stay disciplined
+* People who want better skin, higher energy, better sleep, less bloating, and more confidence
+
+This should NOT feel like a calorie tracker.
+This should NOT feel like a workout library.
+This should NOT feel like a game.
+This should feel like a real strict personal coach in the user’s pocket.
+
+Core promise:
+“Tell Project Upgrade who you want to become. It builds your daily schedule, workouts, meals, check-ins, coach reviews, and weekly adjustments to help you become that person.”
+
+Build a complete working MVP with these pages:
+
+1. Landing Page
+   Create a premium landing page with:
+
+* headline: “Your strict AI coach for upgrading your body, energy, skin, sleep, and discipline.”
+* subheadline: “Get daily schedules, workouts, meal feedback, nightly reviews, and weekly adjustments built around your real life.”
+* button: “Start 7-Day Free Trial”
+* sections for Daily Schedule, Meal Check-Ins, Workout Planning, Sleep/Energy/Skin Habits, Strict Coach Review, and Weekly Adjustments.
+
+2. Onboarding
+   Ask the user:
+
+* name
+* age
+* gender
+* height
+* current weight
+* goal weight
+* body type: skinny, overweight, fit, average
+* main goals: allow multiple selections from lose fat, lose weight, gain weight, build muscle, maintain fitness, get leaner, athletic performance, better skin, higher energy, better sleep, less bloating, better digestion, discipline, confidence
+* target date or timeline
+* fitness level: beginner, intermediate, advanced
+* gym access: full gym, home gym, no gym
+* equipment available
+* workout days per week
+* preferred workout time
+* wake time
+* sleep time
+* sleep quality 1-10
+* energy level 1-10
+* stress level 1-10
+* school/work schedule
+* average daily steps
+* allergies
+* foods disliked
+* diet style
+* food budget
+* meals per day preferred
+* water intake
+* caffeine use
+* screen time before bed
+* skin concerns: acne, oily skin, dry skin, dull skin, none
+* digestion concerns: bloating, constipation, stomach pain, none
+* biggest struggle: cravings, consistency, late-night eating, motivation, fast food, no appetite, no time, binge eating, skipping meals, not eating enough
+
+3. Smart Plan
+   After onboarding, create a personalized plan.
+
+For fat loss users:
+
+* realistic weekly pace
+* calorie target
+* protein target
+* water target
+* step/cardio target
+* strength training schedule
+* sleep target
+* skin/energy habit
+* warning if the goal is too aggressive
+
+For skinny/bulk users:
+
+* realistic weekly weight gain pace
+* calorie surplus target
+* protein target
+* meal frequency
+* high-calorie food ideas
+* homemade mass-gain shake idea
+* lifting plan
+* reminder not to skip meals
+
+For fit/maintain users:
+
+* maintenance calorie target
+* protein target
+* workout plan
+* step/cardio target
+* recovery habits
+* discipline goals
+* weekly consistency target
+
+For glow/energy/sleep/skin users:
+
+* sleep target
+* water target
+* caffeine cutoff
+* screen cutoff
+* sunlight/walk habit
+* protein habit
+* reduce soda/liquid calories
+* no medical claims
+
+4. Dashboard
+   Show:
+
+* selected goals
+* current weight
+* goal weight
+* timeline
+* progress
+* Daily Score out of 100
+* Mission Streak
+* calories target
+* protein target
+* water target
+* steps/cardio target
+* sleep target
+* today’s workout
+* today’s skin/energy habit
+* today’s strict coach message
+
+Do not use XP. Use Daily Score, Mission Streak, Weekly Progress, Coach Review, and Today’s Mission.
+
+5. Daily Schedule
+   Generate a timeline based on the user’s real routine:
+
+* wake up
+* weigh in
+* water
+* meal 1
+* school/work block
+* meal 2
+* workout or walk
+* meal 3
+* optional snack or shake
+* screen cutoff
+* nightly journal
+* sleep prep
+
+The app should tell users exactly what to do and when to do it.
+
+6. Workout Planner
+   Create workouts based on goal, body type, gym access, equipment, fitness level, and available days.
+
+Include:
+
+* exercise name
+* sets
+* reps
+* rest time
+* coaching tip
+* complete button
+
+Support fat loss workouts, muscle gain workouts, home workouts, athletic conditioning, and maintenance training.
+
+7. Meal Check-In
+   User can type what they ate.
+
+Coach replies with:
+
+* estimated meal quality for their goals
+* what was good
+* what was bad
+* what to fix next meal
+* whether it helped or hurt today’s mission
+
+Tone should be strict, short, useful, and safe.
+
+Examples:
+Fat loss: “This meal is not terrible, but the soda is wasting calories. Next meal needs lean protein, water, and no extra snacks.”
+Skinny/bulk: “You said you want to gain weight, but this meal is too small. Add rice, eggs, milk, peanut butter, or a shake.”
+Fit/maintain: “Solid meal. Keep protein high and don’t let random snacks push you off plan.”
+
+8. Coach Chat
+   Add an AI coach chat where users can ask:
+
+* “Can I eat this?”
+* “I missed the gym, what now?”
+* “I’m starving, what do I do?”
+* “I barely have food, what should I eat?”
+* “Why am I not losing weight?”
+* “Why am I not gaining weight?”
+* “How do I get better skin?”
+* “Why is my energy low?”
+* “What should my schedule be tomorrow?”
+
+Coach tone:
+strict, direct, safe, motivating, not corny.
+
+Example:
+“You said you wanted to change. Today was close, but skipping protein and sleeping late hurt you. Tomorrow protein comes first and phone is off before bed.”
+
+9. Nightly Journal
+   Ask:
+
+* Did you follow your schedule?
+* Did you hit protein?
+* Did you stay near calories?
+* Did you work out or walk?
+* Did you drink water?
+* Did you sleep on time?
+* How was your energy today?
+* How was your skin/bloating today?
+* What went wrong today?
+* What was your biggest win?
+* What do you need help with tomorrow?
+
+10. Daily Coach Review
+    Generate:
+
+* Daily Score out of 100
+* biggest win
+* biggest mistake
+* what slowed progress
+* exact fix for tomorrow
+* whether user is on pace
+* strict coach message
+
+Review should feel personal and based on the user’s goals.
+
+11. Weekly Adjustment
+    User enters weekly weight and progress.
+
+For fat loss:
+
+* if losing too slowly, suggest reducing calories slightly, increasing steps, improving protein, or fixing late-night snacks
+* if losing too fast, warn about burnout and muscle loss
+
+For skinny/bulk:
+
+* if gaining too slowly, add calories, add a shake, increase meal frequency
+* if gaining too fast, reduce calories slightly to avoid excessive fat gain
+
+For fit/maintain:
+
+* if consistent, keep plan
+* if falling off, simplify schedule
+* if workouts stall, adjust training
+
+For energy/skin/sleep:
+
+* review sleep, water, meals, caffeine, stress, and schedule
+* suggest basic lifestyle habits, not medical cures
+
+12. Pricing Page
+    Add pricing:
+
+* 7-day free trial
+* Project Upgrade Pro: $9.99/month
+
+Pro includes:
+
+* personalized daily schedule
+* meal check-ins
+* coach chat
+* workout plan
+* nightly review
+* weekly adjustment
+* skin/energy/sleep habits
+* strict AI coach
+
+Use mock payment buttons for now.
+
+13. Coach Recommendations
+    Add a clean recommendations section.
+
+For skinny/bulk users:
+
+* homemade high-calorie shake
+* calorie-dense foods
+* optional protein/mass gainer placeholder
+* food-first message: supplements are optional
+
+For fat loss users:
+
+* high-protein foods
+* food scale placeholder
+* meal prep container placeholder
+* protein powder placeholder
+
+Recommendations should feel helpful, not scammy.
+
+14. Design
+    Use:
+
+* premium dark mode
+* mobile-first layout
+* clean cards
+* simple navigation
+* serious transformation feel
+* professional coach vibe
+* no childish gamification
+* no XP
+
+Navigation tabs:
+Dashboard, Schedule, Meals, Workouts, Coach, Journal, Progress, Pricing
+
+15. Data
+    Save:
+
+* user profile
+* selected goals
+* goal plan
+* daily missions
+* schedule
+* meals
+* workouts
+* journal entries
+* weekly weigh-ins
+* coach reviews
+
+Use a database so user data persists.
+
+16. Safety
+    Do not tell users to starve.
+    Do not recommend extreme fasting.
+    Do not promise guaranteed results.
+    Do not give medical advice.
+    Do not claim to cure acne, fatigue, bloating, or medical problems.
+    Include disclaimer: Project Upgrade is not medical advice.
+    For minors, eating disorder history, diabetes, pregnancy, medical conditions, serious skin issues, or serious health issues, recommend speaking with a qualified professional.
+
+Fasting can only be suggested as an optional tool, like a 12–14 hour overnight fasting window, and only when appropriate.
+
+Build the most complete working MVP possible with functional buttons, saved user data, realistic generated plans, and a premium mobile-first interface.
