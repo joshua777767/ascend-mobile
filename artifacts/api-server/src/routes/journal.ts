@@ -35,13 +35,11 @@ router.post("/journal", async (req, res): Promise<void> => {
 
 router.get("/journal/today", async (req, res): Promise<void> => {
   const today = getTodayStr();
-  const [entry] = await db.select().from(journalEntriesTable)
-    .where(eq(journalEntriesTable.userId, USER_ID));
-
-  const todayEntry = (await db.select().from(journalEntriesTable)
+  const entries = await db.select().from(journalEntriesTable)
     .where(eq(journalEntriesTable.userId, USER_ID))
-    .orderBy(desc(journalEntriesTable.createdAt)))
-    .find(e => e.date === today);
+    .orderBy(desc(journalEntriesTable.createdAt));
+
+  const todayEntry = entries.find(e => e.date === today);
 
   if (!todayEntry) {
     res.status(404).json({ error: "No journal entry for today" });

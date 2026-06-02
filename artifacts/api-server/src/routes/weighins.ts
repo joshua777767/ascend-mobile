@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
-import { db, weighInsTable, plansTable } from "@workspace/db";
+import { db, weighInsTable, plansTable, userProfilesTable } from "@workspace/db";
 import { CreateWeighInBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
 import { USER_ID } from "./users";
@@ -52,6 +52,7 @@ router.post("/weigh-ins", async (req, res): Promise<void> => {
   }
 
   const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, USER_ID));
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.id, USER_ID));
   const previous = await db.select().from(weighInsTable)
     .where(eq(weighInsTable.userId, USER_ID))
     .orderBy(desc(weighInsTable.loggedAt));
@@ -59,7 +60,7 @@ router.post("/weigh-ins", async (req, res): Promise<void> => {
   const prevWeight = previous.length > 0 ? previous[0].weightKg : null;
   const weekNumber = previous.length + 1;
   const goalType = plan?.goalType ?? "maintain";
-  const goalWeightKg = 70; // fallback
+  const goalWeightKg = profile?.goalWeightKg ?? plan?.calorieTarget ?? 70;
 
   const { adjustment, coachMessage } = await getAdjustment(parsed.data.weightKg, prevWeight, goalType, goalWeightKg);
 

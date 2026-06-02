@@ -1,8 +1,18 @@
-import React from "react";
-import { Link } from "wouter";
+import React, { useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { ArrowRight, Activity, Crosshair, ShieldAlert } from "lucide-react";
+import { useGetUserProfile } from "@workspace/api-client-react";
 
 export default function LandingPage() {
+  const [, setLocation] = useLocation();
+  const { data: profile } = useGetUserProfile();
+
+  useEffect(() => {
+    if (profile) {
+      setLocation("/dashboard");
+    }
+  }, [profile, setLocation]);
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary selection:text-primary-foreground">
       {/* Navbar */}

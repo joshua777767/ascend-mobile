@@ -54,24 +54,28 @@ Rules:
     content: m.content,
   }));
 
-  // Save user message
+  // Save user message first
   await db.insert(chatMessagesTable).values({
     userId: USER_ID,
     role: "user",
     content: parsed.data.message,
   });
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    max_tokens: 400,
-    messages: [
-      { role: "system", content: systemPrompt },
-      ...conversationHistory,
-      { role: "user", content: parsed.data.message },
-    ],
-  });
-
-  const reply = response.choices[0]?.message?.content ?? "Keep working. Ask again.";
+  let reply: string;
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      max_tokens: 400,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...conversationHistory,
+        { role: "user", content: parsed.data.message },
+      ],
+    });
+    reply = response.choices[0]?.message?.content ?? "Keep working. Ask again.";
+  } catch {
+    reply = "Your coach is temporarily offline. Keep executing the basics: hit your protein, drink your water, train. Check back soon.";
+  }
 
   // Save assistant reply
   await db.insert(chatMessagesTable).values({

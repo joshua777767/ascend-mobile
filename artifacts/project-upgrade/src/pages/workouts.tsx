@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useGetTodayWorkout, useListWorkouts, useCreateWorkout, useCompleteWorkout,
+  useGetTodayWorkout, useListWorkouts, useCreateWorkout,
   getListWorkoutsQueryKey
 } from "@workspace/api-client-react";
 import { useGetUserProfile } from "@workspace/api-client-react";
@@ -18,7 +18,6 @@ export default function WorkoutsPage() {
   const { data: profile, isError: profileError } = useGetUserProfile();
   const { data: todayWorkout, isLoading: loadingToday } = useGetTodayWorkout();
   const { data: workouts, isLoading: loadingHistory } = useListWorkouts();
-  const completeWorkout = useCompleteWorkout();
   const createWorkout = useCreateWorkout();
   const [completedExercises, setCompletedExercises] = useState<Set<number>>(new Set());
   const [workoutLogged, setWorkoutLogged] = useState(false);
