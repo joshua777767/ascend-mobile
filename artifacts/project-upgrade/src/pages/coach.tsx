@@ -55,13 +55,9 @@ export default function CoachPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-4rem)] md:h-screen max-w-2xl mx-auto">
-      <div className="p-4 md:p-6 border-b border-border shrink-0">
-        <h1 className="text-2xl font-bold uppercase tracking-tighter">Coach Chat</h1>
-        <p className="text-sm text-muted-foreground uppercase tracking-wider">Strict. Direct. Safe.</p>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="h-full flex flex-col">
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto scroll-area p-4 space-y-4">
         {loadingHistory ? (
           <div className="space-y-4">
             {Array.from({length:3}).map((_,i) => (
@@ -87,10 +83,10 @@ export default function CoachPage() {
                   )}
                 >
                   {msg.role === "assistant" && (
-                    <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1.5">Coach</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1.5">Coach</p>
                   )}
                   <p className="leading-relaxed">{msg.content}</p>
-                  <p className={cn("text-xs mt-1.5 opacity-60")}>
+                  <p className={cn("text-[10px] mt-1.5 opacity-60")}>
                     {new Date(msg.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
@@ -99,7 +95,7 @@ export default function CoachPage() {
             {sendMessage.isPending && (
               <div className="flex justify-start">
                 <div className="bg-card border border-border px-4 py-3 text-sm max-w-[85%]">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1.5">Coach</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1.5">Coach</p>
                   <div className="flex gap-1">
                     <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                     <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -116,13 +112,13 @@ export default function CoachPage() {
               <p className="text-sm text-muted-foreground uppercase tracking-wider">Ask your coach anything.</p>
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider text-center mb-3">Common questions</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest text-center mb-3">Common Questions</p>
               <div className="grid grid-cols-1 gap-2">
                 {SUGGESTED_QUESTIONS.map((q, i) => (
                   <button
                     key={i}
                     onClick={() => handleSend(q)}
-                    className="text-left text-sm px-3 py-2 border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+                    className="text-left text-sm px-3 py-2.5 border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40 active:bg-muted/50 transition-colors"
                     data-testid={`suggested-question-${i}`}
                   >
                     {q}
@@ -135,22 +131,24 @@ export default function CoachPage() {
         <div ref={bottomRef} />
       </div>
 
-      <div className="p-4 border-t border-border shrink-0">
-        <div className="flex gap-2">
+      {/* Input area */}
+      <div className="shrink-0 p-3 border-t border-border bg-card">
+        <div className="flex gap-2 items-end">
           <Textarea
             ref={textareaRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask your coach..."
-            className="bg-card border-border resize-none min-h-[44px] max-h-[120px] text-sm"
+            className="bg-background border-border resize-none text-sm flex-1"
+            style={{ minHeight: "44px", maxHeight: "120px" }}
             rows={1}
             data-testid="input-chat-message"
           />
           <Button
             onClick={() => handleSend()}
             disabled={sendMessage.isPending || !input.trim()}
-            className="shrink-0 h-[44px] w-[44px] p-0"
+            className="shrink-0 h-11 w-11 p-0"
             data-testid="button-send-message"
           >
             <Send className="w-4 h-4" />
