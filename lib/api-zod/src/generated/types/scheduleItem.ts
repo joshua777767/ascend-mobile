@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface ScheduleItem {
+  time: string;
+  activity: string;
+  type: string;
+  /** @nullable */
+  notes?: string | null;
 }

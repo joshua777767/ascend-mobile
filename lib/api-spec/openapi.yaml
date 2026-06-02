@@ -1,22 +1,41 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Project Upgrade API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User profile and onboarding
+  - name: plans
+    description: Personalized fitness plans
+  - name: workouts
+    description: Workout sessions and exercises
+  - name: meals
+    description: Meal check-ins and feedback
+  - name: journal
+    description: Nightly journal entries
+  - name: reviews
+    description: Daily coach reviews
+  - name: weigh-ins
+    description: Weekly weigh-ins and adjustments
+  - name: schedule
+    description: Daily schedule
+  - name: chat
+    description: AI coach chat
+  - name: progress
+    description: Progress tracking
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +43,402 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users/profile:
+    get:
+      operationId: getUserProfile
+      tags: [users]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: createUserProfile
+      tags: [users]
+      summary: Create or update user profile (onboarding)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+    patch:
+      operationId: updateUserProfile
+      tags: [users]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /plans/current:
+    get:
+      operationId: getCurrentPlan
+      tags: [plans]
+      summary: Get current personalized plan
+      responses:
+        "200":
+          description: Current plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Plan"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: generatePlan
+      tags: [plans]
+      summary: Generate a personalized plan based on user profile
+      responses:
+        "201":
+          description: Generated plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Plan"
+
+  /workouts:
+    get:
+      operationId: listWorkouts
+      tags: [workouts]
+      summary: List all workout sessions
+      responses:
+        "200":
+          description: List of workouts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Workout"
+    post:
+      operationId: createWorkout
+      tags: [workouts]
+      summary: Log a completed workout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkoutInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workout"
+
+  /workouts/today:
+    get:
+      operationId: getTodayWorkout
+      tags: [workouts]
+      summary: Get today's planned workout
+      responses:
+        "200":
+          description: Today's workout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlannedWorkout"
+
+  /workouts/{id}/complete:
+    patch:
+      operationId: completeWorkout
+      tags: [workouts]
+      summary: Mark workout as complete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workout"
+
+  /meals:
+    get:
+      operationId: listMeals
+      tags: [meals]
+      summary: List meal check-ins
+      responses:
+        "200":
+          description: List of meal check-ins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Meal"
+    post:
+      operationId: createMeal
+      tags: [meals]
+      summary: Log a meal and get coach feedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealInput"
+      responses:
+        "201":
+          description: Created with coach feedback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meal"
+
+  /meals/today:
+    get:
+      operationId: getTodayMeals
+      tags: [meals]
+      summary: Get today's meal check-ins
+      responses:
+        "200":
+          description: Today's meals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Meal"
+
+  /journal:
+    get:
+      operationId: listJournalEntries
+      tags: [journal]
+      summary: List nightly journal entries
+      responses:
+        "200":
+          description: List of journal entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JournalEntry"
+    post:
+      operationId: createJournalEntry
+      tags: [journal]
+      summary: Submit a nightly journal entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JournalEntryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JournalEntry"
+
+  /journal/today:
+    get:
+      operationId: getTodayJournalEntry
+      tags: [journal]
+      summary: Get today's journal entry
+      responses:
+        "200":
+          description: Today's journal entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JournalEntry"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /reviews:
+    get:
+      operationId: listReviews
+      tags: [reviews]
+      summary: List daily coach reviews
+      responses:
+        "200":
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CoachReview"
+    post:
+      operationId: generateReview
+      tags: [reviews]
+      summary: Generate today's daily coach review
+      responses:
+        "201":
+          description: Generated review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoachReview"
+
+  /reviews/today:
+    get:
+      operationId: getTodayReview
+      tags: [reviews]
+      summary: Get today's coach review
+      responses:
+        "200":
+          description: Today's review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoachReview"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /weigh-ins:
+    get:
+      operationId: listWeighIns
+      tags: [weigh-ins]
+      summary: List weekly weigh-ins
+      responses:
+        "200":
+          description: List of weigh-ins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeighIn"
+    post:
+      operationId: createWeighIn
+      tags: [weigh-ins]
+      summary: Submit weekly weigh-in and get adjustment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WeighInInput"
+      responses:
+        "201":
+          description: Created with adjustment plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeighIn"
+
+  /schedule/today:
+    get:
+      operationId: getTodaySchedule
+      tags: [schedule]
+      summary: Get today's daily schedule
+      responses:
+        "200":
+          description: Today's schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailySchedule"
+
+  /chat:
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send a message to the AI coach and get a response
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: Coach response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+
+  /chat/history:
+    get:
+      operationId: getChatHistory
+      tags: [chat]
+      summary: Get recent chat history
+      responses:
+        "200":
+          description: Chat history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+
+  /progress/summary:
+    get:
+      operationId: getProgressSummary
+      tags: [progress]
+      summary: Get overall progress summary for dashboard
+      responses:
+        "200":
+          description: Progress summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressSummary"
+
+  /progress/streak:
+    get:
+      operationId: getMissionStreak
+      tags: [progress]
+      summary: Get current mission streak
+      responses:
+        "200":
+          description: Mission streak
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MissionStreak"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +449,654 @@ components:
       required:
         - status
 
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    UserProfile:
+      type: object
+      required:
+        - id
+        - name
+        - age
+        - gender
+        - heightCm
+        - currentWeightKg
+        - goalWeightKg
+        - bodyType
+        - goals
+        - fitnessLevel
+        - gymAccess
+        - workoutDaysPerWeek
+        - wakeTime
+        - sleepTime
+        - createdAt
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        age:
+          type: integer
+        gender:
+          type: string
+        heightCm:
+          type: number
+        currentWeightKg:
+          type: number
+        goalWeightKg:
+          type: number
+        bodyType:
+          type: string
+        goals:
+          type: array
+          items:
+            type: string
+        targetDate:
+          type: ["string", "null"]
+        fitnessLevel:
+          type: string
+        gymAccess:
+          type: string
+        equipment:
+          type: ["string", "null"]
+        workoutDaysPerWeek:
+          type: integer
+        preferredWorkoutTime:
+          type: ["string", "null"]
+        wakeTime:
+          type: string
+        sleepTime:
+          type: string
+        sleepQuality:
+          type: integer
+        energyLevel:
+          type: integer
+        stressLevel:
+          type: integer
+        workSchedule:
+          type: ["string", "null"]
+        averageDailySteps:
+          type: ["integer", "null"]
+        allergies:
+          type: ["string", "null"]
+        dislikedFoods:
+          type: ["string", "null"]
+        dietStyle:
+          type: ["string", "null"]
+        foodBudget:
+          type: ["string", "null"]
+        mealsPerDay:
+          type: integer
+        waterIntakeLiters:
+          type: number
+        caffeineUse:
+          type: ["string", "null"]
+        screenTimeBeforeBed:
+          type: ["string", "null"]
+        skinConcerns:
+          type: array
+          items:
+            type: string
+        digestionConcerns:
+          type: array
+          items:
+            type: string
+        biggestStruggle:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    UserProfileInput:
+      type: object
+      required:
+        - name
+        - age
+        - gender
+        - heightCm
+        - currentWeightKg
+        - goalWeightKg
+        - bodyType
+        - goals
+        - fitnessLevel
+        - gymAccess
+        - workoutDaysPerWeek
+        - wakeTime
+        - sleepTime
+      properties:
+        name:
+          type: string
+        age:
+          type: integer
+        gender:
+          type: string
+        heightCm:
+          type: number
+        currentWeightKg:
+          type: number
+        goalWeightKg:
+          type: number
+        bodyType:
+          type: string
+        goals:
+          type: array
+          items:
+            type: string
+        targetDate:
+          type: string
+        fitnessLevel:
+          type: string
+        gymAccess:
+          type: string
+        equipment:
+          type: string
+        workoutDaysPerWeek:
+          type: integer
+        preferredWorkoutTime:
+          type: string
+        wakeTime:
+          type: string
+        sleepTime:
+          type: string
+        sleepQuality:
+          type: integer
+        energyLevel:
+          type: integer
+        stressLevel:
+          type: integer
+        workSchedule:
+          type: string
+        averageDailySteps:
+          type: integer
+        allergies:
+          type: string
+        dislikedFoods:
+          type: string
+        dietStyle:
+          type: string
+        foodBudget:
+          type: string
+        mealsPerDay:
+          type: integer
+        waterIntakeLiters:
+          type: number
+        caffeineUse:
+          type: string
+        screenTimeBeforeBed:
+          type: string
+        skinConcerns:
+          type: array
+          items:
+            type: string
+        digestionConcerns:
+          type: array
+          items:
+            type: string
+        biggestStruggle:
+          type: string
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        currentWeightKg:
+          type: number
+        sleepQuality:
+          type: integer
+        energyLevel:
+          type: integer
+        stressLevel:
+          type: integer
+
+    Plan:
+      type: object
+      required:
+        - id
+        - userId
+        - goalType
+        - calorieTarget
+        - proteinTargetG
+        - waterTargetL
+        - stepsTarget
+        - sleepTargetHours
+        - weeklyPace
+        - workoutSchedule
+        - keyHabits
+        - coachNotes
+        - createdAt
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        goalType:
+          type: string
+        calorieTarget:
+          type: integer
+        proteinTargetG:
+          type: integer
+        waterTargetL:
+          type: number
+        stepsTarget:
+          type: integer
+        sleepTargetHours:
+          type: number
+        weeklyPace:
+          type: string
+        workoutSchedule:
+          type: string
+        keyHabits:
+          type: array
+          items:
+            type: string
+        coachNotes:
+          type: string
+        warnings:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    Workout:
+      type: object
+      required:
+        - id
+        - userId
+        - name
+        - type
+        - completedAt
+        - durationMinutes
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        completedAt:
+          type: string
+          format: date-time
+        durationMinutes:
+          type: integer
+        notes:
+          type: ["string", "null"]
+
+    WorkoutInput:
+      type: object
+      required:
+        - name
+        - type
+        - durationMinutes
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        durationMinutes:
+          type: integer
+        notes:
+          type: string
+
+    PlannedWorkout:
+      type: object
+      required:
+        - day
+        - name
+        - type
+        - exercises
+      properties:
+        day:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        exercises:
+          type: array
+          items:
+            $ref: "#/components/schemas/Exercise"
+
+    Exercise:
+      type: object
+      required:
+        - name
+        - sets
+        - reps
+        - restSeconds
+        - coachTip
+      properties:
+        name:
+          type: string
+        sets:
+          type: integer
+        reps:
+          type: string
+        restSeconds:
+          type: integer
+        coachTip:
+          type: string
+
+    Meal:
+      type: object
+      required:
+        - id
+        - userId
+        - description
+        - loggedAt
+        - coachFeedback
+        - quality
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        description:
+          type: string
+        loggedAt:
+          type: string
+          format: date-time
+        coachFeedback:
+          type: string
+        quality:
+          type: string
+        whatWasGood:
+          type: ["string", "null"]
+        whatWasBad:
+          type: ["string", "null"]
+        whatToFixNext:
+          type: ["string", "null"]
+
+    MealInput:
+      type: object
+      required:
+        - description
+      properties:
+        description:
+          type: string
+
+    JournalEntry:
+      type: object
+      required:
+        - id
+        - userId
+        - date
+        - followedSchedule
+        - hitProtein
+        - stayedNearCalories
+        - workedOut
+        - drankWater
+        - sleptOnTime
+        - energyRating
+        - skinBloatingRating
+        - biggestWin
+        - createdAt
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        date:
+          type: string
+        followedSchedule:
+          type: boolean
+        hitProtein:
+          type: boolean
+        stayedNearCalories:
+          type: boolean
+        workedOut:
+          type: boolean
+        drankWater:
+          type: boolean
+        sleptOnTime:
+          type: boolean
+        energyRating:
+          type: integer
+        skinBloatingRating:
+          type: integer
+        whatWentWrong:
+          type: ["string", "null"]
+        biggestWin:
+          type: string
+        needHelpWith:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    JournalEntryInput:
+      type: object
+      required:
+        - followedSchedule
+        - hitProtein
+        - stayedNearCalories
+        - workedOut
+        - drankWater
+        - sleptOnTime
+        - energyRating
+        - skinBloatingRating
+        - biggestWin
+      properties:
+        followedSchedule:
+          type: boolean
+        hitProtein:
+          type: boolean
+        stayedNearCalories:
+          type: boolean
+        workedOut:
+          type: boolean
+        drankWater:
+          type: boolean
+        sleptOnTime:
+          type: boolean
+        energyRating:
+          type: integer
+        skinBloatingRating:
+          type: integer
+        whatWentWrong:
+          type: string
+        biggestWin:
+          type: string
+        needHelpWith:
+          type: string
+
+    CoachReview:
+      type: object
+      required:
+        - id
+        - userId
+        - date
+        - dailyScore
+        - biggestWin
+        - biggestMistake
+        - whatSlowedProgress
+        - exactFixForTomorrow
+        - onPace
+        - strictCoachMessage
+        - createdAt
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        date:
+          type: string
+        dailyScore:
+          type: integer
+        biggestWin:
+          type: string
+        biggestMistake:
+          type: string
+        whatSlowedProgress:
+          type: string
+        exactFixForTomorrow:
+          type: string
+        onPace:
+          type: boolean
+        strictCoachMessage:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    WeighIn:
+      type: object
+      required:
+        - id
+        - userId
+        - weightKg
+        - weekNumber
+        - adjustment
+        - coachMessage
+        - loggedAt
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        weightKg:
+          type: number
+        weekNumber:
+          type: integer
+        adjustment:
+          type: string
+        coachMessage:
+          type: string
+        loggedAt:
+          type: string
+          format: date-time
+
+    WeighInInput:
+      type: object
+      required:
+        - weightKg
+      properties:
+        weightKg:
+          type: number
+        notes:
+          type: string
+
+    DailySchedule:
+      type: object
+      required:
+        - date
+        - items
+        - todaysMission
+      properties:
+        date:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScheduleItem"
+        todaysMission:
+          type: string
+
+    ScheduleItem:
+      type: object
+      required:
+        - time
+        - activity
+        - type
+      properties:
+        time:
+          type: string
+        activity:
+          type: string
+        type:
+          type: string
+        notes:
+          type: ["string", "null"]
+
+    ChatMessageInput:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+
+    ChatResponse:
+      type: object
+      required:
+        - reply
+        - timestamp
+      properties:
+        reply:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ChatMessage:
+      type: object
+      required:
+        - id
+        - role
+        - content
+        - createdAt
+      properties:
+        id:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ProgressSummary:
+      type: object
+      required:
+        - currentWeightKg
+        - goalWeightKg
+        - startWeightKg
+        - progressPercent
+        - dayStreak
+        - totalWorkouts
+        - avgDailyScore
+        - weeklyWeighIns
+        - recentMeals
+      properties:
+        currentWeightKg:
+          type: number
+        goalWeightKg:
+          type: number
+        startWeightKg:
+          type: number
+        progressPercent:
+          type: number
+        dayStreak:
+          type: integer
+        totalWorkouts:
+          type: integer
+        avgDailyScore:
+          type: number
+        weeklyWeighIns:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeighIn"
+        recentMeals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Meal"
+
+    MissionStreak:
+      type: object
+      required:
+        - currentStreak
+        - longestStreak
+        - lastActiveDate
+      properties:
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        lastActiveDate:
+          type: string

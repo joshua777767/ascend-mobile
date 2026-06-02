@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface Exercise {
+  name: string;
+  sets: number;
+  reps: string;
+  restSeconds: number;
+  coachTip: string;
 }

@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface WorkoutInput {
+  name: string;
+  type: string;
+  durationMinutes: number;
+  notes?: string;
 }
