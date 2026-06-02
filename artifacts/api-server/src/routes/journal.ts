@@ -1,0 +1,53 @@
+import { Router, type IRouter } from "express";
+import { eq, desc } from "drizzle-orm";
+import { db, journalEntriesTable } from "@workspace/db";
+import { CreateJournalEntryBody } from "@workspace/api-zod";
+import { USER_ID } from "./users";
+
+const router: IRouter = Router();
+
+function getTodayStr() {
+  return new Date().toISOString().split("T")[0];
+}
+
+router.get("/journal", async (req, res): Promise<void> => {
+  const entries = await db.select().from(journalEntriesTable)
+    .where(eq(journalEntriesTable.userId, USER_ID))
+    .orderBy(desc(journalEntriesTable.createdAt));
+  res.json(entries);
+});
+
+router.post("/journal", async (req, res): Promise<void> => {
+  const parsed = CreateJournalEntryBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const [entry] = await db.insert(journalEntriesTable).values({
+    userId: USER_ID,
+    date: getTodayStr(),
+    ...parsed.data,
+  }).returning();
+
+  res.status(201).json(entry);
+});
+
+router.get("/journal/today", async (req, res): Promise<void> => {
+  const today = getTodayStr();
+  const [entry] = await db.select().from(journalEntriesTable)
+    .where(eq(journalEntriesTable.userId, USER_ID));
+
+  const todayEntry = (await db.select().from(journalEntriesTable)
+    .where(eq(journalEntriesTable.userId, USER_ID))
+    .orderBy(desc(journalEntriesTable.createdAt)))
+    .find(e => e.date === today);
+
+  if (!todayEntry) {
+    res.status(404).json({ error: "No journal entry for today" });
+    return;
+  }
+  res.json(todayEntry);
+});
+
+export default router;

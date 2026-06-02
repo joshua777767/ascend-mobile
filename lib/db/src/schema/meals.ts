@@ -1,0 +1,19 @@
+import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+
+export const mealsTable = pgTable("meals", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  description: text("description").notNull(),
+  loggedAt: timestamp("logged_at", { withTimezone: true }).notNull().defaultNow(),
+  coachFeedback: text("coach_feedback").notNull().default(""),
+  quality: text("quality").notNull().default("neutral"),
+  whatWasGood: text("what_was_good"),
+  whatWasBad: text("what_was_bad"),
+  whatToFixNext: text("what_to_fix_next"),
+});
+
+export const insertMealSchema = createInsertSchema(mealsTable).omit({ id: true });
+export type InsertMeal = z.infer<typeof insertMealSchema>;
+export type Meal = typeof mealsTable.$inferSelect;

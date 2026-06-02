@@ -1,0 +1,1 @@
+- [Project Upgrade stack](project-upgrade-stack.md) — single-user coaching app, always run typecheck:libs after lib/db schema changes
