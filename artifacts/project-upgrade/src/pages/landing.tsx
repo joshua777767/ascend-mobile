@@ -38,6 +38,9 @@ export default function LandingPage() {
       className="flex flex-col bg-background text-foreground"
       style={{
         minHeight: "100dvh",
+        overflowY: "auto",
+        overflowX: "hidden",
+        WebkitOverflowScrolling: "touch",
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
