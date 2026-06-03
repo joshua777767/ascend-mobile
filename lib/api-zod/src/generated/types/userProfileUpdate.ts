@@ -11,4 +11,9 @@ export interface UserProfileUpdate {
   sleepQuality?: number;
   energyLevel?: number;
   stressLevel?: number;
+  sport?: string;
+  sportCustom?: string;
+  hasOwnSchedule?: string;
+  ownSchedule?: string;
+  workoutFocus?: string;
 }

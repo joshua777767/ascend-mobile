@@ -687,6 +687,16 @@ components:
             type: string
         biggestStruggle:
           type: ["string", "null"]
+        sport:
+          type: ["string", "null"]
+        sportCustom:
+          type: ["string", "null"]
+        hasOwnSchedule:
+          type: ["string", "null"]
+        ownSchedule:
+          type: ["string", "null"]
+        workoutFocus:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
@@ -778,6 +788,16 @@ components:
             type: string
         biggestStruggle:
           type: string
+        sport:
+          type: string
+        sportCustom:
+          type: string
+        hasOwnSchedule:
+          type: string
+        ownSchedule:
+          type: string
+        workoutFocus:
+          type: string
 
     UserProfileUpdate:
       type: object
@@ -790,6 +810,16 @@ components:
           type: integer
         stressLevel:
           type: integer
+        sport:
+          type: string
+        sportCustom:
+          type: string
+        hasOwnSchedule:
+          type: string
+        ownSchedule:
+          type: string
+        workoutFocus:
+          type: string
 
     Plan:
       type: object

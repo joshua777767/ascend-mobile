@@ -104,6 +104,91 @@ const muscleGainWorkouts: PlannedWorkout[] = [
   },
 ];
 
+const strengthWorkouts: PlannedWorkout[] = [
+  {
+    day: "Monday",
+    name: "Heavy Lower — Squat Focus",
+    type: "strength",
+    exercises: [
+      { name: "Back Squat", sets: 5, reps: "3-5", restSeconds: 240, coachTip: "Belt up. Brace hard. Break parallel every rep." },
+      { name: "Romanian Deadlift", sets: 3, reps: "5", restSeconds: 180, coachTip: "Slow eccentric. Hamstrings loaded before pulling." },
+      { name: "Leg Press", sets: 3, reps: "8", restSeconds: 120, coachTip: "Heavy. Full range. Don't half-rep this." },
+      { name: "Glute Ham Raise / Nordic Curl", sets: 3, reps: "5-8", restSeconds: 120, coachTip: "Control the descent. Use your arms to assist if needed." },
+    ],
+  },
+  {
+    day: "Wednesday",
+    name: "Heavy Upper — Press Focus",
+    type: "strength",
+    exercises: [
+      { name: "Bench Press", sets: 5, reps: "3-5", restSeconds: 240, coachTip: "Arch set, feet planted. Explode up every rep." },
+      { name: "Barbell Row", sets: 4, reps: "5", restSeconds: 180, coachTip: "Bar stays close. Pull hard. No bouncing." },
+      { name: "Overhead Press", sets: 3, reps: "5", restSeconds: 180, coachTip: "Lock the legs. Full press overhead. Control down." },
+      { name: "Weighted Pull-Up", sets: 3, reps: "5", restSeconds: 120, coachTip: "Dead hang start. Chin over bar. Controlled descent." },
+    ],
+  },
+  {
+    day: "Friday",
+    name: "Heavy Pull — Deadlift Focus",
+    type: "strength",
+    exercises: [
+      { name: "Deadlift", sets: 5, reps: "1-3", restSeconds: 300, coachTip: "Set the back, engage the lats, drive the floor away. No jerking." },
+      { name: "Front Squat / Pause Squat", sets: 3, reps: "3-5", restSeconds: 180, coachTip: "Elbows up. Upright torso. Pause in the hole." },
+      { name: "Hip Thrust", sets: 3, reps: "8", restSeconds: 120, coachTip: "Heavy weight. Drive the hips. Squeeze hard at top." },
+      { name: "Face Pull", sets: 3, reps: "15", restSeconds: 60, coachTip: "Shoulder health work. Don't skip this." },
+    ],
+  },
+];
+
+const athleticWorkouts: PlannedWorkout[] = [
+  {
+    day: "Monday",
+    name: "Power & Explosiveness",
+    type: "strength",
+    exercises: [
+      { name: "Box Jump", sets: 4, reps: "5", restSeconds: 90, coachTip: "Maximum effort each rep. Land soft. Reset fully between reps." },
+      { name: "Broad Jump", sets: 3, reps: "5", restSeconds: 90, coachTip: "Swing arms, explode forward. Stick the landing." },
+      { name: "Power Clean / Hang Clean", sets: 4, reps: "3", restSeconds: 120, coachTip: "Triple extension — ankles, knees, hips. Fast elbows." },
+      { name: "Squat", sets: 3, reps: "5", restSeconds: 180, coachTip: "Full depth. Drive through floor. Speed matters here." },
+      { name: "Single-Leg RDL", sets: 3, reps: "8 each", restSeconds: 90, coachTip: "Hip hinge. Keep hips square. Control the balance." },
+    ],
+  },
+  {
+    day: "Tuesday",
+    name: "Speed & Agility",
+    type: "cardio",
+    exercises: [
+      { name: "Sprint Intervals (10 × 40m)", sets: 1, reps: "10 sprints", restSeconds: 90, coachTip: "Max speed every rep. Full rest. Not a conditioning run." },
+      { name: "Lateral Shuffle (5-10-5 Drill)", sets: 5, reps: "5 reps", restSeconds: 60, coachTip: "Low hips. Explosive first step. Touch the line." },
+      { name: "Cone Drills / Pro Agility", sets: 5, reps: "5 reps", restSeconds: 60, coachTip: "Plant hard on the cuts. Keep center of gravity low." },
+      { name: "Ankle Hops", sets: 3, reps: "20", restSeconds: 45, coachTip: "Minimal ground contact. Stiff ankles. Fast." },
+    ],
+  },
+  {
+    day: "Thursday",
+    name: "Athletic Strength",
+    type: "strength",
+    exercises: [
+      { name: "Trap Bar Deadlift", sets: 4, reps: "5", restSeconds: 150, coachTip: "Explosive concentric. Control the eccentric." },
+      { name: "Bulgarian Split Squat", sets: 3, reps: "8 each", restSeconds: 90, coachTip: "Front foot forward. Drive through heel. No forward lean." },
+      { name: "Dumbbell Press", sets: 3, reps: "8-10", restSeconds: 90, coachTip: "Athletic pressing strength. Control every rep." },
+      { name: "Pull-Up", sets: 3, reps: "8-10", restSeconds: 90, coachTip: "Strict form. Full hang. Chin over bar." },
+      { name: "Pallof Press", sets: 3, reps: "10 each side", restSeconds: 60, coachTip: "Anti-rotation core. Stand tall. No twisting." },
+    ],
+  },
+  {
+    day: "Saturday",
+    name: "Conditioning Circuit",
+    type: "cardio",
+    exercises: [
+      { name: "Sled Push / Prowler", sets: 5, reps: "30m", restSeconds: 90, coachTip: "Low angle. Drive legs. Breathe on the walk back." },
+      { name: "Battle Ropes", sets: 4, reps: "30 sec", restSeconds: 60, coachTip: "Consistent power. Don't let the waves die." },
+      { name: "Burpee Broad Jump", sets: 3, reps: "8", restSeconds: 60, coachTip: "Explosive jump forward. Full push-up at the bottom." },
+      { name: "Row Ergometer", sets: 3, reps: "500m", restSeconds: 120, coachTip: "Drive with legs first, then pull arms. Maintain pace." },
+    ],
+  },
+];
+
 const homeWorkouts: PlannedWorkout[] = [
   {
     day: "Monday",
@@ -139,11 +224,22 @@ export function getTodayWorkout(profile: UserProfile, plan: Plan): PlannedWorkou
   const today = getDayOfWeek();
   const goalType = plan.goalType;
   const gymAccess = profile.gymAccess;
+  const workoutFocus = profile.workoutFocus;
+  const sport = profile.sport;
 
   let workoutList: PlannedWorkout[];
+
   if (gymAccess === "no gym") {
     workoutList = homeWorkouts;
-  } else if (goalType === "muscle_gain") {
+  } else if (workoutFocus === "strength") {
+    workoutList = strengthWorkouts;
+  } else if (
+    workoutFocus === "athletic_performance" ||
+    workoutFocus === "conditioning" ||
+    (sport && sport !== "no sport" && sport !== "none" && sport !== "general_fitness")
+  ) {
+    workoutList = athleticWorkouts;
+  } else if (workoutFocus === "build_muscle" || goalType === "muscle_gain") {
     workoutList = muscleGainWorkouts;
   } else {
     workoutList = fatLossWorkouts;

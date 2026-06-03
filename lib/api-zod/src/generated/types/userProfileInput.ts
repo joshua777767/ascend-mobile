@@ -39,4 +39,9 @@ export interface UserProfileInput {
   skinConcerns?: string[];
   digestionConcerns?: string[];
   biggestStruggle?: string;
+  sport?: string;
+  sportCustom?: string;
+  hasOwnSchedule?: string;
+  ownSchedule?: string;
+  workoutFocus?: string;
 }

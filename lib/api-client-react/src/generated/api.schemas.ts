@@ -75,6 +75,16 @@ export interface UserProfile {
   digestionConcerns?: string[];
   /** @nullable */
   biggestStruggle?: string | null;
+  /** @nullable */
+  sport?: string | null;
+  /** @nullable */
+  sportCustom?: string | null;
+  /** @nullable */
+  hasOwnSchedule?: string | null;
+  /** @nullable */
+  ownSchedule?: string | null;
+  /** @nullable */
+  workoutFocus?: string | null;
   createdAt: string;
 }
 
@@ -111,6 +121,11 @@ export interface UserProfileInput {
   skinConcerns?: string[];
   digestionConcerns?: string[];
   biggestStruggle?: string;
+  sport?: string;
+  sportCustom?: string;
+  hasOwnSchedule?: string;
+  ownSchedule?: string;
+  workoutFocus?: string;
 }
 
 export interface UserProfileUpdate {
@@ -118,6 +133,11 @@ export interface UserProfileUpdate {
   sleepQuality?: number;
   energyLevel?: number;
   stressLevel?: number;
+  sport?: string;
+  sportCustom?: string;
+  hasOwnSchedule?: string;
+  ownSchedule?: string;
+  workoutFocus?: string;
 }
 
 export interface Plan {

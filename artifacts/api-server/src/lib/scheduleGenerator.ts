@@ -30,7 +30,10 @@ export function generateDailySchedule(profile: UserProfile, plan: Plan): Schedul
   items.push({ time: addMinutes(wake, 30), activity: "Meal 1 — High protein breakfast", type: "meal", notes: `Target: ~${Math.round((plan.proteinTargetG || 150) * 0.25)}g protein` });
 
   if (workoutTime === "morning") {
-    items.push({ time: addMinutes(wake, 90), activity: "Workout", type: "workout", notes: plan.workoutSchedule });
+    const workoutNote = profile.hasOwnSchedule === "yes" && profile.ownSchedule
+      ? `Your schedule: ${profile.ownSchedule}`
+      : plan.workoutSchedule;
+    items.push({ time: addMinutes(wake, 90), activity: "Workout", type: "workout", notes: workoutNote });
     items.push({ time: addMinutes(wake, 150), activity: "Post-workout protein", type: "meal", notes: "Within 45 min of training" });
   }
 
@@ -42,7 +45,10 @@ export function generateDailySchedule(profile: UserProfile, plan: Plan): Schedul
   items.push({ time: addMinutes(wake, 480), activity: "Afternoon water check", type: "hydration", notes: `Should be at ${Math.round(plan.waterTargetL * 0.6 * 10) / 10}L by now` });
 
   if (workoutTime === "evening" || workoutTime === "afternoon") {
-    items.push({ time: addMinutes(wake, 540), activity: "Workout / Walk", type: "workout", notes: plan.workoutSchedule });
+    const workoutNote = profile.hasOwnSchedule === "yes" && profile.ownSchedule
+      ? `Your schedule: ${profile.ownSchedule}`
+      : plan.workoutSchedule;
+    items.push({ time: addMinutes(wake, 540), activity: "Workout / Walk", type: "workout", notes: workoutNote });
     items.push({ time: addMinutes(wake, 600), activity: "Post-workout meal / shake", type: "meal", notes: "Protein + carbs" });
   }
 

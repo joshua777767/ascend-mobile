@@ -384,12 +384,21 @@ function buildContextSummary(
     const direction = diffLbs < 0 ? "lose" : "gain";
     const absDiff = Math.abs(diffLbs);
 
+    const sportDisplay = profile.sport && profile.sport !== "no sport" && profile.sport !== "none"
+      ? (profile.sport === "other" && profile.sportCustom ? profile.sportCustom : profile.sport)
+      : null;
+
     parts.push(
       `PROFILE: ${profile.name}, ${profile.age}yo ${profile.gender}. ` +
         `${currentLbs} lbs now → ${goalLbs} lbs goal (${direction} ${absDiff} lbs). ` +
         `Fitness level: ${profile.fitnessLevel}. Gym access: ${profile.gymAccess}. ` +
         `Trains ${profile.workoutDaysPerWeek}x/week. Wake ${profile.wakeTime}, sleep ${profile.sleepTime}. ` +
         `Sleep quality ${profile.sleepQuality}/10, energy ${profile.energyLevel}/10, stress ${profile.stressLevel}/10. ` +
+        (sportDisplay ? `Sport: ${sportDisplay}. ` : "") +
+        (profile.workoutFocus ? `Workout focus: ${profile.workoutFocus.replace(/_/g, " ")}. ` : "") +
+        (profile.hasOwnSchedule === "yes" && profile.ownSchedule
+          ? `Custom workout schedule: ${profile.ownSchedule}. Coach must respect this schedule and build nutrition/recovery around it. `
+          : "") +
         (goals.length ? `Goals: ${goals.join(", ")}. ` : "") +
         (skin.length ? `Skin concerns: ${skin.join(", ")}. ` : "") +
         (profile.biggestStruggle ? `Biggest struggle: ${profile.biggestStruggle}. ` : "") +

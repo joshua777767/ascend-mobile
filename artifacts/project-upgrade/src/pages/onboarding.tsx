@@ -22,6 +22,20 @@ const STRUGGLES = [
   "no appetite","no time","binge eating","skipping meals","not eating enough",
 ];
 
+const SPORTS = [
+  "No sport","Football","Basketball","Soccer","Track","Boxing/MMA",
+  "Baseball/Softball","Volleyball","Wrestling","Other",
+];
+
+const WORKOUT_FOCUSES = [
+  { label: "Lose fat", value: "lose_fat" },
+  { label: "Build muscle", value: "build_muscle" },
+  { label: "Strength", value: "strength" },
+  { label: "Athletic performance", value: "athletic_performance" },
+  { label: "Conditioning", value: "conditioning" },
+  { label: "General fitness", value: "general_fitness" },
+];
+
 const step1Schema = z.object({
   name: z.string().min(1, "Required"),
   age: z.coerce.number().int().min(13).max(100),
@@ -106,6 +120,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 const inputClass = "bg-elevated border-border rounded-xl h-12 text-base";
+const textareaClass = "bg-elevated border border-border rounded-xl p-3 text-base text-foreground placeholder:text-muted-foreground w-full resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[100px]";
 
 export default function OnboardingPage() {
   const [, setLocation] = useLocation();
@@ -119,6 +134,13 @@ export default function OnboardingPage() {
   const [energyLevel, setEnergyLevel] = useState(5);
   const [stressLevel, setStressLevel] = useState(5);
   const [formData, setFormData] = useState<Partial<Step1 & Step2 & Step3 & Step4>>({});
+
+  // Sport & schedule state
+  const [selectedSport, setSelectedSport] = useState("");
+  const [sportCustomText, setSportCustomText] = useState("");
+  const [scheduleChoice, setScheduleChoice] = useState<"" | "yes" | "no">("");
+  const [ownScheduleText, setOwnScheduleText] = useState("");
+  const [selectedWorkoutFocus, setSelectedWorkoutFocus] = useState("");
 
   const createProfile = useCreateUserProfile();
   const generatePlan = useGeneratePlan();
@@ -155,6 +177,13 @@ export default function OnboardingPage() {
     const heightCm = Math.round((((heightFt ?? 0) * 12 + (heightIn ?? 0)) * 2.54) * 10) / 10;
     const currentWeightKg = Math.round(((currentWeightLbs ?? 0) / 2.2046226) * 10) / 10;
     const goalWeightKg = Math.round(((goalWeightLbs ?? 0) / 2.2046226) * 10) / 10;
+
+    const sportValue = selectedSport.toLowerCase();
+    const sportCustom = selectedSport.toLowerCase() === "other" ? sportCustomText : undefined;
+    const hasOwnSchedule = scheduleChoice || undefined;
+    const ownSchedule = scheduleChoice === "yes" ? ownScheduleText : undefined;
+    const workoutFocus = scheduleChoice === "no" ? selectedWorkoutFocus : undefined;
+
     const payload = {
       ...rest,
       heightCm,
@@ -172,6 +201,11 @@ export default function OnboardingPage() {
       workoutDaysPerWeek: formData.workoutDaysPerWeek ?? 3,
       wakeTime: formData.wakeTime ?? "06:30",
       sleepTime: formData.sleepTime ?? "22:30",
+      ...(sportValue ? { sport: sportValue } : {}),
+      ...(sportCustom ? { sportCustom } : {}),
+      ...(hasOwnSchedule ? { hasOwnSchedule } : {}),
+      ...(ownSchedule ? { ownSchedule } : {}),
+      ...(workoutFocus ? { workoutFocus } : {}),
     } as any;
     try {
       await createProfile.mutateAsync({ data: payload });
@@ -354,6 +388,77 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
+              {/* Sport question */}
+              <div>
+                <SectionLabel>Do you play any sports?</SectionLabel>
+                <div className="flex flex-wrap gap-2">
+                  {SPORTS.map(s => (
+                    <Chip
+                      key={s}
+                      label={s}
+                      selected={selectedSport.toLowerCase() === s.toLowerCase()}
+                      onToggle={() => setSelectedSport(prev => prev.toLowerCase() === s.toLowerCase() ? "" : s)}
+                    />
+                  ))}
+                </div>
+                {selectedSport.toLowerCase() === "other" && (
+                  <div className="mt-3">
+                    <Input
+                      value={sportCustomText}
+                      onChange={e => setSportCustomText(e.target.value)}
+                      placeholder="What sport do you play?"
+                      className={inputClass}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Schedule question */}
+              <div>
+                <SectionLabel>Do you already have a workout schedule?</SectionLabel>
+                <div className="flex gap-2">
+                  <Chip
+                    label="Yes, I have one"
+                    selected={scheduleChoice === "yes"}
+                    onToggle={() => setScheduleChoice(prev => prev === "yes" ? "" : "yes")}
+                  />
+                  <Chip
+                    label="No, generate one"
+                    selected={scheduleChoice === "no"}
+                    onToggle={() => setScheduleChoice(prev => prev === "no" ? "" : "no")}
+                  />
+                </div>
+
+                {scheduleChoice === "yes" && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs text-muted-foreground">Enter your weekly schedule. Example: Monday chest/back, Tuesday football practice, Wednesday legs, Thursday rest, Friday full body.</p>
+                    <textarea
+                      value={ownScheduleText}
+                      onChange={e => setOwnScheduleText(e.target.value)}
+                      placeholder="Mon: chest/back, Tue: practice, Wed: legs, Thu: rest, Fri: full body..."
+                      className={textareaClass}
+                      rows={4}
+                    />
+                  </div>
+                )}
+
+                {scheduleChoice === "no" && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs text-muted-foreground">What do you want to focus on? A schedule will be built for you.</p>
+                    <div className="flex flex-wrap gap-2">
+                      {WORKOUT_FOCUSES.map(f => (
+                        <Chip
+                          key={f.value}
+                          label={f.label}
+                          selected={selectedWorkoutFocus === f.value}
+                          onToggle={() => setSelectedWorkoutFocus(prev => prev === f.value ? "" : f.value)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <SectionLabel>Target date (optional)</SectionLabel>
                 <Input {...form2.register("targetDate")} type="date" className={inputClass} data-testid="input-target-date" />
@@ -518,6 +623,20 @@ export default function OnboardingPage() {
                   <div><span className="text-muted-foreground text-xs">Gym access</span><br /><span className="font-semibold capitalize">{formData.gymAccess}</span></div>
                   <div><span className="text-muted-foreground text-xs">Workout days</span><br /><span className="font-semibold">{formData.workoutDaysPerWeek}x / week</span></div>
                   <div><span className="text-muted-foreground text-xs">Schedule</span><br /><span className="font-semibold">{formData.wakeTime} – {formData.sleepTime}</span></div>
+                  {selectedSport && selectedSport.toLowerCase() !== "no sport" && (
+                    <div>
+                      <span className="text-muted-foreground text-xs">Sport</span><br />
+                      <span className="font-semibold capitalize">
+                        {selectedSport.toLowerCase() === "other" && sportCustomText ? sportCustomText : selectedSport}
+                      </span>
+                    </div>
+                  )}
+                  {scheduleChoice && (
+                    <div>
+                      <span className="text-muted-foreground text-xs">Workout plan</span><br />
+                      <span className="font-semibold">{scheduleChoice === "yes" ? "Custom schedule" : "AI generated"}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="pt-3 border-t border-border">
                   <p className="text-xs text-muted-foreground mb-2">Goals</p>
@@ -527,6 +646,18 @@ export default function OnboardingPage() {
                     ))}
                   </div>
                 </div>
+                {scheduleChoice === "yes" && ownScheduleText && (
+                  <div className="pt-3 border-t border-border">
+                    <p className="text-xs text-muted-foreground mb-1">Your schedule</p>
+                    <p className="text-xs text-foreground leading-relaxed">{ownScheduleText}</p>
+                  </div>
+                )}
+                {scheduleChoice === "no" && selectedWorkoutFocus && (
+                  <div className="pt-3 border-t border-border">
+                    <p className="text-xs text-muted-foreground mb-1">Workout focus</p>
+                    <p className="text-xs font-medium text-primary capitalize">{selectedWorkoutFocus.replace(/_/g, " ")}</p>
+                  </div>
+                )}
               </div>
 
               {/* What you'll get */}
@@ -534,8 +665,9 @@ export default function OnboardingPage() {
                 <p className="text-sm font-semibold text-foreground">What's being built for you</p>
                 {[
                   "Calorie & protein targets from your stats",
-                  "A personalized daily schedule",
-                  "A workout plan for your level & equipment",
+                  scheduleChoice === "yes"
+                    ? "Your custom schedule saved — coach works around it"
+                    : "A personalized workout schedule for your focus & sport",
                   "Meal check-ins with instant coach feedback",
                   "Nightly reviews with a performance score",
                   "Weekly weigh-in plan adjustments",
@@ -556,25 +688,22 @@ export default function OnboardingPage() {
               </div>
 
               <div className="flex gap-3">
-                <Button type="button" variant="outline" onClick={() => setStep(4)} disabled={isLoading} className="h-14 px-5 rounded-2xl" data-testid="button-back-step5">
+                <Button type="button" variant="outline" onClick={() => setStep(4)} className="h-14 px-5 rounded-2xl" data-testid="button-back-step5">
                   <ChevronLeft className="w-5 h-5" />
                 </Button>
                 <Button
-                  className="flex-1 h-14 rounded-2xl text-[15px] font-semibold shadow-lg shadow-primary/20"
+                  type="button"
                   onClick={handleSubmit}
-                  disabled={isLoading || selectedGoals.length === 0}
-                  data-testid="button-submit-onboarding"
+                  disabled={isLoading}
+                  className="flex-1 h-14 rounded-2xl text-[15px] font-semibold gap-2"
+                  data-testid="button-launch"
                 >
-                  {isLoading ? "Building your plan…" : "Build My Plan"}
+                  {isLoading ? "Building your plan…" : "Launch my plan"}
+                  {!isLoading && <ArrowRight className="w-[18px] h-[18px]" />}
                 </Button>
               </div>
-
-              {(createProfile.isError || generatePlan.isError) && (
-                <p className="text-sm text-destructive text-center">Something went wrong. Check your connection and try again.</p>
-              )}
             </div>
           )}
-
         </div>
       </div>
     </div>

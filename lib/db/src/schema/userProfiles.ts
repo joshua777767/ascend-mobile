@@ -38,6 +38,11 @@ export const userProfilesTable = pgTable("user_profiles", {
   skinConcerns: text("skin_concerns").notNull().default("[]"),
   digestionConcerns: text("digestion_concerns").notNull().default("[]"),
   biggestStruggle: text("biggest_struggle"),
+  sport: text("sport"),
+  sportCustom: text("sport_custom"),
+  hasOwnSchedule: text("has_own_schedule"),
+  ownSchedule: text("own_schedule"),
+  workoutFocus: text("workout_focus"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

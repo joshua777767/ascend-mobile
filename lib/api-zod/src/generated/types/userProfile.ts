@@ -52,5 +52,15 @@ export interface UserProfile {
   digestionConcerns?: string[];
   /** @nullable */
   biggestStruggle?: string | null;
+  /** @nullable */
+  sport?: string | null;
+  /** @nullable */
+  sportCustom?: string | null;
+  /** @nullable */
+  hasOwnSchedule?: string | null;
+  /** @nullable */
+  ownSchedule?: string | null;
+  /** @nullable */
+  workoutFocus?: string | null;
   createdAt: Date;
 }

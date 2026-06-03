@@ -53,6 +53,11 @@ export const GetUserProfileResponse = zod.object({
   "skinConcerns": zod.array(zod.string()).optional(),
   "digestionConcerns": zod.array(zod.string()).optional(),
   "biggestStruggle": zod.string().nullish(),
+  "sport": zod.string().nullish(),
+  "sportCustom": zod.string().nullish(),
+  "hasOwnSchedule": zod.string().nullish(),
+  "ownSchedule": zod.string().nullish(),
+  "workoutFocus": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -92,7 +97,12 @@ export const CreateUserProfileBody = zod.object({
   "screenTimeBeforeBed": zod.string().optional(),
   "skinConcerns": zod.array(zod.string()).optional(),
   "digestionConcerns": zod.array(zod.string()).optional(),
-  "biggestStruggle": zod.string().optional()
+  "biggestStruggle": zod.string().optional(),
+  "sport": zod.string().optional(),
+  "sportCustom": zod.string().optional(),
+  "hasOwnSchedule": zod.string().optional(),
+  "ownSchedule": zod.string().optional(),
+  "workoutFocus": zod.string().optional()
 })
 
 
@@ -103,7 +113,12 @@ export const UpdateUserProfileBody = zod.object({
   "currentWeightKg": zod.number().optional(),
   "sleepQuality": zod.number().optional(),
   "energyLevel": zod.number().optional(),
-  "stressLevel": zod.number().optional()
+  "stressLevel": zod.number().optional(),
+  "sport": zod.string().optional(),
+  "sportCustom": zod.string().optional(),
+  "hasOwnSchedule": zod.string().optional(),
+  "ownSchedule": zod.string().optional(),
+  "workoutFocus": zod.string().optional()
 })
 
 export const UpdateUserProfileResponse = zod.object({
@@ -140,6 +155,11 @@ export const UpdateUserProfileResponse = zod.object({
   "skinConcerns": zod.array(zod.string()).optional(),
   "digestionConcerns": zod.array(zod.string()).optional(),
   "biggestStruggle": zod.string().nullish(),
+  "sport": zod.string().nullish(),
+  "sportCustom": zod.string().nullish(),
+  "hasOwnSchedule": zod.string().nullish(),
+  "ownSchedule": zod.string().nullish(),
+  "workoutFocus": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
