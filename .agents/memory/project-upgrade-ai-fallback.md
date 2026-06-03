@@ -1,22 +1,25 @@
 ---
 name: Project Upgrade AI fallbacks
-description: OpenAI quota state in dev and how meal/coach features degrade
+description: OpenAI quota state in dev and the design rules for the deterministic fallbacks
 ---
 
-The project's OPENAI_API_KEY hits 429 insufficient_quota in the dev environment, so
-every AI-backed feature (meal feedback, coach chat, daily reviews, weigh-in adjustments)
-always falls through to its graceful fallback. The full AI code path is correct but
-untestable until quota is restored — test and verify the fallback path instead.
+The project's OpenAI key hits 429 insufficient_quota in dev, so every AI-backed feature
+(meal feedback, coach chat, daily reviews, weigh-in adjustments) always degrades to a
+deterministic fallback. The AI code paths are correct but untestable until quota returns
+— verify the FALLBACK behavior, not the live AI.
 
-**Meal feedback fallback:** deterministic `heuristicFeedback()` in
-`artifacts/api-server/src/routes/meals.ts` scores the typed description against the
-user's goal using GOOD_FOODS / BAD_FOODS keyword lists (base 60, +9 per good, -14 per
-bad, clamped 5-100). Goal-aware (fat_loss / muscle_gain specialized, others generic).
-Image-only with no text returns a neutral "add a description" message.
+**Why fallbacks exist:** core flows (logging a meal, asking the coach) must work and demo
+without any AI dependency. Each AI call is wrapped so 429/empty responses route to a local
+heuristic instead of a generic "offline" stub.
 
-**Meal images:** stored as base64 data URLs in `meals.imageUrl` (no object storage);
-client compresses to ~1024px JPEG; `express.json` limit is 12mb. Server validates the
-data URL prefix is `data:image/(png|jpe?g|webp|gif);base64,`.
+**Coach chat safety ordering (do not reorder):** the chat fallback is an ordered keyword
+matcher and ordering is the safety contract — crisis/self-harm and medical/injury
+redirects MUST be checked before any coaching topic, so a message mixing crisis wording
+with a fitness question never falls through to generic advice. When editing, keep these
+two checks first and keep their keyword coverage broad (include common variants).
 
-**Why:** avoids a hard dependency on AI availability for a core logging flow, and keeps
-the feature demoable without quota.
+**Required tone/safety for any coach copy (AI or fallback):** strict but encouraging,
+direct not mean, positive not corny. Never give medical advice, never recommend
+starvation/extreme fasting, never promise guaranteed results.
+
+**Units:** always present weight to the user in lbs (kg ×2.2046226), never kg.

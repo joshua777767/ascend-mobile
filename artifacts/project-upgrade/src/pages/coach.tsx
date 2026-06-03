@@ -9,14 +9,12 @@ import { cn } from "@/lib/utils";
 import { Send, MessageSquare } from "lucide-react";
 
 const SUGGESTED_QUESTIONS = [
-  "Can I eat this?",
-  "I missed the gym today. What now?",
-  "I'm starving. What do I do?",
-  "Why am I not losing weight?",
-  "Why am I not gaining weight?",
-  "What should my schedule be tomorrow?",
-  "How do I get better skin?",
-  "Why is my energy low?",
+  "What should I eat next?",
+  "I missed my workout, what now?",
+  "How do I get more energy?",
+  "How do I stop snacking at night?",
+  "How do I gain weight faster?",
+  "How do I stay disciplined?",
 ];
 
 export default function CoachPage() {
@@ -132,8 +130,23 @@ export default function CoachPage() {
       </div>
 
       {/* Input area */}
-      <div className="shrink-0 p-3 border-t border-border bg-card">
-        <div className="flex gap-2 items-end">
+      <div className="shrink-0 border-t border-border bg-card">
+        {history && history.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto scroll-area px-3 pt-3 pb-1">
+            {SUGGESTED_QUESTIONS.map((q, i) => (
+              <button
+                key={i}
+                onClick={() => handleSend(q)}
+                disabled={sendMessage.isPending}
+                className="shrink-0 whitespace-nowrap text-xs px-3 py-1.5 rounded-full border border-border bg-background text-muted-foreground hover:text-foreground hover:border-primary/40 active:bg-muted/50 transition-colors disabled:opacity-50"
+                data-testid={`quick-question-${i}`}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-2 items-end p-3">
           <Textarea
             ref={textareaRef}
             value={input}
