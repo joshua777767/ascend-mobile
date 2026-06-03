@@ -5,6 +5,7 @@ import {
   useGetCurrentPlan,
   useGetTodayWorkout,
   useGetTodayReview,
+  useGetTodayMeals,
 } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -76,12 +77,54 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
+function IntakeBar({
+  icon: Icon,
+  label,
+  eaten,
+  target,
+  unit,
+  tint,
+}: {
+  icon: React.ElementType;
+  label: string;
+  eaten: number;
+  target: number;
+  unit?: string;
+  tint: "blue" | "green";
+}) {
+  const pct = target > 0 ? Math.min(100, Math.round((eaten / target) * 100)) : 0;
+  const barColor = tint === "blue" ? "bg-primary" : "bg-success";
+  const ringColor = tint === "blue" ? "bg-primary/15 text-primary" : "bg-success/15 text-success";
+  return (
+    <div className="rounded-2xl bg-card border border-border p-3.5">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${ringColor}`}>
+            <Icon className="w-3.5 h-3.5" strokeWidth={2.2} />
+          </div>
+          <span className="text-xs text-muted-foreground">{label}</span>
+        </div>
+        <span className="text-[10px] text-muted-foreground font-mono">{pct}%</span>
+      </div>
+      <p className="text-lg font-bold tracking-tight leading-none mb-2">
+        {eaten.toLocaleString()}
+        {unit && <span className="text-xs font-medium text-muted-foreground ml-0.5">{unit}</span>}
+        <span className="text-xs font-normal text-muted-foreground ml-1">/ {target.toLocaleString()}{unit}</span>
+      </p>
+      <div className="h-1.5 rounded-full bg-elevated overflow-hidden">
+        <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
   const { data: profile, isLoading: loadingProfile, error } = useGetUserProfile();
   const { data: plan } = useGetCurrentPlan();
   const { data: workout } = useGetTodayWorkout();
   const { data: review } = useGetTodayReview();
+  const { data: todayMeals } = useGetTodayMeals();
 
   useEffect(() => {
     if (error) setLocation("/onboarding");
@@ -114,6 +157,9 @@ export default function DashboardPage() {
     "Today's focus is simple: hit protein, follow the workout, drink water early, and protect your sleep. No random snacks, no excuses.";
 
   const firstName = profile.name?.split(" ")[0] ?? profile.name;
+
+  const todayCalories = (todayMeals ?? []).reduce((s, m) => s + (m.calories ?? 0), 0);
+  const todayProtein = (todayMeals ?? []).reduce((s, m) => s + (m.protein ?? 0), 0);
 
   return (
     <div className="h-full overflow-y-auto scroll-area">
@@ -148,13 +194,22 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Targets */}
+        {/* Today's Intake */}
+        {plan && (
+          <div>
+            <p className="text-sm font-semibold text-foreground mb-3">Today's Intake</p>
+            <div className="grid grid-cols-2 gap-3">
+              <IntakeBar icon={Flame} label="Calories" eaten={todayCalories} target={plan.calorieTarget} tint="blue" />
+              <IntakeBar icon={Beef} label="Protein" eaten={todayProtein} target={plan.proteinTargetG} unit="g" tint="green" />
+            </div>
+          </div>
+        )}
+
+        {/* Other Targets */}
         {plan && (
           <div>
             <p className="text-sm font-semibold text-foreground mb-3">Daily Targets</p>
             <div className="grid grid-cols-3 gap-3">
-              <MetricCard icon={Flame} value={plan.calorieTarget} label="Calories" tint="blue" />
-              <MetricCard icon={Beef} value={plan.proteinTargetG} unit="g" label="Protein" tint="green" />
               <MetricCard icon={Droplets} value={plan.waterTargetL} unit="L" label="Water" tint="blue" />
               <MetricCard icon={Footprints} value={plan.stepsTarget.toLocaleString()} label="Steps" tint="green" />
               <MetricCard icon={Moon} value={plan.sleepTargetHours} unit="h" label="Sleep" tint="blue" />

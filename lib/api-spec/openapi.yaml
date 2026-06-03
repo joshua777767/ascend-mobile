@@ -987,6 +987,10 @@ components:
           type: ["string", "null"]
         detectedFoodsJson:
           type: ["string", "null"]
+        calories:
+          type: ["integer", "null"]
+        protein:
+          type: ["integer", "null"]
 
     MealInput:
       type: object

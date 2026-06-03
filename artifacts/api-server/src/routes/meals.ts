@@ -300,6 +300,12 @@ router.post("/meals", async (req, res): Promise<void> => {
     whatWasBad: feedback.whatWasBad,
     whatToFixNext: feedback.whatToFixNext,
     detectedFoodsJson: feedback.detectedFoods ? JSON.stringify(feedback.detectedFoods) : null,
+    calories: feedback.detectedFoods
+      ? feedback.detectedFoods.reduce((s, f) => s + f.calories, 0)
+      : null,
+    protein: feedback.detectedFoods
+      ? feedback.detectedFoods.reduce((s, f) => s + f.protein, 0)
+      : null,
   }).returning();
 
   res.status(201).json(meal);

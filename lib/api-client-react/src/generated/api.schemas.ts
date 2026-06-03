@@ -209,6 +209,10 @@ export interface Meal {
   whatToFixNext?: string | null;
   /** @nullable */
   detectedFoodsJson?: string | null;
+  /** @nullable */
+  calories?: number | null;
+  /** @nullable */
+  protein?: number | null;
 }
 
 /**
