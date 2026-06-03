@@ -310,6 +310,33 @@ export const GetTodayMealsResponse = zod.array(GetTodayMealsResponseItem)
 
 
 /**
+ * @summary Generate meal options with AI
+ */
+export const GenerateMealsBody = zod.object({
+  "goal": zod.enum(['fat_loss', 'maintain', 'muscle_gain']).describe('Target goal for the meal plan'),
+  "mealType": zod.enum(['breakfast', 'lunch', 'dinner', 'snack', 'full_day']).describe('Meal type or full day plan'),
+  "preference": zod.enum(['high_protein', 'cheap', 'quick', 'no_cooking', 'school_friendly', 'athlete_friendly']).optional().describe('Optional preference filter'),
+  "availableFoods": zod.string().optional().describe('Comma-separated list of foods the user has available')
+})
+
+export const GenerateMealsResponse = zod.object({
+  "goal": zod.string(),
+  "mealType": zod.string(),
+  "preference": zod.string().optional(),
+  "totalCalories": zod.number().optional(),
+  "totalProtein": zod.number().optional(),
+  "options": zod.array(zod.object({
+  "name": zod.string().describe('Meal name'),
+  "ingredients": zod.array(zod.string()).describe('Simple ingredient list'),
+  "calories": zod.number(),
+  "protein": zod.number(),
+  "instructions": zod.string(),
+  "substitutions": zod.string().optional().describe('What to use if you don\'t have the main ingredients')
+}))
+})
+
+
+/**
  * @summary List nightly journal entries
  */
 export const ListJournalEntriesResponseItem = zod.object({

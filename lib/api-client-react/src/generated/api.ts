@@ -32,6 +32,8 @@ import type {
   JournalEntryInput,
   LoginInput,
   Meal,
+  MealGeneratorInput,
+  MealGeneratorResult,
   MealInput,
   MissionStreak,
   Plan,
@@ -1380,6 +1382,77 @@ export function useGetTodayMeals<TData = Awaited<ReturnType<typeof getTodayMeals
 
 
 
+
+export const getGenerateMealsUrl = () => {
+
+
+
+
+  return `/api/meals/generate`
+}
+
+/**
+ * @summary Generate meal options with AI
+ */
+export const generateMeals = async (mealGeneratorInput: MealGeneratorInput, options?: RequestInit): Promise<MealGeneratorResult> => {
+
+  return customFetch<MealGeneratorResult>(getGenerateMealsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      mealGeneratorInput,)
+  }
+);}
+
+
+
+
+export const getGenerateMealsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateMeals>>, TError,{data: BodyType<MealGeneratorInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateMeals>>, TError,{data: BodyType<MealGeneratorInput>}, TContext> => {
+
+const mutationKey = ['generateMeals'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateMeals>>, {data: BodyType<MealGeneratorInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateMeals(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateMealsMutationResult = NonNullable<Awaited<ReturnType<typeof generateMeals>>>
+    export type GenerateMealsMutationBody = BodyType<MealGeneratorInput>
+    export type GenerateMealsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate meal options with AI
+ */
+export const useGenerateMeals = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateMeals>>, TError,{data: BodyType<MealGeneratorInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateMeals>>,
+        TError,
+        {data: BodyType<MealGeneratorInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateMealsMutationOptions(options));
+    }
 
 export const getListJournalEntriesUrl = () => {
 

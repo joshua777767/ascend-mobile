@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, mealsTable, userProfilesTable, plansTable } from "@workspace/db";
-import { CreateMealBody } from "@workspace/api-zod";
+import { CreateMealBody, GenerateMealsBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
 import { logger } from "../lib/logger";
 import { getUserId } from "../middlewares/auth";
@@ -275,6 +275,205 @@ router.get("/meals/today", async (req, res): Promise<void> => {
     .orderBy(desc(mealsTable.loggedAt));
   const todayMeals = meals.filter(m => new Date(m.loggedAt) >= today);
   res.json(todayMeals);
+});
+
+interface MealOption {
+  name: string;
+  ingredients: string[];
+  calories: number;
+  protein: number;
+  instructions: string;
+  substitutions: string;
+}
+
+interface MealGeneratorResult {
+  goal: string;
+  mealType: string;
+  preference?: string;
+  totalCalories?: number;
+  totalProtein?: number;
+  options: MealOption[];
+}
+
+// Deterministic fallback: a small, fast meal generator when OpenAI is unavailable
+function heuristicGenerateMeals(
+  goal: string,
+  mealType: string,
+  preference?: string,
+  availableFoods?: string,
+): MealGeneratorResult {
+  const userHas = (food: string): boolean => {
+    if (!availableFoods) return true;
+    return availableFoods.toLowerCase().includes(food);
+  };
+
+  const allRecipes = [
+    { name: "Eggs + Oatmeal + Berries", goal: "fat_loss", types: ["breakfast"], cal: 400, pro: 30, ingredients: ["2 eggs", "1 cup oatmeal", "handful of berries", "splash of milk"], inst: "Scramble eggs. Cook oatmeal with milk. Top with berries.", subs: "Use egg whites or tofu instead of eggs. Use any fruit instead of berries." },
+    { name: "Greek Yogurt Bowl", goal: "fat_loss", types: ["breakfast", "snack"], cal: 350, pro: 25, ingredients: ["1 cup Greek yogurt", "1 banana", "1 tbsp granola"], inst: "Mix yogurt with sliced banana. Top with granola.", subs: "Use cottage cheese or skyr instead of Greek yogurt." },
+    { name: "Protein Smoothie", goal: "fat_loss", types: ["breakfast", "snack"], cal: 350, pro: 30, ingredients: ["1 scoop protein powder", "1 cup almond milk", "1 cup spinach", "1 banana"], inst: "Blend everything together.", subs: "Use any milk or juice. Add oats for thickness." },
+    { name: "Chicken Rice Bowl", goal: "fat_loss", types: ["lunch", "dinner"], cal: 500, pro: 40, ingredients: ["150g chicken breast", "1/2 cup rice", "1 cup mixed vegetables", "soy sauce"], inst: "Grill or pan-fry chicken. Cook rice. Steam or stir-fry vegetables.", subs: "Use turkey, tofu, or canned tuna instead of chicken." },
+    { name: "Tuna Wrap", goal: "fat_loss", types: ["lunch", "dinner"], cal: 400, pro: 35, ingredients: ["1 can tuna", "1 whole-grain wrap", "lettuce", "tomato", "light mayo"], inst: "Mix tuna with light mayo. Fill wrap with lettuce and tomato.", subs: "Use chicken, turkey, or hummus instead of tuna." },
+    { name: "Salmon + Veggies", goal: "fat_loss", types: ["dinner"], cal: 500, pro: 38, ingredients: ["150g salmon", "1 cup broccoli", "1/2 sweet potato"], inst: "Bake salmon. Steam broccoli. Bake or microwave sweet potato.", subs: "Use any fish or chicken instead of salmon." },
+    { name: "Lean Beef Stir Fry", goal: "fat_loss", types: ["dinner"], cal: 480, pro: 42, ingredients: ["150g lean beef", "1 cup bell peppers", "1 cup snap peas", "soy sauce", "1/2 cup rice"], inst: "Stir-fry beef and vegetables. Serve over rice.", subs: "Use chicken, turkey, or tofu instead of beef." },
+    { name: "Protein Shake + Apple", goal: "fat_loss", types: ["snack"], cal: 250, pro: 28, ingredients: ["1 scoop protein powder", "water", "1 apple"], inst: "Shake protein powder with water. Eat apple.", subs: "Use any fruit instead of apple." },
+    { name: "Cottage Cheese + Fruit", goal: "fat_loss", types: ["snack"], cal: 200, pro: 22, ingredients: ["1 cup cottage cheese", "1/2 cup pineapple or berries"], inst: "Top cottage cheese with fruit.", subs: "Use Greek yogurt instead of cottage cheese." },
+    { name: "High-Calorie Breakfast Bowl", goal: "muscle_gain", types: ["breakfast"], cal: 700, pro: 40, ingredients: ["4 eggs", "1 cup oatmeal", "2 tbsp peanut butter", "1 banana", "1 cup milk"], inst: "Scramble eggs. Cook oatmeal with milk. Stir in peanut butter. Top with banana.", subs: "Use any nut butter instead of peanut butter. Add protein powder to oats." },
+    { name: "Greek Yogurt Power Bowl", goal: "muscle_gain", types: ["breakfast", "snack"], cal: 650, pro: 35, ingredients: ["1.5 cups Greek yogurt", "1/2 cup granola", "1 banana", "1 tbsp honey"], inst: "Mix yogurt with banana, granola, and honey.", subs: "Use cottage cheese or skyr instead of yogurt." },
+    { name: "Mass Gainer Shake", goal: "muscle_gain", types: ["breakfast", "snack"], cal: 750, pro: 35, ingredients: ["1.5 cups milk", "1/2 cup oats", "1 banana", "2 tbsp peanut butter", "1 scoop protein powder"], inst: "Blend everything together.", subs: "Use any milk or juice. Add Greek yogurt for extra protein." },
+    { name: "Chicken + Rice + Avocado", goal: "muscle_gain", types: ["lunch", "dinner"], cal: 700, pro: 48, ingredients: ["200g chicken breast", "1 cup rice", "1/2 avocado", "olive oil", "vegetables"], inst: "Cook chicken and rice. Add avocado and vegetables. Drizzle with olive oil.", subs: "Use beef, turkey, or tofu instead of chicken." },
+    { name: "Pasta with Beef", goal: "muscle_gain", types: ["lunch", "dinner"], cal: 800, pro: 50, ingredients: ["150g ground beef", "1.5 cups pasta", "tomato sauce", "parmesan"], inst: "Cook pasta. Brown beef. Add sauce. Serve with parmesan.", subs: "Use chicken or turkey instead of beef." },
+    { name: "Beef Burrito Bowl", goal: "muscle_gain", types: ["lunch", "dinner"], cal: 750, pro: 45, ingredients: ["150g lean beef", "1 cup rice", "1/2 cup beans", "cheese", "salsa", "vegetables"], inst: "Cook beef and rice. Assemble bowl with beans, cheese, salsa, and vegetables.", subs: "Use chicken or turkey instead of beef." },
+    { name: "Steak + Potato + Veggies", goal: "muscle_gain", types: ["dinner"], cal: 780, pro: 52, ingredients: ["180g lean steak", "1 large potato", "1 cup vegetables", "olive oil"], inst: "Grill steak. Bake potato. Steam vegetables.", subs: "Use any lean protein instead of steak." },
+    { name: "Peanut Butter Toast + Milk", goal: "muscle_gain", types: ["snack"], cal: 400, pro: 18, ingredients: ["2 slices whole grain bread", "2 tbsp peanut butter", "1 cup milk"], inst: "Toast bread. Spread peanut butter. Drink milk.", subs: "Use any nut butter or hummus. Use any milk or protein shake." },
+    { name: "Tuna Sandwich + Shake", goal: "muscle_gain", types: ["snack", "lunch"], cal: 500, pro: 35, ingredients: ["1 can tuna", "2 slices whole grain bread", "1 scoop protein powder", "1 cup water"], inst: "Make tuna sandwich. Mix protein shake.", subs: "Use chicken or turkey instead of tuna." },
+    { name: "Balanced Breakfast Plate", goal: "maintain", types: ["breakfast"], cal: 450, pro: 28, ingredients: ["3 eggs", "2 slices whole grain toast", "1 piece of fruit"], inst: "Cook eggs to preference. Toast bread. Serve with fruit.", subs: "Use any protein source instead of eggs." },
+    { name: "Greek Yogurt + Granola", goal: "maintain", types: ["breakfast", "snack"], cal: 380, pro: 22, ingredients: ["1 cup Greek yogurt", "1/2 cup granola", "1/2 cup berries"], inst: "Mix yogurt with granola and berries.", subs: "Use cottage cheese or skyr instead of yogurt." },
+    { name: "Chicken or Fish Bowl", goal: "maintain", types: ["lunch", "dinner"], cal: 520, pro: 40, ingredients: ["150g chicken or fish", "1/2 cup rice", "mixed salad", "olive oil"], inst: "Cook protein and rice. Serve with salad and olive oil.", subs: "Use any lean protein. Use any grain or potato." },
+    { name: "Turkey Wrap", goal: "maintain", types: ["lunch", "dinner"], cal: 450, pro: 32, ingredients: ["150g turkey", "1 whole grain wrap", "lettuce", "tomato", "light dressing"], inst: "Fill wrap with turkey, lettuce, and tomato. Add dressing.", subs: "Use chicken or tuna instead of turkey." },
+    { name: "Stir Fry with Lean Meat", goal: "maintain", types: ["dinner"], cal: 480, pro: 38, ingredients: ["150g lean meat", "1 cup mixed vegetables", "1/2 cup rice", "soy sauce"], inst: "Stir-fry meat and vegetables. Serve over rice.", subs: "Use any protein instead of lean meat." },
+    { name: "Protein Shake + Nuts", goal: "maintain", types: ["snack"], cal: 300, pro: 28, ingredients: ["1 scoop protein powder", "1 cup water", "handful of nuts"], inst: "Mix protein shake. Eat nuts.", subs: "Use any fruit instead of nuts." },
+  ];
+
+  let filtered = allRecipes.filter(r => r.types.includes(mealType) && (r.goal === goal || goal === "maintain"));
+  if (filtered.length === 0) {
+    filtered = allRecipes.filter(r => r.types.includes(mealType) || r.types.includes("lunch"));
+  }
+  if (filtered.length === 0) {
+    filtered = allRecipes.slice(0, 5);
+  }
+
+  // If user has available foods, prefer recipes that match
+  if (availableFoods) {
+    filtered.sort((a, b) => {
+      const aMatch = a.ingredients.filter(i => userHas(i.split(" ").pop() || i)).length;
+      const bMatch = b.ingredients.filter(i => userHas(i.split(" ").pop() || i)).length;
+      return bMatch - aMatch;
+    });
+  }
+
+  // If preference is set, bias the calorie/protein
+  const options: MealOption[] = filtered.slice(0, 5).map(r => {
+    let cal = r.cal;
+    let pro = r.pro;
+    if (preference === "high_protein") {
+      pro = Math.round(pro * 1.2);
+      cal = Math.round(cal * 1.05);
+    } else if (preference === "cheap") {
+      cal = Math.round(cal * 0.95);
+      pro = Math.round(pro * 0.95);
+    } else if (preference === "quick") {
+      cal = Math.round(cal * 0.95);
+    } else if (preference === "athlete_friendly") {
+      cal = Math.round(cal * 1.15);
+      pro = Math.round(pro * 1.15);
+    }
+    return {
+      name: r.name,
+      ingredients: r.ingredients,
+      calories: cal,
+      protein: pro,
+      instructions: r.inst,
+      substitutions: r.subs,
+    };
+  });
+
+  let totalCalories: number | undefined;
+  let totalProtein: number | undefined;
+  if (mealType === "full_day") {
+    totalCalories = options.reduce((sum, o) => sum + o.calories, 0);
+    totalProtein = options.reduce((sum, o) => sum + o.protein, 0);
+  }
+
+  return { goal, mealType, preference, options, totalCalories, totalProtein };
+}
+
+async function generateMealsWithAI(
+  goal: string,
+  mealType: string,
+  preference?: string,
+  availableFoods?: string,
+): Promise<MealGeneratorResult> {
+  const prefText = preference ? ` The user wants ${preference} meals.` : "";
+  const availText = availableFoods ? ` They have these foods available: ${availableFoods}.` : "";
+  const calTarget = goal === "fat_loss" ? "1,800-2,200" : goal === "muscle_gain" ? "2,800-3,200" : "2,200-2,600";
+  const proTarget = goal === "fat_loss" ? "120-160" : goal === "muscle_gain" ? "160-200" : "120-150";
+  const typeNote = mealType === "full_day" ? "a full-day meal plan with breakfast, lunch, dinner, and 1-2 snacks." : `3-5 meal options for ${mealType}.`;
+
+  try {
+    const prompt = `You are a strict, practical AI nutrition coach. Generate ${typeNote}
+
+Goal: ${goal}${prefText}${availText}
+Daily targets to stay near: ${calTarget} calories, ${proTarget}g protein.
+
+Each meal must include:
+- name
+- ingredients (simple, short list)
+- estimated calories
+- estimated protein
+- 1-2 sentence instructions
+- substitutions if they don't have the exact ingredients
+
+Safety rules:
+- No meal under 150 calories.
+- No starvation or extreme diets.
+- No meals over 1,200 calories unless it's a bulking shake.
+- Keep portions realistic for a single person.
+
+Respond ONLY as valid JSON:
+{
+  "options": [
+    {
+      "name": "Meal Name",
+      "ingredients": ["ingredient 1", "ingredient 2"],
+      "calories": 400,
+      "protein": 30,
+      "instructions": "Short cooking steps.",
+      "substitutions": "If you don't have X, use Y or Z."
+    }
+  ]
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      max_tokens: 900,
+      response_format: { type: "json_object" },
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const content = response.choices[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(content) as { options?: MealOption[] };
+    const options = (parsed.options ?? []).map(o => ({
+      name: o.name ?? "Meal",
+      ingredients: Array.isArray(o.ingredients) ? o.ingredients : ["See instructions"],
+      calories: typeof o.calories === "number" ? Math.round(o.calories) : 400,
+      protein: typeof o.protein === "number" ? Math.round(o.protein) : 30,
+      instructions: o.instructions ?? "Prepare as described.",
+      substitutions: o.substitutions ?? "Use any similar protein or vegetable.",
+    }));
+
+    let totalCalories: number | undefined;
+    let totalProtein: number | undefined;
+    if (mealType === "full_day" && options.length > 0) {
+      totalCalories = options.reduce((sum, o) => sum + o.calories, 0);
+      totalProtein = options.reduce((sum, o) => sum + o.protein, 0);
+    }
+
+    return { goal, mealType, preference, options, totalCalories, totalProtein };
+  } catch (err) {
+    logger.warn({ err }, "AI meal generator unavailable, using heuristic fallback");
+    return heuristicGenerateMeals(goal, mealType, preference, availableFoods);
+  }
+}
+
+router.post("/meals/generate", async (req, res): Promise<void> => {
+  const parsed = GenerateMealsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const { goal, mealType, preference, availableFoods } = parsed.data;
+  const result = await generateMealsWithAI(goal, mealType, preference ?? undefined, availableFoods ?? undefined);
+  res.json(result);
 });
 
 export default router;

@@ -323,6 +323,25 @@ paths:
                 items:
                   $ref: "#/components/schemas/Meal"
 
+  /meals/generate:
+    post:
+      operationId: generateMeals
+      tags: [meals]
+      summary: Generate meal options with AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealGeneratorInput"
+      responses:
+        "200":
+          description: Generated meal options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealGeneratorResult"
+
   /journal:
     get:
       operationId: listJournalEntries
@@ -1214,6 +1233,77 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Meal"
+
+    MealGeneratorInput:
+      type: object
+      required:
+        - goal
+        - mealType
+      properties:
+        goal:
+          type: string
+          enum: [fat_loss, maintain, muscle_gain]
+          description: Target goal for the meal plan
+        mealType:
+          type: string
+          enum: [breakfast, lunch, dinner, snack, full_day]
+          description: Meal type or full day plan
+        preference:
+          type: string
+          enum: [high_protein, cheap, quick, no_cooking, school_friendly, athlete_friendly]
+          description: Optional preference filter
+        availableFoods:
+          type: string
+          description: Comma-separated list of foods the user has available
+
+    MealGeneratorResult:
+      type: object
+      required:
+        - goal
+        - mealType
+        - options
+      properties:
+        goal:
+          type: string
+        mealType:
+          type: string
+        preference:
+          type: string
+        totalCalories:
+          type: number
+        totalProtein:
+          type: number
+        options:
+          type: array
+          items:
+            $ref: "#/components/schemas/MealOption"
+
+    MealOption:
+      type: object
+      required:
+        - name
+        - ingredients
+        - calories
+        - protein
+        - instructions
+      properties:
+        name:
+          type: string
+          description: Meal name
+        ingredients:
+          type: array
+          items:
+            type: string
+          description: Simple ingredient list
+        calories:
+          type: number
+        protein:
+          type: number
+        instructions:
+          type: string
+        substitutions:
+          type: string
+          description: What to use if you don't have the main ingredients
 
     MissionStreak:
       type: object

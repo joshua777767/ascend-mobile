@@ -303,6 +303,79 @@ export interface ProgressSummary {
   recentMeals: Meal[];
 }
 
+/**
+ * Target goal for the meal plan
+ */
+export type MealGeneratorInputGoal = typeof MealGeneratorInputGoal[keyof typeof MealGeneratorInputGoal];
+
+
+export const MealGeneratorInputGoal = {
+  fat_loss: 'fat_loss',
+  maintain: 'maintain',
+  muscle_gain: 'muscle_gain',
+} as const;
+
+/**
+ * Meal type or full day plan
+ */
+export type MealGeneratorInputMealType = typeof MealGeneratorInputMealType[keyof typeof MealGeneratorInputMealType];
+
+
+export const MealGeneratorInputMealType = {
+  breakfast: 'breakfast',
+  lunch: 'lunch',
+  dinner: 'dinner',
+  snack: 'snack',
+  full_day: 'full_day',
+} as const;
+
+/**
+ * Optional preference filter
+ */
+export type MealGeneratorInputPreference = typeof MealGeneratorInputPreference[keyof typeof MealGeneratorInputPreference];
+
+
+export const MealGeneratorInputPreference = {
+  high_protein: 'high_protein',
+  cheap: 'cheap',
+  quick: 'quick',
+  no_cooking: 'no_cooking',
+  school_friendly: 'school_friendly',
+  athlete_friendly: 'athlete_friendly',
+} as const;
+
+export interface MealGeneratorInput {
+  /** Target goal for the meal plan */
+  goal: MealGeneratorInputGoal;
+  /** Meal type or full day plan */
+  mealType: MealGeneratorInputMealType;
+  /** Optional preference filter */
+  preference?: MealGeneratorInputPreference;
+  /** Comma-separated list of foods the user has available */
+  availableFoods?: string;
+}
+
+export interface MealOption {
+  /** Meal name */
+  name: string;
+  /** Simple ingredient list */
+  ingredients: string[];
+  calories: number;
+  protein: number;
+  instructions: string;
+  /** What to use if you don't have the main ingredients */
+  substitutions?: string;
+}
+
+export interface MealGeneratorResult {
+  goal: string;
+  mealType: string;
+  preference?: string;
+  totalCalories?: number;
+  totalProtein?: number;
+  options: MealOption[];
+}
+
 export interface MissionStreak {
   currentStreak: number;
   longestStreak: number;
