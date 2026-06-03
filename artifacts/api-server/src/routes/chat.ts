@@ -241,7 +241,13 @@ function heuristicReply(message: string, ctx: ChatContext): string {
     if (isLosing) {
       if (weeklyPace <= 2) {
         const verdict = weeklyPace <= 1 ? "realistic and sustainable" : "aggressive but doable with strict execution";
-        return `Reality Check: Losing ${lbs} lbs in ${weeks < 4 ? Math.round(weeks) + " weeks" : Math.round(weeks / 4.3) + " months"} is ${verdict} — that's ${weeklyPace.toFixed(1)} lbs per week.\n\nYour Target:\n• Calories: ${calStr}\n• Protein: ${proStr}\n• Steps: 8,000/day\n• Workouts: ${days}x/week\n• Water: 3L/day\n• Sleep: 7-8 hours\n\nStay consistent. The plan works if you execute it daily.`;
+        const discipline =
+          weeklyPace <= 1
+            ? "Discipline Required: Moderate. You have margin — an imperfect day here and there won't sink it as long as the week averages out."
+            : weeklyPace <= 1.5
+              ? "Discipline Required: High. Little room for error — you need roughly 6 of 7 days fully dialed in."
+              : "Discipline Required: Very high. This is near-perfect execution — every meal tracked, protein hit daily, no skipped workouts, sleep locked in. Miss the behaviors and you will not hit this number.";
+        return `Reality Check: Losing ${lbs} lbs in ${weeks < 4 ? Math.round(weeks) + " weeks" : Math.round(weeks / 4.3) + " months"} is ${verdict} — that's ${weeklyPace.toFixed(1)} lbs per week.\n\n${discipline}\n\nThe Daily Behaviors (this is what actually gets you there — not just calorie math):\n• Calorie adherence: ${calStr}, hit 6-7 days/week. One 1,500-cal blowout erases three days of deficit. This is the #1 driver.\n• Protein: ${proStr} every day. It keeps the weight you lose as fat, not muscle, and keeps you full.\n• Steps: 8,000/day minimum. Burns fat without spiking hunger like hard cardio.\n• Sleep: 7-8 hours. Under 7 spikes cravings and kills willpower — one bad night sabotages a perfect diet day.\n• Meal tracking: log every meal, every day. Untracked bites, sauces, and drinks are where the deficit silently vanishes.\n• Training: ${days}x/week, every week. Lifting tells your body to hold muscle while you lose fat.\n\nCoach Command: The math is the easy part. Win the behaviors daily and the result is automatic.`;
       } else {
         return `Reality Check: Losing ${lbs} lbs in ${weeks < 4 ? Math.round(weeks) + " weeks" : Math.round(weeks / 4.3) + " months"} requires ${weeklyPace.toFixed(1)} lbs per week — that's above the safe limit of 2 lbs/week. Crash diets cause muscle loss, metabolic slowdown, and rebound weight gain.\n\nSafer target: ${Math.round(weeks * 1.5)} lbs in that same timeframe. Focus on ${calStr}, ${proStr}, daily walking, and strength training. Slower and consistent beats fast and broken.`;
       }
@@ -288,7 +294,9 @@ function heuristicReply(message: string, ctx: ChatContext): string {
   }
 
   // 5. Calorie questions
-  if (has(m, ["why", "how many calories", "calorie target", "calorie goal", "how much should i eat", "my calories", "my target"])) {
+  const asksCalorieDirect = has(m, ["how many calories", "calorie target", "calorie goal", "how much should i eat", "my calories", "my target"]);
+  const asksWhyCalories = has(m, ["why"]) && has(m, ["calorie", "deficit", "surplus", "macro", "target", "eat"]);
+  if (asksCalorieDirect || asksWhyCalories) {
     if (goalType === "fat_loss") {
       return `Your target is ${calStr} because that creates a moderate calorie deficit that drives fat loss without destroying your energy, workouts, or metabolism. Eat less than that and you risk muscle loss and burnout. Eat at this level consistently and the fat comes off steadily. Pair it with ${proStr} to protect muscle.`;
     }
@@ -300,7 +308,7 @@ function heuristicReply(message: string, ctx: ChatContext): string {
 
   // 6. Lose fat
   if (has(m, ["lose fat", "fat loss", "lose weight", "burn fat", "get lean", "leaner", "cut weight", "slim down", "losing weight"])) {
-    return `Reality Check: Fat loss is simple but requires consistency.\n\nYour Target:\n• Calories: ${calStr}\n• Protein: ${proStr}\n• Steps: 8,000/day minimum\n• Workouts: ${days}x/week\n• Water: 3L/day\n• Sleep: 7-8 hours\n\nCoach Command: No liquid calories today. Hit protein first. Walk after meals.`;
+    return `Reality Check: Fat loss isn't about one number — it's about hitting the same behaviors every day. The calorie math is the easy part. Execution is what separates people who get there from people who don't.\n\nDiscipline Required: Daily and non-negotiable. You don't need to be perfect, but you need to be consistent — roughly 6 of 7 days dialed in, every week. Sporadic effort gets sporadic results.\n\nThe Daily Behaviors that decide it:\n• Calorie adherence: ${calStr}, hit 6-7 days/week. One blowout day can erase three days of progress.\n• Protein: ${proStr} every day. Protects muscle so the weight you lose is fat, and keeps you full.\n• Steps: 8,000/day minimum. The easiest fat-loss lever and the one most people skip.\n• Sleep: 7-8 hours. Bad sleep spikes cravings and wrecks willpower the next day.\n• Meal tracking: log everything, every day. If you don't track it, you can't manage it.\n• Training: ${days}x/week, every week. Consistency keeps the muscle while the fat comes off.\n\nCoach Command: No liquid calories today. Hit protein first. Walk after meals. Log every bite.`;
   }
 
   // 7. Gain weight
@@ -512,6 +520,12 @@ When a user mentions a goal with a timeframe, ALWAYS do the math:
 1. Calculate required weekly pace = total lbs / total weeks
 2. Assess: realistic (≤1 lb/week fat loss, ≤0.5 lb/week muscle gain), aggressive (1-2 lb/week fat loss), or unsafe (>2 lb/week fat loss, >0.5 lb/week muscle gain without drugs)
 3. State the verdict clearly: "Yes, that's realistic," or "No, that's not safe, here's why."
+4. State the LEVEL OF DISCIPLINE the pace demands — this is mandatory:
+   - ≤1 lb/week → "Moderate discipline. You have margin: an imperfect day here and there won't sink it, as long as the week averages out."
+   - 1–1.5 lb/week → "High discipline. Little room for error — you need roughly 6 of 7 days fully dialed in."
+   - 1.5–2 lb/week → "Very high discipline. This is near-perfect execution: every meal tracked, protein hit daily, no skipped workouts, sleep locked in. Miss the behaviors and you will not hit this number."
+   - >2 lb/week → unsafe, push back and give a realistic alternative.
+   Be honest about whether their current habits (from their data) match the discipline the goal requires.
 
 UNREALISTIC GOAL EXAMPLES — always push back on these:
 - "Lose 15 lbs in 2 days" → Not safe. Explain. Give safe alternative.
@@ -533,19 +547,35 @@ Whenever you state a calorie target, explain the reason briefly:
 - Maintenance: "This supports your energy and performance without gaining or losing weight."
 
 ═══════════════════════════════════════════════════
+COACH THE BEHAVIORS — NOT JUST THE MATH (CRITICAL)
+═══════════════════════════════════════════════════
+Calorie math is NOT the goal. The goal is the daily BEHAVIORS that produce the result. Never stop at "eat 500 calories less." Every fat-loss answer must explain what has to actually HAPPEN, every day, and WHY each behavior matters. The six behaviors that make or break the goal:
+
+1. DAILY CALORIE ADHERENCE — Hit your calorie target 6–7 days a week, not "on average when I feel like it." A single 1,500-calorie blowout can erase three days of deficit. This is the #1 driver of fat loss. Consistency beats perfection beats intensity.
+2. PROTEIN TARGET — Hit protein EVERY day. In a deficit it's what keeps the weight you lose as fat instead of muscle, and it keeps you full so adherence is easier. Non-negotiable.
+3. STEP TARGET — A daily step floor (e.g. 8,000–10,000). Walking burns fat without spiking hunger the way hard cardio does. It's the easiest lever and most people skip it.
+4. SLEEP TARGET — 7–8 hours. Under 7 spikes hunger hormones, destroys willpower, and stalls recovery. One bad night can sabotage a perfect diet day. Sleep is a fat-loss behavior, not a luxury.
+5. MEAL TRACKING CONSISTENCY — If you don't log it, you can't manage it. Untracked bites, sauces, oils, and drinks are exactly where deficits silently vanish. Track everything, every day — that's how we know whether the plan is working or needs adjusting.
+6. TRAINING CONSISTENCY — Strength training X days/week, every week. Lifting signals the body to hold onto muscle while losing fat. Showing up consistently is what separates real results from spinning wheels.
+
+When the user asks about a goal, do not just list targets — tell them which of these behaviors will make or break it, and be honest about the daily discipline required. Tie it to their actual data (their tracked meals, journal adherence, weigh-ins) when you have it.
+
+═══════════════════════════════════════════════════
 DAILY ACTION FORMAT — use this for goal/plan responses
 ═══════════════════════════════════════════════════
 When answering a goal question or giving a plan, include:
 
-Reality Check: [Is the goal realistic, aggressive, or unsafe?]
+Reality Check: [Is the goal realistic, aggressive, or unsafe? State the weekly pace.]
 
-Your Target:
-• Calories: [number] — [brief reason]
-• Protein: [number]g
-• Steps: [number]/day
-• Workouts: [frequency and type]
-• Water: [liters]
-• Sleep: [hours]
+Discipline Required: [Moderate / High / Very high — and what that means day to day for THIS pace.]
+
+The Daily Behaviors (this is what actually gets you there):
+• Calorie adherence: [number] cal — [why; hit it 6–7 days/week]
+• Protein: [number]g every day — [why it matters in a deficit/surplus]
+• Steps: [number]/day — [why]
+• Sleep: [hours] — [why it's a fat-loss/recovery behavior]
+• Meal tracking: log every meal, every day — [why: untracked food is where it falls apart]
+• Training: [frequency and type], every week — [why consistency wins]
 
 What To Eat: [2-3 specific meal options from their goal type]
 
