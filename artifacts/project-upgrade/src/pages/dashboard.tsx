@@ -21,11 +21,21 @@ function StatPill({ value, label, unit = "" }: { value: string | number; label: 
 
 function QuickAction({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string }) {
   return (
-    <Link href={href} className="flex flex-col items-center justify-center gap-2 bg-card border border-border py-5 active:bg-muted/50 transition-colors">
+    <Link
+      href={href}
+      className="flex flex-col items-center justify-center gap-2 bg-card border border-border py-5 active:bg-muted/50 transition-colors"
+    >
       <Icon className="w-6 h-6 text-primary" strokeWidth={1.5} />
       <span className="text-[11px] font-semibold uppercase tracking-widest text-foreground">{label}</span>
     </Link>
   );
+}
+
+function primaryGoalLabel(goals: string[]): string {
+  if (!goals || goals.length === 0) return "Active";
+  const priority = ["lose fat","lose weight","build muscle","gain weight","maintain fitness"];
+  const match = priority.find(g => goals.includes(g));
+  return match ? match.toUpperCase() : goals[0].toUpperCase();
 }
 
 export default function DashboardPage() {
@@ -45,15 +55,15 @@ export default function DashboardPage() {
     return (
       <div className="h-full overflow-y-auto scroll-area">
         <div className="p-4 max-w-lg mx-auto space-y-4 pt-6">
-          <Skeleton className="h-8 w-48 bg-muted" />
-          <Skeleton className="h-4 w-32 bg-muted" />
-          <div className="flex gap-3">
+          <Skeleton className="h-8 w-40 bg-muted" />
+          <Skeleton className="h-4 w-28 bg-muted" />
+          <div className="flex gap-2">
             <Skeleton className="h-16 flex-1 bg-muted" />
             <Skeleton className="h-16 flex-1 bg-muted" />
             <Skeleton className="h-16 flex-1 bg-muted" />
           </div>
-          <Skeleton className="h-28 w-full bg-muted" />
-          <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-20 w-full bg-muted" />
+          <div className="grid grid-cols-2 gap-2">
             <Skeleton className="h-20 bg-muted" />
             <Skeleton className="h-20 bg-muted" />
             <Skeleton className="h-20 bg-muted" />
@@ -68,6 +78,9 @@ export default function DashboardPage() {
     ? Math.abs(profile.currentWeightKg - profile.goalWeightKg).toFixed(1)
     : null;
 
+  const goals: string[] = Array.isArray(profile.goals) ? profile.goals : [];
+  const statusLabel = primaryGoalLabel(goals);
+
   return (
     <div className="h-full overflow-y-auto scroll-area">
       <div className="max-w-lg mx-auto px-4 pt-6 pb-6 space-y-5">
@@ -81,7 +94,7 @@ export default function DashboardPage() {
             {profile.name}
           </h1>
           <p className="text-xs text-muted-foreground uppercase tracking-widest mt-0.5">
-            Active · Training Phase
+            {statusLabel} · {profile.fitnessLevel}
           </p>
         </div>
 
@@ -156,15 +169,27 @@ export default function DashboardPage() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Goal</p>
               <p className="text-xl font-bold text-primary">{profile.goalWeightKg} <span className="text-xs font-normal text-muted-foreground">kg</span></p>
             </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">To Go</p>
-              <p className="text-xl font-bold">{toGoKg} <span className="text-xs font-normal text-muted-foreground">kg</span></p>
-            </div>
+            {toGoKg && (
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">To Go</p>
+                <p className="text-xl font-bold">{toGoKg} <span className="text-xs font-normal text-muted-foreground">kg</span></p>
+              </div>
+            )}
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Frequency</p>
               <p className="text-xl font-bold">{profile.workoutDaysPerWeek}<span className="text-xs font-normal text-muted-foreground">x / wk</span></p>
             </div>
           </div>
+          {goals.length > 0 && (
+            <div className="pt-3 border-t border-border">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Active Goals</p>
+              <div className="flex flex-wrap gap-1.5">
+                {goals.map(g => (
+                  <span key={g} className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider">{g}</span>
+                ))}
+              </div>
+            </div>
+          )}
           {plan?.coachNotes && (
             <div className="pt-3 border-t border-border">
               <p className="text-xs text-muted-foreground leading-relaxed">{plan.coachNotes}</p>
