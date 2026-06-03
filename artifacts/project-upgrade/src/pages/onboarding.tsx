@@ -7,10 +7,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCreateUserProfile, useGeneratePlan, getGetCurrentPlanQueryKey, getGetUserProfileQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, AlertTriangle, CheckCircle } from "lucide-react";
+import { ChevronLeft, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
 
 const GOALS = [
   "lose fat","lose weight","gain weight","build muscle",
@@ -63,11 +62,19 @@ type Step4 = z.infer<typeof step4Schema>;
 const TOTAL_STEPS = 5;
 
 const STEP_TITLES = [
-  "Who are you?",
-  "Training",
-  "Daily Routine",
-  "Nutrition",
-  "Review & Launch",
+  "About you",
+  "Your training",
+  "Daily routine",
+  "Nutrition & health",
+  "Review & launch",
+];
+
+const STEP_SUBTITLES = [
+  "Let's set up your profile",
+  "How you like to train",
+  "When you wake, work, and rest",
+  "What you eat and how you feel",
+  "Confirm and build your plan",
 ];
 
 function Chip({ label, selected, onToggle, testId }: { label: string; selected: boolean; onToggle: () => void; testId?: string }) {
@@ -76,10 +83,10 @@ function Chip({ label, selected, onToggle, testId }: { label: string; selected: 
       type="button"
       onClick={onToggle}
       className={cn(
-        "px-3 py-2 text-xs font-semibold uppercase tracking-wider border transition-colors",
+        "px-4 py-2.5 rounded-full text-sm font-medium capitalize border transition-all active:scale-[0.97]",
         selected
-          ? "bg-primary text-primary-foreground border-primary"
-          : "bg-card text-muted-foreground border-border active:bg-muted"
+          ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20"
+          : "bg-card text-muted-foreground border-border active:bg-elevated"
       )}
       data-testid={testId ?? `chip-${label.replace(/\s+/g, "-")}`}
     >
@@ -90,12 +97,14 @@ function Chip({ label, selected, onToggle, testId }: { label: string; selected: 
 
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
-  return <p className="text-xs text-destructive mt-1">{msg}</p>;
+  return <p className="text-xs text-destructive mt-1.5">{msg}</p>;
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">{children}</p>;
+  return <p className="text-sm font-semibold text-foreground mb-2.5">{children}</p>;
 }
+
+const inputClass = "bg-elevated border-border rounded-xl h-12 text-base";
 
 export default function OnboardingPage() {
   const [, setLocation] = useLocation();
@@ -175,38 +184,44 @@ export default function OnboardingPage() {
       style={{ height: "100dvh", overflow: "hidden", paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {/* Sticky header */}
-      <div className="shrink-0 px-4 pt-4 pb-3 border-b border-border bg-background">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-base font-bold uppercase tracking-tighter text-primary">UPGRADE</p>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest">
-            {step}/{TOTAL_STEPS}
+      <div className="shrink-0 px-5 pt-5 pb-4 bg-background">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground font-extrabold text-xs">U</span>
+            </div>
+            <span className="text-sm font-bold tracking-tight">Upgrade</span>
+          </div>
+          <p className="text-sm font-medium text-muted-foreground">
+            Step {step} of {TOTAL_STEPS}
           </p>
         </div>
         {/* Progress bar */}
-        <div className="h-1 bg-border">
+        <div className="h-1.5 rounded-full bg-elevated overflow-hidden">
           <div
-            className="h-1 bg-primary transition-all duration-300"
+            className="h-full rounded-full bg-primary transition-all duration-300"
             style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
           />
         </div>
-        <p className="text-[11px] text-muted-foreground uppercase tracking-widest mt-2">
-          {STEP_TITLES[step - 1]}
-        </p>
       </div>
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto scroll-area">
-        <div className="px-4 py-5 max-w-lg mx-auto space-y-5">
+        <div className="px-5 pt-2 pb-6 max-w-lg mx-auto">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold tracking-tight">{STEP_TITLES[step - 1]}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{STEP_SUBTITLES[step - 1]}</p>
+          </div>
 
           {/* STEP 1 — Identity */}
           {step === 1 && (
-            <form onSubmit={handleStep1} className="space-y-5">
-              <div className="space-y-1">
-                <SectionLabel>Your Name</SectionLabel>
+            <form onSubmit={handleStep1} className="space-y-6">
+              <div>
+                <SectionLabel>Your name</SectionLabel>
                 <Input
                   {...form1.register("name")}
                   placeholder="First name or nickname"
-                  className="bg-card border-border"
+                  className={inputClass}
                   data-testid="input-name"
                   autoComplete="given-name"
                 />
@@ -214,14 +229,14 @@ export default function OnboardingPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
+                <div>
                   <SectionLabel>Age</SectionLabel>
-                  <Input {...form1.register("age")} type="number" inputMode="numeric" placeholder="25" className="bg-card border-border" data-testid="input-age" />
+                  <Input {...form1.register("age")} type="number" inputMode="numeric" placeholder="25" className={inputClass} data-testid="input-age" />
                   <FieldError msg={form1.formState.errors.age?.message} />
                 </div>
-                <div className="space-y-1">
+                <div>
                   <SectionLabel>Gender</SectionLabel>
-                  <div className="flex gap-1.5 flex-wrap">
+                  <div className="flex gap-2 flex-wrap">
                     {["Male","Female","Other"].map(g => (
                       <Chip key={g} label={g} selected={form1.watch("gender") === g} onToggle={() => form1.setValue("gender", g)} testId={`option-${g}`} />
                     ))}
@@ -230,23 +245,26 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1">
-                  <SectionLabel>Height (cm)</SectionLabel>
-                  <Input {...form1.register("heightCm")} type="number" inputMode="numeric" placeholder="175" className="bg-card border-border" data-testid="input-height" />
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <SectionLabel>Height</SectionLabel>
+                  <Input {...form1.register("heightCm")} type="number" inputMode="numeric" placeholder="175" className={inputClass} data-testid="input-height" />
+                  <p className="text-xs text-muted-foreground mt-1">cm</p>
                 </div>
-                <div className="space-y-1">
-                  <SectionLabel>Current (kg)</SectionLabel>
-                  <Input {...form1.register("currentWeightKg")} type="number" inputMode="decimal" step="0.1" placeholder="80" className="bg-card border-border" data-testid="input-current-weight" />
+                <div>
+                  <SectionLabel>Current</SectionLabel>
+                  <Input {...form1.register("currentWeightKg")} type="number" inputMode="decimal" step="0.1" placeholder="80" className={inputClass} data-testid="input-current-weight" />
+                  <p className="text-xs text-muted-foreground mt-1">kg</p>
                 </div>
-                <div className="space-y-1">
-                  <SectionLabel>Goal (kg)</SectionLabel>
-                  <Input {...form1.register("goalWeightKg")} type="number" inputMode="decimal" step="0.1" placeholder="70" className="bg-card border-border" data-testid="input-goal-weight" />
+                <div>
+                  <SectionLabel>Goal</SectionLabel>
+                  <Input {...form1.register("goalWeightKg")} type="number" inputMode="decimal" step="0.1" placeholder="70" className={inputClass} data-testid="input-goal-weight" />
+                  <p className="text-xs text-muted-foreground mt-1">kg</p>
                 </div>
               </div>
 
               <div>
-                <SectionLabel>Body Type</SectionLabel>
+                <SectionLabel>Body type</SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {["skinny","overweight","fit","average"].map(t => (
                     <Chip key={t} label={t} selected={form1.watch("bodyType") === t} onToggle={() => form1.setValue("bodyType", t)} testId={`option-${t}`} />
@@ -256,30 +274,28 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <SectionLabel>Main Goals (pick all that apply)</SectionLabel>
+                <SectionLabel>Main goals</SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {GOALS.map(g => (
                     <Chip key={g} label={g} selected={selectedGoals.includes(g)} onToggle={() => toggleGoal(g)} />
                   ))}
                 </div>
                 {selectedGoals.length === 0 && (
-                  <p className="text-xs text-muted-foreground mt-1.5">Select at least one</p>
+                  <p className="text-xs text-muted-foreground mt-2">Pick all that apply — at least one.</p>
                 )}
               </div>
 
-              <div className="pt-2">
-                <Button type="submit" className="w-full h-12 text-sm uppercase tracking-widest font-bold" data-testid="button-next-step1">
-                  Continue →
-                </Button>
-              </div>
+              <Button type="submit" className="w-full h-14 rounded-2xl text-[15px] font-semibold gap-2" data-testid="button-next-step1">
+                Continue <ArrowRight className="w-[18px] h-[18px]" />
+              </Button>
             </form>
           )}
 
           {/* STEP 2 — Training */}
           {step === 2 && (
-            <form onSubmit={handleStep2} className="space-y-5">
+            <form onSubmit={handleStep2} className="space-y-6">
               <div>
-                <SectionLabel>Fitness Level</SectionLabel>
+                <SectionLabel>Fitness level</SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {["beginner","intermediate","advanced"].map(l => (
                     <Chip key={l} label={l} selected={form2.watch("fitnessLevel") === l} onToggle={() => form2.setValue("fitnessLevel", l)} testId={`option-${l}`} />
@@ -289,7 +305,7 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <SectionLabel>Gym Access</SectionLabel>
+                <SectionLabel>Gym access</SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {["full gym","home gym","no gym"].map(g => (
                     <Chip key={g} label={g} selected={form2.watch("gymAccess") === g} onToggle={() => form2.setValue("gymAccess", g)} testId={`option-${g.replace(/\s+/g,"-")}`} />
@@ -299,20 +315,20 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <SectionLabel>Workout Days Per Week — {form2.watch("workoutDaysPerWeek") ?? 3} days</SectionLabel>
+                <SectionLabel>Workout days — {form2.watch("workoutDaysPerWeek") ?? 3} per week</SectionLabel>
                 <Slider
                   min={1} max={7} step={1}
                   value={[form2.watch("workoutDaysPerWeek") ?? 3]}
                   onValueChange={v => form2.setValue("workoutDaysPerWeek", v[0])}
                   data-testid="slider-workout-days"
                 />
-                <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <div className="flex justify-between text-xs text-muted-foreground mt-2">
                   <span>1 day</span><span>7 days</span>
                 </div>
               </div>
 
               <div>
-                <SectionLabel>Preferred Workout Time</SectionLabel>
+                <SectionLabel>Preferred workout time</SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {["morning","afternoon","evening","any"].map(t => (
                     <Chip key={t} label={t} selected={form2.watch("preferredWorkoutTime") === t} onToggle={() => form2.setValue("preferredWorkoutTime", t)} testId={`option-${t}`} />
@@ -321,16 +337,16 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <SectionLabel>Target Date (optional)</SectionLabel>
-                <Input {...form2.register("targetDate")} type="date" className="bg-card border-border" data-testid="input-target-date" />
+                <SectionLabel>Target date (optional)</SectionLabel>
+                <Input {...form2.register("targetDate")} type="date" className={inputClass} data-testid="input-target-date" />
               </div>
 
-              <div className="flex gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setStep(1)} className="h-12 px-5" data-testid="button-back-step2">
-                  <ChevronLeft className="w-4 h-4" />
+              <div className="flex gap-3">
+                <Button type="button" variant="outline" onClick={() => setStep(1)} className="h-14 px-5 rounded-2xl" data-testid="button-back-step2">
+                  <ChevronLeft className="w-5 h-5" />
                 </Button>
-                <Button type="submit" className="flex-1 h-12 text-sm uppercase tracking-widest font-bold" data-testid="button-next-step2">
-                  Continue →
+                <Button type="submit" className="flex-1 h-14 rounded-2xl text-[15px] font-semibold gap-2" data-testid="button-next-step2">
+                  Continue <ArrowRight className="w-[18px] h-[18px]" />
                 </Button>
               </div>
             </form>
@@ -338,60 +354,60 @@ export default function OnboardingPage() {
 
           {/* STEP 3 — Daily Routine */}
           {step === 3 && (
-            <form onSubmit={handleStep3} className="space-y-5">
+            <form onSubmit={handleStep3} className="space-y-6">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <SectionLabel>Wake Time</SectionLabel>
-                  <Input {...form3.register("wakeTime")} type="time" className="bg-card border-border" data-testid="input-wake-time" />
+                  <SectionLabel>Wake time</SectionLabel>
+                  <Input {...form3.register("wakeTime")} type="time" className={inputClass} data-testid="input-wake-time" />
                   <FieldError msg={form3.formState.errors.wakeTime?.message} />
                 </div>
                 <div>
-                  <SectionLabel>Sleep Time</SectionLabel>
-                  <Input {...form3.register("sleepTime")} type="time" className="bg-card border-border" data-testid="input-sleep-time" />
+                  <SectionLabel>Sleep time</SectionLabel>
+                  <Input {...form3.register("sleepTime")} type="time" className={inputClass} data-testid="input-sleep-time" />
                   <FieldError msg={form3.formState.errors.sleepTime?.message} />
                 </div>
               </div>
 
               <div>
-                <SectionLabel>Work / School Schedule</SectionLabel>
+                <SectionLabel>Work / school schedule</SectionLabel>
                 <Input
                   {...form3.register("workSchedule")}
                   placeholder="e.g. 9am–5pm office, student, N/A"
-                  className="bg-card border-border"
+                  className={inputClass}
                   data-testid="input-work-schedule"
                 />
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <SectionLabel>Current Sleep Quality — {sleepQuality}/10</SectionLabel>
+                  <SectionLabel>Sleep quality — {sleepQuality}/10</SectionLabel>
                   <Slider min={1} max={10} step={1} value={[sleepQuality]} onValueChange={v => setSleepQuality(v[0])} />
-                  <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
                     <span>Poor</span><span>Excellent</span>
                   </div>
                 </div>
                 <div>
-                  <SectionLabel>Current Energy Level — {energyLevel}/10</SectionLabel>
+                  <SectionLabel>Energy level — {energyLevel}/10</SectionLabel>
                   <Slider min={1} max={10} step={1} value={[energyLevel]} onValueChange={v => setEnergyLevel(v[0])} />
-                  <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
                     <span>Exhausted</span><span>Full energy</span>
                   </div>
                 </div>
                 <div>
-                  <SectionLabel>Stress Level — {stressLevel}/10</SectionLabel>
+                  <SectionLabel>Stress level — {stressLevel}/10</SectionLabel>
                   <Slider min={1} max={10} step={1} value={[stressLevel]} onValueChange={v => setStressLevel(v[0])} />
-                  <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
                     <span>Calm</span><span>Very stressed</span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setStep(2)} className="h-12 px-5" data-testid="button-back-step3">
-                  <ChevronLeft className="w-4 h-4" />
+              <div className="flex gap-3">
+                <Button type="button" variant="outline" onClick={() => setStep(2)} className="h-14 px-5 rounded-2xl" data-testid="button-back-step3">
+                  <ChevronLeft className="w-5 h-5" />
                 </Button>
-                <Button type="submit" className="flex-1 h-12 text-sm uppercase tracking-widest font-bold" data-testid="button-next-step3">
-                  Continue →
+                <Button type="submit" className="flex-1 h-14 rounded-2xl text-[15px] font-semibold gap-2" data-testid="button-next-step3">
+                  Continue <ArrowRight className="w-[18px] h-[18px]" />
                 </Button>
               </div>
             </form>
@@ -399,20 +415,20 @@ export default function OnboardingPage() {
 
           {/* STEP 4 — Nutrition & Health */}
           {step === 4 && (
-            <form onSubmit={handleStep4} className="space-y-5">
+            <form onSubmit={handleStep4} className="space-y-6">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <SectionLabel>Meals Per Day</SectionLabel>
-                  <Input {...form4.register("mealsPerDay")} type="number" inputMode="numeric" min={1} max={8} placeholder="3" className="bg-card border-border" data-testid="input-meals-per-day" />
+                  <SectionLabel>Meals per day</SectionLabel>
+                  <Input {...form4.register("mealsPerDay")} type="number" inputMode="numeric" min={1} max={8} placeholder="3" className={inputClass} data-testid="input-meals-per-day" />
                 </div>
                 <div>
                   <SectionLabel>Water (L/day)</SectionLabel>
-                  <Input {...form4.register("waterIntakeLiters")} type="number" inputMode="decimal" step="0.5" placeholder="2" className="bg-card border-border" data-testid="input-water" />
+                  <Input {...form4.register("waterIntakeLiters")} type="number" inputMode="decimal" step="0.5" placeholder="2" className={inputClass} data-testid="input-water" />
                 </div>
               </div>
 
               <div>
-                <SectionLabel>Diet Style</SectionLabel>
+                <SectionLabel>Diet style</SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {["no preference","vegetarian","vegan","keto","high protein","paleo"].map(d => (
                     <Chip key={d} label={d} selected={form4.watch("dietStyle") === d} onToggle={() => form4.setValue("dietStyle", d)} testId={`option-${d.replace(/\s+/g,"-")}`} />
@@ -421,17 +437,17 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <SectionLabel>Foods You Dislike or Won't Eat</SectionLabel>
-                <Input {...form4.register("dislikedFoods")} placeholder="e.g. broccoli, fish, tofu" className="bg-card border-border" data-testid="input-disliked-foods" />
+                <SectionLabel>Foods you dislike or won't eat</SectionLabel>
+                <Input {...form4.register("dislikedFoods")} placeholder="e.g. broccoli, fish, tofu" className={inputClass} data-testid="input-disliked-foods" />
               </div>
 
               <div>
                 <SectionLabel>Allergies</SectionLabel>
-                <Input {...form4.register("allergies")} placeholder="e.g. nuts, dairy, gluten, none" className="bg-card border-border" data-testid="input-allergies" />
+                <Input {...form4.register("allergies")} placeholder="e.g. nuts, dairy, gluten, none" className={inputClass} data-testid="input-allergies" />
               </div>
 
               <div>
-                <SectionLabel>Skin Concerns</SectionLabel>
+                <SectionLabel>Skin concerns</SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {SKIN_CONCERNS.map(s => (
                     <Chip key={s} label={s} selected={skinConcerns.includes(s)} onToggle={() => toggleSkin(s)} />
@@ -440,7 +456,7 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <SectionLabel>Digestion / Bloating Concerns</SectionLabel>
+                <SectionLabel>Digestion / bloating</SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {DIGESTION_CONCERNS.map(d => (
                     <Chip key={d} label={d} selected={digestionConcerns.includes(d)} onToggle={() => toggleDigestion(d)} />
@@ -449,7 +465,7 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <SectionLabel>Biggest Struggle</SectionLabel>
+                <SectionLabel>Biggest struggle</SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {STRUGGLES.map(s => (
                     <Chip key={s} label={s} selected={biggestStruggle === s} onToggle={() => setBiggestStruggle(prev => prev === s ? "" : s)} testId={`option-${s.replace(/\s+/g,"-")}`} />
@@ -457,12 +473,12 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setStep(3)} className="h-12 px-5" data-testid="button-back-step4">
-                  <ChevronLeft className="w-4 h-4" />
+              <div className="flex gap-3">
+                <Button type="button" variant="outline" onClick={() => setStep(3)} className="h-14 px-5 rounded-2xl" data-testid="button-back-step4">
+                  <ChevronLeft className="w-5 h-5" />
                 </Button>
-                <Button type="submit" className="flex-1 h-12 text-sm uppercase tracking-widest font-bold" data-testid="button-next-step4">
-                  Continue →
+                <Button type="submit" className="flex-1 h-14 rounded-2xl text-[15px] font-semibold gap-2" data-testid="button-next-step4">
+                  Continue <ArrowRight className="w-[18px] h-[18px]" />
                 </Button>
               </div>
             </form>
@@ -472,70 +488,70 @@ export default function OnboardingPage() {
           {step === 5 && (
             <div className="space-y-5">
               {/* Summary of collected data */}
-              <div className="bg-card border border-border p-4 space-y-3">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Your Profile</p>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+              <div className="rounded-2xl bg-card border border-border p-5 space-y-4">
+                <p className="text-sm font-semibold text-foreground">Your profile</p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   <div><span className="text-muted-foreground text-xs">Name</span><br /><span className="font-semibold">{formData.name}</span></div>
                   <div><span className="text-muted-foreground text-xs">Age</span><br /><span className="font-semibold">{formData.age}</span></div>
                   <div><span className="text-muted-foreground text-xs">Current weight</span><br /><span className="font-semibold">{formData.currentWeightKg} kg</span></div>
                   <div><span className="text-muted-foreground text-xs">Goal weight</span><br /><span className="font-semibold text-primary">{formData.goalWeightKg} kg</span></div>
-                  <div><span className="text-muted-foreground text-xs">Fitness level</span><br /><span className="font-semibold">{formData.fitnessLevel}</span></div>
-                  <div><span className="text-muted-foreground text-xs">Gym access</span><br /><span className="font-semibold">{formData.gymAccess}</span></div>
+                  <div><span className="text-muted-foreground text-xs">Fitness level</span><br /><span className="font-semibold capitalize">{formData.fitnessLevel}</span></div>
+                  <div><span className="text-muted-foreground text-xs">Gym access</span><br /><span className="font-semibold capitalize">{formData.gymAccess}</span></div>
                   <div><span className="text-muted-foreground text-xs">Workout days</span><br /><span className="font-semibold">{formData.workoutDaysPerWeek}x / week</span></div>
                   <div><span className="text-muted-foreground text-xs">Schedule</span><br /><span className="font-semibold">{formData.wakeTime} – {formData.sleepTime}</span></div>
                 </div>
-                <div className="pt-2 border-t border-border">
-                  <p className="text-xs text-muted-foreground mb-1.5">Goals</p>
-                  <div className="flex flex-wrap gap-1.5">
+                <div className="pt-3 border-t border-border">
+                  <p className="text-xs text-muted-foreground mb-2">Goals</p>
+                  <div className="flex flex-wrap gap-2">
                     {selectedGoals.map(g => (
-                      <span key={g} className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider">{g}</span>
+                      <span key={g} className="text-xs font-medium px-3 py-1.5 rounded-full bg-elevated border border-border capitalize">{g}</span>
                     ))}
                   </div>
                 </div>
               </div>
 
               {/* What you'll get */}
-              <div className="space-y-2">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">What's being built for you</p>
+              <div className="rounded-2xl bg-card border border-border p-5 space-y-3">
+                <p className="text-sm font-semibold text-foreground">What's being built for you</p>
                 {[
-                  "Calorie & protein targets (calculated from your stats)",
-                  "Personalized daily schedule",
-                  "Workout plan for your level & equipment",
-                  "Meal check-in with instant coach feedback",
-                  "Nightly reviews with scored performance",
+                  "Calorie & protein targets from your stats",
+                  "A personalized daily schedule",
+                  "A workout plan for your level & equipment",
+                  "Meal check-ins with instant coach feedback",
+                  "Nightly reviews with a performance score",
                   "Weekly weigh-in plan adjustments",
                 ].map(item => (
                   <div key={item} className="flex items-start gap-2.5">
-                    <CheckCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    <p className="text-sm">{item}</p>
+                    <CheckCircle2 className="w-[18px] h-[18px] text-success shrink-0 mt-0.5" strokeWidth={2.2} />
+                    <p className="text-sm text-foreground">{item}</p>
                   </div>
                 ))}
               </div>
 
               {/* Disclaimer */}
-              <div className="bg-muted/20 border border-border p-3 flex gap-2.5">
-                <AlertTriangle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div className="rounded-2xl bg-elevated border border-border p-4 flex gap-3">
+                <AlertTriangle className="w-[18px] h-[18px] text-warning shrink-0 mt-0.5" strokeWidth={2.2} />
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Project Upgrade is not medical advice. If you have a history of eating disorders, diabetes, pregnancy, or any serious health condition, consult a healthcare professional before starting.
                 </p>
               </div>
 
-              <div className="flex gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setStep(4)} disabled={isLoading} className="h-12 px-5" data-testid="button-back-step5">
-                  <ChevronLeft className="w-4 h-4" />
+              <div className="flex gap-3">
+                <Button type="button" variant="outline" onClick={() => setStep(4)} disabled={isLoading} className="h-14 px-5 rounded-2xl" data-testid="button-back-step5">
+                  <ChevronLeft className="w-5 h-5" />
                 </Button>
                 <Button
-                  className="flex-1 h-12 text-sm uppercase tracking-widest font-bold"
+                  className="flex-1 h-14 rounded-2xl text-[15px] font-semibold shadow-lg shadow-primary/20"
                   onClick={handleSubmit}
                   disabled={isLoading || selectedGoals.length === 0}
                   data-testid="button-submit-onboarding"
                 >
-                  {isLoading ? "Building your plan…" : "Launch My Plan"}
+                  {isLoading ? "Building your plan…" : "Build My Plan"}
                 </Button>
               </div>
 
               {(createProfile.isError || generatePlan.isError) && (
-                <p className="text-xs text-destructive text-center">Something went wrong. Check your connection and try again.</p>
+                <p className="text-sm text-destructive text-center">Something went wrong. Check your connection and try again.</p>
               )}
             </div>
           )}

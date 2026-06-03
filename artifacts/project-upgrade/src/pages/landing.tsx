@@ -1,45 +1,34 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useGetUserProfile } from "@workspace/api-client-react";
-import { ArrowRight, Zap, Dumbbell, Brain, Moon } from "lucide-react";
+import { ArrowRight, Dumbbell, Apple, Moon, Sparkles, BatteryCharging, ShieldCheck } from "lucide-react";
 
 export default function LandingPage() {
   const [, setLocation] = useLocation();
-  // isLoading = true on first fetch; data = undefined until resolved
   const { data: profile, isLoading } = useGetUserProfile();
 
   useEffect(() => {
-    // Only redirect once we have confirmed profile data (not while loading)
     if (!isLoading && profile) {
       setLocation("/dashboard");
     }
   }, [isLoading, profile, setLocation]);
 
-  // Show a neutral loading state while we check for an existing profile
-  // so there's no flash of the welcome screen before a redirect
   if (isLoading) {
     return (
-      <div
-        style={{
-          height: "100dvh",
-          background: "#0a0a0a",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            width: "6px",
-            height: "6px",
-            borderRadius: "50%",
-            background: "#F59E0B",
-            animation: "ping 1s cubic-bezier(0,0,0.2,1) infinite",
-          }}
-        />
+      <div className="h-dvh bg-background flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
       </div>
     );
   }
+
+  const pillars = [
+    { icon: Dumbbell, label: "Workouts", color: "text-primary" },
+    { icon: Apple, label: "Meals", color: "text-success" },
+    { icon: Moon, label: "Sleep", color: "text-primary" },
+    { icon: BatteryCharging, label: "Energy", color: "text-success" },
+    { icon: Sparkles, label: "Skin", color: "text-primary" },
+    { icon: ShieldCheck, label: "Discipline", color: "text-success" },
+  ];
 
   return (
     <div
@@ -50,52 +39,60 @@ export default function LandingPage() {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      {/* Top */}
-      <div className="px-6 pt-10 pb-4">
-        <p className="text-2xl font-bold uppercase tracking-tighter text-primary">UPGRADE</p>
+      {/* Brand */}
+      <div className="px-6 pt-8 flex items-center gap-2.5">
+        <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
+          <span className="text-primary-foreground font-extrabold">U</span>
+        </div>
+        <span className="text-lg font-bold tracking-tight">Upgrade</span>
       </div>
 
-      {/* Hero text */}
-      <div className="flex-1 flex flex-col justify-center px-6 py-8">
-        <h1 className="text-4xl font-black uppercase tracking-tighter leading-tight mb-4">
-          Your strict AI coach.<br />
-          <span className="text-primary">No excuses.</span><br />
-          No shortcuts.
+      {/* Hero */}
+      <div className="flex-1 flex flex-col justify-center px-6 py-10">
+        <div className="inline-flex items-center gap-2 self-start rounded-full bg-elevated border border-border px-3 py-1.5 mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-success" />
+          <span className="text-xs font-medium text-muted-foreground">AI-powered personal coaching</span>
+        </div>
+
+        <h1 className="text-[2.1rem] leading-[1.12] font-extrabold tracking-tight">
+          Your AI Coach for{" "}
+          <span className="text-primary">Body</span>,{" "}
+          <span className="text-success">Energy</span>, and Discipline
         </h1>
-        <p className="text-sm text-muted-foreground uppercase tracking-widest leading-relaxed max-w-xs">
-          Daily schedules, meal feedback, workouts, nightly reviews — built around your life and goals.
+
+        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground max-w-md">
+          Build a daily plan for your real life — workouts, meals, sleep, energy, skin habits, and strict coach reviews.
         </p>
 
-        {/* Features list */}
-        <div className="mt-8 space-y-3">
-          {[
-            { icon: Dumbbell, text: "Personalized workout plan" },
-            { icon: Zap,      text: "Calorie & protein targets" },
-            { icon: Brain,    text: "AI coach chat — ask anything" },
-            { icon: Moon,     text: "Nightly scored reviews" },
-          ].map(({ icon: Icon, text }) => (
-            <div key={text} className="flex items-center gap-3">
-              <div className="w-8 h-8 border border-primary/30 bg-primary/5 flex items-center justify-center shrink-0">
-                <Icon className="w-4 h-4 text-primary" strokeWidth={1.5} />
-              </div>
-              <p className="text-sm uppercase tracking-wider">{text}</p>
+        {/* Pillars */}
+        <div className="mt-8 grid grid-cols-3 gap-3">
+          {pillars.map(({ icon: Icon, label, color }) => (
+            <div
+              key={label}
+              className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-card border border-border py-4"
+            >
+              <Icon className={`w-5 h-5 ${color}`} strokeWidth={2} />
+              <span className="text-xs font-medium text-foreground">{label}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* CTA */}
-      <div className="px-6 pb-8 space-y-3">
+      <div className="px-6 pb-8 space-y-4">
+        <p className="text-center text-[13px] leading-relaxed text-muted-foreground px-2">
+          Personalized coaching for fat loss, muscle gain, better sleep, higher energy, skin habits, and daily discipline.
+        </p>
         <Link
           href="/onboarding"
-          className="flex items-center justify-center gap-3 w-full bg-primary text-primary-foreground h-14 text-sm font-bold uppercase tracking-widest active:opacity-90 transition-opacity"
+          className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground h-14 rounded-2xl text-[15px] font-semibold shadow-lg shadow-primary/20 active:scale-[0.99] transition-transform"
           data-testid="link-start-onboarding"
         >
-          Build My Plan
-          <ArrowRight className="w-5 h-5" />
+          Start 7-Day Free Trial
+          <ArrowRight className="w-[18px] h-[18px]" strokeWidth={2.4} />
         </Link>
-        <p className="text-center text-[10px] text-muted-foreground uppercase tracking-widest">
-          Takes 3 minutes · Free to start
+        <p className="text-center text-xs text-muted-foreground">
+          No commitment · Cancel anytime
         </p>
       </div>
     </div>

@@ -1,0 +1,102 @@
+Redesign the app UI and branding so it feels like a premium modern health app, not a dark orange sales page.
+
+Right now the colors feel too harsh and cheap. Make the app feel clean, trustworthy, premium, mobile-first, and serious.
+
+Main goal:
+Make this feel like a real paid mobile app for AI coaching around body, energy, sleep, skin, workouts, meals, and discipline.
+
+New visual style:
+
+* Premium health app
+* Clean fitness coach feel
+* Modern iPhone app vibe
+* Trustworthy and professional
+* Still disciplined and strong, but not cheesy or aggressive
+
+Remove:
+
+* black/orange adult-site looking colors
+* overly aggressive marketing feel
+* huge cheesy text
+* website-looking layout
+* cluttered sections
+
+Use this color system:
+
+* background: #0B1220
+* card/surface: #111827
+* elevated surface: #172033
+* border: #1F2937
+* primary accent: #3B82F6
+* secondary health accent: #10B981
+* warning accent only when needed: #F59E0B
+* primary text: #F8FAFC
+* secondary text: #94A3B8
+* muted text: #64748B
+
+Design rules:
+
+* Use smooth rounded cards
+* Use clean spacing
+* Use readable modern fonts
+* Make buttons feel premium
+* Make the app mobile-first
+* Make the landing page feel like an app intro, not a website sales page
+* Make onboarding feel like a real mobile app setup flow
+* Make dashboard feel like a personal command center
+* Use bottom navigation on mobile
+* Keep dark mode, but make it cleaner and less harsh
+
+Update the landing/welcome screen copy.
+
+Use this headline:
+“Your AI Coach for Body, Energy, and Discipline”
+
+Use this subheadline:
+“Build a daily plan for your real life — workouts, meals, sleep, energy, skin habits, and strict coach reviews.”
+
+Main CTA:
+“Start 7-Day Free Trial”
+
+Secondary copy:
+“Personalized coaching for fat loss, muscle gain, better sleep, higher energy, skin habits, and daily discipline.”
+
+Dashboard design:
+
+* Show Today’s Mission
+* Show Daily Score
+* Show selected goals
+* Show calories, protein, water, steps, sleep target
+* Show today’s workout
+* Show today’s coach message
+* Use clean cards, not harsh boxes
+
+Onboarding design:
+
+* Step-by-step mobile flow
+* Progress bar
+* Big clean labels
+* Multiple goal selection
+* Ask about body, weight, skin, energy, sleep, workouts, food, and discipline
+* Do not show dashboard until onboarding is complete
+
+Coach tone:
+Strict but professional.
+Not corny.
+Not overly aggressive.
+Not fake motivational.
+
+Example coach message:
+“Today’s focus is simple: hit protein, follow the workout, drink water early, and protect your sleep. No random snacks, no excuses.”
+
+After redesigning, verify:
+
+1. Landing screen loads
+2. Onboarding works
+3. Dashboard uses real user profile data
+4. No Alex/demo data appears
+5. No black screen
+6. Mobile layout looks clean
+7. Typecheck passes
+
+Do not add new features yet. Only redesign and stabilize the current app UI.

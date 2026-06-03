@@ -1,1 +1,2 @@
 - [Project Upgrade stack](project-upgrade-stack.md) — single-user coaching app, always run typecheck:libs after lib/db schema changes
+- [Project Upgrade design system](project-upgrade-design.md) — blue/green HSL tokens + Inter; CoachReview score is dailyScore; empty-DB dashboard redirect is intended

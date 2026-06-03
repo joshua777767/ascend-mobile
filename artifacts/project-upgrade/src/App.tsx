@@ -55,29 +55,46 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
             alignItems: "center",
             justifyContent: "center",
             padding: "24px",
-            background: "#0a0a0a",
-            color: "#fafafa",
-            fontFamily: "'Space Mono', monospace",
-            gap: "16px",
+            background: "#0B1220",
+            color: "#F8FAFC",
+            fontFamily: "'Inter', system-ui, sans-serif",
+            gap: "14px",
+            textAlign: "center",
           }}
         >
-          <p style={{ fontSize: "11px", letterSpacing: "0.2em", color: "#F59E0B", textTransform: "uppercase" }}>
+          <div
+            style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "16px",
+              background: "rgba(59,130,246,0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#3B82F6",
+              fontSize: "24px",
+              fontWeight: 800,
+            }}
+          >
+            !
+          </div>
+          <p style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.01em", margin: 0 }}>
             Something went wrong
           </p>
-          <p style={{ fontSize: "11px", color: "#666", textAlign: "center", maxWidth: "280px" }}>
+          <p style={{ fontSize: "14px", color: "#94A3B8", maxWidth: "300px", lineHeight: 1.5, margin: 0 }}>
             {this.state.message}
           </p>
           <button
             onClick={() => { this.setState({ hasError: false, message: "" }); window.location.href = "/"; }}
             style={{
-              background: "#F59E0B",
-              color: "#0a0a0a",
+              marginTop: "8px",
+              background: "#3B82F6",
+              color: "#FFFFFF",
               border: "none",
-              padding: "12px 28px",
-              fontSize: "11px",
-              fontWeight: 700,
-              letterSpacing: "0.15em",
-              textTransform: "uppercase",
+              padding: "14px 32px",
+              borderRadius: "16px",
+              fontSize: "15px",
+              fontWeight: 600,
               cursor: "pointer",
               fontFamily: "inherit",
             }}

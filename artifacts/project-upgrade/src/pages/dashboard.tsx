@@ -4,17 +4,47 @@ import {
   useGetUserProfile,
   useGetCurrentPlan,
   useGetTodayWorkout,
+  useGetTodayReview,
 } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dumbbell, Utensils, MessageSquare, BookOpen, LineChart, ChevronRight, Zap } from "lucide-react";
+import {
+  Dumbbell,
+  Utensils,
+  MessageSquare,
+  BookOpen,
+  ChevronRight,
+  Flame,
+  Beef,
+  Droplets,
+  Footprints,
+  Moon,
+  Target,
+} from "lucide-react";
 
-function StatPill({ value, label, unit = "" }: { value: string | number; label: string; unit?: string }) {
+function MetricCard({
+  icon: Icon,
+  value,
+  unit,
+  label,
+  tint,
+}: {
+  icon: React.ElementType;
+  value: string | number;
+  unit?: string;
+  label: string;
+  tint: "blue" | "green";
+}) {
+  const ring = tint === "blue" ? "bg-primary/15 text-primary" : "bg-success/15 text-success";
   return (
-    <div className="flex-1 bg-card border border-border px-3 py-3 text-center">
-      <p className="text-lg font-bold text-primary leading-none">
-        {value}<span className="text-xs font-normal text-muted-foreground ml-0.5">{unit}</span>
+    <div className="rounded-2xl bg-card border border-border p-3.5">
+      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${ring}`}>
+        <Icon className="w-4 h-4" strokeWidth={2.2} />
+      </div>
+      <p className="mt-3 text-xl font-bold tracking-tight leading-none">
+        {value}
+        {unit && <span className="text-xs font-medium text-muted-foreground ml-0.5">{unit}</span>}
       </p>
-      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 leading-none">{label}</p>
+      <p className="text-xs text-muted-foreground mt-1 leading-none">{label}</p>
     </div>
   );
 }
@@ -23,19 +53,27 @@ function QuickAction({ href, icon: Icon, label }: { href: string; icon: React.El
   return (
     <Link
       href={href}
-      className="flex flex-col items-center justify-center gap-2 bg-card border border-border py-5 active:bg-muted/50 transition-colors"
+      className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-card border border-border py-4 active:bg-elevated transition-colors"
     >
-      <Icon className="w-6 h-6 text-primary" strokeWidth={1.5} />
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-foreground">{label}</span>
+      <Icon className="w-5 h-5 text-foreground" strokeWidth={2} />
+      <span className="text-xs font-medium text-foreground">{label}</span>
     </Link>
   );
 }
 
-function primaryGoalLabel(goals: string[]): string {
-  if (!goals || goals.length === 0) return "Active";
-  const priority = ["lose fat","lose weight","build muscle","gain weight","maintain fitness"];
-  const match = priority.find(g => goals.includes(g));
-  return match ? match.toUpperCase() : goals[0].toUpperCase();
+function ScoreRing({ score }: { score: number }) {
+  const pct = Math.max(0, Math.min(100, score));
+  const color = pct >= 80 ? "hsl(160 84% 39%)" : pct >= 50 ? "hsl(217 91% 60%)" : "hsl(38 92% 50%)";
+  return (
+    <div
+      className="relative w-16 h-16 rounded-full shrink-0"
+      style={{ background: `conic-gradient(${color} ${pct * 3.6}deg, hsl(222 38% 15%) 0deg)` }}
+    >
+      <div className="absolute inset-[5px] rounded-full bg-card flex items-center justify-center">
+        <span className="text-lg font-bold tracking-tight">{pct}</span>
+      </div>
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -43,6 +81,7 @@ export default function DashboardPage() {
   const { data: profile, isLoading: loadingProfile, error } = useGetUserProfile();
   const { data: plan } = useGetCurrentPlan();
   const { data: workout } = useGetTodayWorkout();
+  const { data: review } = useGetTodayReview();
 
   useEffect(() => {
     if (error) setLocation("/onboarding");
@@ -54,147 +93,131 @@ export default function DashboardPage() {
   if (loadingProfile || !profile) {
     return (
       <div className="h-full overflow-y-auto scroll-area">
-        <div className="p-4 max-w-lg mx-auto space-y-4 pt-6">
-          <Skeleton className="h-8 w-40 bg-muted" />
-          <Skeleton className="h-4 w-28 bg-muted" />
-          <div className="flex gap-2">
-            <Skeleton className="h-16 flex-1 bg-muted" />
-            <Skeleton className="h-16 flex-1 bg-muted" />
-            <Skeleton className="h-16 flex-1 bg-muted" />
+        <div className="p-4 max-w-lg mx-auto space-y-4 pt-5">
+          <Skeleton className="h-7 w-40 rounded-lg bg-elevated" />
+          <Skeleton className="h-24 w-full rounded-2xl bg-elevated" />
+          <div className="grid grid-cols-3 gap-3">
+            <Skeleton className="h-24 rounded-2xl bg-elevated" />
+            <Skeleton className="h-24 rounded-2xl bg-elevated" />
+            <Skeleton className="h-24 rounded-2xl bg-elevated" />
           </div>
-          <Skeleton className="h-20 w-full bg-muted" />
-          <div className="grid grid-cols-2 gap-2">
-            <Skeleton className="h-20 bg-muted" />
-            <Skeleton className="h-20 bg-muted" />
-            <Skeleton className="h-20 bg-muted" />
-            <Skeleton className="h-20 bg-muted" />
-          </div>
+          <Skeleton className="h-20 w-full rounded-2xl bg-elevated" />
         </div>
       </div>
     );
   }
 
-  const toGoKg = profile.currentWeightKg && profile.goalWeightKg
-    ? Math.abs(profile.currentWeightKg - profile.goalWeightKg).toFixed(1)
-    : null;
-
   const goals: string[] = Array.isArray(profile.goals) ? profile.goals : [];
-  const statusLabel = primaryGoalLabel(goals);
+  const reviewScore = review && typeof review.dailyScore === "number" ? review.dailyScore : null;
+  const coachMessage =
+    plan?.coachNotes?.trim() ||
+    "Today's focus is simple: hit protein, follow the workout, drink water early, and protect your sleep. No random snacks, no excuses.";
+
+  const firstName = profile.name?.split(" ")[0] ?? profile.name;
 
   return (
     <div className="h-full overflow-y-auto scroll-area">
-      <div className="max-w-lg mx-auto px-4 pt-6 pb-6 space-y-5">
+      <div className="max-w-lg mx-auto px-4 pt-5 pb-6 space-y-5">
 
         {/* Greeting */}
         <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest">
+          <p className="text-sm text-muted-foreground">
             {dayName}, {dateStr}
           </p>
-          <h1 className="text-3xl font-bold uppercase tracking-tighter mt-0.5">
-            {profile.name}
+          <h1 className="text-2xl font-bold tracking-tight mt-0.5">
+            Hi, {firstName}
           </h1>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest mt-0.5">
-            {statusLabel} · {profile.fitnessLevel}
-          </p>
         </div>
 
-        {/* Today's Targets */}
+        {/* Today's Mission + Daily Score */}
+        <div className="rounded-2xl bg-gradient-to-br from-primary/15 to-success/5 border border-primary/20 p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5 text-primary" strokeWidth={2.4} />
+                <p className="text-xs font-semibold text-primary uppercase tracking-wide">Today's Mission</p>
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-foreground">{coachMessage}</p>
+            </div>
+            <div className="flex flex-col items-center shrink-0">
+              <ScoreRing score={reviewScore ?? 0} />
+              <span className="text-[10px] text-muted-foreground mt-1.5">
+                {reviewScore !== null ? "Today" : "No score yet"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Targets */}
         {plan && (
-          <div className="flex gap-2">
-            <StatPill value={plan.calorieTarget} label="Cal" />
-            <StatPill value={plan.proteinTargetG} label="Protein" unit="g" />
-            <StatPill value={plan.waterTargetL} label="Water" unit="L" />
+          <div>
+            <p className="text-sm font-semibold text-foreground mb-3">Daily Targets</p>
+            <div className="grid grid-cols-3 gap-3">
+              <MetricCard icon={Flame} value={plan.calorieTarget} label="Calories" tint="blue" />
+              <MetricCard icon={Beef} value={plan.proteinTargetG} unit="g" label="Protein" tint="green" />
+              <MetricCard icon={Droplets} value={plan.waterTargetL} unit="L" label="Water" tint="blue" />
+              <MetricCard icon={Footprints} value={plan.stepsTarget.toLocaleString()} label="Steps" tint="green" />
+              <MetricCard icon={Moon} value={plan.sleepTargetHours} unit="h" label="Sleep" tint="blue" />
+              <MetricCard
+                icon={Target}
+                value={profile.workoutDaysPerWeek}
+                unit="x"
+                label="Workouts/wk"
+                tint="green"
+              />
+            </div>
           </div>
         )}
 
         {/* Today's Workout */}
-        {workout ? (
-          <Link href="/workouts" className="block">
-            <div className="bg-card border border-border p-4 flex items-center justify-between active:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 bg-primary/10 flex items-center justify-center shrink-0">
-                  <Dumbbell className="w-4 h-4 text-primary" strokeWidth={2} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Today's Workout</p>
-                  <p className="text-sm font-bold uppercase tracking-tight truncate">{workout.name}</p>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">
+        <Link href="/workouts" className="block">
+          <div className="rounded-2xl bg-card border border-border p-4 flex items-center justify-between active:bg-elevated transition-colors">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                <Dumbbell className="w-5 h-5 text-primary" strokeWidth={2.2} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Today's Workout</p>
+                <p className="text-sm font-semibold truncate">
+                  {workout?.name ?? "View Training Plan"}
+                </p>
+                {workout && (
+                  <p className="text-xs text-muted-foreground">
                     {workout.type} · {workout.exercises?.length ?? 0} exercises
                   </p>
-                </div>
+                )}
               </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
             </div>
-          </Link>
-        ) : (
-          <Link href="/workouts" className="block">
-            <div className="bg-card border border-border p-4 flex items-center justify-between active:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-primary/10 flex items-center justify-center shrink-0">
-                  <Dumbbell className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Today's Workout</p>
-                  <p className="text-sm font-bold uppercase tracking-tight">View Training Plan</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 ml-2" />
+          </div>
+        </Link>
+
+        {/* Goals */}
+        {goals.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-foreground mb-3">Your Goals</p>
+            <div className="flex flex-wrap gap-2">
+              {goals.map((g) => (
+                <span
+                  key={g}
+                  className="text-xs font-medium px-3 py-1.5 rounded-full bg-elevated border border-border text-foreground capitalize"
+                >
+                  {g}
+                </span>
+              ))}
             </div>
-          </Link>
+          </div>
         )}
 
         {/* Quick Actions */}
         <div>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">Quick Actions</p>
-          <div className="grid grid-cols-2 gap-2">
-            <QuickAction href="/meals" icon={Utensils} label="Log Meal" />
-            <QuickAction href="/coach" icon={MessageSquare} label="Ask Coach" />
+          <p className="text-sm font-semibold text-foreground mb-3">Quick Actions</p>
+          <div className="grid grid-cols-4 gap-3">
+            <QuickAction href="/meals" icon={Utensils} label="Meal" />
+            <QuickAction href="/coach" icon={MessageSquare} label="Coach" />
             <QuickAction href="/journal" icon={BookOpen} label="Journal" />
-            <QuickAction href="/progress" icon={LineChart} label="Progress" />
+            <QuickAction href="/workouts" icon={Dumbbell} label="Train" />
           </div>
-        </div>
-
-        {/* Mission Status */}
-        <div className="bg-card border border-border p-4 space-y-3">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-            <Zap className="w-3 h-3 text-primary" />
-            Mission Status
-          </p>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Current</p>
-              <p className="text-xl font-bold">{profile.currentWeightKg} <span className="text-xs font-normal text-muted-foreground">kg</span></p>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Goal</p>
-              <p className="text-xl font-bold text-primary">{profile.goalWeightKg} <span className="text-xs font-normal text-muted-foreground">kg</span></p>
-            </div>
-            {toGoKg && (
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">To Go</p>
-                <p className="text-xl font-bold">{toGoKg} <span className="text-xs font-normal text-muted-foreground">kg</span></p>
-              </div>
-            )}
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Frequency</p>
-              <p className="text-xl font-bold">{profile.workoutDaysPerWeek}<span className="text-xs font-normal text-muted-foreground">x / wk</span></p>
-            </div>
-          </div>
-          {goals.length > 0 && (
-            <div className="pt-3 border-t border-border">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Active Goals</p>
-              <div className="flex flex-wrap gap-1.5">
-                {goals.map(g => (
-                  <span key={g} className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider">{g}</span>
-                ))}
-              </div>
-            </div>
-          )}
-          {plan?.coachNotes && (
-            <div className="pt-3 border-t border-border">
-              <p className="text-xs text-muted-foreground leading-relaxed">{plan.coachNotes}</p>
-            </div>
-          )}
         </div>
 
       </div>
