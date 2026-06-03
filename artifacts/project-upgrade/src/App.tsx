@@ -3,7 +3,6 @@ import type { ReactNode, ErrorInfo } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 
 import LandingPage from "@/pages/landing";
@@ -28,7 +27,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// ── Error Boundary ─────────────────────────────────────────────────────────────
+// ── Error Boundary ────────────────────────────────────────────────────────────
 interface EBState { hasError: boolean; message: string }
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
@@ -42,7 +41,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("[App Error Boundary]", error, info.componentStack);
+    console.error("[AppErrorBoundary]", error, info.componentStack);
   }
 
   render() {
@@ -126,16 +125,9 @@ function App() {
   return (
     <AppErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        {/*
-          TooltipProvider must live INSIDE WouterRouter so Radix portals
-          share the same React dispatcher. Placing it outside causes the
-          "Invalid hook call / useRef null" crash on first tooltip mount.
-        */}
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <TooltipProvider>
-            <AppRouter />
-            <Toaster />
-          </TooltipProvider>
+          <AppRouter />
+          <Toaster />
         </WouterRouter>
       </QueryClientProvider>
     </AppErrorBoundary>
