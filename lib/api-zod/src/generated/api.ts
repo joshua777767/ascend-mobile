@@ -251,7 +251,7 @@ export const ListMealsResponse = zod.array(ListMealsResponseItem)
 export const CreateMealBody = zod.object({
   "description": zod.string().optional(),
   "imageUrl": zod.string().optional().describe('Base64 data URL of the meal photo')
-})
+}).describe('At least one of description or imageUrl must be provided.')
 
 
 /**

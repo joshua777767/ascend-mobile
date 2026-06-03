@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * At least one of description or imageUrl must be provided.
+ */
 export interface MealInput {
   description?: string;
   /** Base64 data URL of the meal photo */

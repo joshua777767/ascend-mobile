@@ -819,6 +819,8 @@ components:
 
     MealInput:
       type: object
+      minProperties: 1
+      description: At least one of description or imageUrl must be provided.
       properties:
         description:
           type: string
