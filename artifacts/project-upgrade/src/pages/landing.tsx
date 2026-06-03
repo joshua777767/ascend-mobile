@@ -5,18 +5,38 @@ import { ArrowRight, Zap, Dumbbell, Brain, Moon } from "lucide-react";
 
 export default function LandingPage() {
   const [, setLocation] = useLocation();
+  // isLoading = true on first fetch; data = undefined until resolved
   const { data: profile, isLoading } = useGetUserProfile();
 
   useEffect(() => {
-    if (profile) {
+    // Only redirect once we have confirmed profile data (not while loading)
+    if (!isLoading && profile) {
       setLocation("/dashboard");
     }
-  }, [profile, setLocation]);
+  }, [isLoading, profile, setLocation]);
 
+  // Show a neutral loading state while we check for an existing profile
+  // so there's no flash of the welcome screen before a redirect
   if (isLoading) {
     return (
-      <div className="h-dvh bg-background flex items-center justify-center">
-        <div className="w-2 h-2 bg-primary rounded-full animate-ping" />
+      <div
+        style={{
+          height: "100dvh",
+          background: "#0a0a0a",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            width: "6px",
+            height: "6px",
+            borderRadius: "50%",
+            background: "#F59E0B",
+            animation: "ping 1s cubic-bezier(0,0,0.2,1) infinite",
+          }}
+        />
       </div>
     );
   }
@@ -43,16 +63,16 @@ export default function LandingPage() {
           No shortcuts.
         </h1>
         <p className="text-sm text-muted-foreground uppercase tracking-widest leading-relaxed max-w-xs">
-          Daily schedules, meal feedback, workouts, nightly reviews — all built around your life and goals.
+          Daily schedules, meal feedback, workouts, nightly reviews — built around your life and goals.
         </p>
 
         {/* Features list */}
         <div className="mt-8 space-y-3">
           {[
             { icon: Dumbbell, text: "Personalized workout plan" },
-            { icon: Zap, text: "Calorie & protein targets" },
-            { icon: Brain, text: "AI coach chat — ask anything" },
-            { icon: Moon, text: "Nightly scored reviews" },
+            { icon: Zap,      text: "Calorie & protein targets" },
+            { icon: Brain,    text: "AI coach chat — ask anything" },
+            { icon: Moon,     text: "Nightly scored reviews" },
           ].map(({ icon: Icon, text }) => (
             <div key={text} className="flex items-center gap-3">
               <div className="w-8 h-8 border border-primary/30 bg-primary/5 flex items-center justify-center shrink-0">

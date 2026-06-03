@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import React, { useEffect, Component } from "react";
+import type { ReactNode, ErrorInfo } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -22,10 +23,76 @@ const queryClient = new QueryClient({
     queries: {
       retry: false,
       refetchOnWindowFocus: false,
+      staleTime: 30_000,
     },
   },
 });
 
+// ── Error Boundary ─────────────────────────────────────────────────────────────
+interface EBState { hasError: boolean; message: string }
+
+class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, message: "" };
+  }
+
+  static getDerivedStateFromError(error: Error): EBState {
+    return { hasError: true, message: error?.message ?? "Unknown error" };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[App Error Boundary]", error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          style={{
+            height: "100dvh",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            background: "#0a0a0a",
+            color: "#fafafa",
+            fontFamily: "'Space Mono', monospace",
+            gap: "16px",
+          }}
+        >
+          <p style={{ fontSize: "11px", letterSpacing: "0.2em", color: "#F59E0B", textTransform: "uppercase" }}>
+            Something went wrong
+          </p>
+          <p style={{ fontSize: "11px", color: "#666", textAlign: "center", maxWidth: "280px" }}>
+            {this.state.message}
+          </p>
+          <button
+            onClick={() => { this.setState({ hasError: false, message: "" }); window.location.href = "/"; }}
+            style={{
+              background: "#F59E0B",
+              color: "#0a0a0a",
+              border: "none",
+              padding: "12px 28px",
+              fontSize: "11px",
+              fontWeight: 700,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            Reload App
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ── Router ────────────────────────────────────────────────────────────────────
 function AppRouter() {
   return (
     <Switch>
@@ -50,20 +117,28 @@ function AppRouter() {
   );
 }
 
+// ── App ───────────────────────────────────────────────────────────────────────
 function App() {
   useEffect(() => {
     document.documentElement.classList.add("dark");
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        {/*
+          TooltipProvider must live INSIDE WouterRouter so Radix portals
+          share the same React dispatcher. Placing it outside causes the
+          "Invalid hook call / useRef null" crash on first tooltip mount.
+        */}
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <AppRouter />
+          <TooltipProvider>
+            <AppRouter />
+            <Toaster />
+          </TooltipProvider>
         </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
   );
 }
 
