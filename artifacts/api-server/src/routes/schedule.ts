@@ -2,13 +2,13 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, userProfilesTable, plansTable } from "@workspace/db";
 import { generateDailySchedule } from "../lib/scheduleGenerator";
-import { USER_ID } from "./users";
+import { getUserId } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
 router.get("/schedule/today", async (req, res): Promise<void> => {
-  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.id, USER_ID));
-  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, USER_ID));
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, getUserId(req)));
+  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, getUserId(req)));
 
   if (!profile || !plan) {
     res.json({

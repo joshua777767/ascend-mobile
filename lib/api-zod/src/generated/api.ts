@@ -145,6 +145,42 @@ export const UpdateUserProfileResponse = zod.object({
 
 
 /**
+ * @summary Create a new account
+ */
+export const signupBodyPasswordMin = 8;
+
+
+
+export const SignupBody = zod.object({
+  "email": zod.string().email(),
+  "password": zod.string().min(signupBodyPasswordMin)
+})
+
+
+/**
+ * @summary Log in with email and password
+ */
+export const LoginBody = zod.object({
+  "email": zod.string(),
+  "password": zod.string()
+})
+
+export const LoginResponse = zod.object({
+  "id": zod.number(),
+  "email": zod.string()
+})
+
+
+/**
+ * @summary Get the currently authenticated user
+ */
+export const GetMeResponse = zod.object({
+  "id": zod.number(),
+  "email": zod.string()
+})
+
+
+/**
  * @summary Get current personalized plan
  */
 export const GetCurrentPlanResponse = zod.object({

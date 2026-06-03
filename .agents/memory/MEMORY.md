@@ -1,3 +1,1 @@
-- [Project Upgrade stack](project-upgrade-stack.md) — single-user coaching app, always run typecheck:libs after lib/db schema changes
-- [Project Upgrade design system](project-upgrade-design.md) — blue/green HSL tokens + Inter; CoachReview score is dailyScore; empty-DB dashboard redirect is intended
-- [OpenAI quota exhausted in dev](project-upgrade-ai-fallback.md) — AI features always 429; all use goal-aware fallbacks, verify those paths
+- [Multi-user data scoping](multi-user-scoping.md) — single-user→multi-user: bulk USER_ID replace misses `/:id` routes; audit every id lookup for userId filter (IDOR).

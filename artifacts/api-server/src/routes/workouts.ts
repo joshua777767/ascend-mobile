@@ -1,15 +1,15 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { db, workoutsTable, userProfilesTable, plansTable } from "@workspace/db";
 import { CreateWorkoutBody, CompleteWorkoutParams } from "@workspace/api-zod";
 import { getTodayWorkout } from "../lib/workoutGenerator";
-import { USER_ID } from "./users";
+import { getUserId } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
 router.get("/workouts", async (req, res): Promise<void> => {
   const workouts = await db.select().from(workoutsTable)
-    .where(eq(workoutsTable.userId, USER_ID))
+    .where(eq(workoutsTable.userId, getUserId(req)))
     .orderBy(desc(workoutsTable.completedAt));
   res.json(workouts);
 });
@@ -21,15 +21,15 @@ router.post("/workouts", async (req, res): Promise<void> => {
     return;
   }
   const [workout] = await db.insert(workoutsTable).values({
-    userId: USER_ID,
+    userId: getUserId(req),
     ...parsed.data,
   }).returning();
   res.status(201).json(workout);
 });
 
 router.get("/workouts/today", async (req, res): Promise<void> => {
-  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.id, USER_ID));
-  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, USER_ID));
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, getUserId(req)));
+  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, getUserId(req)));
 
   if (!profile || !plan) {
     // Return a default workout
@@ -63,7 +63,8 @@ router.patch("/workouts/:id/complete", async (req, res): Promise<void> => {
     return;
   }
 
-  const [workout] = await db.select().from(workoutsTable).where(eq(workoutsTable.id, id));
+  const [workout] = await db.select().from(workoutsTable)
+    .where(and(eq(workoutsTable.id, id), eq(workoutsTable.userId, getUserId(req))));
   if (!workout) {
     res.status(404).json({ error: "Workout not found" });
     return;

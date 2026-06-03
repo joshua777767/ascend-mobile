@@ -1,6 +1,6 @@
 import React, { useEffect, Component } from "react";
 import type { ReactNode, ErrorInfo } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Redirect, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
@@ -15,7 +15,12 @@ import CoachPage from "@/pages/coach";
 import JournalPage from "@/pages/journal";
 import ProgressPage from "@/pages/progress";
 import PricingPage from "@/pages/pricing";
+import LoginPage from "@/pages/login";
+import SignupPage from "@/pages/signup";
+import SettingsPage from "@/pages/settings";
 import { Layout } from "@/components/layout";
+import { useAuth } from "@/hooks/use-auth";
+import { useGetUserProfile } from "@workspace/api-client-react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -108,27 +113,57 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
   }
 }
 
+// ── Guards ────────────────────────────────────────────────────────────────────
+function FullScreenSpinner() {
+  return (
+    <div className="h-dvh bg-background flex items-center justify-center">
+      <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+    </div>
+  );
+}
+
+// Authenticated app shell — requires a completed profile, else redirects to onboarding.
+function ProtectedApp() {
+  const { data: profile, isLoading, isError } = useGetUserProfile();
+  if (isLoading) return <FullScreenSpinner />;
+  if (isError || !profile) return <Redirect to="/onboarding" />;
+  return (
+    <Layout>
+      <Switch>
+        <Route path="/dashboard" component={DashboardPage} />
+        <Route path="/schedule" component={SchedulePage} />
+        <Route path="/workouts" component={WorkoutsPage} />
+        <Route path="/meals" component={MealsPage} />
+        <Route path="/coach" component={CoachPage} />
+        <Route path="/journal" component={JournalPage} />
+        <Route path="/progress" component={ProgressPage} />
+        <Route path="/settings" component={SettingsPage} />
+        <Route component={NotFound} />
+      </Switch>
+    </Layout>
+  );
+}
+
+// Onboarding — requires auth; if a profile already exists, go to dashboard.
+function OnboardingGuard() {
+  const { data: profile, isLoading } = useGetUserProfile();
+  if (isLoading) return <FullScreenSpinner />;
+  if (profile) return <Redirect to="/dashboard" />;
+  return <OnboardingPage />;
+}
+
 // ── Router ────────────────────────────────────────────────────────────────────
 function AppRouter() {
+  const { isAuthed, isLoading } = useAuth();
+  if (isLoading) return <FullScreenSpinner />;
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
-      <Route path="/onboarding" component={OnboardingPage} />
+      <Route path="/login">{isAuthed ? <Redirect to="/dashboard" /> : <LoginPage />}</Route>
+      <Route path="/signup">{isAuthed ? <Redirect to="/dashboard" /> : <SignupPage />}</Route>
       <Route path="/pricing" component={PricingPage} />
-      <Route path="/:rest*">
-        <Layout>
-          <Switch>
-            <Route path="/dashboard" component={DashboardPage} />
-            <Route path="/schedule" component={SchedulePage} />
-            <Route path="/workouts" component={WorkoutsPage} />
-            <Route path="/meals" component={MealsPage} />
-            <Route path="/coach" component={CoachPage} />
-            <Route path="/journal" component={JournalPage} />
-            <Route path="/progress" component={ProgressPage} />
-            <Route component={NotFound} />
-          </Switch>
-        </Layout>
-      </Route>
+      <Route path="/onboarding">{isAuthed ? <OnboardingGuard /> : <Redirect to="/login" />}</Route>
+      <Route path="/:rest*">{isAuthed ? <ProtectedApp /> : <Redirect to="/login" />}</Route>
     </Switch>
   );
 }

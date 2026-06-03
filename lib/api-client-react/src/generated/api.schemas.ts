@@ -9,6 +9,22 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface AuthUser {
+  id: number;
+  email: string;
+}
+
+export interface SignupInput {
+  email: string;
+  /** @minLength 8 */
+  password: string;
+}
+
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
 export interface ApiError {
   error: string;
 }

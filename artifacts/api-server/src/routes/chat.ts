@@ -14,7 +14,7 @@ import {
 import { SendChatMessageBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
 import { logger } from "../lib/logger";
-import { USER_ID } from "./users";
+import { getUserId } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -239,7 +239,7 @@ function buildContextSummary(
 
 router.get("/chat/history", async (req, res): Promise<void> => {
   const messages = await db.select().from(chatMessagesTable)
-    .where(eq(chatMessagesTable.userId, USER_ID))
+    .where(eq(chatMessagesTable.userId, getUserId(req)))
     .orderBy(chatMessagesTable.createdAt);
   res.json(messages);
 });
@@ -251,16 +251,16 @@ router.post("/chat", async (req, res): Promise<void> => {
     return;
   }
 
-  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.id, USER_ID));
-  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, USER_ID));
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, getUserId(req)));
+  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, getUserId(req)));
 
   const [recentMessages, recentMeals, recentWorkouts, recentJournals, recentWeighIns, recentReviews] = await Promise.all([
-    db.select().from(chatMessagesTable).where(eq(chatMessagesTable.userId, USER_ID)).orderBy(desc(chatMessagesTable.createdAt)).limit(20),
-    db.select().from(mealsTable).where(eq(mealsTable.userId, USER_ID)).orderBy(desc(mealsTable.loggedAt)).limit(3),
-    db.select().from(workoutsTable).where(eq(workoutsTable.userId, USER_ID)).orderBy(desc(workoutsTable.completedAt)).limit(3),
-    db.select().from(journalEntriesTable).where(eq(journalEntriesTable.userId, USER_ID)).orderBy(desc(journalEntriesTable.createdAt)).limit(2),
-    db.select().from(weighInsTable).where(eq(weighInsTable.userId, USER_ID)).orderBy(desc(weighInsTable.loggedAt)).limit(1),
-    db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, USER_ID)).orderBy(desc(coachReviewsTable.createdAt)).limit(1),
+    db.select().from(chatMessagesTable).where(eq(chatMessagesTable.userId, getUserId(req))).orderBy(desc(chatMessagesTable.createdAt)).limit(20),
+    db.select().from(mealsTable).where(eq(mealsTable.userId, getUserId(req))).orderBy(desc(mealsTable.loggedAt)).limit(3),
+    db.select().from(workoutsTable).where(eq(workoutsTable.userId, getUserId(req))).orderBy(desc(workoutsTable.completedAt)).limit(3),
+    db.select().from(journalEntriesTable).where(eq(journalEntriesTable.userId, getUserId(req))).orderBy(desc(journalEntriesTable.createdAt)).limit(2),
+    db.select().from(weighInsTable).where(eq(weighInsTable.userId, getUserId(req))).orderBy(desc(weighInsTable.loggedAt)).limit(1),
+    db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, getUserId(req))).orderBy(desc(coachReviewsTable.createdAt)).limit(1),
   ]);
 
   const ctx: ChatContext = {
@@ -303,7 +303,7 @@ HARD RULES:
 
   // Save user message first
   await db.insert(chatMessagesTable).values({
-    userId: USER_ID,
+    userId: getUserId(req),
     role: "user",
     content: parsed.data.message,
   });
@@ -327,7 +327,7 @@ HARD RULES:
 
   // Save assistant reply
   await db.insert(chatMessagesTable).values({
-    userId: USER_ID,
+    userId: getUserId(req),
     role: "assistant",
     content: reply,
   });

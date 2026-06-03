@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, coachReviewsTable, journalEntriesTable, plansTable, userProfilesTable } from "@workspace/db";
 import { openai } from "../lib/openai";
-import { USER_ID } from "./users";
+import { getUserId } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -71,7 +71,7 @@ Respond ONLY as valid JSON:
 
 router.get("/reviews", async (req, res): Promise<void> => {
   const reviews = await db.select().from(coachReviewsTable)
-    .where(eq(coachReviewsTable.userId, USER_ID))
+    .where(eq(coachReviewsTable.userId, getUserId(req)))
     .orderBy(desc(coachReviewsTable.createdAt));
   res.json(reviews);
 });
@@ -81,7 +81,7 @@ router.post("/reviews", async (req, res): Promise<void> => {
 
   // Get today's journal entry
   const allEntries = await db.select().from(journalEntriesTable)
-    .where(eq(journalEntriesTable.userId, USER_ID))
+    .where(eq(journalEntriesTable.userId, getUserId(req)))
     .orderBy(desc(journalEntriesTable.createdAt));
   const todayEntry = allEntries.find(e => e.date === today);
 
@@ -90,20 +90,20 @@ router.post("/reviews", async (req, res): Promise<void> => {
     return;
   }
 
-  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, USER_ID));
-  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.id, USER_ID));
+  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, getUserId(req)));
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, getUserId(req)));
 
   const generated = await generateCoachReview(todayEntry, plan, profile);
 
   // Upsert today's review
-  const existing = (await db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, USER_ID))).find(r => r.date === today);
+  const existing = (await db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, getUserId(req)))).find(r => r.date === today);
 
   let review;
   if (existing) {
     [review] = await db.update(coachReviewsTable).set(generated).where(eq(coachReviewsTable.id, existing.id)).returning();
   } else {
     [review] = await db.insert(coachReviewsTable).values({
-      userId: USER_ID,
+      userId: getUserId(req),
       date: today,
       ...generated,
     }).returning();
@@ -115,7 +115,7 @@ router.post("/reviews", async (req, res): Promise<void> => {
 router.get("/reviews/today", async (req, res): Promise<void> => {
   const today = getTodayStr();
   const all = await db.select().from(coachReviewsTable)
-    .where(eq(coachReviewsTable.userId, USER_ID))
+    .where(eq(coachReviewsTable.userId, getUserId(req)))
     .orderBy(desc(coachReviewsTable.createdAt));
   const todayReview = all.find(r => r.date === today);
   if (!todayReview) {

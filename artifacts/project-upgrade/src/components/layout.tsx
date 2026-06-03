@@ -9,6 +9,7 @@ import {
   BookOpen,
   LineChart,
   CreditCard,
+  Settings,
 } from "lucide-react";
 
 const ALL_NAV_ITEMS = [
@@ -75,7 +76,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="p-3">
+        <div className="p-3 space-y-1">
+          <Link
+            href="/settings"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+              location === "/settings"
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-elevated"
+            }`}
+          >
+            <Settings className="w-[18px] h-[18px] shrink-0" strokeWidth={2} />
+            Settings
+          </Link>
           <Link
             href="/pricing"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-elevated transition-colors"
@@ -100,6 +112,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
               {pageTitle ?? "Ascend"}
             </span>
           </div>
+          <Link
+            href="/settings"
+            aria-label="Settings"
+            className={`flex items-center justify-center w-9 h-9 rounded-full transition-colors ${
+              location === "/settings" ? "bg-primary/15 text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <Settings className="w-[20px] h-[20px]" strokeWidth={2} />
+          </Link>
         </div>
       </header>
 

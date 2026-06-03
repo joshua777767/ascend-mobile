@@ -1,3 +1,5 @@
+export * from "./users";
+export * from "./sessions";
 export * from "./userProfiles";
 export * from "./plans";
 export * from "./workouts";

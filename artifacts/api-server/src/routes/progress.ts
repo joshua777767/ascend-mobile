@@ -1,17 +1,17 @@
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, userProfilesTable, plansTable, workoutsTable, weighInsTable, mealsTable, coachReviewsTable, journalEntriesTable } from "@workspace/db";
-import { USER_ID } from "./users";
+import { getUserId } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
 router.get("/progress/summary", async (req, res): Promise<void> => {
-  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.id, USER_ID));
-  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, USER_ID));
-  const weighIns = await db.select().from(weighInsTable).where(eq(weighInsTable.userId, USER_ID)).orderBy(weighInsTable.loggedAt);
-  const workouts = await db.select().from(workoutsTable).where(eq(workoutsTable.userId, USER_ID));
-  const reviews = await db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, USER_ID));
-  const meals = await db.select().from(mealsTable).where(eq(mealsTable.userId, USER_ID)).orderBy(desc(mealsTable.loggedAt));
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, getUserId(req)));
+  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, getUserId(req)));
+  const weighIns = await db.select().from(weighInsTable).where(eq(weighInsTable.userId, getUserId(req))).orderBy(weighInsTable.loggedAt);
+  const workouts = await db.select().from(workoutsTable).where(eq(workoutsTable.userId, getUserId(req)));
+  const reviews = await db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, getUserId(req)));
+  const meals = await db.select().from(mealsTable).where(eq(mealsTable.userId, getUserId(req))).orderBy(desc(mealsTable.loggedAt));
 
   const currentWeightKg = weighIns.length > 0
     ? weighIns[weighIns.length - 1].weightKg
@@ -46,7 +46,7 @@ router.get("/progress/summary", async (req, res): Promise<void> => {
 
 router.get("/progress/streak", async (req, res): Promise<void> => {
   const journals = await db.select().from(journalEntriesTable)
-    .where(eq(journalEntriesTable.userId, USER_ID))
+    .where(eq(journalEntriesTable.userId, getUserId(req)))
     .orderBy(desc(journalEntriesTable.date));
 
   let currentStreak = 0;

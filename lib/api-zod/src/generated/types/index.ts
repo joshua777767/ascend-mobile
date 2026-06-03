@@ -7,6 +7,7 @@
  */
 
 export * from './apiError';
+export * from './authUser';
 export * from './chatMessage';
 export * from './chatMessageInput';
 export * from './chatResponse';
@@ -16,6 +17,7 @@ export * from './exercise';
 export * from './healthStatus';
 export * from './journalEntry';
 export * from './journalEntryInput';
+export * from './loginInput';
 export * from './meal';
 export * from './mealInput';
 export * from './missionStreak';
@@ -23,6 +25,7 @@ export * from './plan';
 export * from './plannedWorkout';
 export * from './progressSummary';
 export * from './scheduleItem';
+export * from './signupInput';
 export * from './userProfile';
 export * from './userProfileInput';
 export * from './userProfileUpdate';

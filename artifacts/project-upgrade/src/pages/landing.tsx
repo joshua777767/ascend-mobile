@@ -1,19 +1,22 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { useGetUserProfile } from "@workspace/api-client-react";
+import { useGetUserProfile, getGetUserProfileQueryKey } from "@workspace/api-client-react";
+import { useAuth } from "@/hooks/use-auth";
 import { ArrowRight, Dumbbell, Apple, Moon, Sparkles, BatteryCharging, ShieldCheck } from "lucide-react";
 
 export default function LandingPage() {
   const [, setLocation] = useLocation();
-  const { data: profile, isLoading } = useGetUserProfile();
+  const { isAuthed, isLoading: authLoading } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useGetUserProfile({
+    query: { enabled: isAuthed, queryKey: getGetUserProfileQueryKey() },
+  });
 
   useEffect(() => {
-    if (!isLoading && profile) {
-      setLocation("/dashboard");
-    }
-  }, [isLoading, profile, setLocation]);
+    if (authLoading || !isAuthed || profileLoading) return;
+    setLocation(profile ? "/dashboard" : "/onboarding");
+  }, [authLoading, isAuthed, profileLoading, profile, setLocation]);
 
-  if (isLoading) {
+  if (authLoading || (isAuthed && profileLoading)) {
     return (
       <div className="h-dvh bg-background flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
@@ -84,15 +87,18 @@ export default function LandingPage() {
           Personalized coaching for fat loss, muscle gain, better sleep, higher energy, skin habits, and daily discipline.
         </p>
         <Link
-          href="/onboarding"
+          href="/signup"
           className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground h-14 rounded-2xl text-[15px] font-semibold shadow-lg shadow-primary/20 active:scale-[0.99] transition-transform"
           data-testid="link-start-onboarding"
         >
           Start 7-Day Free Trial
           <ArrowRight className="w-[18px] h-[18px]" strokeWidth={2.4} />
         </Link>
-        <p className="text-center text-xs text-muted-foreground">
-          No commitment · Cancel anytime
+        <p className="text-center text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link href="/login" className="text-primary font-semibold" data-testid="link-login">
+            Log in
+          </Link>
         </p>
       </div>
     </div>

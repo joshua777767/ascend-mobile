@@ -3,7 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import { db, weighInsTable, plansTable, userProfilesTable } from "@workspace/db";
 import { CreateWeighInBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
-import { USER_ID } from "./users";
+import { getUserId } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -40,7 +40,7 @@ Respond as JSON ONLY:
 
 router.get("/weigh-ins", async (req, res): Promise<void> => {
   const weighins = await db.select().from(weighInsTable)
-    .where(eq(weighInsTable.userId, USER_ID))
+    .where(eq(weighInsTable.userId, getUserId(req)))
     .orderBy(desc(weighInsTable.loggedAt));
   res.json(weighins);
 });
@@ -52,10 +52,10 @@ router.post("/weigh-ins", async (req, res): Promise<void> => {
     return;
   }
 
-  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, USER_ID));
-  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.id, USER_ID));
+  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, getUserId(req)));
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, getUserId(req)));
   const previous = await db.select().from(weighInsTable)
-    .where(eq(weighInsTable.userId, USER_ID))
+    .where(eq(weighInsTable.userId, getUserId(req)))
     .orderBy(desc(weighInsTable.loggedAt));
 
   const prevWeight = previous.length > 0 ? previous[0].weightKg : null;
@@ -66,7 +66,7 @@ router.post("/weigh-ins", async (req, res): Promise<void> => {
   const { adjustment, coachMessage } = await getAdjustment(parsed.data.weightKg, prevWeight, goalType, goalWeightKg);
 
   const [weighIn] = await db.insert(weighInsTable).values({
-    userId: USER_ID,
+    userId: getUserId(req),
     weightKg: parsed.data.weightKg,
     weekNumber,
     adjustment,

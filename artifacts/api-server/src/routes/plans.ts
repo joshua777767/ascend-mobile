@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, userProfilesTable, plansTable } from "@workspace/db";
 import { generatePlan } from "../lib/planGenerator";
-import { USER_ID } from "./users";
+import { getUserId } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -14,7 +14,7 @@ function formatPlan(plan: any) {
 }
 
 router.get("/plans/current", async (req, res): Promise<void> => {
-  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, USER_ID)).orderBy(plansTable.createdAt);
+  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, getUserId(req))).orderBy(plansTable.createdAt);
   if (!plan) {
     res.status(404).json({ error: "No plan found" });
     return;
@@ -23,7 +23,7 @@ router.get("/plans/current", async (req, res): Promise<void> => {
 });
 
 router.post("/plans/current", async (req, res): Promise<void> => {
-  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.id, USER_ID));
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, getUserId(req)));
   if (!profile) {
     res.status(404).json({ error: "Profile not found. Complete onboarding first." });
     return;
@@ -39,10 +39,10 @@ router.post("/plans/current", async (req, res): Promise<void> => {
   const generated = generatePlan(profileWithArrays as any);
 
   // Delete old plan and create new one
-  await db.delete(plansTable).where(eq(plansTable.userId, USER_ID));
+  await db.delete(plansTable).where(eq(plansTable.userId, getUserId(req)));
 
   const [plan] = await db.insert(plansTable).values({
-    userId: USER_ID,
+    userId: getUserId(req),
     goalType: generated.goalType,
     calorieTarget: generated.calorieTarget,
     proteinTargetG: generated.proteinTargetG,

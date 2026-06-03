@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
+import authRouter from "./auth";
 import usersRouter from "./users";
 import plansRouter from "./plans";
 import workoutsRouter from "./workouts";
@@ -10,10 +11,16 @@ import weighinsRouter from "./weighins";
 import scheduleRouter from "./schedule";
 import chatRouter from "./chat";
 import progressRouter from "./progress";
+import { requireAuth } from "./../middlewares/auth";
 
 const router: IRouter = Router();
 
+// Public routes
 router.use(healthRouter);
+router.use(authRouter);
+
+// All data routes require an authenticated session
+router.use(requireAuth);
 router.use(usersRouter);
 router.use(plansRouter);
 router.use(workoutsRouter);

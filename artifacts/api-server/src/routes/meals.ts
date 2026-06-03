@@ -4,7 +4,7 @@ import { db, mealsTable, userProfilesTable, plansTable } from "@workspace/db";
 import { CreateMealBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
 import { logger } from "../lib/logger";
-import { USER_ID } from "./users";
+import { getUserId } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -171,7 +171,7 @@ Tone examples:
 
 router.get("/meals", async (req, res): Promise<void> => {
   const meals = await db.select().from(mealsTable)
-    .where(eq(mealsTable.userId, USER_ID))
+    .where(eq(mealsTable.userId, getUserId(req)))
     .orderBy(desc(mealsTable.loggedAt));
   res.json(meals);
 });
@@ -196,8 +196,8 @@ router.post("/meals", async (req, res): Promise<void> => {
     return;
   }
 
-  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.id, USER_ID));
-  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, USER_ID));
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, getUserId(req)));
+  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, getUserId(req)));
 
   const goalType = plan?.goalType ?? "maintain";
   const proteinTarget = plan?.proteinTargetG ?? 150;
@@ -212,7 +212,7 @@ router.post("/meals", async (req, res): Promise<void> => {
   const feedback = await getMealFeedback(description, imageUrl, goalType, goals, proteinTarget, calorieTarget);
 
   const [meal] = await db.insert(mealsTable).values({
-    userId: USER_ID,
+    userId: getUserId(req),
     description,
     imageUrl,
     coachFeedback: feedback.feedback,
@@ -230,7 +230,7 @@ router.get("/meals/today", async (req, res): Promise<void> => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const meals = await db.select().from(mealsTable)
-    .where(eq(mealsTable.userId, USER_ID))
+    .where(eq(mealsTable.userId, getUserId(req)))
     .orderBy(desc(mealsTable.loggedAt));
   const todayMeals = meals.filter(m => new Date(m.loggedAt) >= today);
   res.json(todayMeals);
