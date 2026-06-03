@@ -124,7 +124,8 @@ export default function DashboardPage() {
   const { data: plan } = useGetCurrentPlan();
   const { data: workout } = useGetTodayWorkout();
   const { data: review } = useGetTodayReview();
-  const { data: todayMeals } = useGetTodayMeals();
+  const { data: todayMeals, refetch: refetchMeals } = useGetTodayMeals();
+  useEffect(() => { refetchMeals(); }, [refetchMeals]);
 
   useEffect(() => {
     if (error) setLocation("/onboarding");
