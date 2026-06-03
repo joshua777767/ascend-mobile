@@ -14,6 +14,7 @@ export const mealsTable = pgTable("meals", {
   whatWasGood: text("what_was_good"),
   whatWasBad: text("what_was_bad"),
   whatToFixNext: text("what_to_fix_next"),
+  detectedFoodsJson: text("detected_foods_json"),
 });
 
 export const insertMealSchema = createInsertSchema(mealsTable).omit({ id: true });

@@ -985,6 +985,8 @@ components:
           type: ["string", "null"]
         whatToFixNext:
           type: ["string", "null"]
+        detectedFoodsJson:
+          type: ["string", "null"]
 
     MealInput:
       type: object

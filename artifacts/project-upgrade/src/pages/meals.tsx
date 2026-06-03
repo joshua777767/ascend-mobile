@@ -468,6 +468,38 @@ export default function MealsPage() {
                             </div>
                           </div>
                         </div>
+                        {(() => {
+                          let foods: Array<{item:string;serving:string;calories:number;protein:number;carbs?:number;fat?:number}> | null = null;
+                          try { if ((meal as any).detectedFoodsJson) foods = JSON.parse((meal as any).detectedFoodsJson); } catch {}
+                          if (!foods || foods.length === 0) return null;
+                          const totalCal = foods.reduce((s, f) => s + f.calories, 0);
+                          const totalPro = foods.reduce((s, f) => s + f.protein, 0);
+                          return (
+                            <div className="pt-3 border-t border-current/20">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider mb-2">Detected Foods</p>
+                              <div className="space-y-1.5">
+                                {foods.map((f, fi) => (
+                                  <div key={fi} className="flex items-start justify-between gap-2 text-xs">
+                                    <div className="flex-1 min-w-0">
+                                      <span className="font-medium">{f.item}</span>
+                                      {f.serving && <span className="text-muted-foreground ml-1">— {f.serving}</span>}
+                                    </div>
+                                    <div className="shrink-0 flex gap-2 text-muted-foreground text-[10px] font-mono">
+                                      <span>{f.calories} cal</span>
+                                      <span>{f.protein}g P</span>
+                                      {f.carbs != null && <span>{f.carbs}g C</span>}
+                                      {f.fat != null && <span>{f.fat}g F</span>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="mt-2 pt-2 border-t border-current/10 flex gap-4 text-[10px] font-semibold text-muted-foreground">
+                                <span>Total: {totalCal} cal</span>
+                                <span>{totalPro}g protein</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                         {meal.coachFeedback && (
                           <div className="pt-3 border-t border-current/20">
                             <p className="text-xs font-semibold uppercase tracking-wider mb-1.5">Coach Feedback</p>

@@ -8,6 +8,15 @@ import { getUserId } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
+interface DetectedFood {
+  item: string;
+  serving: string;
+  calories: number;
+  protein: number;
+  carbs?: number;
+  fat?: number;
+}
+
 interface MealFeedback {
   feedback: string;
   score: number;
@@ -15,6 +24,7 @@ interface MealFeedback {
   whatWasGood: string | null;
   whatWasBad: string | null;
   whatToFixNext: string;
+  detectedFoods: DetectedFood[] | null;
 }
 
 const GOOD_FOODS = [
@@ -47,18 +57,21 @@ function primaryGoalLabel(goalType: string, goals: string[]): string {
 
 // Deterministic, goal-aware feedback from the typed description.
 // Used when AI is unavailable (e.g. quota exceeded) so the feature still works.
-function heuristicFeedback(description: string, goalType: string, goals: string[]): MealFeedback {
+function heuristicFeedback(description: string, goalType: string, goals: string[], hasPhoto: boolean): MealFeedback {
   const goalLabel = primaryGoalLabel(goalType, goals);
   const text = description.trim();
 
   if (!text) {
     return {
-      feedback: `Photo logged. I can't break down the plate in detail right now — add a short description (e.g. "chicken, rice, broccoli") so I can score it against ${goalLabel}.`,
+      feedback: hasPhoto
+        ? `Photo received, but AI vision is temporarily unavailable. Add a quick description — even just "chicken, rice, broccoli, 1 cup each" — and I'll score it against your ${goalLabel} goal.`
+        : `No description provided. Tell me what you ate (food + rough amounts) so I can score it against your ${goalLabel} goal.`,
       score: 50,
       quality: "neutral",
-      whatWasGood: "You logged the meal — tracking is the habit that wins.",
+      whatWasGood: "You logged the meal — that habit alone puts you ahead of most people.",
       whatWasBad: null,
-      whatToFixNext: "Add a quick text description next time so the meal can be scored properly.",
+      whatToFixNext: "Describe what you ate (food items + rough amounts) for an accurate score.",
+      detectedFoods: null,
     };
   }
 
@@ -100,7 +113,7 @@ function heuristicFeedback(description: string, goalType: string, goals: string[
     feedback = `Not terrible, not great. This is a "fine" meal, and "fine" won't get you to ${goalLabel} fast. Tighten it up.`;
   }
 
-  return { feedback, score, quality, whatWasGood, whatWasBad, whatToFixNext };
+  return { feedback, score, quality, whatWasGood, whatWasBad, whatToFixNext, detectedFoods: null };
 }
 
 async function getMealFeedback(
@@ -141,52 +154,62 @@ async function getMealFeedback(
       ? `${calorieTarget} cal/day is a controlled surplus to build lean mass without excessive fat gain.`
       : `${calorieTarget} cal/day supports energy balance for your goal.`;
 
-    const systemPrompt = `You are a strict, direct AI personal coach — at the level of a premium $50/month fitness and nutrition coach. The user's goal type is "${goalType}" and their stated goals are: ${goalsList}. Daily targets: ${calorieTarget} calories (${goalCalNote}), ${proteinTarget}g protein.
+    const systemPrompt = `You are a strict AI personal coach AND food nutrition analyzer — at the level of a premium $50/month fitness coach.
 
-Judge this meal specifically against their goals. If a photo is provided, analyze what you see; otherwise use the description.
+USER CONTEXT:
+- Goal: "${goalType}" (${goalsList})
+- Daily targets: ${calorieTarget} cal (${goalCalNote}), ${proteinTarget}g protein
 
-Always include:
-1. A real score (0-100) based on how well this meal serves their specific goal
-2. Direct feedback — no fluff, no "great job"
-3. What was good (or null if nothing)
-4. What hurt the goal (or null if nothing did)
-5. A concrete fix for the next meal — including a specific better option if the meal was bad
+YOUR TASK:
+${imageUrl ? `1. ANALYZE THE IMAGE: Identify every visible food item. Estimate serving sizes and nutrition from what you can see.
+2. Use the user's description as additional context if provided.
+3. If you're uncertain about an item, make your best estimate and note it in the feedback.` : `1. Use the description to assess the meal.`}
+4. Score the meal 0–100 against the user's specific goal.
+5. Give direct, strict coaching — no fluff, no praise padding.
 
-If the meal was poor quality, suggest a specific better alternative from these goal-appropriate options:
+SCORING BY GOAL:
+- fat_loss: reward calorie control + high protein + whole foods; penalize excess calories, low protein, fried/sugary food
+- muscle_gain: reward calorie density + high protein; penalize undereating, low protein, missing surplus
+- maintain: reward protein adequacy + balance; penalize extremes
+
+If the meal was poor, suggest a better option from:
 ${swapOptions}
-
-Substitution note to include when suggesting alternatives: "If you don't have [X], use eggs, tuna, beef, turkey, Greek yogurt, or protein powder instead. Hit your calorie and protein targets — the exact food is secondary."
 
 Respond with ONLY valid JSON in this exact format:
 {
-  "score": 0-100 integer,
-  "feedback": "2-3 sentence strict coach message. Include calorie/protein assessment if relevant. Suggest a specific better meal if this one was poor.",
+  "detectedFoods": [
+    {"item": "food name", "serving": "e.g. 2 slices / ~200g", "calories": 300, "protein": 12, "carbs": 35, "fat": 10}
+  ],
+  "score": 0-100,
+  "feedback": "2-3 sentences. ${imageUrl ? 'Start with what you detected: e.g. \\"I detected pepperoni pizza — 2 slices, ~600 cal, ~25g protein. \\"' : ''}Give direct coaching. If uncertain about amounts, say so and ask for confirmation.",
   "quality": "good|neutral|bad",
-  "whatWasGood": "1 sentence on what was good, or null",
-  "whatWasBad": "1 sentence on what hurt the goal, or null",
-  "whatToFixNext": "1-2 actionable sentences. Name a specific better food or meal option if the meal was neutral or bad."
+  "whatWasGood": "1 sentence or null",
+  "whatWasBad": "1 sentence or null",
+  "whatToFixNext": "1-2 actionable sentences. Name a specific better food if the meal was neutral or bad."
 }
 
-Tone examples by goal:
-- Fat loss bad meal: "The fries and soda wiped out your deficit. That's ~800 calories of almost zero protein. Next meal: chicken + rice + broccoli or a tuna wrap. Cut liquid calories completely."
-- Fat loss good meal: "Solid fat-loss meal. High protein, controlled carbs, no junk. Keep the momentum — this is exactly what consistent fat loss looks like."
-- Muscle gain small meal: "Too small. You want to gain but this won't move the needle. You need 600-800 calories per meal. Add rice, peanut butter, a shake, or a second protein source."
-- Muscle gain good meal: "Good bulk meal. High protein and enough calories to support growth. Make sure you're hitting ${calorieTarget} total today."`;
+Tone: direct and strict — no shaming, but no false praise either.
+- Fat loss bad: "The fries and soda wiped out your deficit. ~800 cal with almost no protein. Next meal: chicken + rice + broccoli."
+- Fat loss good: "Solid fat-loss meal. High protein, controlled carbs, no junk. This is what consistent fat loss looks like."
+- Muscle gain too small: "Too small to move the needle. You need 600–800 cal per meal. Add rice, peanut butter, or a shake."
+- Muscle gain good: "Good bulk meal. High protein and enough calories to support growth."`;
 
     const userText = description.trim()
-      ? `Meal: ${description.trim()}`
-      : "Meal: (no description provided — judge from the photo)";
+      ? `Meal description: ${description.trim()}`
+      : imageUrl
+        ? "No description provided — analyze from the photo only."
+        : "No description provided.";
 
     const userContent: any = imageUrl
       ? [
           { type: "text", text: userText },
-          { type: "image_url", image_url: { url: imageUrl, detail: "low" } },
+          { type: "image_url", image_url: { url: imageUrl, detail: "auto" } },
         ]
       : userText;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      max_tokens: 500,
+      max_tokens: 700,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
@@ -195,7 +218,20 @@ Tone examples by goal:
     });
 
     const content = response.choices[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(content) as Partial<MealFeedback>;
+    const parsed = JSON.parse(content) as Record<string, any>;
+
+    let detectedFoods: DetectedFood[] | null = null;
+    if (Array.isArray(parsed.detectedFoods) && parsed.detectedFoods.length > 0) {
+      detectedFoods = parsed.detectedFoods.map((f: any) => ({
+        item: String(f.item ?? "Unknown"),
+        serving: String(f.serving ?? ""),
+        calories: typeof f.calories === "number" ? Math.round(f.calories) : 0,
+        protein: typeof f.protein === "number" ? Math.round(f.protein) : 0,
+        ...(typeof f.carbs === "number" ? { carbs: Math.round(f.carbs) } : {}),
+        ...(typeof f.fat === "number" ? { fat: Math.round(f.fat) } : {}),
+      }));
+    }
+
     return {
       feedback: parsed.feedback ?? "Meal logged. Keep executing the basics.",
       score: typeof parsed.score === "number" ? Math.max(0, Math.min(100, Math.round(parsed.score))) : 60,
@@ -203,10 +239,11 @@ Tone examples by goal:
       whatWasGood: parsed.whatWasGood ?? null,
       whatWasBad: parsed.whatWasBad ?? null,
       whatToFixNext: parsed.whatToFixNext ?? "Stay consistent with your targets.",
+      detectedFoods,
     };
   } catch (err) {
     logger.warn({ err }, "AI meal feedback unavailable, using heuristic fallback");
-    return heuristicFeedback(description, goalType, goals);
+    return heuristicFeedback(description, goalType, goals, !!imageUrl);
   }
 }
 
@@ -262,6 +299,7 @@ router.post("/meals", async (req, res): Promise<void> => {
     whatWasGood: feedback.whatWasGood,
     whatWasBad: feedback.whatWasBad,
     whatToFixNext: feedback.whatToFixNext,
+    detectedFoodsJson: feedback.detectedFoods ? JSON.stringify(feedback.detectedFoods) : null,
   }).returning();
 
   res.status(201).json(meal);

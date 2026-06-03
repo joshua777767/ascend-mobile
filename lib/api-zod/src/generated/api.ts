@@ -296,7 +296,8 @@ export const ListMealsResponseItem = zod.object({
   "quality": zod.string(),
   "whatWasGood": zod.string().nullish(),
   "whatWasBad": zod.string().nullish(),
-  "whatToFixNext": zod.string().nullish()
+  "whatToFixNext": zod.string().nullish(),
+  "detectedFoodsJson": zod.string().nullish()
 })
 export const ListMealsResponse = zod.array(ListMealsResponseItem)
 
@@ -324,7 +325,8 @@ export const GetTodayMealsResponseItem = zod.object({
   "quality": zod.string(),
   "whatWasGood": zod.string().nullish(),
   "whatWasBad": zod.string().nullish(),
-  "whatToFixNext": zod.string().nullish()
+  "whatToFixNext": zod.string().nullish(),
+  "detectedFoodsJson": zod.string().nullish()
 })
 export const GetTodayMealsResponse = zod.array(GetTodayMealsResponseItem)
 
@@ -551,7 +553,8 @@ export const GetProgressSummaryResponse = zod.object({
   "quality": zod.string(),
   "whatWasGood": zod.string().nullish(),
   "whatWasBad": zod.string().nullish(),
-  "whatToFixNext": zod.string().nullish()
+  "whatToFixNext": zod.string().nullish(),
+  "detectedFoodsJson": zod.string().nullish()
 }))
 })
 

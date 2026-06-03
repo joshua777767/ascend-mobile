@@ -207,6 +207,8 @@ export interface Meal {
   whatWasBad?: string | null;
   /** @nullable */
   whatToFixNext?: string | null;
+  /** @nullable */
+  detectedFoodsJson?: string | null;
 }
 
 /**
