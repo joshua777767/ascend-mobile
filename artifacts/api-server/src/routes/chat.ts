@@ -29,7 +29,7 @@ router.post("/chat", async (req, res): Promise<void> => {
     .orderBy(desc(chatMessagesTable.createdAt));
 
   const profileSummary = profile
-    ? `User: ${profile.name}, ${profile.age}yo, ${profile.gender}, ${profile.currentWeightKg}kg → ${profile.goalWeightKg}kg goal. Fitness: ${profile.fitnessLevel}. Gym: ${profile.gymAccess}.`
+    ? `User: ${profile.name}, ${profile.age}yo, ${profile.gender}, ${Math.round(profile.currentWeightKg * 2.2046226)}lbs → ${Math.round(profile.goalWeightKg * 2.2046226)}lbs goal. Fitness: ${profile.fitnessLevel}. Gym: ${profile.gymAccess}. Always reference weight in pounds (lbs), never kilograms.`
     : "No profile yet.";
 
   const planSummary = plan

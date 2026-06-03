@@ -11,10 +11,11 @@ async function getAdjustment(weightKg: number, previousWeightKg: number | null, 
   adjustment: string; coachMessage: string;
 }> {
   try {
-    const diff = previousWeightKg !== null ? weightKg - previousWeightKg : 0;
-    const distToGoal = Math.abs(weightKg - goalWeightKg);
+    const toLbs = (kg: number) => Math.round(kg * 2.2046226 * 10) / 10;
+    const diffLbs = previousWeightKg !== null ? toLbs(weightKg - previousWeightKg) : 0;
+    const distToGoalLbs = toLbs(Math.abs(weightKg - goalWeightKg));
 
-    const prompt = `Strict transformation coach. Goal type: ${goalType}. Goal weight: ${goalWeightKg}kg. Current weight: ${weightKg}kg. Last week's weight: ${previousWeightKg ?? "unknown"}. Change: ${diff > 0 ? "+" : ""}${diff.toFixed(1)}kg. Distance to goal: ${distToGoal.toFixed(1)}kg.
+    const prompt = `Strict transformation coach. Goal type: ${goalType}. Goal weight: ${toLbs(goalWeightKg)} lbs. Current weight: ${toLbs(weightKg)} lbs. Last week's weight: ${previousWeightKg !== null ? toLbs(previousWeightKg) + " lbs" : "unknown"}. Change: ${diffLbs > 0 ? "+" : ""}${diffLbs.toFixed(1)} lbs. Distance to goal: ${distToGoalLbs.toFixed(1)} lbs. Always reference weight in pounds (lbs), never kilograms.
 
 Respond as JSON ONLY:
 {

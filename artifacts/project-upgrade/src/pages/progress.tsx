@@ -31,10 +31,13 @@ export default function ProgressPage() {
     if (profileError) setLocation("/onboarding");
   }, [profileError, setLocation]);
 
+  const kgToLbs = (kg: number) => kg * 2.2046226;
+  const lbsToKg = (lbs: number) => lbs / 2.2046226;
+
   const handleWeighIn = async () => {
     if (!weight) return;
     try {
-      const result = await createWeighIn.mutateAsync({ data: { weightKg: parseFloat(weight), notes: weighNotes } });
+      const result = await createWeighIn.mutateAsync({ data: { weightKg: lbsToKg(parseFloat(weight)), notes: weighNotes } });
       queryClient.invalidateQueries({ queryKey: getListWeighInsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetProgressSummaryQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetMissionStreakQueryKey() });
@@ -46,11 +49,11 @@ export default function ProgressPage() {
 
   const chartData = weighIns?.slice(-12).map((w) => ({
     week: `W${w.weekNumber}`,
-    weight: w.weightKg,
+    weight: Math.round(kgToLbs(w.weightKg) * 10) / 10,
   })) ?? [];
 
   const trend = weighIns && weighIns.length >= 2
-    ? weighIns[weighIns.length - 1].weightKg - weighIns[weighIns.length - 2].weightKg
+    ? kgToLbs(weighIns[weighIns.length - 1].weightKg - weighIns[weighIns.length - 2].weightKg)
     : null;
 
   return (
@@ -68,8 +71,8 @@ export default function ProgressPage() {
         ) : summary && (
           <div className="grid grid-cols-2 gap-2">
             {[
-              { label: "Current Weight", value: `${summary.currentWeightKg}kg`, sub: `Goal: ${summary.goalWeightKg}kg` },
-              { label: "Progress", value: `${Math.round(summary.progressPercent)}%`, sub: `${Math.abs(summary.currentWeightKg - summary.goalWeightKg).toFixed(1)}kg to go` },
+              { label: "Current Weight", value: `${Math.round(kgToLbs(summary.currentWeightKg))} lbs`, sub: `Goal: ${Math.round(kgToLbs(summary.goalWeightKg))} lbs` },
+              { label: "Progress", value: `${Math.round(summary.progressPercent)}%`, sub: `${Math.round(kgToLbs(Math.abs(summary.currentWeightKg - summary.goalWeightKg)))} lbs to go` },
               { label: "Avg Score", value: summary.avgDailyScore.toFixed(0), sub: "out of 100" },
               { label: "Workouts", value: summary.totalWorkouts, sub: "total logged" },
             ].map((stat, i) => (
@@ -102,7 +105,7 @@ export default function ProgressPage() {
               {trend !== null && (
                 <div className={cn("flex items-center gap-1 text-xs font-semibold", trend < 0 ? "text-green-400" : trend > 0 ? "text-red-400" : "text-muted-foreground")}>
                   {trend < 0 ? <TrendingDown className="w-3 h-3" /> : trend > 0 ? <TrendingUp className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
-                  {trend > 0 ? "+" : ""}{trend.toFixed(1)}kg last week
+                  {trend > 0 ? "+" : ""}{trend.toFixed(1)} lbs last week
                 </div>
               )}
             </div>
@@ -129,13 +132,13 @@ export default function ProgressPage() {
           <div className="bg-card border border-border p-4 space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Current Weight (kg)</Label>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Current Weight (lbs)</Label>
                 <Input
                   type="number"
                   step="0.1"
                   value={weight}
                   onChange={e => setWeight(e.target.value)}
-                  placeholder="e.g. 79.5"
+                  placeholder="e.g. 200"
                   className="bg-background border-border"
                   data-testid="input-weigh-in"
                 />

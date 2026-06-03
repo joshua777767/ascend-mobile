@@ -26,9 +26,10 @@ const step1Schema = z.object({
   name: z.string().min(1, "Required"),
   age: z.coerce.number().int().min(13).max(100),
   gender: z.string().min(1, "Required"),
-  heightCm: z.coerce.number().min(100).max(250),
-  currentWeightKg: z.coerce.number().min(30).max(300),
-  goalWeightKg: z.coerce.number().min(30).max(300),
+  heightFt: z.coerce.number().int().min(3).max(8),
+  heightIn: z.coerce.number().int().min(0).max(11),
+  currentWeightLbs: z.coerce.number().min(66).max(660),
+  goalWeightLbs: z.coerce.number().min(66).max(660),
   bodyType: z.string().min(1, "Required"),
 });
 
@@ -150,8 +151,15 @@ export default function OnboardingPage() {
   });
 
   const handleSubmit = async () => {
+    const { heightFt, heightIn, currentWeightLbs, goalWeightLbs, ...rest } = formData;
+    const heightCm = Math.round((((heightFt ?? 0) * 12 + (heightIn ?? 0)) * 2.54) * 10) / 10;
+    const currentWeightKg = Math.round(((currentWeightLbs ?? 0) / 2.2046226) * 10) / 10;
+    const goalWeightKg = Math.round(((goalWeightLbs ?? 0) / 2.2046226) * 10) / 10;
     const payload = {
-      ...formData,
+      ...rest,
+      heightCm,
+      currentWeightKg,
+      goalWeightKg,
       goals: selectedGoals,
       skinConcerns,
       digestionConcerns,
@@ -245,21 +253,31 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div>
+                <SectionLabel>Height</SectionLabel>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Input {...form1.register("heightFt")} type="number" inputMode="numeric" placeholder="6" className={inputClass} data-testid="input-height-ft" />
+                    <p className="text-xs text-muted-foreground mt-1">feet</p>
+                  </div>
+                  <div>
+                    <Input {...form1.register("heightIn")} type="number" inputMode="numeric" placeholder="0" className={inputClass} data-testid="input-height-in" />
+                    <p className="text-xs text-muted-foreground mt-1">inches</p>
+                  </div>
+                </div>
+                <FieldError msg={form1.formState.errors.heightFt?.message ?? form1.formState.errors.heightIn?.message} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <SectionLabel>Height</SectionLabel>
-                  <Input {...form1.register("heightCm")} type="number" inputMode="numeric" placeholder="175" className={inputClass} data-testid="input-height" />
-                  <p className="text-xs text-muted-foreground mt-1">cm</p>
+                  <SectionLabel>Current weight</SectionLabel>
+                  <Input {...form1.register("currentWeightLbs")} type="number" inputMode="decimal" step="0.1" placeholder="220" className={inputClass} data-testid="input-current-weight" />
+                  <p className="text-xs text-muted-foreground mt-1">lbs</p>
                 </div>
                 <div>
-                  <SectionLabel>Current</SectionLabel>
-                  <Input {...form1.register("currentWeightKg")} type="number" inputMode="decimal" step="0.1" placeholder="80" className={inputClass} data-testid="input-current-weight" />
-                  <p className="text-xs text-muted-foreground mt-1">kg</p>
-                </div>
-                <div>
-                  <SectionLabel>Goal</SectionLabel>
-                  <Input {...form1.register("goalWeightKg")} type="number" inputMode="decimal" step="0.1" placeholder="70" className={inputClass} data-testid="input-goal-weight" />
-                  <p className="text-xs text-muted-foreground mt-1">kg</p>
+                  <SectionLabel>Goal weight</SectionLabel>
+                  <Input {...form1.register("goalWeightLbs")} type="number" inputMode="decimal" step="0.1" placeholder="200" className={inputClass} data-testid="input-goal-weight" />
+                  <p className="text-xs text-muted-foreground mt-1">lbs</p>
                 </div>
               </div>
 
@@ -493,8 +511,9 @@ export default function OnboardingPage() {
                 <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   <div><span className="text-muted-foreground text-xs">Name</span><br /><span className="font-semibold">{formData.name}</span></div>
                   <div><span className="text-muted-foreground text-xs">Age</span><br /><span className="font-semibold">{formData.age}</span></div>
-                  <div><span className="text-muted-foreground text-xs">Current weight</span><br /><span className="font-semibold">{formData.currentWeightKg} kg</span></div>
-                  <div><span className="text-muted-foreground text-xs">Goal weight</span><br /><span className="font-semibold text-primary">{formData.goalWeightKg} kg</span></div>
+                  <div><span className="text-muted-foreground text-xs">Height</span><br /><span className="font-semibold">{formData.heightFt} ft {formData.heightIn ?? 0} in</span></div>
+                  <div><span className="text-muted-foreground text-xs">Current weight</span><br /><span className="font-semibold">{formData.currentWeightLbs} lbs</span></div>
+                  <div><span className="text-muted-foreground text-xs">Goal weight</span><br /><span className="font-semibold text-primary">{formData.goalWeightLbs} lbs</span></div>
                   <div><span className="text-muted-foreground text-xs">Fitness level</span><br /><span className="font-semibold capitalize">{formData.fitnessLevel}</span></div>
                   <div><span className="text-muted-foreground text-xs">Gym access</span><br /><span className="font-semibold capitalize">{formData.gymAccess}</span></div>
                   <div><span className="text-muted-foreground text-xs">Workout days</span><br /><span className="font-semibold">{formData.workoutDaysPerWeek}x / week</span></div>

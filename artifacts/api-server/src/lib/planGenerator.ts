@@ -57,7 +57,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     const deficit = Math.min(500, Math.abs(weightDiff) > 20 ? 750 : 500);
     calorieTarget = Math.max(1200, tdee - deficit);
     proteinTargetG = Math.round(weightKg * 2.2);
-    weeklyPace = deficit >= 500 ? "~0.5 kg / week" : "~0.25 kg / week";
+    weeklyPace = deficit >= 500 ? "~1 lb / week" : "~0.5 lb / week";
     if (Math.abs(weightDiff) > 20) {
       warnings = "Your goal is ambitious. Stay consistent — do not cut more than planned. Extreme deficits cause muscle loss and burnout.";
     }
@@ -65,7 +65,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     const surplus = 300;
     calorieTarget = tdee + surplus;
     proteinTargetG = Math.round(weightKg * 2.4);
-    weeklyPace = "~0.25 kg / week (lean bulk)";
+    weeklyPace = "~0.5 lb / week (lean bulk)";
   } else {
     calorieTarget = tdee;
     proteinTargetG = Math.round(weightKg * 2.0);
