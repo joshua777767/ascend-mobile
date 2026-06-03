@@ -23,7 +23,7 @@ export default function SettingsPage() {
       // ignore — clear local state regardless
     }
     queryClient.clear();
-    setLocation("/login");
+    window.location.replace("/login");
   };
 
   const handleReset = async () => {

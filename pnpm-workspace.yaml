@@ -33,12 +33,15 @@ minimumReleaseAgeExclude:
   # this setting guards against does not apply to our own packages.
   - '@replit/*'
   - stripe-replit-sync
+  # Playwright is published by Microsoft with a strong security posture.
+  - '@playwright/test'
 
 packages:
   - artifacts/*
   - lib/*
   - lib/integrations/*
   - scripts
+  - tests
 
 catalog:
   '@replit/vite-plugin-cartographer': ^0.5.1
