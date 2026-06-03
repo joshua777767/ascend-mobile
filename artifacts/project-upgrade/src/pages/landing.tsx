@@ -42,9 +42,9 @@ export default function LandingPage() {
       {/* Brand */}
       <div className="px-6 pt-8 flex items-center gap-2.5">
         <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground font-extrabold">U</span>
+          <span className="text-primary-foreground font-extrabold">A</span>
         </div>
-        <span className="text-lg font-bold tracking-tight">Upgrade</span>
+        <span className="text-lg font-bold tracking-tight">Ascend</span>
       </div>
 
       {/* Hero */}

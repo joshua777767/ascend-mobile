@@ -50,7 +50,7 @@ export default function PricingPage() {
               <span className="text-xs font-semibold uppercase tracking-wider bg-primary text-primary-foreground px-2 py-1">Most Popular</span>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Project Upgrade Pro</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Ascend Pro</p>
               <div className="flex items-end gap-1">
                 <p className="text-3xl font-bold">$9.99</p>
                 <p className="text-muted-foreground mb-1">/month</p>
@@ -81,8 +81,8 @@ export default function PricingPage() {
           <div className="space-y-4">
             {[
               { q: "Is this real AI coaching?", a: "Yes. Your plan, meal feedback, and coach chat are powered by AI that knows your profile, goals, and history." },
-              { q: "Do I need a gym?", a: "No. Project Upgrade builds workouts around your actual setup — full gym, home gym, or no equipment." },
-              { q: "Is this medical advice?", a: "No. Project Upgrade is not medical advice. Always speak with a healthcare professional before starting any new diet or exercise program." },
+              { q: "Do I need a gym?", a: "No. Ascend builds workouts around your actual setup — full gym, home gym, or no equipment." },
+              { q: "Is this medical advice?", a: "No. Ascend is not medical advice. Always speak with a healthcare professional before starting any new diet or exercise program." },
               { q: "Can I cancel anytime?", a: "Yes. No contracts, no commitments. Cancel in one click." },
             ].map((item, i) => (
               <div key={i} className="border-b border-border pb-4 last:border-0 last:pb-0">

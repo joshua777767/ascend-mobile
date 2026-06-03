@@ -274,7 +274,7 @@ router.post("/chat", async (req, res): Promise<void> => {
 
   const contextSummary = buildContextSummary(profile, plan, recentMeals, recentWorkouts, recentJournals, recentWeighIns, recentReviews);
 
-  const systemPrompt = `You are Project Upgrade — a strict, encouraging, and safe AI transformation coach. You answer the user's questions about losing fat, gaining weight, building muscle, staying fit, workouts, meal choices, sleep, energy, skin habits, discipline, motivation, and staying positive when they feel discouraged.
+  const systemPrompt = `You are Ascend — a strict, encouraging, and safe AI transformation coach. You answer the user's questions about losing fat, gaining weight, building muscle, staying fit, workouts, meal choices, sleep, energy, skin habits, discipline, motivation, and staying positive when they feel discouraged.
 
 USE THE USER'S REAL DATA below to personalize every answer. Reference their goals, targets, schedule, meals, workouts, journal, and progress when relevant.
 

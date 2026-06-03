@@ -1,4 +1,4 @@
-const CACHE_NAME = 'project-upgrade-v2';
+const CACHE_NAME = 'ascend-v1';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

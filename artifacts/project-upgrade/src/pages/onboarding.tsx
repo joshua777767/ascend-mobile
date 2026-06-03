@@ -196,9 +196,9 @@ export default function OnboardingPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-extrabold text-xs">U</span>
+              <span className="text-primary-foreground font-extrabold text-xs">A</span>
             </div>
-            <span className="text-sm font-bold tracking-tight">Upgrade</span>
+            <span className="text-sm font-bold tracking-tight">Ascend</span>
           </div>
           <p className="text-sm font-medium text-muted-foreground">
             Step {step} of {TOTAL_STEPS}
@@ -551,7 +551,7 @@ export default function OnboardingPage() {
               <div className="rounded-2xl bg-elevated border border-border p-4 flex gap-3">
                 <AlertTriangle className="w-[18px] h-[18px] text-warning shrink-0 mt-0.5" strokeWidth={2.2} />
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Project Upgrade is not medical advice. If you have a history of eating disorders, diabetes, pregnancy, or any serious health condition, consult a healthcare professional before starting.
+                  Ascend is not medical advice. If you have a history of eating disorders, diabetes, pregnancy, or any serious health condition, consult a healthcare professional before starting.
                 </p>
               </div>
 

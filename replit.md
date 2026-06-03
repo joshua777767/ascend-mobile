@@ -1,6 +1,6 @@
-# Project Upgrade
+# Ascend
 
-A premium mobile-first AI transformation coaching web app. Users get a strict AI coach that generates personalized daily schedules, meal feedback, workouts, nightly reviews, weekly adjustments, and a coach chat — all built around their real life and goals.
+Ascend — Your AI Coach for Body, Energy, and Discipline. A premium mobile-first AI transformation coaching web app. Users get a strict AI coach that generates personalized daily schedules, meal feedback, workouts, nightly reviews, weekly adjustments, and a coach chat — all built around their real life and goals.
 
 ## Run & Operate
 

@@ -52,9 +52,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-border bg-card">
         <div className="px-6 py-5 flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-extrabold text-sm">U</span>
+            <span className="text-primary-foreground font-extrabold text-sm">A</span>
           </div>
-          <h1 className="text-lg font-bold tracking-tight text-foreground">Upgrade</h1>
+          <h1 className="text-lg font-bold tracking-tight text-foreground">Ascend</h1>
         </div>
         <nav className="flex-1 overflow-y-auto px-3 space-y-1">
           {ALL_NAV_ITEMS.map((item) => {
@@ -94,10 +94,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="h-14 flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-extrabold text-xs">U</span>
+              <span className="text-primary-foreground font-extrabold text-xs">A</span>
             </div>
             <span className="text-base font-bold tracking-tight text-foreground">
-              {pageTitle ?? "Upgrade"}
+              {pageTitle ?? "Ascend"}
             </span>
           </div>
         </div>

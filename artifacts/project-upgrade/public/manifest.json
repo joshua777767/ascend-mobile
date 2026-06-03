@@ -1,7 +1,7 @@
 {
-  "name": "Project Upgrade",
-  "short_name": "UPGRADE",
-  "description": "Your strict AI transformation coach — daily schedules, workouts, meal feedback, and nightly reviews.",
+  "name": "Ascend",
+  "short_name": "Ascend",
+  "description": "Your AI Coach for Body, Energy, and Discipline.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
