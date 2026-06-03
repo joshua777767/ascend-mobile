@@ -113,24 +113,65 @@ async function getMealFeedback(
 ): Promise<MealFeedback> {
   const goalsList = goals.length > 0 ? goals.join(", ") : goalType;
   try {
-    const systemPrompt = `You are a strict, direct AI transformation coach. The user's primary goal type is "${goalType}" and their stated goals are: ${goalsList}. Daily targets: ${calorieTarget} calories, ${proteinTarget}g protein.
+    const mealSwaps: Record<string, string[]> = {
+      fat_loss: [
+        "Eggs + oatmeal + berries (~400 cal, 30g protein)",
+        "Greek yogurt + fruit (~350 cal, 25g protein)",
+        "Chicken rice bowl with vegetables (~500 cal, 40g protein)",
+        "Tuna wrap with lettuce and tomato (~400 cal, 35g protein)",
+        "Salmon + brown rice + vegetables (~500 cal, 38g protein)",
+      ],
+      muscle_gain: [
+        "4 eggs + oatmeal + peanut butter + banana (~700 cal, 40g protein)",
+        "Chicken rice bowl with olive oil + avocado (~700 cal, 48g protein)",
+        "Pasta with ground beef + tomato sauce (~800 cal, 50g protein)",
+        "High-calorie shake: milk + oats + banana + peanut butter (~750 cal, 35g protein)",
+        "Beef burrito bowl with beans, rice, cheese (~750 cal, 45g protein)",
+      ],
+      maintain: [
+        "Lean protein + rice or potato + vegetables (~520 cal, 38g protein)",
+        "Greek yogurt + granola + berries (~380 cal, 22g protein)",
+        "Chicken or fish rice bowl with salad (~500 cal, 40g protein)",
+      ],
+    };
+    const swapOptions = (mealSwaps[goalType] ?? mealSwaps.maintain).map(o => `• ${o}`).join("\n");
+    const goalCalNote = goalType === "fat_loss"
+      ? `${calorieTarget} cal/day creates a moderate deficit for steady fat loss without muscle loss.`
+      : goalType === "muscle_gain"
+      ? `${calorieTarget} cal/day is a controlled surplus to build lean mass without excessive fat gain.`
+      : `${calorieTarget} cal/day supports energy balance for your goal.`;
 
-Judge the meal specifically against these goals (e.g. fat loss, gain weight, build muscle, maintain, better skin, higher energy, better sleep, discipline). If a meal photo is provided, analyze what you see in it; otherwise rely on the description.
+    const systemPrompt = `You are a strict, direct AI personal coach — at the level of a premium $50/month fitness and nutrition coach. The user's goal type is "${goalType}" and their stated goals are: ${goalsList}. Daily targets: ${calorieTarget} calories (${goalCalNote}), ${proteinTarget}g protein.
+
+Judge this meal specifically against their goals. If a photo is provided, analyze what you see; otherwise use the description.
+
+Always include:
+1. A real score (0-100) based on how well this meal serves their specific goal
+2. Direct feedback — no fluff, no "great job"
+3. What was good (or null if nothing)
+4. What hurt the goal (or null if nothing did)
+5. A concrete fix for the next meal — including a specific better option if the meal was bad
+
+If the meal was poor quality, suggest a specific better alternative from these goal-appropriate options:
+${swapOptions}
+
+Substitution note to include when suggesting alternatives: "If you don't have [X], use eggs, tuna, beef, turkey, Greek yogurt, or protein powder instead. Hit your calorie and protein targets — the exact food is secondary."
 
 Respond with ONLY valid JSON in this exact format:
 {
-  "score": 0-100 integer rating how well this meal serves the user's goals,
-  "feedback": "2-3 sentence short, strict, direct coach message (no fluff)",
+  "score": 0-100 integer,
+  "feedback": "2-3 sentence strict coach message. Include calorie/protein assessment if relevant. Suggest a specific better meal if this one was poor.",
   "quality": "good|neutral|bad",
   "whatWasGood": "1 sentence on what was good, or null",
   "whatWasBad": "1 sentence on what hurt the goal, or null",
-  "whatToFixNext": "1 actionable sentence on what to fix next meal"
+  "whatToFixNext": "1-2 actionable sentences. Name a specific better food or meal option if the meal was neutral or bad."
 }
 
-Tone examples:
-- Fat loss: "This meal is not terrible, but the soda is wasting calories. Next meal needs lean protein, water, and no extra snacks."
-- Muscle gain: "Too small. You want to gain weight but this meal won't get you there. Add rice, eggs, milk, or peanut butter."
-- Maintain: "Solid meal. Keep protein high and don't let random snacks push you off plan."`;
+Tone examples by goal:
+- Fat loss bad meal: "The fries and soda wiped out your deficit. That's ~800 calories of almost zero protein. Next meal: chicken + rice + broccoli or a tuna wrap. Cut liquid calories completely."
+- Fat loss good meal: "Solid fat-loss meal. High protein, controlled carbs, no junk. Keep the momentum — this is exactly what consistent fat loss looks like."
+- Muscle gain small meal: "Too small. You want to gain but this won't move the needle. You need 600-800 calories per meal. Add rice, peanut butter, a shake, or a second protein source."
+- Muscle gain good meal: "Good bulk meal. High protein and enough calories to support growth. Make sure you're hitting ${calorieTarget} total today."`;
 
     const userText = description.trim()
       ? `Meal: ${description.trim()}`
@@ -145,7 +186,7 @@ Tone examples:
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      max_tokens: 350,
+      max_tokens: 500,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },

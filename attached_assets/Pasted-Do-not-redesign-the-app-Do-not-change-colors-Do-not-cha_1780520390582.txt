@@ -1,0 +1,281 @@
+Do not redesign the app.
+Do not change colors.
+Do not change layout.
+Do not run Playwright.
+Do not install packages.
+Do not create new test infrastructure.
+Do not touch landing page design.
+Only upgrade the AI coach logic, meal planning logic, and goal validation.
+
+Upgrade Ascend so the coach feels like a premium $50/month personal fitness and nutrition coach.
+
+CORE PROBLEM TO FIX:
+Right now the coach gives generic advice and sometimes ignores the user's exact goal/timeframe. It must become more specific, personal, realistic, and useful.
+
+1. Goal Validation
+
+The coach must detect unrealistic, unsafe, or impossible goals.
+
+Examples:
+
+* "I want to lose 15 lbs in 2 days"
+* "I want to gain 20 lbs of muscle in 2 weeks"
+* "I want abs by tomorrow"
+* "I want to eat 500 calories a day"
+
+For unrealistic goals, the coach must:
+
+* clearly say the goal is unrealistic or unsafe
+* explain why
+* refuse to create an extreme plan
+* suggest a realistic alternative
+* give a safer plan
+
+Example:
+"Losing 15 lbs in 2 days is not realistic or safe. Most of that would be water weight, not fat. A better target is 1-2 lbs per week. If you have an event soon, we can focus on reducing bloating, drinking water, sleeping well, lowering sodium, and staying consistent."
+
+2. Goal + Timeframe Math
+
+When user asks a goal with a timeframe, detect:
+
+* starting weight
+* goal weight
+* pounds to lose or gain
+* timeframe
+* required weekly pace
+
+Then tell the user if it is:
+
+* realistic
+* aggressive but possible
+* unsafe/unrealistic
+
+Example:
+User: "Can you help me lose 10 lb in 10 weeks?"
+
+Coach:
+"Yes. Losing 10 lbs in 10 weeks is realistic because that is about 1 lb per week. Based on your profile, the plan is a moderate calorie deficit, high protein, strength training, daily steps, and consistent sleep."
+
+3. Explain Calorie Targets
+
+Whenever giving calories, explain why.
+
+Example:
+"Your target is around 2,400 calories because we need a moderate deficit that helps fat loss without destroying your energy or workouts."
+
+For weight gain:
+"Your target is around 3,000 calories because you need a controlled surplus to gain weight without adding too much fat."
+
+4. Daily Action Plan
+
+For every major goal response, include:
+
+* calories target
+* protein target
+* step/cardio target
+* workout target
+* water target
+* sleep target
+* one strict coach command
+
+Example:
+"Today’s mission:
+
+* Calories: 2,400
+* Protein: 180g
+* Steps: 8,000
+* Workout: full-body strength
+* Water: 3L
+* Sleep: in bed by 11 PM
+  Coach command: No liquid calories today."
+
+5. Meal Planning Upgrade
+
+The coach must recommend actual food options, not just macros.
+
+For breakfast, lunch, dinner, and snacks:
+
+* Generate 3-5 options per meal.
+* Show estimated calories and protein.
+* Match options to the user's goal:
+
+  * fat loss / weight loss
+  * weight gain / bulk
+  * maintenance / fit
+  * better energy / better skin / better sleep
+
+Fat loss meal examples:
+Breakfast:
+
+* Eggs + oatmeal + berries
+* Greek yogurt + fruit + granola
+* Protein smoothie with fruit
+
+Lunch:
+
+* Chicken rice bowl
+* Turkey sandwich with fruit
+* Tuna wrap with vegetables
+
+Dinner:
+
+* Lean beef potatoes vegetables
+* Chicken pasta bowl
+* Salmon rice vegetables
+
+Weight gain meal examples:
+Breakfast:
+
+* Eggs, toast, oatmeal, peanut butter
+* Greek yogurt bowl with granola, banana, honey
+* High-calorie shake with milk, oats, banana, peanut butter
+
+Lunch:
+
+* Chicken rice bowl with olive oil
+* Beef burrito bowl
+* Turkey sandwich with milk and fruit
+
+Dinner:
+
+* Pasta with beef
+* Chicken rice and avocado
+* Salmon potatoes and yogurt
+
+Snack options:
+
+* Greek yogurt
+* protein shake
+* peanut butter toast
+* trail mix
+* milk
+* fruit
+* eggs
+* tuna sandwich
+
+6. Flexibility / Substitutions
+
+The coach must tell users they do not need to follow meals perfectly.
+
+Add language like:
+"You do not need these exact foods. Hit your calories and protein first. If you do not have chicken, use eggs, tuna, beef, turkey, Greek yogurt, protein powder, or another protein source."
+
+If user says they do not have a food, coach should adapt.
+
+Example:
+User: "I don’t have chicken."
+
+Coach:
+"Use eggs, tuna, ground beef, turkey, Greek yogurt, or protein powder instead. The food does not matter as much as hitting the target."
+
+7. Coach Memory
+
+The coach should use the user's saved profile when answering:
+
+* age
+* gender
+* height
+* current weight
+* goal weight
+* selected goals
+* target date
+* calories
+* protein
+* workouts
+* meals
+* journal
+* weekly weigh-ins
+* prior coach chats if available
+
+The coach should reference user context naturally.
+
+Example:
+"Since your goal is to lose 10 lbs in 10 weeks and you train 4 days per week, we are keeping the deficit moderate so your workouts do not suffer."
+
+8. Weekly Progress Logic
+
+If weekly weigh-in shows progress is too slow:
+
+* suggest reducing calories slightly
+* increasing steps
+* improving protein
+* fixing snacks
+* improving sleep
+
+If progress is too fast:
+
+* warn about burnout, muscle loss, and poor energy
+* suggest increasing calories slightly
+
+For weight gain:
+If gaining too slow:
+
+* add 200-300 calories
+* add a shake
+* increase meal frequency
+* reduce skipped meals
+
+If gaining too fast:
+
+* reduce calories slightly to avoid excessive fat gain
+
+9. Coach Personality
+
+Tone:
+
+* strict
+* direct
+* safe
+* motivating
+* not corny
+* not mean
+* not fake motivational
+
+Example:
+"You said you wanted change. That means the basics are non-negotiable: protein, training, water, sleep, and consistency. No random excuses."
+
+10. Safety Rules
+
+The coach must never:
+
+* recommend starvation
+* recommend extreme fasting
+* encourage eating disorders
+* promise guaranteed results
+* claim to cure acne, fatigue, bloating, or medical issues
+* give medical advice
+
+If user asks for unsafe advice, redirect safely.
+
+11. Output Format
+
+For normal coaching questions, use this format when helpful:
+
+Reality Check:
+[Is the goal realistic?]
+
+Your Target:
+[calories, protein, steps, workouts, sleep]
+
+What To Eat:
+[breakfast/lunch/dinner/snack options]
+
+Today’s Mission:
+[specific checklist]
+
+Coach Command:
+[strict short message]
+
+Keep responses concise but useful. Do not write long essays unless user asks for detail.
+
+12. After implementing
+
+Verify:
+
+* Coach answers "Can you help me lose 10 lb in 10 weeks?" with goal math and realistic plan.
+* Coach answers "I want to lose 15 lbs in 2 days" by pushing back safely.
+* Coach gives actual meal options.
+* Coach explains calorie targets.
+* Coach uses user profile context.
+* Typecheck passes.
+* Existing app design and layout are unchanged.
