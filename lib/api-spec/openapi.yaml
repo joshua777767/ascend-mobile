@@ -790,6 +790,7 @@ components:
         - description
         - loggedAt
         - coachFeedback
+        - score
         - quality
       properties:
         id:
@@ -798,11 +799,15 @@ components:
           type: integer
         description:
           type: string
+        imageUrl:
+          type: ["string", "null"]
         loggedAt:
           type: string
           format: date-time
         coachFeedback:
           type: string
+        score:
+          type: integer
         quality:
           type: string
         whatWasGood:
@@ -814,11 +819,12 @@ components:
 
     MealInput:
       type: object
-      required:
-        - description
       properties:
         description:
           type: string
+        imageUrl:
+          type: string
+          description: Base64 data URL of the meal photo
 
     JournalEntry:
       type: object

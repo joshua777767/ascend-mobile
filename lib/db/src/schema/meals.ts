@@ -5,9 +5,11 @@ import { z } from "zod/v4";
 export const mealsTable = pgTable("meals", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  description: text("description").notNull(),
+  description: text("description").notNull().default(""),
+  imageUrl: text("image_url"),
   loggedAt: timestamp("logged_at", { withTimezone: true }).notNull().defaultNow(),
   coachFeedback: text("coach_feedback").notNull().default(""),
+  score: integer("score").notNull().default(0),
   quality: text("quality").notNull().default("neutral"),
   whatWasGood: text("what_was_good"),
   whatWasBad: text("what_was_bad"),

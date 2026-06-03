@@ -7,5 +7,7 @@
  */
 
 export interface MealInput {
-  description: string;
+  description?: string;
+  /** Base64 data URL of the meal photo */
+  imageUrl?: string;
 }

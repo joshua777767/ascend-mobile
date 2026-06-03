@@ -10,8 +10,11 @@ export interface Meal {
   id: number;
   userId: number;
   description: string;
+  /** @nullable */
+  imageUrl?: string | null;
   loggedAt: Date;
   coachFeedback: string;
+  score: number;
   quality: string;
   /** @nullable */
   whatWasGood?: string | null;

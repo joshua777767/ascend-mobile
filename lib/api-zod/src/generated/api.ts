@@ -233,8 +233,10 @@ export const ListMealsResponseItem = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
   "description": zod.string(),
+  "imageUrl": zod.string().nullish(),
   "loggedAt": zod.coerce.date(),
   "coachFeedback": zod.string(),
+  "score": zod.number(),
   "quality": zod.string(),
   "whatWasGood": zod.string().nullish(),
   "whatWasBad": zod.string().nullish(),
@@ -247,7 +249,8 @@ export const ListMealsResponse = zod.array(ListMealsResponseItem)
  * @summary Log a meal and get coach feedback
  */
 export const CreateMealBody = zod.object({
-  "description": zod.string()
+  "description": zod.string().optional(),
+  "imageUrl": zod.string().optional().describe('Base64 data URL of the meal photo')
 })
 
 
@@ -258,8 +261,10 @@ export const GetTodayMealsResponseItem = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
   "description": zod.string(),
+  "imageUrl": zod.string().nullish(),
   "loggedAt": zod.coerce.date(),
   "coachFeedback": zod.string(),
+  "score": zod.number(),
   "quality": zod.string(),
   "whatWasGood": zod.string().nullish(),
   "whatWasBad": zod.string().nullish(),
@@ -456,8 +461,10 @@ export const GetProgressSummaryResponse = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
   "description": zod.string(),
+  "imageUrl": zod.string().nullish(),
   "loggedAt": zod.coerce.date(),
   "coachFeedback": zod.string(),
+  "score": zod.number(),
   "quality": zod.string(),
   "whatWasGood": zod.string().nullish(),
   "whatWasBad": zod.string().nullish(),

@@ -159,8 +159,11 @@ export interface Meal {
   id: number;
   userId: number;
   description: string;
+  /** @nullable */
+  imageUrl?: string | null;
   loggedAt: string;
   coachFeedback: string;
+  score: number;
   quality: string;
   /** @nullable */
   whatWasGood?: string | null;
@@ -171,7 +174,9 @@ export interface Meal {
 }
 
 export interface MealInput {
-  description: string;
+  description?: string;
+  /** Base64 data URL of the meal photo */
+  imageUrl?: string;
 }
 
 export interface JournalEntry {
