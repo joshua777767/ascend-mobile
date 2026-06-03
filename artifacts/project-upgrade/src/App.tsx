@@ -1,4 +1,4 @@
-import React, { useEffect, Component } from "react";
+import React, { useEffect, useRef, useState, Component } from "react";
 import type { ReactNode, ErrorInfo } from "react";
 import { Switch, Route, Redirect, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -122,10 +122,45 @@ function FullScreenSpinner() {
   );
 }
 
+function FullScreenError({ message }: { message: string }) {
+  return (
+    <div className="h-dvh bg-background flex flex-col items-center justify-center gap-4 px-6 text-center">
+      <div className="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center text-primary text-2xl font-extrabold">
+        !
+      </div>
+      <p className="text-lg font-bold tracking-tight">We couldn't reach the server</p>
+      <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">{message}</p>
+      <button
+        onClick={() => window.location.reload()}
+        className="mt-2 rounded-2xl bg-primary px-8 py-3.5 text-[15px] font-semibold text-primary-foreground"
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
+
+// Returns true ONLY during the genuine first load. Once auth/profile has
+// resolved once (or a timeout elapses) it latches to false, so background
+// refetches that briefly flip `isLoading` can never re-block — and re-mount —
+// the tree. This is what prevents the spinner-refetch loop, and the timeout
+// guarantees the spinner can never spin forever.
+function useFirstLoadSpinner(isLoading: boolean, timeoutMs = 8000): boolean {
+  const settledRef = useRef(false);
+  const [timedOut, setTimedOut] = useState(false);
+  if (!isLoading) settledRef.current = true;
+  useEffect(() => {
+    if (settledRef.current) return;
+    const t = setTimeout(() => setTimedOut(true), timeoutMs);
+    return () => clearTimeout(t);
+  }, [timeoutMs]);
+  return isLoading && !settledRef.current && !timedOut;
+}
+
 // Authenticated app shell — requires a completed profile, else redirects to onboarding.
 function ProtectedApp() {
   const { data: profile, isLoading, isError } = useGetUserProfile();
-  if (isLoading) return <FullScreenSpinner />;
+  if (useFirstLoadSpinner(isLoading)) return <FullScreenSpinner />;
   if (isError || !profile) return <Redirect to="/onboarding" />;
   return (
     <Layout>
@@ -147,15 +182,21 @@ function ProtectedApp() {
 // Onboarding — requires auth; if a profile already exists, go to dashboard.
 function OnboardingGuard() {
   const { data: profile, isLoading } = useGetUserProfile();
-  if (isLoading) return <FullScreenSpinner />;
+  if (useFirstLoadSpinner(isLoading)) return <FullScreenSpinner />;
   if (profile) return <Redirect to="/dashboard" />;
   return <OnboardingPage />;
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
 function AppRouter() {
-  const { isAuthed, isLoading } = useAuth();
-  if (isLoading) return <FullScreenSpinner />;
+  const { isAuthed, isLoading, isServerError } = useAuth();
+  const showSpinner = useFirstLoadSpinner(isLoading);
+  if (isServerError) {
+    return (
+      <FullScreenError message="Ascend is having trouble connecting right now. Please check your connection and try again." />
+    );
+  }
+  if (showSpinner) return <FullScreenSpinner />;
   return (
     <Switch>
       <Route path="/" component={LandingPage} />

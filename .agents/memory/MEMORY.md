@@ -1,1 +1,2 @@
 - [Multi-user data scoping](multi-user-scoping.md) — single-user→multi-user: bulk USER_ID replace misses `/:id` routes; audit every id lookup for userId filter (IDOR).
+- [React Query auth-gate spinner loop](react-query-gate-loop.md) — gating a route tree on an errored query's isLoading causes an infinite spinner + refetch flood; latch first-load done + timeout.
