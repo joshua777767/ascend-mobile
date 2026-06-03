@@ -1,37 +1,37 @@
-const CACHE_NAME = 'project-upgrade-v1';
+const CACHE_NAME = 'project-upgrade-v2';
 
-self.addEventListener('install', (e) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    caches.keys()
+      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
+// Network-first for everything (except the API, which is never intercepted).
+// This guarantees users always get the latest bundle when online, and only
+// fall back to cache when offline. A cache-first strategy was previously
+// serving stale broken bundles even after fixes were deployed.
 self.addEventListener('fetch', (e) => {
-  if (e.request.mode === 'navigate') {
-    e.respondWith(
-      fetch(e.request).catch(() => caches.match('/index.html'))
-    );
-    return;
-  }
-  if (e.request.url.includes('/api/')) {
-    return;
-  }
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  if (req.url.includes('/api/')) return;
+
   e.respondWith(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      const cached = await cache.match(e.request);
-      if (cached) return cached;
-      const res = await fetch(e.request);
-      if (res.ok && e.request.method === 'GET') {
-        cache.put(e.request, res.clone());
-      }
-      return res;
-    })
+    fetch(req)
+      .then((res) => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+        }
+        return res;
+      })
+      .catch(() =>
+        caches.match(req).then((cached) => cached || caches.match('/index.html'))
+      )
   );
 });
