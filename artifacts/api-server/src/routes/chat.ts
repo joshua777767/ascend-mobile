@@ -352,8 +352,8 @@ function heuristicReply(message: string, ctx: ChatContext): string {
   }
 
   // 15. Skin
-  if (has(m, ["skin", "acne", "breakout", "complexion", "pimple", "clear skin"])) {
-    return "Skin responds to habits: drink water, sleep enough, cut excess sugar and greasy fast food, and keep a simple consistent routine. Give it a few weeks before judging. If something looks serious, see a professional — that's outside my lane.";
+  if (has(m, ["skin", "acne", "breakout", "complexion", "pimple", "clear skin", "face wash", "skincare", "how to clear skin"])) {
+    return `Here's your clear skin routine - keep it simple and do it every day:\n\nAM (2-3 minutes):\n- Cleanse - gentle, non-stripping cleanser\n- Moisturize - lightweight, non-comedogenic\n- SPF 30+ - every morning, even if cloudy\n\nPM (3-4 minutes):\n- Cleanse - remove the day\n- Active - either salicylic acid 2% or benzoyl peroxide 2.5% (not both)\n- Moisturize - lock it in\n\nDiet habits (2-4 week test):\n- Cut whey protein, dairy, and high-sugar foods\n- Eat more whole foods and vegetables\n- Drink 3L water daily\n- Sleep 7-8 hours\n- Change pillowcase 2x/week\n- Don't touch your face\n\nDon't add more products. Most people hurt their skin by overdoing it. If it's cystic, painful, or not improving after 6 weeks, see a dermatologist - that's outside my lane.`;
   }
 
   // 16. Discipline / consistency
@@ -381,7 +381,7 @@ function heuristicReply(message: string, ctx: ChatContext): string {
       "gain weight": `eat ${calStr} across 4+ meals, ${proStr}, don't skip a meal`,
       "build muscle": `${proStr}, train with progressive overload, sleep 8h to recover`,
       "maintain fitness": `train ${days}x/week, ${proStr}, walk daily`,
-      "better skin": "drink 3L water, wash your face AM and PM, cut sugary drinks",
+      "better skin": "drink 3L water, wash your face AM and PM, AM SPF 30+, PM active (salicylic acid 2% or benzoyl peroxide 2.5%), cut dairy/whey/sugar for 2-4 weeks, change pillowcase 2x/week",
       "higher energy": "protein breakfast, morning sunlight, no late caffeine",
       "better sleep": "consistent bedtime, screens off 60 min before bed, cool dark room",
       discipline: "pick one main mission and finish it — no zero days",
@@ -632,7 +632,7 @@ The user's selected goals are listed in their data above. ALWAYS reference their
 - Weight gain / bulk: calorie surplus, protein target, eat enough meals (never skip), a shake/snack between meals, strength training, weekly weigh-in.
 - Build muscle: protein target, progressive-overload strength training, beat last session, sleep for recovery, take rest days.
 - Maintain fitness: maintenance calories, protein, consistent weekly training, daily steps, consistency.
-- Clear skin: water target, sleep target, wash face morning and night, change pillowcase 2x/week, limit sugary drinks, protein and whole foods. Do NOT promise to cure acne — for persistent or medical skin issues, refer to a dermatologist.
+- Clear skin: water target, sleep target, wash face morning and night, change pillowcase 2x/week, limit sugary drinks, protein and whole foods. When the user asks about skin, give them a full routine: AM cleanse + moisturizer + SPF, PM cleanse + gentle active (salicylic acid 2% or benzoyl peroxide 2.5%), then moisturizer. Keep it simple — 3-4 products max. Diet: cut dairy, whey, and high-sugar foods for 2-4 weeks and see what changes. Don't touch your face. Change pillowcase 2x/week. Hydrate. If the user has cystic, painful, or persistent acne, tell them to see a dermatologist — that's outside the coach's lane.
 - Better energy: sleep target, hydration, protein breakfast, morning sunlight/walk, caffeine cutoff time, avoid sugar-crash meals.
 - Better sleep: consistent bedtime, consistent wake time, no late caffeine, screens off 60 min before bed, wind-down routine, cool dark room.
 - Discipline: one main mission for the day, daily non-negotiables, no zero days, own missed tasks and reset the next day.
