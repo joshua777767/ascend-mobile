@@ -8,6 +8,8 @@ import {
   useGetTodayMeals,
   useGetWaterToday,
   useLogWater,
+  useGetStreak,
+  useRecordStreak,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -357,6 +359,8 @@ export default function DashboardPage() {
   const { data: todayMeals, refetch: refetchMeals } = useGetTodayMeals();
   const { data: waterData, refetch: refetchWater } = useGetWaterToday();
   const { mutateAsync: logWaterFn, isPending: waterLogging } = useLogWater();
+  const { data: streakData } = useGetStreak();
+  const { mutateAsync: recordStreakFn } = useRecordStreak();
 
   useEffect(() => { refetchMeals(); }, [refetchMeals]);
   useEffect(() => { refetchWater(); }, [refetchWater]);
@@ -395,6 +399,17 @@ export default function DashboardPage() {
 
   const checklistCompleted = habits.filter((h) => done[h]).length;
   const checklistScore = habits.length ? Math.round((checklistCompleted / habits.length) * 100) : 0;
+
+  // Record streak when today's mission hits 70%
+  useEffect(() => {
+    if (checklistScore >= 70 && habits.length > 0) {
+      const lastDate = streakData?.lastStreakDate ?? null;
+      const today = new Date().toISOString().slice(0, 10);
+      if (lastDate !== today) {
+        recordStreakFn().catch(() => {});
+      }
+    }
+  }, [checklistScore, habits.length, streakData?.lastStreakDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (error) setLocation("/onboarding");
@@ -477,6 +492,12 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold tracking-tight mt-0.5">
             Hi, {firstName}
           </h1>
+          {streakData && (streakData.currentStreak ?? 0) > 0 && (
+            <p className="text-xs font-semibold text-primary mt-1 flex items-center gap-1">
+              <Flame className="w-3 h-3" strokeWidth={2.4} />
+              {streakData.currentStreak} Day Ascend Streak
+            </p>
+          )}
         </div>
 
         {/* Today's Mission + Daily Score */}

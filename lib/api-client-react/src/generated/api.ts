@@ -21,6 +21,7 @@ import type {
 
 import type {
   ApiError,
+  AscendStreak,
   AuthUser,
   ChatMessage,
   ChatMessageInput,
@@ -2431,6 +2432,153 @@ export function useGetMissionStreak<TData = Awaited<ReturnType<typeof getMission
 
 
 
+
+export const getGetStreakUrl = () => {
+
+
+
+
+  return `/api/streak`
+}
+
+/**
+ * @summary Get current Ascend streak
+ */
+export const getStreak = async ( options?: RequestInit): Promise<AscendStreak> => {
+
+  return customFetch<AscendStreak>(getGetStreakUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStreakQueryKey = () => {
+    return [
+    `/api/streak`
+    ] as const;
+    }
+
+
+export const getGetStreakQueryOptions = <TData = Awaited<ReturnType<typeof getStreak>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStreak>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStreakQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStreak>>> = ({ signal }) => getStreak({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStreak>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStreakQueryResult = NonNullable<Awaited<ReturnType<typeof getStreak>>>
+export type GetStreakQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get current Ascend streak
+ */
+
+export function useGetStreak<TData = Awaited<ReturnType<typeof getStreak>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStreak>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStreakQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getRecordStreakUrl = () => {
+
+
+
+
+  return `/api/streak`
+}
+
+/**
+ * @summary Record a streak for today
+ */
+export const recordStreak = async ( options?: RequestInit): Promise<AscendStreak> => {
+
+  return customFetch<AscendStreak>(getRecordStreakUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRecordStreakMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordStreak>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordStreak>>, TError,void, TContext> => {
+
+const mutationKey = ['recordStreak'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordStreak>>, void> = () => {
+
+
+          return  recordStreak(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordStreakMutationResult = NonNullable<Awaited<ReturnType<typeof recordStreak>>>
+
+    export type RecordStreakMutationError = ErrorType<void>
+
+    /**
+ * @summary Record a streak for today
+ */
+export const useRecordStreak = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordStreak>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recordStreak>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRecordStreakMutationOptions(options));
+    }
 
 export const getGetWaterTodayUrl = () => {
 

@@ -7,6 +7,7 @@
  */
 
 export * from './apiError';
+export * from './ascendStreak';
 export * from './authUser';
 export * from './chatMessage';
 export * from './chatMessageInput';

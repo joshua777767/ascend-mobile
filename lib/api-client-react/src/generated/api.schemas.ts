@@ -85,6 +85,9 @@ export interface UserProfile {
   ownSchedule?: string | null;
   /** @nullable */
   workoutFocus?: string | null;
+  currentStreak?: number;
+  /** @nullable */
+  lastStreakDate?: string | null;
   createdAt: string;
 }
 
@@ -417,6 +420,16 @@ export interface WaterSummary {
   date: string;
   /** oz detected from photo by AI (only present when imageUrl was used) */
   detectedOz?: number;
+}
+
+export interface AscendStreak {
+  /** Current consecutive days */
+  currentStreak: number;
+  /**
+     * Last day the streak was recorded
+     * @nullable
+     */
+  lastStreakDate: string | null;
 }
 
 export interface LogWaterInput {

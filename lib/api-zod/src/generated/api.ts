@@ -58,6 +58,8 @@ export const GetUserProfileResponse = zod.object({
   "hasOwnSchedule": zod.string().nullish(),
   "ownSchedule": zod.string().nullish(),
   "workoutFocus": zod.string().nullish(),
+  "currentStreak": zod.number().optional(),
+  "lastStreakDate": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -160,6 +162,8 @@ export const UpdateUserProfileResponse = zod.object({
   "hasOwnSchedule": zod.string().nullish(),
   "ownSchedule": zod.string().nullish(),
   "workoutFocus": zod.string().nullish(),
+  "currentStreak": zod.number().optional(),
+  "lastStreakDate": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -572,6 +576,24 @@ export const GetMissionStreakResponse = zod.object({
   "currentStreak": zod.number(),
   "longestStreak": zod.number(),
   "lastActiveDate": zod.string()
+})
+
+
+/**
+ * @summary Get current Ascend streak
+ */
+export const GetStreakResponse = zod.object({
+  "currentStreak": zod.number().describe('Current consecutive days'),
+  "lastStreakDate": zod.string().nullable().describe('Last day the streak was recorded')
+})
+
+
+/**
+ * @summary Record a streak for today
+ */
+export const RecordStreakResponse = zod.object({
+  "currentStreak": zod.number().describe('Current consecutive days'),
+  "lastStreakDate": zod.string().nullable().describe('Last day the streak was recorded')
 })
 
 

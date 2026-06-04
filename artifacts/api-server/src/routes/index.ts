@@ -12,6 +12,7 @@ import scheduleRouter from "./schedule";
 import chatRouter from "./chat";
 import progressRouter from "./progress";
 import waterRouter from "./water";
+import streakRouter from "./streak";
 import { requireAuth } from "./../middlewares/auth";
 
 const router: IRouter = Router();
@@ -33,5 +34,6 @@ router.use(scheduleRouter);
 router.use(chatRouter);
 router.use(progressRouter);
 router.use(waterRouter);
+router.use(streakRouter);
 
 export default router;

@@ -62,5 +62,8 @@ export interface UserProfile {
   ownSchedule?: string | null;
   /** @nullable */
   workoutFocus?: string | null;
+  currentStreak?: number;
+  /** @nullable */
+  lastStreakDate?: string | null;
   createdAt: Date;
 }

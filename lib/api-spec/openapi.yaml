@@ -29,6 +29,8 @@ tags:
     description: AI coach chat
   - name: progress
     description: Progress tracking
+  - name: streak
+    description: Daily streak tracking
   - name: water
     description: Water intake tracking
 
@@ -545,6 +547,34 @@ paths:
               schema:
                 $ref: "#/components/schemas/MissionStreak"
 
+  /streak:
+    get:
+      operationId: getStreak
+      tags: [streak]
+      summary: Get current Ascend streak
+      responses:
+        "200":
+          description: Streak data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AscendStreak"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: recordStreak
+      tags: [streak]
+      summary: Record a streak for today
+      responses:
+        "200":
+          description: Updated streak
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AscendStreak"
+        "401":
+          description: Unauthorized
+
   /water/today:
     get:
       operationId: getWaterToday
@@ -736,6 +766,10 @@ components:
         ownSchedule:
           type: ["string", "null"]
         workoutFocus:
+          type: ["string", "null"]
+        currentStreak:
+          type: integer
+        lastStreakDate:
           type: ["string", "null"]
         createdAt:
           type: string
@@ -1414,6 +1448,19 @@ components:
         detectedOz:
           type: integer
           description: oz detected from photo by AI (only present when imageUrl was used)
+
+    AscendStreak:
+      type: object
+      required:
+        - currentStreak
+        - lastStreakDate
+      properties:
+        currentStreak:
+          type: integer
+          description: Current consecutive days
+        lastStreakDate:
+          type: ["string", "null"]
+          description: Last day the streak was recorded
 
     LogWaterInput:
       type: object
