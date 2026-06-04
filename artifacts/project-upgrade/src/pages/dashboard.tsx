@@ -179,7 +179,7 @@ function DailyChecklist({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           <ListChecks className="w-4 h-4 text-primary" strokeWidth={2.4} />
-          <p className="text-sm font-semibold text-foreground">Today's Checklist</p>
+          <p className="text-sm font-semibold text-foreground">Today's Mission</p>
         </div>
         <span className="text-xs text-muted-foreground">
           {completed}/{habits.length} done
@@ -478,14 +478,50 @@ export default function DashboardPage() {
   const reviewScore = review && typeof review.dailyScore === "number" ? review.dailyScore : null;
   const displayScore = reviewScore !== null ? reviewScore : checklistScore;
   const displayLabel = reviewScore !== null ? "Today" : "Checklist";
-  const coachMessage =
-    plan?.coachNotes?.trim() ||
-    "Today's focus is simple: hit protein, follow the workout, drink water early, and protect your sleep. No random snacks, no excuses.";
-
   const firstName = profile.name?.split(" ")[0] ?? profile.name;
 
   const todayCalories = (todayMeals ?? []).reduce((s, m) => s + (m.calories ?? 0), 0);
   const todayProtein = (todayMeals ?? []).reduce((s, m) => s + (m.protein ?? 0), 0);
+
+  // --- Personalized mission copy ---
+  const calorieDeficit = plan ? plan.calorieTarget - todayCalories : 0;
+  const proteinDeficit = plan ? plan.proteinTargetG - todayProtein : 0;
+  const isBulking = plan ? (profile.goalWeightKg ?? 0) > (profile.currentWeightKg ?? 0) : false;
+  const isCutting = plan ? (profile.goalWeightKg ?? 0) < (profile.currentWeightKg ?? 0) : false;
+  const missionComplete = checklistScore >= 100 && habits.length > 0;
+
+  function buildMission(): string {
+    if (missionComplete) {
+      return "Mission complete. Keep the streak alive tomorrow.";
+    }
+    if (plan && calorieDeficit > 500) {
+      return `You're ${calorieDeficit} calories behind. Eat again before bed. No skipped meals.`;
+    }
+    if (plan && proteinDeficit > 30) {
+      return `You're ${proteinDeficit}g protein short. Make the next meal count.`;
+    }
+    if (isBulking && plan) {
+      return `${firstName}, you're bulking. You need ${plan.calorieTarget.toLocaleString()} calories today. No skipped meals.`;
+    }
+    if (isCutting && plan) {
+      return `${firstName}, you're cutting. Stay locked in: protein, steps, water, and clean tracking.`;
+    }
+    if (goals.includes("better skin")) {
+      return "Clear skin mission: water, sleep, face wash, no sugary drinks.";
+    }
+    if (goals.includes("higher energy")) {
+      return "Energy mission: protein breakfast, water, sunlight, sleep.";
+    }
+    if (goals.includes("better sleep")) {
+      return "Sleep mission: no screens after 9, magnesium, cool room, same wake time.";
+    }
+    if (goals.includes("discipline")) {
+      return "Discipline mission: show up, hit the checklist, no excuses. Growth requires proof.";
+    }
+    return plan?.coachNotes?.trim() || "Today's focus is simple: hit protein, follow the workout, drink water early, and protect your sleep. No random snacks, no excuses.";
+  }
+
+  const coachMessage = buildMission();
 
   return (
     <div className="h-full overflow-y-auto scroll-area">
@@ -595,7 +631,7 @@ export default function DashboardPage() {
             <div className="flex flex-col items-center shrink-0">
               <ScoreRing score={displayScore} />
               <span className="text-[10px] text-muted-foreground mt-1.5">
-                {displayLabel}
+                {displayScore > 0 ? displayLabel : "Start"}
               </span>
             </div>
           </div>
@@ -620,7 +656,7 @@ export default function DashboardPage() {
         {/* Water Tracker */}
         {plan && (
           <div>
-            <p className="text-sm font-semibold text-foreground mb-3">Water</p>
+            <p className="text-sm font-semibold text-foreground mb-3">Hydration</p>
             <WaterTracker
               totalOz={waterOz}
               targetOz={waterTargetOz}
@@ -636,7 +672,7 @@ export default function DashboardPage() {
         {/* Other Targets */}
         {plan && (
           <div>
-            <p className="text-sm font-semibold text-foreground mb-3">Daily Targets</p>
+            <p className="text-sm font-semibold text-foreground mb-3">Today's Targets</p>
             <div className="grid grid-cols-3 gap-3">
               <MetricCard icon={Footprints} value={plan.stepsTarget.toLocaleString()} label="Steps" tint="green" />
               <MetricCard icon={Moon} value={plan.sleepTargetHours} unit="h" label="Sleep" tint="blue" />
