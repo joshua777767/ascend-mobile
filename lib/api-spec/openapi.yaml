@@ -1411,14 +1411,18 @@ components:
         date:
           type: string
           description: Date in YYYY-MM-DD format
+        detectedOz:
+          type: integer
+          description: oz detected from photo by AI (only present when imageUrl was used)
 
     LogWaterInput:
       type: object
-      required:
-        - amountOz
       properties:
         amountOz:
           type: integer
           minimum: 1
           maximum: 500
-          description: Amount of water to log in oz
+          description: Amount of water to log in oz (required if imageUrl is not provided)
+        imageUrl:
+          type: string
+          description: Base64 data URL of a photo for AI-based volume detection

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   useGetUserProfile,
@@ -27,7 +27,38 @@ import {
   CheckCircle2,
   Circle,
   Plus,
+  Camera,
 } from "lucide-react";
+
+function compressImage(file: File, maxDim = 1024, quality = 0.7): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read file"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Could not load image"));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("Canvas not supported"));
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 function MetricCard({
   icon: Icon,
@@ -182,16 +213,24 @@ function WaterTracker({
   totalOz,
   targetOz,
   onLog,
+  onLogPhoto,
   isLogging,
+  isAnalyzing,
+  photoFeedback,
 }: {
   totalOz: number;
   targetOz: number;
   onLog: (oz: number) => void;
+  onLogPhoto: (imageUrl: string) => void;
   isLogging: boolean;
+  isAnalyzing: boolean;
+  photoFeedback: string | null;
 }) {
   const [customOz, setCustomOz] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const pct = targetOz > 0 ? Math.min(100, Math.round((totalOz / targetOz) * 100)) : 0;
   const met = totalOz >= targetOz && targetOz > 0;
+  const busy = isLogging || isAnalyzing;
 
   function handleCustomSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -199,6 +238,18 @@ function WaterTracker({
     if (!isNaN(val) && val > 0 && val <= 500) {
       onLog(val);
       setCustomOz("");
+    }
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const dataUrl = await compressImage(file);
+      onLogPhoto(dataUrl);
+    } catch {
+      // ignore
     }
   }
 
@@ -211,9 +262,14 @@ function WaterTracker({
           </div>
           <span className="text-sm font-semibold text-foreground">Water</span>
         </div>
-        {met && (
+        {met && !isAnalyzing && (
           <span className="text-xs font-semibold text-success bg-success/15 px-2 py-0.5 rounded-full">
             Target met ✓
+          </span>
+        )}
+        {isAnalyzing && (
+          <span className="text-xs font-medium text-primary animate-pulse">
+            Analyzing photo…
           </span>
         )}
       </div>
@@ -226,25 +282,38 @@ function WaterTracker({
         </span>
       </p>
 
-      <div className="h-1.5 rounded-full bg-elevated overflow-hidden mb-4">
+      <div className="h-1.5 rounded-full bg-elevated overflow-hidden mb-3">
         <div
           className={`h-full rounded-full transition-all duration-300 ${met ? "bg-success" : "bg-primary"}`}
           style={{ width: `${pct}%` }}
         />
       </div>
 
+      {photoFeedback && (
+        <p className="text-xs text-success mb-3 font-medium">{photoFeedback}</p>
+      )}
+
       <div className="flex gap-2 mb-3">
         {[8, 16, 24].map((oz) => (
           <button
             key={oz}
             type="button"
-            disabled={isLogging}
+            disabled={busy}
             onClick={() => onLog(oz)}
             className="flex-1 py-2 rounded-xl bg-primary/10 border border-primary/20 text-xs font-semibold text-primary active:bg-primary/20 transition-colors disabled:opacity-50"
           >
             +{oz} oz
           </button>
         ))}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => fileInputRef.current?.click()}
+          className="py-2 px-3 rounded-xl bg-elevated border border-border text-xs font-semibold text-muted-foreground active:bg-card transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          title="Snap a photo to auto-detect volume"
+        >
+          <Camera className="w-3.5 h-3.5" strokeWidth={2.2} />
+        </button>
       </div>
 
       <form onSubmit={handleCustomSubmit} className="flex gap-2">
@@ -259,12 +328,21 @@ function WaterTracker({
         />
         <button
           type="submit"
-          disabled={isLogging || !customOz}
+          disabled={busy || !customOz}
           className="h-9 px-3 rounded-xl bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50 active:opacity-80 transition-opacity"
         >
           <Plus className="w-4 h-4" strokeWidth={2.4} />
         </button>
       </form>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileChange}
+      />
     </div>
   );
 }
@@ -322,6 +400,9 @@ export default function DashboardPage() {
     if (error) setLocation("/onboarding");
   }, [error, setLocation]);
 
+  const [waterAnalyzing, setWaterAnalyzing] = useState(false);
+  const [waterPhotoFeedback, setWaterPhotoFeedback] = useState<string | null>(null);
+
   async function handleLogWater(oz: number) {
     try {
       await logWaterFn({ data: { amountOz: oz } });
@@ -329,6 +410,25 @@ export default function DashboardPage() {
       refetchWater();
     } catch {
       // fail silently — the button re-enables immediately
+    }
+  }
+
+  async function handleLogWaterPhoto(imageUrl: string) {
+    setWaterAnalyzing(true);
+    setWaterPhotoFeedback(null);
+    try {
+      const result = await logWaterFn({ data: { imageUrl } });
+      await queryClient.invalidateQueries({ queryKey: ["getWaterToday"] });
+      refetchWater();
+      if (result?.detectedOz) {
+        setWaterPhotoFeedback(`Photo detected ~${result.detectedOz} oz — added!`);
+        setTimeout(() => setWaterPhotoFeedback(null), 4000);
+      }
+    } catch {
+      setWaterPhotoFeedback("Couldn't analyze photo. Try again.");
+      setTimeout(() => setWaterPhotoFeedback(null), 3000);
+    } finally {
+      setWaterAnalyzing(false);
     }
   }
 
@@ -422,7 +522,10 @@ export default function DashboardPage() {
               totalOz={waterOz}
               targetOz={waterTargetOz}
               onLog={handleLogWater}
+              onLogPhoto={handleLogWaterPhoto}
               isLogging={waterLogging}
+              isAnalyzing={waterAnalyzing}
+              photoFeedback={waterPhotoFeedback}
             />
           </div>
         )}

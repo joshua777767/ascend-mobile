@@ -581,7 +581,8 @@ export const GetMissionStreakResponse = zod.object({
 export const GetWaterTodayResponse = zod.object({
   "totalOz": zod.number().describe('Total oz logged today'),
   "targetOz": zod.number().describe('Daily water target in oz'),
-  "date": zod.string().describe('Date in YYYY-MM-DD format')
+  "date": zod.string().describe('Date in YYYY-MM-DD format'),
+  "detectedOz": zod.number().optional().describe('oz detected from photo by AI (only present when imageUrl was used)')
 })
 
 
@@ -593,7 +594,8 @@ export const logWaterBodyAmountOzMax = 500;
 
 
 export const LogWaterBody = zod.object({
-  "amountOz": zod.number().min(1).max(logWaterBodyAmountOzMax).describe('Amount of water to log in oz')
+  "amountOz": zod.number().min(1).max(logWaterBodyAmountOzMax).optional().describe('Amount of water to log in oz (required if imageUrl is not provided)'),
+  "imageUrl": zod.string().optional().describe('Base64 data URL of a photo for AI-based volume detection')
 })
 
 

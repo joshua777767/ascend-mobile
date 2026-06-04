@@ -13,4 +13,6 @@ export interface WaterSummary {
   targetOz: number;
   /** Date in YYYY-MM-DD format */
   date: string;
+  /** oz detected from photo by AI (only present when imageUrl was used) */
+  detectedOz?: number;
 }

@@ -415,14 +415,18 @@ export interface WaterSummary {
   targetOz: number;
   /** Date in YYYY-MM-DD format */
   date: string;
+  /** oz detected from photo by AI (only present when imageUrl was used) */
+  detectedOz?: number;
 }
 
 export interface LogWaterInput {
   /**
-     * Amount of water to log in oz
+     * Amount of water to log in oz (required if imageUrl is not provided)
      * @minimum 1
      * @maximum 500
      */
-  amountOz: number;
+  amountOz?: number;
+  /** Base64 data URL of a photo for AI-based volume detection */
+  imageUrl?: string;
 }
 
