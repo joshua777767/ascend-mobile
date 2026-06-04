@@ -121,30 +121,17 @@ function IntakeBar({
   );
 }
 
-function DailyChecklist({ habits }: { habits: string[] }) {
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const storageKey = `ascend.checklist.${todayKey}`;
-  const [done, setDone] = useState<Record<string, boolean>>(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(done));
-    } catch {
-      // ignore storage errors
-    }
-  }, [done, storageKey]);
-
+function DailyChecklist({
+  habits,
+  done,
+  setDone,
+}: {
+  habits: string[];
+  done: Record<string, boolean>;
+  setDone: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+}) {
   if (habits.length === 0) return null;
-
   const completed = habits.filter((h) => done[h]).length;
-
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
@@ -196,6 +183,28 @@ export default function DashboardPage() {
   const { data: todayMeals, refetch: refetchMeals } = useGetTodayMeals();
   useEffect(() => { refetchMeals(); }, [refetchMeals]);
 
+  const habits = plan && Array.isArray(plan.keyHabits) ? plan.keyHabits : [];
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const storageKey = `ascend.checklist.${todayKey}`;
+  const [done, setDone] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(done));
+    } catch {
+      // ignore
+    }
+  }, [done, storageKey]);
+
+  const checklistCompleted = habits.filter((h) => done[h]).length;
+  const checklistScore = habits.length ? Math.round((checklistCompleted / habits.length) * 100) : 0;
+
   useEffect(() => {
     if (error) setLocation("/onboarding");
   }, [error, setLocation]);
@@ -222,6 +231,8 @@ export default function DashboardPage() {
 
   const goals: string[] = Array.isArray(profile.goals) ? profile.goals : [];
   const reviewScore = review && typeof review.dailyScore === "number" ? review.dailyScore : null;
+  const displayScore = reviewScore !== null ? reviewScore : checklistScore;
+  const displayLabel = reviewScore !== null ? "Today" : "Checklist";
   const coachMessage =
     plan?.coachNotes?.trim() ||
     "Today's focus is simple: hit protein, follow the workout, drink water early, and protect your sleep. No random snacks, no excuses.";
@@ -256,9 +267,9 @@ export default function DashboardPage() {
               <p className="mt-2 text-sm leading-relaxed text-foreground">{coachMessage}</p>
             </div>
             <div className="flex flex-col items-center shrink-0">
-              <ScoreRing score={reviewScore ?? 0} />
+              <ScoreRing score={displayScore} />
               <span className="text-[10px] text-muted-foreground mt-1.5">
-                {reviewScore !== null ? "Today" : "No score yet"}
+                {displayLabel}
               </span>
             </div>
           </div>
@@ -266,7 +277,7 @@ export default function DashboardPage() {
 
         {/* Today's Checklist — combined daily mission from selected goals */}
         {plan && Array.isArray(plan.keyHabits) && plan.keyHabits.length > 0 && (
-          <DailyChecklist habits={plan.keyHabits} />
+          <DailyChecklist habits={plan.keyHabits} done={done} setDone={setDone} />
         )}
 
         {/* Today's Intake */}
