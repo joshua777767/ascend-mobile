@@ -1,0 +1,127 @@
+Improve Ascend’s goal system.
+
+Do not redesign the app.
+Do not run Playwright.
+Do not install packages.
+Do not change authentication.
+Only improve goal-based daily actions, coach logic, and dashboard missions.
+
+Problem:
+Ascend lets users choose goals like clear skin, better energy, better sleep, discipline, weight loss, weight gain, muscle gain, fitness, and athletic performance.
+
+But some goals do not give enough direction. If the app lets a user choose a goal, the app must tell them exactly what to do daily for that goal.
+
+Fix:
+For every goal offered in onboarding/settings, create real daily actions, coach guidance, and dashboard checklist items when relevant.
+
+Goal Action Rules:
+
+Clear Skin:
+
+* Add daily water target
+* Add sleep target
+* Add “wash face morning/night” habit
+* Add “change pillowcase 2x/week” habit
+* Add “limit sugary drinks” habit
+* Add “eat protein and whole foods” guidance
+* Do not promise to cure acne or medical skin conditions
+* If user has serious skin issues, suggest speaking with a professional
+
+Better Energy:
+
+* Add sleep target
+* Add hydration target
+* Add protein breakfast habit
+* Add morning sunlight/walk habit
+* Add caffeine cutoff time
+* Add “avoid sugar crash meals” coaching
+
+Better Sleep:
+
+* Add bedtime target
+* Add wake time consistency
+* Add no caffeine late rule
+* Add screen cutoff before bed
+* Add wind-down routine
+* Add dark/cool room suggestion
+
+Discipline:
+
+* Add daily non-negotiable checklist
+* Add streak tracking if available
+* Add missed-task accountability
+* Add “one main mission today” coach message
+
+Weight Loss / Fat Loss:
+
+* Add calorie target
+* Add protein target
+* Add steps/cardio target
+* Add workout target
+* Add meal logging
+* Add weekly weigh-in
+* Coach should explain what level of discipline is required
+
+Weight Gain / Bulk:
+
+* Add calorie surplus target
+* Add protein target
+* Add meal frequency goal
+* Add snack/shake reminder
+* Add strength training target
+* Add weekly weigh-in
+* Coach should remind users not to skip meals
+
+Build Muscle:
+
+* Add protein target
+* Add strength training plan
+* Add progressive overload guidance
+* Add recovery/sleep target
+* Add rest day guidance
+
+Maintain Fitness:
+
+* Add maintenance calories
+* Add protein target
+* Add workout schedule
+* Add steps target
+* Add consistency checklist
+
+Athletic Performance:
+
+* Use selected sport if available
+* Add sport-specific training guidance
+* Add recovery habits
+* Add mobility/warmup reminders
+* Add sleep and protein targets
+* Add conditioning when appropriate
+
+Important:
+If a user selects multiple goals, combine them into one daily mission.
+
+Example:
+If user selects fat loss + clear skin + better energy, the dashboard should include:
+
+* calorie target
+* protein target
+* water target
+* steps target
+* workout
+* sleep target
+* skin habit
+* energy habit
+
+Coach behavior:
+The coach should reference the user’s selected goals when giving advice.
+
+Example:
+“You picked fat loss, clear skin, and better energy. Today’s mission is protein breakfast, water early, 8k steps, no soda, workout, and sleep by 11.”
+
+The app should never ask a user to choose a goal and then fail to give daily actions for that goal.
+
+After finishing:
+
+* Tell me what files changed
+* Tell me how to test each goal
+* Do not add unrelated features

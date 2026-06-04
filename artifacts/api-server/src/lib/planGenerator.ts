@@ -14,8 +14,19 @@ export interface GeneratedPlan {
   warnings: string | null;
 }
 
-function parseGoals(goalsJson: string): string[] {
-  try { return JSON.parse(goalsJson); } catch { return []; }
+function parseGoals(goalsJson: unknown): string[] {
+  // plans.ts already parses goals into an array before calling generatePlan,
+  // but generatePlan may also be called with the raw JSON string. Handle both.
+  if (Array.isArray(goalsJson)) return goalsJson.filter((g): g is string => typeof g === "string");
+  if (typeof goalsJson === "string") {
+    try {
+      const parsed = JSON.parse(goalsJson);
+      return Array.isArray(parsed) ? parsed.filter((g): g is string => typeof g === "string") : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
 }
 
 const FOCUS_LABELS: Record<string, string> = {
@@ -38,13 +49,140 @@ const SPORT_HABITS: Record<string, string> = {
   wrestling: "Train grip strength, explosive takedowns, and neck strength",
 };
 
+const GLOW_GOALS = ["better skin", "higher energy", "better sleep", "less bloating", "better digestion"];
+const PRIMARY_GOALS = ["lose fat", "lose weight", "gain weight", "build muscle", "maintain fitness"];
+
+// Order goals so a combined daily mission reads sensibly
+const GOAL_ORDER = [
+  "lose fat", "lose weight", "gain weight", "build muscle", "maintain fitness",
+  "better skin", "higher energy", "better sleep", "discipline",
+];
+
+// How each goal is referenced in coach copy
+const GOAL_LABELS: Record<string, string> = {
+  "lose fat": "fat loss",
+  "lose weight": "weight loss",
+  "gain weight": "weight gain",
+  "build muscle": "muscle building",
+  "maintain fitness": "staying fit",
+  "better skin": "clear skin",
+  "higher energy": "better energy",
+  "better sleep": "better sleep",
+  discipline: "discipline",
+};
+
+function to12h(t: string): string {
+  const [h, m] = t.split(":").map(Number);
+  if (Number.isNaN(h)) return t;
+  const period = h >= 12 ? "PM" : "AM";
+  const hr = h % 12 === 0 ? 12 : h % 12;
+  return m ? `${hr}:${String(m).padStart(2, "0")} ${period}` : `${hr} ${period}`;
+}
+
+function subtractHours(t: string, hours: number): string {
+  const [h, m] = t.split(":").map(Number);
+  if (Number.isNaN(h)) return t;
+  let total = h * 60 + (m || 0) - hours * 60;
+  total = ((total % 1440) + 1440) % 1440;
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+function joinList(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
+interface HabitVals {
+  protein: number;
+  cal: number;
+  water: number;
+  steps: number;
+  sleep: number;
+  workoutDays: number;
+  mealsPerDay: number;
+  bedtime: string;
+  caffeineCutoff: string;
+}
+
+// Real, specific daily actions for every goal Ascend offers
+function habitsForGoal(goal: string, v: HabitVals): string[] {
+  switch (goal) {
+    case "lose fat":
+    case "lose weight":
+      return [
+        `Hit your ${v.cal} calorie target`,
+        `Eat ${v.protein}g protein`,
+        `Walk ${v.steps.toLocaleString()} steps`,
+        `Log every meal`,
+        `Train ${v.workoutDays}x this week`,
+      ];
+    case "gain weight":
+      return [
+        `Eat ${v.cal} calories — don't undereat`,
+        `Eat ${v.protein}g protein`,
+        `Eat ${v.mealsPerDay}+ meals — never skip`,
+        `Add a shake or snack between meals`,
+        `Strength train ${v.workoutDays}x this week`,
+      ];
+    case "build muscle":
+      return [
+        `Eat ${v.protein}g protein`,
+        `Strength train ${v.workoutDays}x — progressive overload`,
+        `Beat last session: add a rep or weight`,
+        `Sleep ${v.sleep}h for recovery`,
+        `Take your rest days — muscle grows in recovery`,
+      ];
+    case "maintain fitness":
+      return [
+        `Train ${v.workoutDays}x this week`,
+        `Eat ${v.protein}g protein`,
+        `Walk ${v.steps.toLocaleString()} steps`,
+        `Stay near ${v.cal} maintenance calories`,
+      ];
+    case "better skin":
+      return [
+        `Drink ${v.water}L water`,
+        `Wash your face morning and night`,
+        `Change pillowcase 2x this week`,
+        `Limit sugary drinks`,
+        `Eat protein and whole foods`,
+      ];
+    case "higher energy":
+      return [
+        `Protein breakfast within 1h of waking`,
+        `Get sunlight or a short walk this morning`,
+        `No caffeine after ${v.caffeineCutoff}`,
+        `Drink ${v.water}L water`,
+        `Avoid sugar-crash meals`,
+      ];
+    case "better sleep":
+      return [
+        `In bed by ${v.bedtime}`,
+        `Same wake time every day`,
+        `No caffeine after ${v.caffeineCutoff}`,
+        `Screens off 60 min before bed`,
+        `Wind down in a cool, dark room`,
+      ];
+    case "discipline":
+      return [
+        `Pick one main mission today and finish it`,
+        `Hit every non-negotiable: protein, training, sleep`,
+        `No zero days — do something toward the goal`,
+        `Miss a task? Own it and reset tomorrow`,
+      ];
+    default:
+      return [];
+  }
+}
+
 export function generatePlan(profile: UserProfile): GeneratedPlan {
   const goals = parseGoals(profile.goals);
   const weightDiff = profile.goalWeightKg - profile.currentWeightKg;
   const isLoss = weightDiff < -1;
   const isGain = weightDiff > 1;
 
-  const hasGlowGoals = goals.some(g => ["better skin", "higher energy", "better sleep", "less bloating", "better digestion"].includes(g));
+  const hasGlowGoals = goals.some(g => GLOW_GOALS.includes(g));
 
   let goalType = "maintain";
   if (isLoss) goalType = "fat_loss";
@@ -119,54 +257,84 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     workoutSchedule = `${workoutDays}x/week: balanced strength + conditioning${sportText}`;
   }
 
+  const bedtime = profile.sleepTime || "22:30";
+  const caffeineCutoff = to12h(subtractHours(bedtime, 8));
+  const habitVals: HabitVals = {
+    protein: proteinTargetG,
+    cal: calorieTarget,
+    water: waterTargetL,
+    steps: stepsTarget,
+    sleep: sleepTargetHours,
+    workoutDays,
+    mealsPerDay: profile.mealsPerDay ?? 3,
+    bedtime: to12h(bedtime),
+    caffeineCutoff,
+  };
+
+  // Build one combined daily mission from every selected goal, deduped.
+  const orderedGoals = [
+    ...GOAL_ORDER.filter((g) => goals.includes(g)),
+    ...goals.filter((g) => !GOAL_ORDER.includes(g)),
+  ];
+
   const keyHabits: string[] = [];
-  if (goalType === "fat_loss") {
-    keyHabits.push(
-      `Eat ${proteinTargetG}g protein daily — non-negotiable`,
-      `Walk at least ${stepsTarget} steps`,
-      `No liquid calories except water and black coffee`,
-      `Stop eating 3 hours before bed`,
-      `Drink ${waterTargetL}L water by 6pm`,
-    );
-  } else if (goalType === "muscle_gain") {
-    keyHabits.push(
-      `Never skip meals — eat every 3-4 hours`,
-      `Hit ${proteinTargetG}g protein daily`,
-      `Eat ${calorieTarget} calories minimum`,
-      `Sleep ${sleepTargetHours} hours — muscle grows during recovery`,
-      `Have a protein shake or whole food meal within 45 min of training`,
-    );
-  } else {
-    keyHabits.push(
-      `Consistent ${workoutDays}x/week training`,
-      `${proteinTargetG}g protein daily`,
-      `${waterTargetL}L water daily`,
-      `${sleepTargetHours} hours of quality sleep`,
-      `Limit processed food to 2x/week`,
-    );
+  const seen = new Set<string>();
+  const pushHabit = (h: string) => {
+    const key = h.toLowerCase().replace(/\s+/g, " ").trim();
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      keyHabits.push(h);
+    }
+  };
+
+  // If no nutrition/training goal was picked, still seed core actions so the
+  // mission is never empty.
+  if (!orderedGoals.some((g) => PRIMARY_GOALS.includes(g))) {
+    pushHabit(`Eat ${proteinTargetG}g protein`);
+    pushHabit(`Train ${workoutDays}x this week`);
+  }
+
+  for (const g of orderedGoals) {
+    for (const h of habitsForGoal(g, habitVals)) pushHabit(h);
+  }
+
+  if (workoutFocus === "athletic_performance") {
+    pushHabit("Warm up and run through mobility before training");
+    pushHabit("Recover: stretch, foam roll, and hydrate after sessions");
   }
 
   if (sport && sport !== "no sport" && sport !== "none" && sport !== "other") {
-    const sportKey = sport.toLowerCase();
-    const sportHabit = SPORT_HABITS[sportKey];
-    if (sportHabit) keyHabits.push(sportHabit);
+    const sportHabit = SPORT_HABITS[sport.toLowerCase()];
+    if (sportHabit) pushHabit(sportHabit);
   }
 
-  if (hasGlowGoals) {
-    keyHabits.push("Screen off 60 min before bed", "Sunlight or outdoor walk within 2 hours of waking");
-  }
+  // Keep the mission focused even when many goals are combined.
+  const finalHabits = keyHabits.slice(0, 12);
 
-  let coachNotes = "";
   const sportNote = sportText ? ` Training is built around your sport${sportText.replace(" | Sport: ", " (") + ")"}.` : "";
+  const goalLabelList = orderedGoals.map((g) => GOAL_LABELS[g] || g);
+  const goalText = goalLabelList.length ? joinList(goalLabelList) : "your goals";
+  const missionLine = joinList(finalHabits.slice(0, 6).map((h) => h.charAt(0).toLowerCase() + h.slice(1)));
+  const skinNote = goals.includes("better skin")
+    ? " For skin, habits help — but for persistent acne or a medical skin condition, see a dermatologist."
+    : "";
 
-  if (hasOwnSchedule === "yes" && ownSchedule) {
-    coachNotes = `You have your own schedule — the plan respects it. Nutrition and recovery are built around your training days. Your TDEE is ~${tdee} calories. Hit your protein target of ${proteinTargetG}g every day regardless of what you do in the gym.${sportNote}`;
-  } else if (goalType === "fat_loss") {
-    coachNotes = `You need a ${Math.round(tdee - calorieTarget)} calorie deficit to hit your pace. Your TDEE is ~${tdee} calories. Protein is the priority — hit it every day without exception. Steps add up. Every missed workout is a setback you have to earn back.${sportNote}`;
+  let nutritionExplanation: string;
+  if (goalType === "fat_loss") {
+    nutritionExplanation = `This takes real discipline: hold a ${Math.round(tdee - calorieTarget)}-calorie deficit (TDEE ~${tdee}) and hit protein every day. Steps and sleep aren't optional — they're what make the deficit work.`;
   } else if (goalType === "muscle_gain") {
-    coachNotes = `Your TDEE is ~${tdee}. You need ${calorieTarget} calories daily to grow. Undereating is the #1 reason people don't gain. If you're not gaining weight, you're not eating enough — period. Train hard, eat more, sleep more.${sportNote}`;
+    nutritionExplanation = `You need ${calorieTarget} calories (TDEE ~${tdee}) to grow. Undereating is the #1 reason people don't gain — don't skip meals. Train hard, eat more, sleep more.`;
+  } else if (goalType === "glow") {
+    nutritionExplanation = `Eat around ${calorieTarget} calories with ${proteinTargetG}g protein. Skin, energy, and sleep all run on the same engine: water, whole foods, and a steady daily routine.`;
   } else {
-    coachNotes = `Maintenance means staying disciplined, not relaxing. You're keeping what you've built. Stay consistent with training, hit your protein, and don't let small habits slide.${sportNote}`;
+    nutritionExplanation = `Stay near ${calorieTarget} maintenance calories and hold your protein. Maintenance is discipline, not relaxation.`;
+  }
+
+  let coachNotes: string;
+  if (hasOwnSchedule === "yes" && ownSchedule) {
+    coachNotes = `You picked ${goalText}. The plan respects your own training schedule and builds nutrition and recovery around it. Today's mission: ${missionLine}. Hit ${proteinTargetG}g protein every day regardless of the gym.${sportNote}${skinNote}`;
+  } else {
+    coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${sportNote}${skinNote}`;
   }
 
   return {
@@ -178,7 +346,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     sleepTargetHours,
     weeklyPace,
     workoutSchedule,
-    keyHabits,
+    keyHabits: finalHabits,
     coachNotes,
     warnings,
   };

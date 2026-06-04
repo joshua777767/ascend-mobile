@@ -2,3 +2,4 @@
 - [Coach chat dual-path](coach-chat-dual-path.md) — coach has LLM-prompt + deterministic heuristic fallback; keep both in sync; ordered keyword branches can hijack intent.
 - [Playwright NixOS LD_LIBRARY_PATH](playwright-nixos-libs.md) — Chromium headless needs 26 nix store lib paths injected into LD_LIBRARY_PATH; set in playwright.config.ts before defineConfig.
 - [Playwright logout hard-redirect](playwright-logout.md) — logout must use window.location.replace('/login'), not setLocation, to avoid isAuthed race condition redirecting to /dashboard.
+- [Goal system & plan generation](goal-system.md) — goals→daily-actions pipeline; the double-parse trap that silently emptied profile.goals in generatePlan.

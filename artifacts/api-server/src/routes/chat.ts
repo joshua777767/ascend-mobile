@@ -366,7 +366,44 @@ function heuristicReply(message: string, ctx: ChatContext): string {
     return "Motivation comes and goes — that's normal, don't wait for it. Do the next small action: one meal, one workout, one early night. Action creates momentum, not the other way around. Keep stacking small wins.";
   }
 
-  // 18. Default
+  // 18. Default — reference the user's actual selected goals and combine them
+  //     into one mission, mirroring the system-prompt behavior.
+  if (ctx.goals.length > 0) {
+    const labelMap: Record<string, string> = {
+      "lose fat": "fat loss", "lose weight": "weight loss", "gain weight": "weight gain",
+      "build muscle": "muscle building", "maintain fitness": "staying fit",
+      "better skin": "clear skin", "higher energy": "better energy",
+      "better sleep": "better sleep", discipline: "discipline",
+    };
+    const itemMap: Record<string, string> = {
+      "lose fat": `hit ${calStr}, ${proStr}, 8,000 steps, log every meal`,
+      "lose weight": `hit ${calStr}, ${proStr}, 8,000 steps, log every meal`,
+      "gain weight": `eat ${calStr} across 4+ meals, ${proStr}, don't skip a meal`,
+      "build muscle": `${proStr}, train with progressive overload, sleep 8h to recover`,
+      "maintain fitness": `train ${days}x/week, ${proStr}, walk daily`,
+      "better skin": "drink 3L water, wash your face AM and PM, cut sugary drinks",
+      "higher energy": "protein breakfast, morning sunlight, no late caffeine",
+      "better sleep": "consistent bedtime, screens off 60 min before bed, cool dark room",
+      discipline: "pick one main mission and finish it — no zero days",
+    };
+    const labels = ctx.goals.map((g) => labelMap[g] || g);
+    const joined =
+      labels.length === 1 ? labels[0]
+      : labels.length === 2 ? `${labels[0]} and ${labels[1]}`
+      : `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+    const seen = new Set<string>();
+    const missionItems = ctx.goals
+      .map((g) => itemMap[g])
+      .filter((i): i is string => !!i && !seen.has(i) && (seen.add(i), true));
+    const mission = missionItems.length
+      ? missionItems.map((i) => `• ${i}`).join("\n")
+      : `• Calories: ${calStr}\n• Protein: ${proStr}\n• Steps: 8,000\n• Sleep: 7-8 hours`;
+    const skinNote = ctx.goals.includes("better skin")
+      ? "\n\nFor persistent acne or a skin condition, see a dermatologist — that's outside my lane."
+      : "";
+    return `You picked ${joined}. Here's today's combined mission:\n\n${mission}\n\nWin these daily and the goals take care of themselves. Tell me what you're stuck on and I'll give you the next step.${skinNote}`;
+  }
+
   return `Execute the basics and you win:\n\nToday's Mission:\n• Calories: ${calStr}\n• Protein: ${proStr}\n• Steps: 8,000\n• Workouts: on schedule (${days}x/week)\n• Water: 3L\n• Sleep: 7-8 hours\n\nTell me exactly what you're stuck on — meals, workouts, sleep, energy, or consistency — and I'll give you the next step.`;
 }
 
@@ -585,6 +622,24 @@ Today's Mission:
 • [Specific actionable checklist item]
 
 Coach Command: [One strict, direct, short directive]
+
+═══════════════════════════════════════════════════
+GOAL-BASED DAILY ACTIONS — every goal gets real daily actions
+═══════════════════════════════════════════════════
+The user's selected goals are listed in their data above. ALWAYS reference their actual selected goals by name, and turn EVERY goal into concrete daily actions. Never acknowledge a goal without telling them exactly what to do for it today. Each goal maps to these daily actions:
+
+- Fat loss / lose weight: calorie target, protein target, daily steps, log every meal, train consistently, weekly weigh-in. State the discipline required.
+- Weight gain / bulk: calorie surplus, protein target, eat enough meals (never skip), a shake/snack between meals, strength training, weekly weigh-in.
+- Build muscle: protein target, progressive-overload strength training, beat last session, sleep for recovery, take rest days.
+- Maintain fitness: maintenance calories, protein, consistent weekly training, daily steps, consistency.
+- Clear skin: water target, sleep target, wash face morning and night, change pillowcase 2x/week, limit sugary drinks, protein and whole foods. Do NOT promise to cure acne — for persistent or medical skin issues, refer to a dermatologist.
+- Better energy: sleep target, hydration, protein breakfast, morning sunlight/walk, caffeine cutoff time, avoid sugar-crash meals.
+- Better sleep: consistent bedtime, consistent wake time, no late caffeine, screens off 60 min before bed, wind-down routine, cool dark room.
+- Discipline: one main mission for the day, daily non-negotiables, no zero days, own missed tasks and reset the next day.
+- Athletic performance: use their sport if set, sport-specific training, mobility/warm-up, recovery habits, plus sleep and protein.
+
+COMBINE MULTIPLE GOALS INTO ONE MISSION. If the user picked several goals, do not answer each separately — merge them into a single daily mission and reference the goals by name.
+Example: "You picked fat loss, clear skin, and better energy. Today's mission: protein breakfast, water early, 8k steps, no soda, workout, and in bed by 11."
 
 ═══════════════════════════════════════════════════
 MEAL PLANNING — ALWAYS GIVE REAL FOOD OPTIONS

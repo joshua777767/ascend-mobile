@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   useGetUserProfile,
@@ -20,6 +20,9 @@ import {
   Footprints,
   Moon,
   Target,
+  ListChecks,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 
 function MetricCard({
@@ -118,6 +121,72 @@ function IntakeBar({
   );
 }
 
+function DailyChecklist({ habits }: { habits: string[] }) {
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const storageKey = `ascend.checklist.${todayKey}`;
+  const [done, setDone] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(done));
+    } catch {
+      // ignore storage errors
+    }
+  }, [done, storageKey]);
+
+  if (habits.length === 0) return null;
+
+  const completed = habits.filter((h) => done[h]).length;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+          <ListChecks className="w-4 h-4 text-primary" strokeWidth={2.4} />
+          <p className="text-sm font-semibold text-foreground">Today's Checklist</p>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {completed}/{habits.length} done
+        </span>
+      </div>
+      <div className="rounded-2xl bg-card border border-border divide-y divide-border overflow-hidden">
+        {habits.map((habit) => {
+          const isDone = !!done[habit];
+          return (
+            <button
+              key={habit}
+              type="button"
+              onClick={() => setDone((d) => ({ ...d, [habit]: !d[habit] }))}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-elevated transition-colors"
+            >
+              {isDone ? (
+                <CheckCircle2 className="w-5 h-5 text-success shrink-0" strokeWidth={2.2} />
+              ) : (
+                <Circle className="w-5 h-5 text-muted-foreground shrink-0" strokeWidth={2} />
+              )}
+              <span
+                className={
+                  "text-sm leading-snug " +
+                  (isDone ? "line-through text-muted-foreground" : "text-foreground")
+                }
+              >
+                {habit}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
   const { data: profile, isLoading: loadingProfile, error } = useGetUserProfile();
@@ -194,6 +263,11 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Today's Checklist — combined daily mission from selected goals */}
+        {plan && Array.isArray(plan.keyHabits) && plan.keyHabits.length > 0 && (
+          <DailyChecklist habits={plan.keyHabits} />
+        )}
 
         {/* Today's Intake */}
         {plan && (
