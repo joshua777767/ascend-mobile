@@ -1,0 +1,136 @@
+Lite/Medium mode only.
+
+Do not redesign.
+Do not run Playwright.
+Do not install packages.
+Do not change authentication.
+Do not inspect the whole codebase.
+Keep this focused. If this needs a broad rewrite, stop and ask me first.
+
+Improve custom workout schedule and sport schedule logic.
+
+Problem:
+Ascend asks about workout schedule, gym access, workout days, sport, and training preferences, but the app needs to actually use those answers inside the plan, schedule, calories, recovery advice, and coach.
+
+PART 1 — Custom workout schedule
+
+If the user says they already have their own workout schedule, let them enter it during onboarding and edit it later in profile/settings.
+
+Example:
+Monday: Back and biceps
+Tuesday: Legs
+Wednesday: Rest
+Thursday: Chest and shoulders
+
+Ascend should generate workouts for those exact body parts on those exact days.
+
+Detect:
+- chest
+- back
+- biceps
+- triceps
+- shoulders
+- legs
+- glutes
+- core
+- conditioning
+- rest
+- sport practice
+
+Respect:
+- fitness level
+- gym access
+- workout days
+- preferred workout time
+- sport
+
+Gym access rules:
+- Full Gym = machines, cables, barbells, dumbbells
+- Home Gym = dumbbells, bands, bodyweight
+- No Gym = bodyweight only
+
+Fitness level rules:
+- Beginner = simpler exercises, lower volume, form-focused
+- Intermediate = normal volume
+- Advanced = higher volume/intensity
+
+If the user writes a vague schedule, ask a clarifying question instead of guessing.
+
+PART 2 — Sport schedule
+
+If the user plays a sport, let them enter their sport schedule during onboarding and edit it later in profile/settings.
+
+Ask:
+- sport
+- practice days
+- practice start time
+- practice duration
+- game days if any
+- intensity: light / moderate / hard
+
+Examples:
+Football practice: Monday, Wednesday, Friday, 4:30 PM, 2 hours, hard
+Boxing: Tuesday and Thursday, 6 PM, 1 hour, hard
+
+Use sport schedule in:
+- daily schedule
+- calorie needs
+- workout planning
+- recovery advice
+- coach responses
+- weekly check-ins
+
+PART 3 — Calories burned from sport
+
+Estimate calories burned from sport using:
+- body weight
+- sport type
+- duration
+- intensity
+
+Use safe wording:
+- “estimated”
+- “roughly”
+- “approximate”
+
+Do not act like calorie burn is exact.
+
+Example:
+“Football practice: roughly 450–700 calories burned depending on intensity.”
+
+If intensity is unknown, use moderate.
+
+PART 4 — Plan adjustment
+
+If sport practice burns a lot of calories:
+
+For weight gain:
+- add a snack/shake reminder
+- increase food guidance so user still hits surplus
+- emphasize post-practice meal
+
+For weight loss:
+- count activity but do not encourage undereating
+- still require protein, water, and recovery
+
+For athletic performance:
+- emphasize recovery, hydration, protein, sleep, mobility
+
+Examples:
+“You have hard football practice today. Add a post-practice shake or extra meal so you still hit your surplus.”
+
+“You have back + biceps today and football practice at 4:30. Keep lifting earlier or reduce intensity so you are not cooked for practice.”
+
+PART 5 — Coach integration
+
+Coach should reference the user’s custom workout schedule and sport schedule.
+
+Coach should not give random workouts that ignore the user’s schedule.
+
+Do not erase existing plans.
+Do not make false calorie guarantees.
+Tell me exact files changed and how to test:
+1. custom back/biceps schedule
+2. football practice schedule
+3. calorie burn estimate
+4. weight gain adjustment after sport
