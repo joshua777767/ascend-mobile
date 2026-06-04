@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -131,34 +131,81 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 const inputClass = "bg-elevated border-border rounded-xl h-12 text-base";
 const textareaClass = "bg-elevated border border-border rounded-xl p-3 text-base text-foreground placeholder:text-muted-foreground w-full resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[100px]";
 
+const ONBOARD_KEY = "ascend.onboarding";
+
+type OnboardingState = {
+  step: number;
+  selectedGoals: string[];
+  skinConcerns: string[];
+  digestionConcerns: string[];
+  biggestStruggle: string;
+  sleepQuality: number;
+  energyLevel: number;
+  stressLevel: number;
+  formData: Partial<Step1 & Step2 & Step3 & Step4>;
+  commitmentLevel: string;
+  selectedSport: string;
+  sportCustomText: string;
+  scheduleChoice: "" | "yes" | "no";
+  ownScheduleText: string;
+  selectedWorkoutFocus: string;
+};
+
+function loadState(): OnboardingState | null {
+  try {
+    const raw = sessionStorage.getItem(ONBOARD_KEY);
+    return raw ? (JSON.parse(raw) as OnboardingState) : null;
+  } catch {
+    return null;
+  }
+}
+function saveState(s: OnboardingState) {
+  try { sessionStorage.setItem(ONBOARD_KEY, JSON.stringify(s)); } catch {}
+}
+function clearState() {
+  try { sessionStorage.removeItem(ONBOARD_KEY); } catch {}
+}
+
 export default function OnboardingPage() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const [step, setStep] = useState(1);
-  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
-  const [skinConcerns, setSkinConcerns] = useState<string[]>([]);
-  const [digestionConcerns, setDigestionConcerns] = useState<string[]>([]);
-  const [biggestStruggle, setBiggestStruggle] = useState("");
-  const [sleepQuality, setSleepQuality] = useState(5);
-  const [energyLevel, setEnergyLevel] = useState(5);
-  const [stressLevel, setStressLevel] = useState(5);
-  const [formData, setFormData] = useState<Partial<Step1 & Step2 & Step3 & Step4>>({});
-  const [commitmentLevel, setCommitmentLevel] = useState<string>("");
+  const persisted = loadState();
 
-  // Sport & schedule state
-  const [selectedSport, setSelectedSport] = useState("");
-  const [sportCustomText, setSportCustomText] = useState("");
-  const [scheduleChoice, setScheduleChoice] = useState<"" | "yes" | "no">("");
-  const [ownScheduleText, setOwnScheduleText] = useState("");
-  const [selectedWorkoutFocus, setSelectedWorkoutFocus] = useState("");
+  const [step, setStep] = useState(persisted?.step ?? 1);
+  const [selectedGoals, setSelectedGoals] = useState<string[]>(persisted?.selectedGoals ?? []);
+  const [skinConcerns, setSkinConcerns] = useState<string[]>(persisted?.skinConcerns ?? []);
+  const [digestionConcerns, setDigestionConcerns] = useState<string[]>(persisted?.digestionConcerns ?? []);
+  const [biggestStruggle, setBiggestStruggle] = useState(persisted?.biggestStruggle ?? "");
+  const [sleepQuality, setSleepQuality] = useState(persisted?.sleepQuality ?? 5);
+  const [energyLevel, setEnergyLevel] = useState(persisted?.energyLevel ?? 5);
+  const [stressLevel, setStressLevel] = useState(persisted?.stressLevel ?? 5);
+  const [formData, setFormData] = useState<Partial<Step1 & Step2 & Step3 & Step4>>(persisted?.formData ?? {});
+  const [commitmentLevel, setCommitmentLevel] = useState<string>(persisted?.commitmentLevel ?? "");
+
+  const [selectedSport, setSelectedSport] = useState(persisted?.selectedSport ?? "");
+  const [sportCustomText, setSportCustomText] = useState(persisted?.sportCustomText ?? "");
+  const [scheduleChoice, setScheduleChoice] = useState<"" | "yes" | "no">(persisted?.scheduleChoice ?? "");
+  const [ownScheduleText, setOwnScheduleText] = useState(persisted?.ownScheduleText ?? "");
+  const [selectedWorkoutFocus, setSelectedWorkoutFocus] = useState(persisted?.selectedWorkoutFocus ?? "");
+
+  // Persist everything when any state changes
+  useEffect(() => {
+    saveState({
+      step, selectedGoals, skinConcerns, digestionConcerns, biggestStruggle,
+      sleepQuality, energyLevel, stressLevel, formData, commitmentLevel,
+      selectedSport, sportCustomText, scheduleChoice, ownScheduleText, selectedWorkoutFocus,
+    });
+  }, [step, selectedGoals, skinConcerns, digestionConcerns, biggestStruggle,
+      sleepQuality, energyLevel, stressLevel, formData, commitmentLevel,
+      selectedSport, sportCustomText, scheduleChoice, ownScheduleText, selectedWorkoutFocus]);
 
   const createProfile = useCreateUserProfile();
   const generatePlan = useGeneratePlan();
 
-  const form1 = useForm<Step1>({ resolver: zodResolver(step1Schema) });
-  const form2 = useForm<Step2>({ resolver: zodResolver(step2Schema), defaultValues: { workoutDaysPerWeek: 3 } });
-  const form3 = useForm<Step3>({ resolver: zodResolver(step3Schema), defaultValues: { wakeTime: "06:30", sleepTime: "22:30" } });
-  const form4 = useForm<Step4>({ resolver: zodResolver(step4Schema), defaultValues: { mealsPerDay: 3, waterIntakeLiters: 2 } });
+  const form1 = useForm<Step1>({ resolver: zodResolver(step1Schema), defaultValues: persisted?.formData as Step1 });
+  const form2 = useForm<Step2>({ resolver: zodResolver(step2Schema), defaultValues: { workoutDaysPerWeek: 3, ...(persisted?.formData ?? {}) } });
+  const form3 = useForm<Step3>({ resolver: zodResolver(step3Schema), defaultValues: { wakeTime: "06:30", sleepTime: "22:30", ...(persisted?.formData ?? {}) } });
+  const form4 = useForm<Step4>({ resolver: zodResolver(step4Schema), defaultValues: { mealsPerDay: 3, waterIntakeLiters: 2, ...(persisted?.formData ?? {}) } });
 
   const toggleGoal = (g: string) => setSelectedGoals(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
   const toggleSkin = (s: string) => setSkinConcerns(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
@@ -228,6 +275,7 @@ export default function OnboardingPage() {
       queryClient.invalidateQueries({ queryKey: getGetUserProfileQueryKey() });
       await generatePlan.mutateAsync(undefined as any);
       queryClient.invalidateQueries({ queryKey: getGetCurrentPlanQueryKey() });
+      clearState();
       setLocation("/dashboard");
     } catch (e) {
       console.error(e);

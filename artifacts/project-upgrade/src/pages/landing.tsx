@@ -1,29 +1,7 @@
-import { useEffect } from "react";
-import { Link, useLocation } from "wouter";
-import { useGetUserProfile, getGetUserProfileQueryKey } from "@workspace/api-client-react";
-import { useAuth } from "@/hooks/use-auth";
+import { Link } from "wouter";
 import { ArrowRight, Dumbbell, Apple, Moon, Sparkles, BatteryCharging, ShieldCheck } from "lucide-react";
 
 export default function LandingPage() {
-  const [, setLocation] = useLocation();
-  const { isAuthed, isLoading: authLoading } = useAuth();
-  const { data: profile, isLoading: profileLoading } = useGetUserProfile({
-    query: { enabled: isAuthed, queryKey: getGetUserProfileQueryKey() },
-  });
-
-  useEffect(() => {
-    if (authLoading || !isAuthed || profileLoading) return;
-    setLocation(profile ? "/dashboard" : "/onboarding");
-  }, [authLoading, isAuthed, profileLoading, profile, setLocation]);
-
-  if (authLoading || (isAuthed && profileLoading)) {
-    return (
-      <div className="h-dvh bg-background flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-      </div>
-    );
-  }
-
   const pillars = [
     { icon: Dumbbell, label: "Workouts", color: "text-primary" },
     { icon: Apple, label: "Meals", color: "text-success" },
