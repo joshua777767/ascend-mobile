@@ -30,6 +30,7 @@ import type {
   HealthStatus,
   JournalEntry,
   JournalEntryInput,
+  LogWaterInput,
   LoginInput,
   Meal,
   MealGeneratorInput,
@@ -43,6 +44,7 @@ import type {
   UserProfile,
   UserProfileInput,
   UserProfileUpdate,
+  WaterSummary,
   WeighIn,
   WeighInInput,
   Workout,
@@ -2429,4 +2431,152 @@ export function useGetMissionStreak<TData = Awaited<ReturnType<typeof getMission
 
 
 
+
+export const getGetWaterTodayUrl = () => {
+
+
+
+
+  return `/api/water/today`
+}
+
+/**
+ * @summary Get today's water intake total and target
+ */
+export const getWaterToday = async ( options?: RequestInit): Promise<WaterSummary> => {
+
+  return customFetch<WaterSummary>(getGetWaterTodayUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWaterTodayQueryKey = () => {
+    return [
+    `/api/water/today`
+    ] as const;
+    }
+
+
+export const getGetWaterTodayQueryOptions = <TData = Awaited<ReturnType<typeof getWaterToday>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWaterToday>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWaterTodayQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWaterToday>>> = ({ signal }) => getWaterToday({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWaterToday>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWaterTodayQueryResult = NonNullable<Awaited<ReturnType<typeof getWaterToday>>>
+export type GetWaterTodayQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get today's water intake total and target
+ */
+
+export function useGetWaterToday<TData = Awaited<ReturnType<typeof getWaterToday>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWaterToday>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWaterTodayQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getLogWaterUrl = () => {
+
+
+
+
+  return `/api/water`
+}
+
+/**
+ * @summary Log water intake
+ */
+export const logWater = async (logWaterInput: LogWaterInput, options?: RequestInit): Promise<WaterSummary> => {
+
+  return customFetch<WaterSummary>(getLogWaterUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      logWaterInput,)
+  }
+);}
+
+
+
+
+export const getLogWaterMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logWater>>, TError,{data: BodyType<LogWaterInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof logWater>>, TError,{data: BodyType<LogWaterInput>}, TContext> => {
+
+const mutationKey = ['logWater'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof logWater>>, {data: BodyType<LogWaterInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  logWater(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LogWaterMutationResult = NonNullable<Awaited<ReturnType<typeof logWater>>>
+    export type LogWaterMutationBody = BodyType<LogWaterInput>
+    export type LogWaterMutationError = ErrorType<void>
+
+    /**
+ * @summary Log water intake
+ */
+export const useLogWater = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logWater>>, TError,{data: BodyType<LogWaterInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof logWater>>,
+        TError,
+        {data: BodyType<LogWaterInput>},
+        TContext
+      > => {
+      return useMutation(getLogWaterMutationOptions(options));
+    }
 

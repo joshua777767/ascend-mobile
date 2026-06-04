@@ -11,6 +11,7 @@ import weighinsRouter from "./weighins";
 import scheduleRouter from "./schedule";
 import chatRouter from "./chat";
 import progressRouter from "./progress";
+import waterRouter from "./water";
 import { requireAuth } from "./../middlewares/auth";
 
 const router: IRouter = Router();
@@ -31,5 +32,6 @@ router.use(weighinsRouter);
 router.use(scheduleRouter);
 router.use(chatRouter);
 router.use(progressRouter);
+router.use(waterRouter);
 
 export default router;

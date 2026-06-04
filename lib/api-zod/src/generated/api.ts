@@ -575,3 +575,25 @@ export const GetMissionStreakResponse = zod.object({
 })
 
 
+/**
+ * @summary Get today's water intake total and target
+ */
+export const GetWaterTodayResponse = zod.object({
+  "totalOz": zod.number().describe('Total oz logged today'),
+  "targetOz": zod.number().describe('Daily water target in oz'),
+  "date": zod.string().describe('Date in YYYY-MM-DD format')
+})
+
+
+/**
+ * @summary Log water intake
+ */
+export const logWaterBodyAmountOzMax = 500;
+
+
+
+export const LogWaterBody = zod.object({
+  "amountOz": zod.number().min(1).max(logWaterBodyAmountOzMax).describe('Amount of water to log in oz')
+})
+
+

@@ -29,6 +29,8 @@ tags:
     description: AI coach chat
   - name: progress
     description: Progress tracking
+  - name: water
+    description: Water intake tracking
 
 paths:
   /healthz:
@@ -542,6 +544,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MissionStreak"
+
+  /water/today:
+    get:
+      operationId: getWaterToday
+      tags: [water]
+      summary: Get today's water intake total and target
+      responses:
+        "200":
+          description: Today's water summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaterSummary"
+        "401":
+          description: Unauthorized
+
+  /water:
+    post:
+      operationId: logWater
+      tags: [water]
+      summary: Log water intake
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogWaterInput"
+      responses:
+        "201":
+          description: Updated water summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaterSummary"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized
 
 components:
   schemas:
@@ -1354,3 +1394,31 @@ components:
           type: integer
         lastActiveDate:
           type: string
+
+    WaterSummary:
+      type: object
+      required:
+        - totalOz
+        - targetOz
+        - date
+      properties:
+        totalOz:
+          type: integer
+          description: Total oz logged today
+        targetOz:
+          type: integer
+          description: Daily water target in oz
+        date:
+          type: string
+          description: Date in YYYY-MM-DD format
+
+    LogWaterInput:
+      type: object
+      required:
+        - amountOz
+      properties:
+        amountOz:
+          type: integer
+          minimum: 1
+          maximum: 500
+          description: Amount of water to log in oz

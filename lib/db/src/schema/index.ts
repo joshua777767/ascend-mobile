@@ -8,3 +8,4 @@ export * from "./journalEntries";
 export * from "./coachReviews";
 export * from "./weighIns";
 export * from "./chatMessages";
+export * from "./waterLogs";

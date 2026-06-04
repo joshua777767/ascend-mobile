@@ -408,3 +408,21 @@ export interface MissionStreak {
   lastActiveDate: string;
 }
 
+export interface WaterSummary {
+  /** Total oz logged today */
+  totalOz: number;
+  /** Daily water target in oz */
+  targetOz: number;
+  /** Date in YYYY-MM-DD format */
+  date: string;
+}
+
+export interface LogWaterInput {
+  /**
+     * Amount of water to log in oz
+     * @minimum 1
+     * @maximum 500
+     */
+  amountOz: number;
+}
+

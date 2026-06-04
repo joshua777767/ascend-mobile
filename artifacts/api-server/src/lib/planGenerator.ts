@@ -113,6 +113,7 @@ function habitsForGoal(goal: string, v: HabitVals): string[] {
       return [
         `Hit your ${v.cal} calorie target`,
         `Eat ${v.protein}g protein`,
+        `Drink ${v.water}L water`,
         `Walk ${v.steps.toLocaleString()} steps`,
         `Log every meal`,
         `Train ${v.workoutDays}x this week`,
@@ -155,6 +156,23 @@ function habitsForGoal(goal: string, v: HabitVals): string[] {
         `No caffeine after ${v.caffeineCutoff}`,
         `Drink ${v.water}L water`,
         `Avoid sugar-crash meals`,
+      ];
+    case "better digestion":
+    case "less bloating":
+      return [
+        `Drink ${v.water}L water throughout the day`,
+        `Eat slowly — 20+ minutes per meal`,
+        `Limit dairy, gluten, and processed food today`,
+        `Walk after meals — even 10 minutes`,
+        `Eat fiber: vegetables, legumes, or whole grains`,
+      ];
+    case "athletic performance":
+      return [
+        `Drink ${v.water}L water — hydration is performance`,
+        `Eat ${v.protein}g protein for recovery`,
+        `Train ${v.workoutDays}x — prioritize your sport sessions`,
+        `Sleep ${v.sleep}h — that's where gains happen`,
+        `Warm up and cool down every session`,
       ];
     case "better sleep":
       return [

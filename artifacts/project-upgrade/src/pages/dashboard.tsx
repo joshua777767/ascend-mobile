@@ -6,7 +6,10 @@ import {
   useGetTodayWorkout,
   useGetTodayReview,
   useGetTodayMeals,
+  useGetWaterToday,
+  useLogWater,
 } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dumbbell,
@@ -23,6 +26,7 @@ import {
   ListChecks,
   CheckCircle2,
   Circle,
+  Plus,
 } from "lucide-react";
 
 function MetricCard({
@@ -174,14 +178,110 @@ function DailyChecklist({
   );
 }
 
+function WaterTracker({
+  totalOz,
+  targetOz,
+  onLog,
+  isLogging,
+}: {
+  totalOz: number;
+  targetOz: number;
+  onLog: (oz: number) => void;
+  isLogging: boolean;
+}) {
+  const [customOz, setCustomOz] = useState("");
+  const pct = targetOz > 0 ? Math.min(100, Math.round((totalOz / targetOz) * 100)) : 0;
+  const met = totalOz >= targetOz && targetOz > 0;
+
+  function handleCustomSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const val = parseInt(customOz, 10);
+    if (!isNaN(val) && val > 0 && val <= 500) {
+      onLog(val);
+      setCustomOz("");
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-card border border-border p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
+            <Droplets className="w-3.5 h-3.5 text-primary" strokeWidth={2.2} />
+          </div>
+          <span className="text-sm font-semibold text-foreground">Water</span>
+        </div>
+        {met && (
+          <span className="text-xs font-semibold text-success bg-success/15 px-2 py-0.5 rounded-full">
+            Target met ✓
+          </span>
+        )}
+      </div>
+
+      <p className="text-2xl font-bold tracking-tight leading-none mb-1">
+        {totalOz}
+        <span className="text-xs font-medium text-muted-foreground ml-0.5">oz</span>
+        <span className="text-sm font-normal text-muted-foreground ml-1.5">
+          / {targetOz} oz
+        </span>
+      </p>
+
+      <div className="h-1.5 rounded-full bg-elevated overflow-hidden mb-4">
+        <div
+          className={`h-full rounded-full transition-all duration-300 ${met ? "bg-success" : "bg-primary"}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      <div className="flex gap-2 mb-3">
+        {[8, 16, 24].map((oz) => (
+          <button
+            key={oz}
+            type="button"
+            disabled={isLogging}
+            onClick={() => onLog(oz)}
+            className="flex-1 py-2 rounded-xl bg-primary/10 border border-primary/20 text-xs font-semibold text-primary active:bg-primary/20 transition-colors disabled:opacity-50"
+          >
+            +{oz} oz
+          </button>
+        ))}
+      </div>
+
+      <form onSubmit={handleCustomSubmit} className="flex gap-2">
+        <input
+          type="number"
+          min={1}
+          max={500}
+          value={customOz}
+          onChange={(e) => setCustomOz(e.target.value)}
+          placeholder="Custom oz"
+          className="flex-1 h-9 rounded-xl bg-elevated border border-border px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+        />
+        <button
+          type="submit"
+          disabled={isLogging || !customOz}
+          className="h-9 px-3 rounded-xl bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50 active:opacity-80 transition-opacity"
+        >
+          <Plus className="w-4 h-4" strokeWidth={2.4} />
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const { data: profile, isLoading: loadingProfile, error } = useGetUserProfile();
   const { data: plan } = useGetCurrentPlan();
   const { data: workout } = useGetTodayWorkout();
   const { data: review } = useGetTodayReview();
   const { data: todayMeals, refetch: refetchMeals } = useGetTodayMeals();
+  const { data: waterData, refetch: refetchWater } = useGetWaterToday();
+  const { mutateAsync: logWaterFn, isPending: waterLogging } = useLogWater();
+
   useEffect(() => { refetchMeals(); }, [refetchMeals]);
+  useEffect(() => { refetchWater(); }, [refetchWater]);
 
   const habits = plan && Array.isArray(plan.keyHabits) ? plan.keyHabits : [];
   const todayKey = new Date().toISOString().slice(0, 10);
@@ -202,12 +302,35 @@ export default function DashboardPage() {
     }
   }, [done, storageKey]);
 
+  const waterOz = waterData?.totalOz ?? 0;
+  const waterTargetOz = waterData?.targetOz ?? (plan ? Math.round(plan.waterTargetL * 33.814) : 64);
+
+  // Auto-check the water habit in the checklist when daily target is met
+  useEffect(() => {
+    if (waterOz > 0 && waterTargetOz > 0 && waterOz >= waterTargetOz) {
+      const waterHabit = habits.find((h) => h.toLowerCase().includes("water"));
+      if (waterHabit && !done[waterHabit]) {
+        setDone((prev) => ({ ...prev, [waterHabit]: true }));
+      }
+    }
+  }, [waterOz, waterTargetOz, habits]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const checklistCompleted = habits.filter((h) => done[h]).length;
   const checklistScore = habits.length ? Math.round((checklistCompleted / habits.length) * 100) : 0;
 
   useEffect(() => {
     if (error) setLocation("/onboarding");
   }, [error, setLocation]);
+
+  async function handleLogWater(oz: number) {
+    try {
+      await logWaterFn({ data: { amountOz: oz } });
+      await queryClient.invalidateQueries({ queryKey: ["getWaterToday"] });
+      refetchWater();
+    } catch {
+      // fail silently — the button re-enables immediately
+    }
+  }
 
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric" });
@@ -291,12 +414,24 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Water Tracker */}
+        {plan && (
+          <div>
+            <p className="text-sm font-semibold text-foreground mb-3">Water</p>
+            <WaterTracker
+              totalOz={waterOz}
+              targetOz={waterTargetOz}
+              onLog={handleLogWater}
+              isLogging={waterLogging}
+            />
+          </div>
+        )}
+
         {/* Other Targets */}
         {plan && (
           <div>
             <p className="text-sm font-semibold text-foreground mb-3">Daily Targets</p>
             <div className="grid grid-cols-3 gap-3">
-              <MetricCard icon={Droplets} value={plan.waterTargetL} unit="L" label="Water" tint="blue" />
               <MetricCard icon={Footprints} value={plan.stepsTarget.toLocaleString()} label="Steps" tint="green" />
               <MetricCard icon={Moon} value={plan.sleepTargetHours} unit="h" label="Sleep" tint="blue" />
               <MetricCard
