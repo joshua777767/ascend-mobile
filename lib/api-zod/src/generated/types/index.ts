@@ -15,6 +15,7 @@ export * from './chatResponse';
 export * from './coachReview';
 export * from './dailySchedule';
 export * from './exercise';
+export * from './goalUpdate';
 export * from './healthStatus';
 export * from './journalEntry';
 export * from './journalEntryInput';

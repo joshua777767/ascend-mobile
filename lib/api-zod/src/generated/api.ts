@@ -173,6 +173,61 @@ export const UpdateUserProfileResponse = zod.object({
 
 
 /**
+ * @summary Update goal weight and reset goal tracking
+ */
+export const UpdateGoalBody = zod.object({
+  "goalWeightKg": zod.number(),
+  "goals": zod.array(zod.string()),
+  "currentWeightKg": zod.number().optional()
+})
+
+export const UpdateGoalResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "age": zod.number(),
+  "gender": zod.string(),
+  "heightCm": zod.number(),
+  "currentWeightKg": zod.number(),
+  "goalWeightKg": zod.number(),
+  "bodyType": zod.string(),
+  "goals": zod.array(zod.string()),
+  "targetDate": zod.string().nullish(),
+  "fitnessLevel": zod.string(),
+  "gymAccess": zod.string(),
+  "equipment": zod.string().nullish(),
+  "workoutDaysPerWeek": zod.number(),
+  "preferredWorkoutTime": zod.string().nullish(),
+  "wakeTime": zod.string(),
+  "sleepTime": zod.string(),
+  "sleepQuality": zod.number().optional(),
+  "energyLevel": zod.number().optional(),
+  "stressLevel": zod.number().optional(),
+  "workSchedule": zod.string().nullish(),
+  "averageDailySteps": zod.number().nullish(),
+  "allergies": zod.string().nullish(),
+  "dislikedFoods": zod.string().nullish(),
+  "dietStyle": zod.string().nullish(),
+  "foodBudget": zod.string().nullish(),
+  "mealsPerDay": zod.number().optional(),
+  "waterIntakeLiters": zod.number().optional(),
+  "caffeineUse": zod.string().nullish(),
+  "screenTimeBeforeBed": zod.string().nullish(),
+  "skinConcerns": zod.array(zod.string()).optional(),
+  "digestionConcerns": zod.array(zod.string()).optional(),
+  "biggestStruggle": zod.string().nullish(),
+  "sport": zod.string().nullish(),
+  "sportCustom": zod.string().nullish(),
+  "hasOwnSchedule": zod.string().nullish(),
+  "ownSchedule": zod.string().nullish(),
+  "workoutFocus": zod.string().nullish(),
+  "commitmentLevel": zod.enum(['casual', 'serious', 'locked_in', 'extreme_discipline']).nullish(),
+  "currentStreak": zod.number().optional(),
+  "lastStreakDate": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Create a new account
  */
 export const signupBodyPasswordMin = 8;
@@ -566,6 +621,9 @@ export const GetProgressSummaryResponse = zod.object({
   "goalWeightKg": zod.number(),
   "startWeightKg": zod.number(),
   "progressPercent": zod.number(),
+  "goalReached": zod.boolean(),
+  "goalReachedAt": zod.string().nullable(),
+  "lbsToGo": zod.number(),
   "dayStreak": zod.number(),
   "totalWorkouts": zod.number(),
   "avgDailyScore": zod.number(),

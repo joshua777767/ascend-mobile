@@ -46,6 +46,7 @@ export const userProfilesTable = pgTable("user_profiles", {
   commitmentLevel: text("commitment_level"),
   currentStreak: integer("current_streak").notNull().default(0),
   lastStreakDate: text("last_streak_date"),
+  goalReachedAt: timestamp("goal_reached_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

@@ -13,6 +13,9 @@ export interface ProgressSummary {
   goalWeightKg: number;
   startWeightKg: number;
   progressPercent: number;
+  goalReached: boolean;
+  goalReachedAt: string | null;
+  lbsToGo: number;
   dayStreak: number;
   totalWorkouts: number;
   avgDailyScore: number;

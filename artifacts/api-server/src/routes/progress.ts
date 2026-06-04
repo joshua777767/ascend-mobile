@@ -27,16 +27,35 @@ router.get("/progress/summary", async (req, res): Promise<void> => {
   const currentChange = Math.abs(startWeightKg - currentWeightKg);
   const progressPercent = totalChange > 0 ? Math.min(100, (currentChange / totalChange) * 100) : 0;
 
+  // Goal reached detection: weight is within 0.5 kg of goal and moving in the right direction
+  const isLosing = goalWeightKg < startWeightKg;
+  const isGaining = goalWeightKg > startWeightKg;
+  const withinThreshold = Math.abs(currentWeightKg - goalWeightKg) <= 0.5;
+  const goalReached = (isLosing || isGaining) ? withinThreshold : false;
+  const goalReachedAt = profile?.goalReachedAt ?? null;
+
+  // If goal just reached now, record it
+  if (goalReached && !goalReachedAt && profile) {
+    await db.update(userProfilesTable)
+      .set({ goalReachedAt: new Date() })
+      .where(eq(userProfilesTable.userId, getUserId(req)));
+  }
+
   const avgScore = reviews.length > 0
     ? reviews.reduce((sum, r) => sum + r.dailyScore, 0) / reviews.length
     : 0;
+
+  const lbsToGo = Math.abs(currentWeightKg - goalWeightKg) * 2.2046226;
 
   res.json({
     currentWeightKg,
     goalWeightKg,
     startWeightKg,
     progressPercent: Math.round(progressPercent * 10) / 10,
-    dayStreak: 0, // computed by streak endpoint
+    goalReached,
+    goalReachedAt: goalReached ? (goalReachedAt ?? new Date().toISOString()) : null,
+    lbsToGo: Math.round(lbsToGo * 10) / 10,
+    dayStreak: 0,
     totalWorkouts: workouts.length,
     avgDailyScore: Math.round(avgScore * 10) / 10,
     weeklyWeighIns: weighIns.slice(-8),

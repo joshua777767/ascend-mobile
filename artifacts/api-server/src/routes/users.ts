@@ -13,7 +13,7 @@ import {
   waterLogsTable,
   scheduleOverridesTable,
 } from "@workspace/db";
-import { CreateUserProfileBody, UpdateUserProfileBody } from "@workspace/api-zod";
+import { CreateUserProfileBody, UpdateUserProfileBody, UpdateGoalBody } from "@workspace/api-zod";
 import { getUserId } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -80,6 +80,44 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
   const [profile] = await db
     .update(userProfilesTable)
     .set(parsed.data as any)
+    .where(eq(userProfilesTable.userId, userId))
+    .returning();
+  if (!profile) {
+    res.status(404).json({ error: "Profile not found" });
+    return;
+  }
+
+  res.json({
+    ...profile,
+    goals: JSON.parse(profile.goals || "[]"),
+    skinConcerns: JSON.parse(profile.skinConcerns || "[]"),
+    digestionConcerns: JSON.parse(profile.digestionConcerns || "[]"),
+  });
+});
+
+// Update goal: set a new goal weight and reset goal tracking
+router.patch("/users/profile/goal", async (req, res): Promise<void> => {
+  const userId = getUserId(req);
+  const parsed = UpdateGoalBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const [existing] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, userId));
+  if (!existing) {
+    res.status(404).json({ error: "Profile not found" });
+    return;
+  }
+
+  const [profile] = await db
+    .update(userProfilesTable)
+    .set({
+      goalWeightKg: parsed.data.goalWeightKg,
+      goals: JSON.stringify(parsed.data.goals),
+      goalReachedAt: null,
+      currentWeightKg: parsed.data.currentWeightKg ?? existing.currentWeightKg,
+    })
     .where(eq(userProfilesTable.userId, userId))
     .returning();
   if (!profile) {

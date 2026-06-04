@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetProgressSummary, useGetMissionStreak, useListWeighIns, useCreateWeighIn,
-  useListReviews, useGetUserProfile,
-  getListWeighInsQueryKey, getGetProgressSummaryQueryKey, getGetMissionStreakQueryKey
+  useListReviews, useGetUserProfile, useUpdateGoal,
+  getListWeighInsQueryKey, getGetProgressSummaryQueryKey, getGetMissionStreakQueryKey, getGetUserProfileQueryKey
 } from "@workspace/api-client-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { TrendingDown, TrendingUp, Minus, CheckCircle, XCircle } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus, CheckCircle, XCircle, Trophy, ArrowRight, Target } from "lucide-react";
 
 export default function ProgressPage() {
   const [, setLocation] = useLocation();
@@ -23,9 +23,12 @@ export default function ProgressPage() {
   const { data: weighIns, isLoading: loadingWeighIns } = useListWeighIns();
   const { data: reviews } = useListReviews();
   const createWeighIn = useCreateWeighIn();
+  const updateGoal = useUpdateGoal();
   const [weight, setWeight] = useState("");
   const [weighNotes, setWeighNotes] = useState("");
   const [latestAdjustment, setLatestAdjustment] = useState<any>(null);
+  const [newGoal, setNewGoal] = useState("");
+  const [showGoalSet, setShowGoalSet] = useState(false);
 
   useEffect(() => {
     if (profileError) setLocation("/onboarding");
@@ -47,6 +50,18 @@ export default function ProgressPage() {
     } catch (e) { console.error(e); }
   };
 
+  const handleSetNewGoal = async () => {
+    if (!newGoal) return;
+    const goalKg = lbsToKg(parseFloat(newGoal));
+    try {
+      await updateGoal.mutateAsync({ data: { goalWeightKg: goalKg, goals: ["fat loss"] } });
+      queryClient.invalidateQueries({ queryKey: getGetProgressSummaryQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetUserProfileQueryKey() });
+      setNewGoal("");
+      setShowGoalSet(false);
+    } catch (e) { console.error(e); }
+  };
+
   const chartData = weighIns?.slice(-12).map((w) => ({
     week: `W${w.weekNumber}`,
     weight: Math.round(kgToLbs(w.weightKg) * 10) / 10,
@@ -63,6 +78,56 @@ export default function ProgressPage() {
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Track Your Transformation</p>
           <h1 className="text-2xl font-bold uppercase tracking-tighter mt-0.5">Progress</h1>
         </div>
+
+        {summary?.goalReached && (
+          <div className="bg-primary/10 border border-primary/30 rounded-2xl p-5 text-center space-y-3">
+            <div className="flex items-center justify-center gap-2">
+              <Trophy className="w-6 h-6 text-primary" strokeWidth={2} />
+              <p className="text-lg font-bold text-primary tracking-tight">Goal Reached</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              You hit your target of {Math.round(kgToLbs(summary.goalWeightKg))} lbs.
+              {summary.goalReachedAt && ` Reached on ${new Date(summary.goalReachedAt).toLocaleDateString()}.`}
+            </p>
+            {!showGoalSet ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowGoalSet(true)}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-primary text-primary-foreground h-11 rounded-xl text-sm font-semibold active:scale-[0.99] transition-transform"
+                >
+                  <Target className="w-4 h-4" />
+                  Set a new goal
+                </button>
+                <Link
+                  href="/coach"
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-card border border-border text-foreground h-11 rounded-xl text-sm font-semibold active:scale-[0.99] transition-transform"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                  Talk to Coach
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={newGoal}
+                    onChange={e => setNewGoal(e.target.value)}
+                    placeholder="New goal weight (lbs)"
+                    className="bg-background border-border flex-1"
+                  />
+                  <Button onClick={handleSetNewGoal} disabled={updateGoal.isPending || !newGoal}>
+                    {updateGoal.isPending ? "Saving..." : "Set Goal"}
+                  </Button>
+                </div>
+                <button onClick={() => setShowGoalSet(false)} className="text-xs text-muted-foreground">
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {loadingSummary ? (
           <div className="grid grid-cols-2 gap-3">

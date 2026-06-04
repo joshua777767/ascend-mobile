@@ -400,6 +400,9 @@ export interface ProgressSummary {
   goalWeightKg: number;
   startWeightKg: number;
   progressPercent: number;
+  goalReached: boolean;
+  goalReachedAt: string | null;
+  lbsToGo: number;
   dayStreak: number;
   totalWorkouts: number;
   avgDailyScore: number;
@@ -484,6 +487,12 @@ export interface MissionStreak {
   currentStreak: number;
   longestStreak: number;
   lastActiveDate: string;
+}
+
+export interface GoalUpdate {
+  goalWeightKg: number;
+  goals: string[];
+  currentWeightKg?: number;
 }
 
 export interface WaterSummary {

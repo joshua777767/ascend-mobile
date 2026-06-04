@@ -10,6 +10,7 @@ import {
   useLogWater,
   useGetStreak,
   useRecordStreak,
+  useGetProgressSummary,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +31,7 @@ import {
   Circle,
   Plus,
   Camera,
+  Trophy,
 } from "lucide-react";
 
 function compressImage(file: File, maxDim = 1024, quality = 0.7): Promise<string> {
@@ -361,6 +363,7 @@ export default function DashboardPage() {
   const { mutateAsync: logWaterFn, isPending: waterLogging } = useLogWater();
   const { data: streakData } = useGetStreak();
   const { mutateAsync: recordStreakFn } = useRecordStreak();
+  const { data: progress } = useGetProgressSummary();
 
   useEffect(() => { refetchMeals(); }, [refetchMeals]);
   useEffect(() => { refetchWater(); }, [refetchWater]);
@@ -499,6 +502,25 @@ export default function DashboardPage() {
             </p>
           )}
         </div>
+
+        {/* Goal Reached Celebration */}
+        {progress?.goalReached && (
+          <div className="bg-primary/10 border border-primary/30 rounded-2xl p-4 text-center space-y-2">
+            <div className="flex items-center justify-center gap-2">
+              <Trophy className="w-5 h-5 text-primary" strokeWidth={2} />
+              <p className="text-base font-bold text-primary tracking-tight">Goal Reached</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              You hit {Math.round((progress.goalWeightKg ?? 0) * 2.2046226)} lbs.
+            </p>
+            <Link
+              href="/progress"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+            >
+              View progress <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+        )}
 
         {/* Today's Mission + Daily Score */}
         <div className="rounded-2xl bg-gradient-to-br from-primary/15 to-success/5 border border-primary/20 p-4">

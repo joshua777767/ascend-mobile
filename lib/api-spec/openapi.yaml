@@ -108,6 +108,25 @@ paths:
         "204":
           description: Reset complete
 
+  /users/profile/goal:
+    patch:
+      operationId: updateGoal
+      tags: [users]
+      summary: Update goal weight and reset goal tracking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoalUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
   /auth/signup:
     post:
       operationId: signup
@@ -1361,6 +1380,9 @@ components:
         - goalWeightKg
         - startWeightKg
         - progressPercent
+        - goalReached
+        - goalReachedAt
+        - lbsToGo
         - dayStreak
         - totalWorkouts
         - avgDailyScore
@@ -1374,6 +1396,13 @@ components:
         startWeightKg:
           type: number
         progressPercent:
+          type: number
+        goalReached:
+          type: boolean
+        goalReachedAt:
+          type: string
+          nullable: true
+        lbsToGo:
           type: number
         dayStreak:
           type: integer
@@ -1474,6 +1503,21 @@ components:
           type: integer
         lastActiveDate:
           type: string
+
+    GoalUpdate:
+      type: object
+      required:
+        - goalWeightKg
+        - goals
+      properties:
+        goalWeightKg:
+          type: number
+        goals:
+          type: array
+          items:
+            type: string
+        currentWeightKg:
+          type: number
 
     WaterSummary:
       type: object
