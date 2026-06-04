@@ -527,3 +527,56 @@ export interface LogWaterInput {
   imageUrl?: string;
 }
 
+/**
+ * Coach-assessed status
+ */
+export type GoalCheckInStatus = typeof GoalCheckInStatus[keyof typeof GoalCheckInStatus];
+
+
+export const GoalCheckInStatus = {
+  on_track: 'on_track',
+  plateau: 'plateau',
+  achieved: 'achieved',
+} as const;
+
+export interface GoalCheckIn {
+  id: number;
+  userId: number;
+  /** Goal name (e.g., "better skin", "higher energy") */
+  goal: string;
+  /** Sequential week number */
+  weekNumber: number;
+  /**
+     * User self-rated score for this goal
+     * @minimum 1
+     * @maximum 10
+     */
+  score: number;
+  /**
+     * Optional user notes
+     * @nullable
+     */
+  notes?: string | null;
+  /**
+     * AI coach feedback on this goal
+     * @nullable
+     */
+  coachFeedback?: string | null;
+  /** Coach-assessed status */
+  status: GoalCheckInStatus;
+  createdAt: string;
+}
+
+export interface GoalCheckInInput {
+  /** Goal name */
+  goal: string;
+  /**
+     * Self-rated score
+     * @minimum 1
+     * @maximum 10
+     */
+  score: number;
+  /** Optional notes */
+  notes?: string;
+}
+

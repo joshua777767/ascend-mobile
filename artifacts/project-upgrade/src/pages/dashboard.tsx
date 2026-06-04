@@ -11,6 +11,7 @@ import {
   useGetStreak,
   useRecordStreak,
   useGetProgressSummary,
+  useListGoalCheckIns,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +33,8 @@ import {
   Plus,
   Camera,
   Trophy,
+  Sparkles,
+  Star,
 } from "lucide-react";
 
 function compressImage(file: File, maxDim = 1024, quality = 0.7): Promise<string> {
@@ -364,6 +367,7 @@ export default function DashboardPage() {
   const { data: streakData } = useGetStreak();
   const { mutateAsync: recordStreakFn } = useRecordStreak();
   const { data: progress } = useGetProgressSummary();
+  const { data: goalCheckIns } = useListGoalCheckIns();
 
   useEffect(() => { refetchMeals(); }, [refetchMeals]);
   useEffect(() => { refetchWater(); }, [refetchWater]);
@@ -519,6 +523,62 @@ export default function DashboardPage() {
             >
               View progress <ChevronRight className="w-3 h-3" />
             </Link>
+          </div>
+        )}
+
+        {/* Weekly Goal Check-In Prompt */}
+        {goals.length > 0 && (
+          <div>
+            {(() => {
+              const latestByGoal = (goalCheckIns ?? []).reduce((acc, c) => {
+                if (!acc[c.goal] || new Date(c.createdAt) > new Date(acc[c.goal].createdAt)) {
+                  acc[c.goal] = c;
+                }
+                return acc;
+              }, {} as Record<string, any>);
+              const goalsNeedingCheckIn = goals.filter((g: string) => {
+                const latest = latestByGoal[g];
+                if (!latest) return true;
+                const daysSince = (Date.now() - new Date(latest.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+                return daysSince >= 7;
+              });
+              if (goalsNeedingCheckIn.length === 0) return null;
+              return (
+                <div className="bg-primary/10 border border-primary/30 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <p className="text-sm font-bold text-primary">Weekly Check-In</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {goalsNeedingCheckIn.length === 1
+                      ? `Rate your progress on ${goalsNeedingCheckIn[0]} this week.`
+                      : `Rate your progress on ${goalsNeedingCheckIn.length} goals this week.`}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {goalsNeedingCheckIn.map((g: string) => {
+                      const latest = latestByGoal[g];
+                      return (
+                        <Link
+                          key={g}
+                          href="/progress"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-card border border-border text-xs font-semibold capitalize"
+                        >
+                          <Star className="w-3 h-3 text-primary" />
+                          {g}
+                          {latest && <span className="text-muted-foreground">(last: {latest.score}/10)</span>}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  <Link
+                    href="/progress"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+                  >
+                    Go to Progress <ChevronRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              );
+            })()}
           </div>
         )}
 

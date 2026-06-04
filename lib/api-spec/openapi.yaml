@@ -33,6 +33,8 @@ tags:
     description: Daily streak tracking
   - name: water
     description: Water intake tracking
+  - name: goal-checkins
+    description: Goal-specific weekly check-ins
 
 paths:
   /healthz:
@@ -644,6 +646,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WaterSummary"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized
+
+  /goal-checkins:
+    get:
+      operationId: listGoalCheckIns
+      tags: [goal-checkins]
+      summary: Get all goal check-ins for current user
+      responses:
+        "200":
+          description: List of goal check-ins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GoalCheckIn"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: createGoalCheckIn
+      tags: [goal-checkins]
+      summary: Submit weekly goal check-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoalCheckInInput"
+      responses:
+        "201":
+          description: Check-in created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoalCheckIn"
         "400":
           description: Invalid input
         "401":
@@ -1563,3 +1603,61 @@ components:
         imageUrl:
           type: string
           description: Base64 data URL of a photo for AI-based volume detection
+
+    GoalCheckIn:
+      type: object
+      required:
+        - id
+        - userId
+        - goal
+        - weekNumber
+        - score
+        - status
+        - createdAt
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        goal:
+          type: string
+          description: Goal name (e.g., "better skin", "higher energy")
+        weekNumber:
+          type: integer
+          description: Sequential week number
+        score:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: User self-rated score for this goal
+        notes:
+          type: ["string", "null"]
+          description: Optional user notes
+        coachFeedback:
+          type: ["string", "null"]
+          description: AI coach feedback on this goal
+        status:
+          type: string
+          enum: ["on_track", "plateau", "achieved"]
+          description: Coach-assessed status
+        createdAt:
+          type: string
+          format: date-time
+
+    GoalCheckInInput:
+      type: object
+      required:
+        - goal
+        - score
+      properties:
+        goal:
+          type: string
+          description: Goal name
+        score:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: Self-rated score
+        notes:
+          type: string
+          description: Optional notes

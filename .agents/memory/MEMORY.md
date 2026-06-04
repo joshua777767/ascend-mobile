@@ -4,3 +4,4 @@
 - [Playwright logout hard-redirect](playwright-logout.md) — logout must use window.location.replace('/login'), not setLocation, to avoid isAuthed race condition redirecting to /dashboard.
 - [Goal system & plan generation](goal-system.md) — goals→daily-actions pipeline; the double-parse trap that silently emptied profile.goals in generatePlan.
 - [Orval naming conflict](orval-naming-conflict.md) — request body schema names must differ from operationId+"Body" to avoid TS2308 export ambiguity between generated types/ and api.ts.
+- [Goal check-in status detection](goal-checkin-status.md) — `determineStatus` receives `previousScores` in *newest-first* order (SQL DESC). `slice(0, 2)` for most recent, `slice(-2)` for oldest. Mixing these causes plateau/achieved detection to be inverted. Always test with fresh data. See `goalCheckins.ts`.

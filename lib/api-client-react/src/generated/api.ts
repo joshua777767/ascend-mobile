@@ -28,6 +28,8 @@ import type {
   ChatResponse,
   CoachReview,
   DailySchedule,
+  GoalCheckIn,
+  GoalCheckInInput,
   GoalUpdate,
   HealthStatus,
   JournalEntry,
@@ -2870,5 +2872,153 @@ export const useLogWater = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getLogWaterMutationOptions(options));
+    }
+
+export const getListGoalCheckInsUrl = () => {
+
+
+
+
+  return `/api/goal-checkins`
+}
+
+/**
+ * @summary Get all goal check-ins for current user
+ */
+export const listGoalCheckIns = async ( options?: RequestInit): Promise<GoalCheckIn[]> => {
+
+  return customFetch<GoalCheckIn[]>(getListGoalCheckInsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListGoalCheckInsQueryKey = () => {
+    return [
+    `/api/goal-checkins`
+    ] as const;
+    }
+
+
+export const getListGoalCheckInsQueryOptions = <TData = Awaited<ReturnType<typeof listGoalCheckIns>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listGoalCheckIns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListGoalCheckInsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listGoalCheckIns>>> = ({ signal }) => listGoalCheckIns({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listGoalCheckIns>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListGoalCheckInsQueryResult = NonNullable<Awaited<ReturnType<typeof listGoalCheckIns>>>
+export type ListGoalCheckInsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get all goal check-ins for current user
+ */
+
+export function useListGoalCheckIns<TData = Awaited<ReturnType<typeof listGoalCheckIns>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listGoalCheckIns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListGoalCheckInsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateGoalCheckInUrl = () => {
+
+
+
+
+  return `/api/goal-checkins`
+}
+
+/**
+ * @summary Submit weekly goal check-in
+ */
+export const createGoalCheckIn = async (goalCheckInInput: GoalCheckInInput, options?: RequestInit): Promise<GoalCheckIn> => {
+
+  return customFetch<GoalCheckIn>(getCreateGoalCheckInUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      goalCheckInInput,)
+  }
+);}
+
+
+
+
+export const getCreateGoalCheckInMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGoalCheckIn>>, TError,{data: BodyType<GoalCheckInInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createGoalCheckIn>>, TError,{data: BodyType<GoalCheckInInput>}, TContext> => {
+
+const mutationKey = ['createGoalCheckIn'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createGoalCheckIn>>, {data: BodyType<GoalCheckInInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createGoalCheckIn(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateGoalCheckInMutationResult = NonNullable<Awaited<ReturnType<typeof createGoalCheckIn>>>
+    export type CreateGoalCheckInMutationBody = BodyType<GoalCheckInInput>
+    export type CreateGoalCheckInMutationError = ErrorType<void>
+
+    /**
+ * @summary Submit weekly goal check-in
+ */
+export const useCreateGoalCheckIn = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGoalCheckIn>>, TError,{data: BodyType<GoalCheckInInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createGoalCheckIn>>,
+        TError,
+        {data: BodyType<GoalCheckInInput>},
+        TContext
+      > => {
+      return useMutation(getCreateGoalCheckInMutationOptions(options));
     }
 

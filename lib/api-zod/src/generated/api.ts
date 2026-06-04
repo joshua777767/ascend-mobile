@@ -707,3 +707,38 @@ export const LogWaterBody = zod.object({
 })
 
 
+/**
+ * @summary Get all goal check-ins for current user
+ */
+export const listGoalCheckInsResponseScoreMax = 10;
+
+
+
+export const ListGoalCheckInsResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "goal": zod.string().describe('Goal name (e.g., \"better skin\", \"higher energy\")'),
+  "weekNumber": zod.number().describe('Sequential week number'),
+  "score": zod.number().min(1).max(listGoalCheckInsResponseScoreMax).describe('User self-rated score for this goal'),
+  "notes": zod.string().nullish().describe('Optional user notes'),
+  "coachFeedback": zod.string().nullish().describe('AI coach feedback on this goal'),
+  "status": zod.enum(['on_track', 'plateau', 'achieved']).describe('Coach-assessed status'),
+  "createdAt": zod.coerce.date()
+})
+export const ListGoalCheckInsResponse = zod.array(ListGoalCheckInsResponseItem)
+
+
+/**
+ * @summary Submit weekly goal check-in
+ */
+export const createGoalCheckInBodyScoreMax = 10;
+
+
+
+export const CreateGoalCheckInBody = zod.object({
+  "goal": zod.string().describe('Goal name'),
+  "score": zod.number().min(1).max(createGoalCheckInBodyScoreMax).describe('Self-rated score'),
+  "notes": zod.string().optional().describe('Optional notes')
+})
+
+

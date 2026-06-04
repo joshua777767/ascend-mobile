@@ -4,7 +4,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetProgressSummary, useGetMissionStreak, useListWeighIns, useCreateWeighIn,
   useListReviews, useGetUserProfile, useUpdateGoal,
-  getListWeighInsQueryKey, getGetProgressSummaryQueryKey, getGetMissionStreakQueryKey, getGetUserProfileQueryKey
+  useListGoalCheckIns, useCreateGoalCheckIn,
+  getListWeighInsQueryKey, getGetProgressSummaryQueryKey, getGetMissionStreakQueryKey,
+  getGetUserProfileQueryKey, getListGoalCheckInsQueryKey
 } from "@workspace/api-client-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -12,23 +14,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { TrendingDown, TrendingUp, Minus, CheckCircle, XCircle, Trophy, ArrowRight, Target } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus, CheckCircle, XCircle, Trophy, ArrowRight, Target, Sparkles, Star } from "lucide-react";
 
 export default function ProgressPage() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const { isError: profileError } = useGetUserProfile();
+  const { data: profile, isError: profileError } = useGetUserProfile();
   const { data: summary, isLoading: loadingSummary } = useGetProgressSummary();
   const { data: streak } = useGetMissionStreak();
   const { data: weighIns, isLoading: loadingWeighIns } = useListWeighIns();
   const { data: reviews } = useListReviews();
+  const { data: goalCheckIns } = useListGoalCheckIns();
   const createWeighIn = useCreateWeighIn();
+  const createGoalCheckIn = useCreateGoalCheckIn();
   const updateGoal = useUpdateGoal();
   const [weight, setWeight] = useState("");
   const [weighNotes, setWeighNotes] = useState("");
   const [latestAdjustment, setLatestAdjustment] = useState<any>(null);
   const [newGoal, setNewGoal] = useState("");
   const [showGoalSet, setShowGoalSet] = useState(false);
+  const [activeGoal, setActiveGoal] = useState<string>("");
+  const [goalScore, setGoalScore] = useState("");
+  const [goalNotes, setGoalNotes] = useState("");
+  const [activeCheckIn, setActiveCheckIn] = useState<any>(null);
 
   useEffect(() => {
     if (profileError) setLocation("/onboarding");
@@ -61,6 +69,30 @@ export default function ProgressPage() {
       setShowGoalSet(false);
     } catch (e) { console.error(e); }
   };
+
+  const handleGoalCheckIn = async () => {
+    if (!activeGoal || !goalScore) return;
+    try {
+      const result = await createGoalCheckIn.mutateAsync({
+        data: { goal: activeGoal, score: parseInt(goalScore), notes: goalNotes || undefined },
+      });
+      queryClient.invalidateQueries({ queryKey: getListGoalCheckInsQueryKey() });
+      setActiveCheckIn(result);
+      setActiveGoal("");
+      setGoalScore("");
+      setGoalNotes("");
+    } catch (e) { console.error(e); }
+  };
+
+  const userGoals = (profile as any)?.goals ?? [];
+  const checkInsByGoal = (goalCheckIns ?? []).reduce((acc, c) => {
+    if (!acc[c.goal]) acc[c.goal] = [];
+    acc[c.goal].push(c);
+    return acc;
+  }, {} as Record<string, any[]>);
+  const latestByGoal = Object.fromEntries(
+    Object.entries(checkInsByGoal).map(([g, arr]) => [g, arr[0]])
+  );
 
   const chartData = weighIns?.slice(-12).map((w) => ({
     week: `W${w.weekNumber}`,
@@ -237,6 +269,97 @@ export default function ProgressPage() {
             )}
           </div>
         </div>
+
+        {/* Goal Check-Ins */}
+        {userGoals.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Goal Check-Ins</p>
+            <div className="space-y-3">
+              {userGoals.map((goal: string) => {
+                const latest = latestByGoal[goal];
+                const isActive = activeGoal === goal;
+                return (
+                  <div key={goal} className="bg-card border border-border rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                        <p className="text-sm font-semibold capitalize">{goal}</p>
+                      </div>
+                      {latest && (
+                        <div className="flex items-center gap-1">
+                          <Star className="w-3 h-3 text-primary" />
+                          <span className="text-sm font-bold text-primary">{latest.score}/10</span>
+                        </div>
+                      )}
+                    </div>
+                    {latest && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Week {latest.weekNumber} — {latest.status.replace("_", " ")}</p>
+                        <p className="text-sm">{latest.coachFeedback}</p>
+                      </div>
+                    )}
+                    {!isActive ? (
+                      <button
+                        onClick={() => setActiveGoal(goal)}
+                        className="w-full h-10 rounded-xl bg-elevated border border-border text-sm font-semibold text-foreground active:scale-[0.99] transition-transform"
+                      >
+                        {latest ? "Check in again" : "Check in"}
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Score (1-10)</Label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="range"
+                              min="1"
+                              max="10"
+                              value={goalScore || "5"}
+                              onChange={e => setGoalScore(e.target.value)}
+                              className="flex-1 accent-primary"
+                            />
+                            <span className="text-sm font-bold w-8 text-center">{goalScore || "5"}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Notes (optional)</Label>
+                          <Input
+                            value={goalNotes}
+                            onChange={e => setGoalNotes(e.target.value)}
+                            placeholder="How's this goal going?"
+                            className="bg-background border-border text-sm"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            className="flex-1"
+                            onClick={handleGoalCheckIn}
+                            disabled={createGoalCheckIn.isPending || !goalScore}
+                          >
+                            {createGoalCheckIn.isPending ? "Submitting..." : "Submit Check-In"}
+                          </Button>
+                          <button
+                            onClick={() => { setActiveGoal(""); setGoalScore(""); setGoalNotes(""); }}
+                            className="px-4 h-10 rounded-xl text-sm text-muted-foreground"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {activeCheckIn?.goal === goal && (
+                      <div className="border border-primary/20 bg-primary/5 rounded-xl p-3">
+                        <p className="text-xs font-semibold text-primary">Coach Feedback</p>
+                        <p className="text-sm mt-1">{activeCheckIn.coachFeedback}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Status: {activeCheckIn.status.replace("_", " ")}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {reviews && reviews.length > 0 && (
           <div>

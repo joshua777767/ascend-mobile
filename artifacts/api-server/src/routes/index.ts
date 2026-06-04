@@ -13,6 +13,7 @@ import chatRouter from "./chat";
 import progressRouter from "./progress";
 import waterRouter from "./water";
 import streakRouter from "./streak";
+import goalCheckinsRouter from "./goalCheckins";
 import { requireAuth } from "./../middlewares/auth";
 
 const router: IRouter = Router();
@@ -35,5 +36,6 @@ router.use(chatRouter);
 router.use(progressRouter);
 router.use(waterRouter);
 router.use(streakRouter);
+router.use(goalCheckinsRouter);
 
 export default router;
