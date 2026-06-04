@@ -74,13 +74,14 @@ type Step2 = z.infer<typeof step2Schema>;
 type Step3 = z.infer<typeof step3Schema>;
 type Step4 = z.infer<typeof step4Schema>;
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 const STEP_TITLES = [
   "About you",
   "Your training",
   "Daily routine",
   "Nutrition & health",
+  "Your commitment",
   "Review & launch",
 ];
 
@@ -89,7 +90,15 @@ const STEP_SUBTITLES = [
   "How you like to train",
   "When you wake, work, and rest",
   "What you eat and how you feel",
+  "How serious are you about this goal?",
   "Confirm and build your plan",
+];
+
+const COMMITMENT_LEVELS = [
+  { value: "casual", label: "Casual", desc: "I want to make small changes, no pressure." },
+  { value: "serious", label: "Serious", desc: "I'm focused. I'll follow the plan and track daily." },
+  { value: "locked_in", label: "Locked In", desc: "No fake tracking. I want real results and honest accountability." },
+  { value: "extreme_discipline", label: "Extreme Discipline", desc: "I want to push. Maximum focus, strict habits, no excuses." },
 ];
 
 function Chip({ label, selected, onToggle, testId }: { label: string; selected: boolean; onToggle: () => void; testId?: string }) {
@@ -134,6 +143,7 @@ export default function OnboardingPage() {
   const [energyLevel, setEnergyLevel] = useState(5);
   const [stressLevel, setStressLevel] = useState(5);
   const [formData, setFormData] = useState<Partial<Step1 & Step2 & Step3 & Step4>>({});
+  const [commitmentLevel, setCommitmentLevel] = useState<string>("");
 
   // Sport & schedule state
   const [selectedSport, setSelectedSport] = useState("");
@@ -172,6 +182,11 @@ export default function OnboardingPage() {
     setStep(5);
   });
 
+  const handleStep5 = () => {
+    if (!commitmentLevel) return;
+    setStep(6);
+  };
+
   const handleSubmit = async () => {
     const { heightFt, heightIn, currentWeightLbs, goalWeightLbs, ...rest } = formData;
     const heightCm = Math.round((((heightFt ?? 0) * 12 + (heightIn ?? 0)) * 2.54) * 10) / 10;
@@ -206,6 +221,7 @@ export default function OnboardingPage() {
       ...(hasOwnSchedule ? { hasOwnSchedule } : {}),
       ...(ownSchedule ? { ownSchedule } : {}),
       ...(workoutFocus ? { workoutFocus } : {}),
+      commitmentLevel,
     } as any;
     try {
       await createProfile.mutateAsync({ data: payload });
@@ -607,8 +623,46 @@ export default function OnboardingPage() {
             </form>
           )}
 
-          {/* STEP 5 — Review & Launch */}
+          {/* STEP 5 — Commitment Level */}
           {step === 5 && (
+            <div className="space-y-6">
+              <div className="space-y-3">
+                {COMMITMENT_LEVELS.map((level) => (
+                  <button
+                    key={level.value}
+                    type="button"
+                    onClick={() => setCommitmentLevel(level.value)}
+                    className={cn(
+                      "w-full text-left rounded-2xl border p-4 transition-all",
+                      commitmentLevel === level.value
+                        ? "bg-primary/10 border-primary shadow-sm shadow-primary/10"
+                        : "bg-card border-border hover:bg-elevated"
+                    )}
+                  >
+                    <p className="text-sm font-semibold text-foreground">{level.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{level.desc}</p>
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-3">
+                <Button type="button" variant="outline" onClick={() => setStep(4)} className="h-14 px-5 rounded-2xl" data-testid="button-back-step5">
+                  <ChevronLeft className="w-5 h-5" />
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleStep5}
+                  disabled={!commitmentLevel}
+                  className="flex-1 h-14 rounded-2xl text-[15px] font-semibold gap-2"
+                  data-testid="button-next-step5"
+                >
+                  Continue <ArrowRight className="w-[18px] h-[18px]" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 6 — Review & Launch */}
+          {step === 6 && (
             <div className="space-y-5">
               {/* Summary of collected data */}
               <div className="rounded-2xl bg-card border border-border p-5 space-y-4">
@@ -659,6 +713,15 @@ export default function OnboardingPage() {
                   </div>
                 )}
               </div>
+              <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4">
+                <p className="text-xs text-muted-foreground mb-1">Commitment level</p>
+                <p className="text-sm font-semibold text-primary">
+                  {COMMITMENT_LEVELS.find(c => c.value === commitmentLevel)?.label ?? "Not selected"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {COMMITMENT_LEVELS.find(c => c.value === commitmentLevel)?.desc ?? ""}
+                </p>
+              </div>
 
               {/* What you'll get */}
               <div className="rounded-2xl bg-card border border-border p-5 space-y-3">
@@ -688,7 +751,7 @@ export default function OnboardingPage() {
               </div>
 
               <div className="flex gap-3">
-                <Button type="button" variant="outline" onClick={() => setStep(4)} className="h-14 px-5 rounded-2xl" data-testid="button-back-step5">
+                <Button type="button" variant="outline" onClick={() => setStep(5)} className="h-14 px-5 rounded-2xl" data-testid="button-back-step6">
                   <ChevronLeft className="w-5 h-5" />
                 </Button>
                 <Button

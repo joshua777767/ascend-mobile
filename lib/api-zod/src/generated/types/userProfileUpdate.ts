@@ -5,6 +5,7 @@
  * Ascend API
  * OpenAPI spec version: 0.1.0
  */
+import type { UserProfileUpdateCommitmentLevel } from './userProfileUpdateCommitmentLevel';
 
 export interface UserProfileUpdate {
   currentWeightKg?: number;
@@ -16,4 +17,6 @@ export interface UserProfileUpdate {
   hasOwnSchedule?: string;
   ownSchedule?: string;
   workoutFocus?: string;
+  /** @nullable */
+  commitmentLevel?: UserProfileUpdateCommitmentLevel;
 }

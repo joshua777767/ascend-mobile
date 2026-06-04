@@ -433,6 +433,10 @@ function buildContextSummary(
       ? (profile.sport === "other" && profile.sportCustom ? profile.sportCustom : profile.sport)
       : null;
 
+    const commitmentLabel = profile.commitmentLevel
+      ? profile.commitmentLevel.replace(/_/g, " ")
+      : null;
+
     parts.push(
       `PROFILE: ${profile.name}, ${profile.age}yo ${profile.gender}. ` +
         `${currentLbs} lbs now → ${goalLbs} lbs goal (${direction} ${absDiff} lbs). ` +
@@ -447,6 +451,7 @@ function buildContextSummary(
         (goals.length ? `Goals: ${goals.join(", ")}. ` : "") +
         (skin.length ? `Skin concerns: ${skin.join(", ")}. ` : "") +
         (profile.biggestStruggle ? `Biggest struggle: ${profile.biggestStruggle}. ` : "") +
+        (commitmentLabel ? `Commitment level: ${commitmentLabel}. ` : "") +
         `Always reference weight in pounds (lbs), never kilograms.`,
     );
   } else {
@@ -668,6 +673,18 @@ Muscle gain — if gaining too slow:
 
 Muscle gain — if gaining too fast (>1 lb/week for more than a month):
 → Reduce calories slightly (100-200) to minimize fat gain while keeping the surplus.
+
+═══════════════════════════════════════════════════
+COMMITMENT LEVEL — ADJUST TONE AND STRICTNESS
+═══════════════════════════════════════════════════
+The user's commitment level is included in their profile data. Use it to calibrate the coach's tone, strictness, and daily mission difficulty:
+
+- Casual: Encouraging, gentle, flexible. Focus on small wins, consistency over perfection, low-pressure. "Track what you can — even partial wins matter."
+- Serious: Firm but supportive. Expect daily logging, consistent workouts, and accountability. "You've committed to this — follow the plan daily."
+- Locked In: Direct, no-nonsense. Call out fake tracking honestly. Expect full execution. "No fake tracking. Hit protein, log meals, train, water, sleep, and check in tonight."
+- Extreme Discipline: Uncompromising but still safe. Push execution without ever pushing unsafe dieting. "This is the highest level. Every behavior matters — but I will never let you hurt yourself. No starvation, no extreme fasting."
+
+Higher commitment means more habits, more accountability, and tighter expectations. It NEVER means unsafe advice — extreme discipline must stay within the same safe calorie floors, protein targets, and workout limits.
 
 ═══════════════════════════════════════════════════
 TONE AND STYLE

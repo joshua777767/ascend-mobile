@@ -61,6 +61,9 @@ export default function SettingsPage() {
   const [ownScheduleText, setOwnScheduleText] = useState("");
   const [selectedWorkoutFocus, setSelectedWorkoutFocus] = useState("");
 
+  // Commitment level
+  const [commitmentLevel, setCommitmentLevel] = useState<string>("");
+
   // Load current profile values
   useEffect(() => {
     if (!profile) return;
@@ -70,6 +73,7 @@ export default function SettingsPage() {
     if (p.hasOwnSchedule) setScheduleChoice(p.hasOwnSchedule);
     if (p.ownSchedule) setOwnScheduleText(p.ownSchedule);
     if (p.workoutFocus) setSelectedWorkoutFocus(p.workoutFocus);
+    if (p.commitmentLevel) setCommitmentLevel(p.commitmentLevel);
   }, [profile]);
 
   const handleLogout = async () => {
@@ -100,6 +104,7 @@ export default function SettingsPage() {
     if (scheduleChoice) payload.hasOwnSchedule = scheduleChoice;
     if (scheduleChoice === "yes" && ownScheduleText) payload.ownSchedule = ownScheduleText;
     if (scheduleChoice === "no" && selectedWorkoutFocus) payload.workoutFocus = selectedWorkoutFocus;
+    if (commitmentLevel) payload.commitmentLevel = commitmentLevel;
 
     try {
       await updateProfile.mutateAsync({ data: payload as any });
@@ -135,6 +140,34 @@ export default function SettingsPage() {
             <LogOut className="w-[18px] h-[18px]" strokeWidth={2} />
             {logout.isPending ? "Logging out..." : "Log out"}
           </button>
+        </section>
+
+        {/* Commitment level */}
+        <section className="rounded-2xl bg-card border border-border p-5 space-y-5">
+          <p className="text-sm font-semibold text-foreground">Commitment level</p>
+          <div className="space-y-2">
+            {[
+              { value: "casual", label: "Casual", desc: "Small changes, no pressure." },
+              { value: "serious", label: "Serious", desc: "Follow the plan and track daily." },
+              { value: "locked_in", label: "Locked In", desc: "Real results and honest accountability." },
+              { value: "extreme_discipline", label: "Extreme Discipline", desc: "Maximum focus, strict habits, no excuses." },
+            ].map((level) => (
+              <button
+                key={level.value}
+                type="button"
+                onClick={() => setCommitmentLevel(level.value)}
+                className={cn(
+                  "w-full text-left rounded-xl border p-3 transition-all",
+                  commitmentLevel === level.value
+                    ? "bg-primary/10 border-primary"
+                    : "bg-elevated border-border hover:bg-card"
+                )}
+              >
+                <p className="text-sm font-semibold text-foreground">{level.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{level.desc}</p>
+              </button>
+            ))}
+          </div>
         </section>
 
         {/* Workout profile */}

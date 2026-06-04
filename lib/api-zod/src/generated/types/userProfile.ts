@@ -5,6 +5,7 @@
  * Ascend API
  * OpenAPI spec version: 0.1.0
  */
+import type { UserProfileCommitmentLevel } from './userProfileCommitmentLevel';
 
 export interface UserProfile {
   id: number;
@@ -62,6 +63,8 @@ export interface UserProfile {
   ownSchedule?: string | null;
   /** @nullable */
   workoutFocus?: string | null;
+  /** @nullable */
+  commitmentLevel?: UserProfileCommitmentLevel;
   currentStreak?: number;
   /** @nullable */
   lastStreakDate?: string | null;

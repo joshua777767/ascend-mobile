@@ -43,6 +43,7 @@ export const userProfilesTable = pgTable("user_profiles", {
   hasOwnSchedule: text("has_own_schedule"),
   ownSchedule: text("own_schedule"),
   workoutFocus: text("workout_focus"),
+  commitmentLevel: text("commitment_level"),
   currentStreak: integer("current_streak").notNull().default(0),
   lastStreakDate: text("last_streak_date"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

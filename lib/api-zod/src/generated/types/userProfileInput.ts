@@ -5,6 +5,7 @@
  * Ascend API
  * OpenAPI spec version: 0.1.0
  */
+import type { UserProfileInputCommitmentLevel } from './userProfileInputCommitmentLevel';
 
 export interface UserProfileInput {
   name: string;
@@ -44,4 +45,6 @@ export interface UserProfileInput {
   hasOwnSchedule?: string;
   ownSchedule?: string;
   workoutFocus?: string;
+  /** @nullable */
+  commitmentLevel: UserProfileInputCommitmentLevel;
 }

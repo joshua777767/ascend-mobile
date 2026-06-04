@@ -221,13 +221,24 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
 
   const tdee = Math.round(bmr * activityMult);
 
+  // Commitment level affects intensity — but never below safe floors
+  const commitment = profile.commitmentLevel ?? "casual";
+  const isCasual = commitment === "casual";
+  const isSerious = commitment === "serious";
+  const isLocked = commitment === "locked_in";
+  const isExtreme = commitment === "extreme_discipline";
+
   let calorieTarget: number;
   let proteinTargetG: number;
   let weeklyPace: string;
   let warnings: string | null = null;
 
   if (goalType === "fat_loss") {
-    const deficit = Math.min(500, Math.abs(weightDiff) > 20 ? 750 : 500);
+    // Casual: moderate deficit for sustainability. Extreme: still safe, just tighter adherence
+    const baseDeficit = Math.min(500, Math.abs(weightDiff) > 20 ? 750 : 500);
+    const deficit = isCasual ? Math.max(250, baseDeficit - 150)
+      : isExtreme ? Math.min(600, baseDeficit + 100)
+      : baseDeficit;
     calorieTarget = Math.max(1200, tdee - deficit);
     proteinTargetG = Math.round(weightKg * 2.2);
     weeklyPace = deficit >= 500 ? "~1 lb / week" : "~0.5 lb / week";
@@ -235,9 +246,10 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
       warnings = "Your goal is ambitious. Stay consistent — do not cut more than planned. Extreme deficits cause muscle loss and burnout.";
     }
   } else if (goalType === "muscle_gain") {
-    calorieTarget = tdee + 300;
+    const surplus = isCasual ? 200 : isExtreme ? 400 : 300;
+    calorieTarget = tdee + surplus;
     proteinTargetG = Math.round(weightKg * 2.4);
-    weeklyPace = "~0.5 lb / week (lean bulk)";
+    weeklyPace = isCasual ? "~0.25 lb / week (easy gain)" : "~0.5 lb / week (lean bulk)";
   } else {
     calorieTarget = tdee;
     proteinTargetG = Math.round(weightKg * 2.0);
@@ -246,9 +258,11 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
 
   const waterTargetL = Math.max(2.5, Math.round((weightKg * 0.033) * 10) / 10);
 
-  const stepsTarget = goalType === "fat_loss" ? 10000
-    : goalType === "muscle_gain" ? 7500
-    : 8000;
+  const stepsTarget = goalType === "fat_loss"
+    ? (isCasual ? 8000 : isExtreme ? 12000 : 10000)
+    : goalType === "muscle_gain"
+      ? (isCasual ? 7000 : isExtreme ? 8000 : 7500)
+      : (isCasual ? 7000 : isExtreme ? 9000 : 8000);
 
   const sleepTargetHours = profile.sleepQuality <= 4 ? 8.5 : 8;
 
@@ -326,8 +340,15 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     if (sportHabit) pushHabit(sportHabit);
   }
 
-  // Keep the mission focused even when many goals are combined.
-  const finalHabits = keyHabits.slice(0, 12);
+  // Add accountability habits based on commitment level
+  if (isLocked || isExtreme) {
+    pushHabit("Check in tonight — journal and review the day");
+    if (isExtreme && goalType === "fat_loss") pushHabit("No liquid calories today — water, tea, coffee only");
+  }
+
+  // Adjust max habits by commitment level
+  const maxHabits = isCasual ? 8 : isExtreme ? 14 : 12;
+  const finalHabits = keyHabits.slice(0, maxHabits);
 
   const sportNote = sportText ? ` Training is built around your sport${sportText.replace(" | Sport: ", " (") + ")"}.` : "";
   const goalLabelList = orderedGoals.map((g) => GOAL_LABELS[g] || g);
@@ -336,6 +357,15 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   const skinNote = goals.includes("better skin")
     ? " For skin, habits help — but for persistent acne or a medical skin condition, see a dermatologist."
     : "";
+
+  const commitmentLabel = commitment === "locked_in" ? "Locked In" : commitment === "extreme_discipline" ? "Extreme Discipline" : commitment === "serious" ? "Serious" : "Casual";
+  const commitmentNote = commitment === "locked_in"
+    ? ` You chose ${commitmentLabel}. No fake tracking. Hit protein, log meals, train, water, sleep, and check in tonight.`
+    : commitment === "extreme_discipline"
+      ? ` You chose ${commitmentLabel}. Maximum focus. Every behavior matters. I will push you — but I will never let you hurt yourself.`
+      : commitment === "serious"
+        ? ` You chose ${commitmentLabel}. Follow the plan daily and track consistently.`
+        : "";
 
   let nutritionExplanation: string;
   if (goalType === "fat_loss") {
@@ -350,9 +380,9 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
 
   let coachNotes: string;
   if (hasOwnSchedule === "yes" && ownSchedule) {
-    coachNotes = `You picked ${goalText}. The plan respects your own training schedule and builds nutrition and recovery around it. Today's mission: ${missionLine}. Hit ${proteinTargetG}g protein every day regardless of the gym.${sportNote}${skinNote}`;
+    coachNotes = `You picked ${goalText}. The plan respects your own training schedule and builds nutrition and recovery around it. Today's mission: ${missionLine}. Hit ${proteinTargetG}g protein every day regardless of the gym.${commitmentNote}${sportNote}${skinNote}`;
   } else {
-    coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${sportNote}${skinNote}`;
+    coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${skinNote}`;
   }
 
   return {

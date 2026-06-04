@@ -29,6 +29,19 @@ export interface ApiError {
   error: string;
 }
 
+/**
+ * @nullable
+ */
+export type UserProfileCommitmentLevel = typeof UserProfileCommitmentLevel[keyof typeof UserProfileCommitmentLevel] | null;
+
+
+export const UserProfileCommitmentLevel = {
+  casual: 'casual',
+  serious: 'serious',
+  locked_in: 'locked_in',
+  extreme_discipline: 'extreme_discipline',
+} as const;
+
 export interface UserProfile {
   id: number;
   name: string;
@@ -85,11 +98,26 @@ export interface UserProfile {
   ownSchedule?: string | null;
   /** @nullable */
   workoutFocus?: string | null;
+  /** @nullable */
+  commitmentLevel?: UserProfileCommitmentLevel;
   currentStreak?: number;
   /** @nullable */
   lastStreakDate?: string | null;
   createdAt: string;
 }
+
+/**
+ * @nullable
+ */
+export type UserProfileInputCommitmentLevel = typeof UserProfileInputCommitmentLevel[keyof typeof UserProfileInputCommitmentLevel] | null;
+
+
+export const UserProfileInputCommitmentLevel = {
+  casual: 'casual',
+  serious: 'serious',
+  locked_in: 'locked_in',
+  extreme_discipline: 'extreme_discipline',
+} as const;
 
 export interface UserProfileInput {
   name: string;
@@ -129,7 +157,22 @@ export interface UserProfileInput {
   hasOwnSchedule?: string;
   ownSchedule?: string;
   workoutFocus?: string;
+  /** @nullable */
+  commitmentLevel: UserProfileInputCommitmentLevel;
 }
+
+/**
+ * @nullable
+ */
+export type UserProfileUpdateCommitmentLevel = typeof UserProfileUpdateCommitmentLevel[keyof typeof UserProfileUpdateCommitmentLevel] | null;
+
+
+export const UserProfileUpdateCommitmentLevel = {
+  casual: 'casual',
+  serious: 'serious',
+  locked_in: 'locked_in',
+  extreme_discipline: 'extreme_discipline',
+} as const;
 
 export interface UserProfileUpdate {
   currentWeightKg?: number;
@@ -141,6 +184,8 @@ export interface UserProfileUpdate {
   hasOwnSchedule?: string;
   ownSchedule?: string;
   workoutFocus?: string;
+  /** @nullable */
+  commitmentLevel?: UserProfileUpdateCommitmentLevel;
 }
 
 export interface Plan {

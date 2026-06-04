@@ -767,6 +767,9 @@ components:
           type: ["string", "null"]
         workoutFocus:
           type: ["string", "null"]
+        commitmentLevel:
+          type: ["string", "null"]
+          enum: ["casual", "serious", "locked_in", "extreme_discipline"]
         currentStreak:
           type: integer
         lastStreakDate:
@@ -789,6 +792,7 @@ components:
         - fitnessLevel
         - gymAccess
         - workoutDaysPerWeek
+        - commitmentLevel
         - wakeTime
         - sleepTime
       properties:
@@ -872,6 +876,9 @@ components:
           type: string
         workoutFocus:
           type: string
+        commitmentLevel:
+          type: ["string", "null"]
+          enum: ["casual", "serious", "locked_in", "extreme_discipline"]
 
     UserProfileUpdate:
       type: object
@@ -894,6 +901,9 @@ components:
           type: string
         workoutFocus:
           type: string
+        commitmentLevel:
+          type: ["string", "null"]
+          enum: ["casual", "serious", "locked_in", "extreme_discipline"]
 
     Plan:
       type: object

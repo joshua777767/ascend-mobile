@@ -58,6 +58,7 @@ export const GetUserProfileResponse = zod.object({
   "hasOwnSchedule": zod.string().nullish(),
   "ownSchedule": zod.string().nullish(),
   "workoutFocus": zod.string().nullish(),
+  "commitmentLevel": zod.enum(['casual', 'serious', 'locked_in', 'extreme_discipline']).nullish(),
   "currentStreak": zod.number().optional(),
   "lastStreakDate": zod.string().nullish(),
   "createdAt": zod.coerce.date()
@@ -104,7 +105,8 @@ export const CreateUserProfileBody = zod.object({
   "sportCustom": zod.string().optional(),
   "hasOwnSchedule": zod.string().optional(),
   "ownSchedule": zod.string().optional(),
-  "workoutFocus": zod.string().optional()
+  "workoutFocus": zod.string().optional(),
+  "commitmentLevel": zod.enum(['casual', 'serious', 'locked_in', 'extreme_discipline']).nullable()
 })
 
 
@@ -120,7 +122,8 @@ export const UpdateUserProfileBody = zod.object({
   "sportCustom": zod.string().optional(),
   "hasOwnSchedule": zod.string().optional(),
   "ownSchedule": zod.string().optional(),
-  "workoutFocus": zod.string().optional()
+  "workoutFocus": zod.string().optional(),
+  "commitmentLevel": zod.enum(['casual', 'serious', 'locked_in', 'extreme_discipline']).nullish()
 })
 
 export const UpdateUserProfileResponse = zod.object({
@@ -162,6 +165,7 @@ export const UpdateUserProfileResponse = zod.object({
   "hasOwnSchedule": zod.string().nullish(),
   "ownSchedule": zod.string().nullish(),
   "workoutFocus": zod.string().nullish(),
+  "commitmentLevel": zod.enum(['casual', 'serious', 'locked_in', 'extreme_discipline']).nullish(),
   "currentStreak": zod.number().optional(),
   "lastStreakDate": zod.string().nullish(),
   "createdAt": zod.coerce.date()
