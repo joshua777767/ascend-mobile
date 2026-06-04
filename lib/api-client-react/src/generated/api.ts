@@ -42,6 +42,7 @@ import type {
   PlannedWorkout,
   ProgressSummary,
   SignupInput,
+  UpdateScheduleInput,
   UserProfile,
   UserProfileInput,
   UserProfileUpdate,
@@ -2130,6 +2131,77 @@ export function useGetTodaySchedule<TData = Awaited<ReturnType<typeof getTodaySc
 
 
 
+
+export const getUpdateScheduleItemUrl = () => {
+
+
+
+
+  return `/api/schedule/today`
+}
+
+/**
+ * @summary Update a schedule item's time or status
+ */
+export const updateScheduleItem = async (updateScheduleInput: UpdateScheduleInput, options?: RequestInit): Promise<DailySchedule> => {
+
+  return customFetch<DailySchedule>(getUpdateScheduleItemUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateScheduleInput,)
+  }
+);}
+
+
+
+
+export const getUpdateScheduleItemMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateScheduleItem>>, TError,{data: BodyType<UpdateScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateScheduleItem>>, TError,{data: BodyType<UpdateScheduleInput>}, TContext> => {
+
+const mutationKey = ['updateScheduleItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateScheduleItem>>, {data: BodyType<UpdateScheduleInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateScheduleItem(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateScheduleItemMutationResult = NonNullable<Awaited<ReturnType<typeof updateScheduleItem>>>
+    export type UpdateScheduleItemMutationBody = BodyType<UpdateScheduleInput>
+    export type UpdateScheduleItemMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a schedule item's time or status
+ */
+export const useUpdateScheduleItem = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateScheduleItem>>, TError,{data: BodyType<UpdateScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateScheduleItem>>,
+        TError,
+        {data: BodyType<UpdateScheduleInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateScheduleItemMutationOptions(options));
+    }
 
 export const getSendChatMessageUrl = () => {
 

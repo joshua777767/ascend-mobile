@@ -335,18 +335,48 @@ export interface WeighInInput {
   notes?: string;
 }
 
+/**
+ * @nullable
+ */
+export type ScheduleItemStatus = typeof ScheduleItemStatus[keyof typeof ScheduleItemStatus] | null;
+
+
+export const ScheduleItemStatus = {
+  active: 'active',
+  skipped: 'skipped',
+  completed: 'completed',
+} as const;
+
 export interface ScheduleItem {
   time: string;
   activity: string;
   type: string;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  status?: ScheduleItemStatus;
 }
 
 export interface DailySchedule {
   date: string;
   items: ScheduleItem[];
   todaysMission: string;
+}
+
+export type UpdateScheduleInputStatus = typeof UpdateScheduleInputStatus[keyof typeof UpdateScheduleInputStatus];
+
+
+export const UpdateScheduleInputStatus = {
+  active: 'active',
+  skipped: 'skipped',
+  completed: 'completed',
+} as const;
+
+export interface UpdateScheduleInput {
+  activity: string;
+  type: string;
+  time?: string;
+  status?: UpdateScheduleInputStatus;
 }
 
 export interface ChatMessageInput {

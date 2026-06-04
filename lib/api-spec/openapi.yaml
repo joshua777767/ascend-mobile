@@ -486,6 +486,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DailySchedule"
+    patch:
+      operationId: updateScheduleItem
+      tags: [schedule]
+      summary: Update a schedule item's time or status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateScheduleInput"
+      responses:
+        "200":
+          description: Updated schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailySchedule"
 
   /chat:
     post:
@@ -1279,6 +1296,25 @@ components:
           type: string
         notes:
           type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+          enum: ["active", "skipped", "completed"]
+
+    UpdateScheduleInput:
+      type: object
+      required:
+        - activity
+        - type
+      properties:
+        activity:
+          type: string
+        type:
+          type: string
+        time:
+          type: string
+        status:
+          type: string
+          enum: ["active", "skipped", "completed"]
 
     ChatMessageInput:
       type: object

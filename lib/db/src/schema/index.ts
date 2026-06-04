@@ -9,3 +9,4 @@ export * from "./coachReviews";
 export * from "./weighIns";
 export * from "./chatMessages";
 export * from "./waterLogs";
+export * from "./scheduleOverrides";

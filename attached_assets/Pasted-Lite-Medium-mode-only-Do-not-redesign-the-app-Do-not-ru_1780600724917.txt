@@ -1,0 +1,107 @@
+Lite/Medium mode only.
+
+Do not redesign the app.
+Do not run Playwright.
+Do not install packages.
+Do not inspect the whole codebase.
+Do not change authentication.
+Keep this focused. If it requires a broad rewrite, stop and ask me first.
+
+Make two improvements only:
+
+1. Smarter expert coach logic
+2. Editable/movable daily schedule
+
+PART 1 — SMARTER COACH LOGIC
+
+Make Ascend feel like a premium expert fitness/nutrition coach with doctor-level safety.
+
+Important:
+Ascend is not a doctor. Do not diagnose, treat, cure, or guarantee medical results.
+
+Weight loss logic:
+- Calculate required weekly weight loss from goal and timeframe.
+- Classify it as realistic, aggressive, or unsafe.
+- 1–2 lb/week is the normal realistic fat loss range for most users.
+- If user wants 10 lbs in 5 weeks, say it is aggressive but possible for some people.
+- Do NOT just say “500 calorie deficit.”
+- Explain that 500 calories/day is usually closer to about 1 lb/week, so 10 lbs in 5 weeks requires stricter execution.
+- Give required behaviors:
+  - accurate meal tracking
+  - high protein
+  - 10k–12k steps/day when appropriate
+  - strength training
+  - water target
+  - sleep target
+  - no liquid calories if cutting
+  - weekly weigh-ins
+- If user misses multiple days, explain the timeline changes.
+
+Weight gain logic:
+- Use controlled calorie surplus.
+- Emphasize meals on schedule, shakes/snacks, protein, lifting, and weekly weigh-ins.
+- If weight stalls for 1–2 weeks, add 200–300 calories/day.
+- If weight rises too fast, reduce slightly.
+
+Clear skin:
+- Do not promise to cure acne.
+- Give habits: gentle face wash AM/PM, avoid over-washing, water, sleep, limit sugary drinks, change pillowcase 2x/week, avoid touching face.
+- If acne is severe, painful, or persistent, suggest dermatologist/professional.
+
+Energy:
+- Do not promise to cure fatigue.
+- Give habits: sleep, hydration, protein breakfast, sunlight/walk, movement, caffeine cutoff, avoid sugar crashes.
+- If fatigue is severe or persistent, suggest professional help.
+
+Sleep:
+- Teens: 8–10 hours.
+- Adults: 7+ hours.
+- Give habits: bedtime, wake time, screen cutoff, caffeine cutoff, wind-down routine, dark/cool room.
+- Do not claim to cure insomnia.
+
+Coach tone:
+- strict
+- direct
+- safe
+- practical
+- not generic
+- not fake motivational
+
+Example coach answer:
+“Reality check: 10 lbs in 5 weeks is aggressive. It can work, but not with casual effort. A basic 500-calorie deficit is usually closer to 1 lb/week. For this pace, you need tight meal tracking, high protein, 10k–12k steps, strength training, water, and sleep. Miss multiple days and the timeline changes.”
+
+PART 2 — MOVABLE DAILY SCHEDULE
+
+Problem:
+Users cannot move or edit their daily plan schedule.
+
+Fix:
+Allow users to move daily schedule items.
+
+Each schedule item should support:
+- edit time
+- move earlier/later
+- mark complete
+- skip
+- reschedule to another time today
+
+Examples:
+- Move workout from 4:00 PM to 7:00 PM
+- Move dinner from 6:30 PM to 8:00 PM
+- Move journal from 10:00 PM to 11:00 PM
+
+Rules:
+- Schedule changes should save per user.
+- Schedule changes should persist after refresh.
+- Dashboard should use the updated schedule.
+- Coach should respect updated schedule.
+- Do not erase the user’s original plan.
+- Keep UI simple and mobile-friendly.
+
+If drag-and-drop is too expensive/complex, do not add drag-and-drop.
+Instead add a simple “Edit Time” button or time picker for each schedule item.
+
+After finishing:
+- Tell me exact files changed.
+- Tell me how to test coach logic.
+- Tell me how to test moving schedule items.

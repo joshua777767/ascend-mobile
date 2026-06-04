@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { useGetTodaySchedule, useGetCurrentPlan, useGetUserProfile } from "@workspace/api-client-react";
+import { useGetTodaySchedule, useGetCurrentPlan, useGetUserProfile, useUpdateScheduleItem } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Clock, Zap } from "lucide-react";
+import { Clock, Zap, ChevronUp, ChevronDown, Check, X, Pencil } from "lucide-react";
 import { useEffect } from "react";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -16,18 +18,36 @@ const TYPE_COLORS: Record<string, string> = {
   journal: "text-pink-400 border-pink-400/30 bg-pink-400/5",
 };
 
+function addMinutes(time: string, mins: number): string {
+  const [h, m] = time.split(":").map(Number);
+  const total = h * 60 + m + mins;
+  const nh = Math.floor(total / 60) % 24;
+  const nm = total % 60;
+  return `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`;
+}
+
 export default function SchedulePage() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const { data: profile, isError: profileError } = useGetUserProfile();
   const { data: schedule, isLoading } = useGetTodaySchedule();
   const { data: plan } = useGetCurrentPlan();
+  const { mutateAsync: updateItem } = useUpdateScheduleItem();
+
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editTime, setEditTime] = useState("");
 
   useEffect(() => {
     if (profileError) setLocation("/onboarding");
   }, [profileError, setLocation]);
 
   const now = new Date();
-  const currentTime = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+  const handleUpdate = async (item: any, patch: { time?: string; status?: "active" | "skipped" | "completed" }) => {
+    await updateItem({ data: { activity: item.activity, type: item.type, ...patch } });
+    queryClient.invalidateQueries({ queryKey: ["getTodaySchedule"] });
+  };
 
   return (
     <div className="h-full overflow-y-auto scroll-area">
@@ -83,26 +103,109 @@ export default function SchedulePage() {
                   parseInt(item.time.replace(":","")) - parseInt(currentTime.replace(":",""))
                 ) < 30;
                 const colorClass = TYPE_COLORS[item.type] || "text-muted-foreground border-border bg-muted/10";
+                const isSkipped = item.status === "skipped";
+                const isCompleted = item.status === "completed";
+                const isEditing = editingIdx === idx;
+
                 return (
                   <div
                     key={idx}
-                    className={cn("flex gap-4 items-start py-2.5 transition-opacity", isPast && !isCurrent && "opacity-40")}
+                    className={cn(
+                      "flex gap-4 items-start py-2.5 transition-opacity",
+                      isPast && !isCurrent && "opacity-40",
+                      isSkipped && "opacity-25"
+                    )}
                     data-testid={`schedule-item-${idx}`}
                   >
                     <div className="w-12 text-right shrink-0">
-                      <span className={cn("text-xs font-mono", isCurrent ? "text-primary font-bold" : "text-muted-foreground")}>
-                        {item.time}
-                      </span>
+                      {isEditing ? (
+                        <input
+                          type="time"
+                          value={editTime}
+                          onChange={e => setEditTime(e.target.value)}
+                          className="w-12 bg-elevated border border-border rounded text-[10px] text-foreground p-0.5"
+                          autoFocus
+                        />
+                      ) : (
+                        <span className={cn("text-xs font-mono", isCurrent ? "text-primary font-bold" : "text-muted-foreground")}>
+                          {item.time}
+                        </span>
+                      )}
                     </div>
                     <div className="relative flex-1">
-                      <div className={cn("absolute -left-[1.35rem] top-2 w-2 h-2 border", isCurrent ? "bg-primary border-primary" : "bg-background border-border")} />
+                      <div className={cn("absolute -left-[1.35rem] top-2 w-2 h-2 border rounded-full", isCompleted ? "bg-success border-success" : isCurrent ? "bg-primary border-primary" : "bg-background border-border")} />
                       <div className={cn("border p-3", colorClass)}>
                         <div className="flex items-center justify-between gap-2">
-                          <p className={cn("text-sm font-semibold", isCurrent && "text-primary")}>{item.activity}</p>
-                          <span className={cn("text-[10px] uppercase tracking-wider px-2 py-0.5 border shrink-0", colorClass)}>{item.type}</span>
+                          <p className={cn("text-sm font-semibold", isCurrent && "text-primary", isSkipped && "line-through")}>{item.activity}</p>
+                          <div className="flex items-center gap-1">
+                            <span className={cn("text-[10px] uppercase tracking-wider px-2 py-0.5 border shrink-0", colorClass)}>{item.type}</span>
+                            {/* Action buttons */}
+                            {isEditing ? (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    handleUpdate(item, { time: editTime });
+                                    setEditingIdx(null);
+                                  }}
+                                  className="p-1 rounded bg-primary/10 text-primary"
+                                  title="Save"
+                                >
+                                  <Check className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => setEditingIdx(null)}
+                                  className="p-1 rounded bg-elevated text-muted-foreground"
+                                  title="Cancel"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setEditingIdx(idx);
+                                    setEditTime(item.time);
+                                  }}
+                                  className="p-1 rounded bg-elevated text-muted-foreground hover:text-foreground"
+                                  title="Edit time"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => handleUpdate(item, { time: addMinutes(item.time, -15) })}
+                                  className="p-1 rounded bg-elevated text-muted-foreground hover:text-foreground"
+                                  title="Move earlier 15 min"
+                                >
+                                  <ChevronUp className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => handleUpdate(item, { time: addMinutes(item.time, 15) })}
+                                  className="p-1 rounded bg-elevated text-muted-foreground hover:text-foreground"
+                                  title="Move later 15 min"
+                                >
+                                  <ChevronDown className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => handleUpdate(item, { status: isCompleted ? "active" : "completed" })}
+                                  className={cn("p-1 rounded", isCompleted ? "bg-success/10 text-success" : "bg-elevated text-muted-foreground hover:text-foreground")}
+                                  title={isCompleted ? "Mark active" : "Mark complete"}
+                                >
+                                  <Check className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => handleUpdate(item, { status: isSkipped ? "active" : "skipped" })}
+                                  className={cn("p-1 rounded", isSkipped ? "bg-elevated text-foreground" : "bg-elevated text-muted-foreground hover:text-destructive")}
+                                  title={isSkipped ? "Unskip" : "Skip"}
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
-                        {item.notes && <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>}
-                        {isCurrent && (
+                        {item.notes && <p className={cn("text-xs text-muted-foreground mt-1", isSkipped && "line-through")}>{item.notes}</p>}
+                        {isCurrent && !isSkipped && !isCompleted && (
                           <p className="text-[10px] text-primary font-semibold mt-1 uppercase tracking-wider">Now</p>
                         )}
                       </div>

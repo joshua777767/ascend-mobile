@@ -503,7 +503,31 @@ export const GetTodayScheduleResponse = zod.object({
   "time": zod.string(),
   "activity": zod.string(),
   "type": zod.string(),
-  "notes": zod.string().nullish()
+  "notes": zod.string().nullish(),
+  "status": zod.enum(['active', 'skipped', 'completed']).nullish()
+})),
+  "todaysMission": zod.string()
+})
+
+
+/**
+ * @summary Update a schedule item's time or status
+ */
+export const UpdateScheduleItemBody = zod.object({
+  "activity": zod.string(),
+  "type": zod.string(),
+  "time": zod.string().optional(),
+  "status": zod.enum(['active', 'skipped', 'completed']).optional()
+})
+
+export const UpdateScheduleItemResponse = zod.object({
+  "date": zod.string(),
+  "items": zod.array(zod.object({
+  "time": zod.string(),
+  "activity": zod.string(),
+  "type": zod.string(),
+  "notes": zod.string().nullish(),
+  "status": zod.enum(['active', 'skipped', 'completed']).nullish()
 })),
   "todaysMission": zod.string()
 })

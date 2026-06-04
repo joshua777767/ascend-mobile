@@ -10,6 +10,8 @@ import {
   coachReviewsTable,
   weighInsTable,
   chatMessagesTable,
+  waterLogsTable,
+  scheduleOverridesTable,
 } from "@workspace/db";
 import { CreateUserProfileBody, UpdateUserProfileBody } from "@workspace/api-zod";
 import { getUserId } from "../middlewares/auth";
@@ -96,6 +98,8 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
 // Reset my profile: wipe all of this user's data so they can re-onboard.
 router.delete("/users/profile", async (req, res): Promise<void> => {
   const userId = getUserId(req);
+  await db.delete(scheduleOverridesTable).where(eq(scheduleOverridesTable.userId, userId));
+  await db.delete(waterLogsTable).where(eq(waterLogsTable.userId, userId));
   await db.delete(chatMessagesTable).where(eq(chatMessagesTable.userId, userId));
   await db.delete(weighInsTable).where(eq(weighInsTable.userId, userId));
   await db.delete(coachReviewsTable).where(eq(coachReviewsTable.userId, userId));

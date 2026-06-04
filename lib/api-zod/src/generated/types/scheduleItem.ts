@@ -5,6 +5,7 @@
  * Ascend API
  * OpenAPI spec version: 0.1.0
  */
+import type { ScheduleItemStatus } from './scheduleItemStatus';
 
 export interface ScheduleItem {
   time: string;
@@ -12,4 +13,6 @@ export interface ScheduleItem {
   type: string;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  status?: ScheduleItemStatus;
 }
