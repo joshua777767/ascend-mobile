@@ -27,7 +27,6 @@ import {
   Footprints,
   Moon,
   Target,
-  ListChecks,
   CheckCircle2,
   Circle,
   Plus,
@@ -35,7 +34,10 @@ import {
   Trophy,
   Sparkles,
   Star,
+  Zap,
 } from "lucide-react";
+
+// ─── image util ───────────────────────────────────────────────────────────────
 
 function compressImage(file: File, maxDim = 1024, quality = 0.7): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -67,6 +69,14 @@ function compressImage(file: File, maxDim = 1024, quality = 0.7): Promise<string
   });
 }
 
+// ─── shared sub-components ────────────────────────────────────────────────────
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="label-caps text-muted-foreground mb-3">{children}</p>
+  );
+}
+
 function MetricCard({
   icon: Icon,
   value,
@@ -80,17 +90,34 @@ function MetricCard({
   label: string;
   tint: "blue" | "green";
 }) {
-  const ring = tint === "blue" ? "bg-primary/15 text-primary" : "bg-success/15 text-success";
+  const iconBg = tint === "blue"
+    ? "rgba(59,130,246,0.18)"
+    : "rgba(16,185,129,0.18)";
+  const iconColor = tint === "blue" ? "#3B82F6" : "#10B981";
+  const glow = tint === "blue"
+    ? "0 0 14px rgba(59,130,246,0.18)"
+    : "0 0 14px rgba(16,185,129,0.18)";
+
   return (
-    <div className="rounded-2xl bg-card border border-border p-3.5">
-      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${ring}`}>
-        <Icon className="w-4 h-4" strokeWidth={2.2} />
+    <div
+      className="rounded-2xl border p-3.5"
+      style={{
+        background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+        borderColor: "hsl(217 32% 15%)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+      }}
+    >
+      <div
+        className="w-8 h-8 rounded-xl flex items-center justify-center"
+        style={{ background: iconBg, boxShadow: glow }}
+      >
+        <Icon className="w-4 h-4" style={{ color: iconColor }} strokeWidth={2.2} />
       </div>
       <p className="mt-3 text-xl font-bold tracking-tight leading-none">
         {value}
         {unit && <span className="text-xs font-medium text-muted-foreground ml-0.5">{unit}</span>}
       </p>
-      <p className="text-xs text-muted-foreground mt-1 leading-none">{label}</p>
+      <p className="label-caps text-muted-foreground mt-1.5" style={{ fontSize: "9px" }}>{label}</p>
     </div>
   );
 }
@@ -99,24 +126,41 @@ function QuickAction({ href, icon: Icon, label }: { href: string; icon: React.El
   return (
     <Link
       href={href}
-      className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-card border border-border py-4 active:bg-elevated transition-colors"
+      className="flex flex-col items-center justify-center gap-2 rounded-2xl py-4 active:scale-[0.97] transition-all"
+      style={{
+        background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+        border: "1px solid hsl(217 32% 15%)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+      }}
     >
-      <Icon className="w-5 h-5 text-foreground" strokeWidth={2} />
-      <span className="text-xs font-medium text-foreground">{label}</span>
+      <Icon className="w-5 h-5 text-muted-foreground" strokeWidth={2} />
+      <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-muted-foreground">{label}</span>
     </Link>
   );
 }
 
 function ScoreRing({ score }: { score: number }) {
   const pct = Math.max(0, Math.min(100, score));
-  const color = pct >= 80 ? "hsl(160 84% 39%)" : pct >= 50 ? "hsl(217 91% 60%)" : "hsl(38 92% 50%)";
+  const color = pct >= 80 ? "#10B981" : pct >= 50 ? "#3B82F6" : "#F59E0B";
+  const glow = pct >= 80
+    ? "0 0 20px rgba(16,185,129,0.4), 0 0 40px rgba(16,185,129,0.15)"
+    : pct >= 50
+    ? "0 0 20px rgba(59,130,246,0.4), 0 0 40px rgba(59,130,246,0.15)"
+    : "0 0 20px rgba(245,158,11,0.4), 0 0 40px rgba(245,158,11,0.15)";
   return (
     <div
-      className="relative w-16 h-16 rounded-full shrink-0"
-      style={{ background: `conic-gradient(${color} ${pct * 3.6}deg, hsl(222 38% 15%) 0deg)` }}
+      className="relative w-20 h-20 rounded-full shrink-0"
+      style={{
+        background: `conic-gradient(${color} ${pct * 3.6}deg, hsl(218 46% 12%) 0deg)`,
+        boxShadow: pct > 0 ? glow : "none",
+      }}
     >
-      <div className="absolute inset-[5px] rounded-full bg-card flex items-center justify-center">
-        <span className="text-lg font-bold tracking-tight">{pct}</span>
+      <div
+        className="absolute inset-1.5 rounded-full flex flex-col items-center justify-center"
+        style={{ background: "hsl(220 52% 8%)" }}
+      >
+        <span className="text-xl font-black tracking-tight leading-none">{pct}</span>
+        <span className="text-[7px] font-bold tracking-[0.2em] uppercase text-muted-foreground mt-0.5">Score</span>
       </div>
     </div>
   );
@@ -138,16 +182,29 @@ function IntakeBar({
   tint: "blue" | "green";
 }) {
   const pct = target > 0 ? Math.min(100, Math.round((eaten / target) * 100)) : 0;
-  const barColor = tint === "blue" ? "bg-primary" : "bg-success";
-  const ringColor = tint === "blue" ? "bg-primary/15 text-primary" : "bg-success/15 text-success";
+  const barColor = tint === "blue"
+    ? "linear-gradient(90deg, #3B82F6, #2DD4BF)"
+    : "linear-gradient(90deg, #10B981, #34D399)";
+  const iconBg = tint === "blue" ? "rgba(59,130,246,0.18)" : "rgba(16,185,129,0.18)";
+  const iconColor = tint === "blue" ? "#3B82F6" : "#10B981";
   return (
-    <div className="rounded-2xl bg-card border border-border p-3.5">
+    <div
+      className="rounded-2xl border p-3.5"
+      style={{
+        background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+        borderColor: "hsl(217 32% 15%)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+      }}
+    >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${ringColor}`}>
-            <Icon className="w-3.5 h-3.5" strokeWidth={2.2} />
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center"
+            style={{ background: iconBg }}
+          >
+            <Icon className="w-3.5 h-3.5" style={{ color: iconColor }} strokeWidth={2.2} />
           </div>
-          <span className="text-xs text-muted-foreground">{label}</span>
+          <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground">{label}</span>
         </div>
         <span className="text-[10px] text-muted-foreground font-mono">{pct}%</span>
       </div>
@@ -156,8 +213,11 @@ function IntakeBar({
         {unit && <span className="text-xs font-medium text-muted-foreground ml-0.5">{unit}</span>}
         <span className="text-xs font-normal text-muted-foreground ml-1">/ {target.toLocaleString()}{unit}</span>
       </p>
-      <div className="h-1.5 rounded-full bg-elevated overflow-hidden">
-        <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "hsl(218 46% 12%)" }}>
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, background: barColor }}
+        />
       </div>
     </div>
   );
@@ -174,18 +234,33 @@ function DailyChecklist({
 }) {
   if (habits.length === 0) return null;
   const completed = habits.filter((h) => done[h]).length;
+  const allDone = completed === habits.length;
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1.5">
-          <ListChecks className="w-4 h-4 text-primary" strokeWidth={2.4} />
-          <p className="text-sm font-semibold text-foreground">Today's Mission</p>
+        <div className="flex items-center gap-2">
+          <p className="label-caps text-muted-foreground">Today's Mission</p>
+          {allDone && (
+            <span
+              className="text-[8px] font-black tracking-[0.2em] uppercase px-2 py-0.5 rounded-full"
+              style={{ background: "rgba(16,185,129,0.15)", color: "#10B981" }}
+            >
+              COMPLETE
+            </span>
+          )}
         </div>
-        <span className="text-xs text-muted-foreground">
-          {completed}/{habits.length} done
+        <span className="text-[10px] font-mono text-muted-foreground">
+          {completed}/{habits.length}
         </span>
       </div>
-      <div className="rounded-2xl bg-card border border-border divide-y divide-border overflow-hidden">
+      <div
+        className="rounded-2xl overflow-hidden divide-y"
+        style={{
+          background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+          border: "1px solid hsl(217 32% 15%)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+        }}
+      >
         {habits.map((habit) => {
           const isDone = !!done[habit];
           return (
@@ -193,25 +268,34 @@ function DailyChecklist({
               key={habit}
               type="button"
               onClick={() => setDone((d) => ({ ...d, [habit]: !d[habit] }))}
-              className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-elevated transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-elevated transition-colors"
+              style={{ borderColor: "hsl(217 32% 13%)" }}
             >
-              {isDone ? (
-                <CheckCircle2 className="w-5 h-5 text-success shrink-0" strokeWidth={2.2} />
-              ) : (
-                <Circle className="w-5 h-5 text-muted-foreground shrink-0" strokeWidth={2} />
-              )}
-              <span
-                className={
-                  "text-sm leading-snug " +
-                  (isDone ? "line-through text-muted-foreground" : "text-foreground")
-                }
+              <div
+                className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center border-2 transition-all"
+                style={isDone
+                  ? { background: "#10B981", borderColor: "#10B981", boxShadow: "0 0 8px rgba(16,185,129,0.4)" }
+                  : { borderColor: "hsl(217 32% 22%)" }}
               >
+                {isDone && <CheckCircle2 className="w-3 h-3 text-white" strokeWidth={3} />}
+              </div>
+              <span className={`text-sm leading-snug flex-1 ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
                 {habit}
               </span>
+              {isDone && (
+                <span className="text-[8px] font-black tracking-[0.15em] uppercase" style={{ color: "#10B981" }}>
+                  Done
+                </span>
+              )}
             </button>
           );
         })}
       </div>
+      {allDone && (
+        <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mt-2 text-center">
+          No skipped basics. Keep the streak alive.
+        </p>
+      )}
     </div>
   );
 }
@@ -261,43 +345,59 @@ function WaterTracker({
   }
 
   return (
-    <div className="rounded-2xl bg-card border border-border p-4">
+    <div
+      className="rounded-2xl border p-4"
+      style={{
+        background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+        borderColor: "hsl(217 32% 15%)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+      }}
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center"
+            style={{ background: "rgba(59,130,246,0.18)" }}
+          >
             <Droplets className="w-3.5 h-3.5 text-primary" strokeWidth={2.2} />
           </div>
-          <span className="text-sm font-semibold text-foreground">Water</span>
+          <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground">Hydration</span>
         </div>
         {met && !isAnalyzing && (
-          <span className="text-xs font-semibold text-success bg-success/15 px-2 py-0.5 rounded-full">
-            Target met ✓
+          <span
+            className="text-[8px] font-black tracking-[0.2em] uppercase px-2 py-0.5 rounded-full"
+            style={{ background: "rgba(16,185,129,0.15)", color: "#10B981" }}
+          >
+            Target Met ✓
           </span>
         )}
         {isAnalyzing && (
-          <span className="text-xs font-medium text-primary animate-pulse">
-            Analyzing photo…
+          <span className="text-[10px] font-bold text-primary animate-pulse tracking-wide">
+            Analyzing…
           </span>
         )}
       </div>
 
-      <p className="text-2xl font-bold tracking-tight leading-none mb-1">
+      <p className="text-2xl font-black tracking-tight leading-none mb-1">
         {totalOz}
         <span className="text-xs font-medium text-muted-foreground ml-0.5">oz</span>
-        <span className="text-sm font-normal text-muted-foreground ml-1.5">
-          / {targetOz} oz
-        </span>
+        <span className="text-sm font-normal text-muted-foreground ml-1.5">/ {targetOz} oz</span>
       </p>
 
-      <div className="h-1.5 rounded-full bg-elevated overflow-hidden mb-3">
+      <div className="h-1.5 rounded-full overflow-hidden mb-3" style={{ background: "hsl(218 46% 12%)" }}>
         <div
-          className={`h-full rounded-full transition-all duration-300 ${met ? "bg-success" : "bg-primary"}`}
-          style={{ width: `${pct}%` }}
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${pct}%`,
+            background: met
+              ? "linear-gradient(90deg, #10B981, #34D399)"
+              : "linear-gradient(90deg, #3B82F6, #2DD4BF)",
+          }}
         />
       </div>
 
       {photoFeedback && (
-        <p className="text-xs text-success mb-3 font-medium">{photoFeedback}</p>
+        <p className="text-xs font-semibold mb-3" style={{ color: "#10B981" }}>{photoFeedback}</p>
       )}
 
       <div className="flex gap-2 mb-3">
@@ -307,7 +407,12 @@ function WaterTracker({
             type="button"
             disabled={busy}
             onClick={() => onLog(oz)}
-            className="flex-1 py-2 rounded-xl bg-primary/10 border border-primary/20 text-xs font-semibold text-primary active:bg-primary/20 transition-colors disabled:opacity-50"
+            className="flex-1 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.97] disabled:opacity-50"
+            style={{
+              background: "rgba(59,130,246,0.1)",
+              border: "1px solid rgba(59,130,246,0.2)",
+              color: "#3B82F6",
+            }}
           >
             +{oz} oz
           </button>
@@ -316,7 +421,11 @@ function WaterTracker({
           type="button"
           disabled={busy}
           onClick={() => fileInputRef.current?.click()}
-          className="py-2 px-3 rounded-xl bg-elevated border border-border text-xs font-semibold text-muted-foreground active:bg-card transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          className="py-2 px-3 rounded-xl text-xs font-semibold text-muted-foreground active:bg-card transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          style={{
+            background: "hsl(218 46% 12%)",
+            border: "1px solid hsl(217 32% 15%)",
+          }}
           title="Snap a photo to auto-detect volume"
         >
           <Camera className="w-3.5 h-3.5" strokeWidth={2.2} />
@@ -331,7 +440,8 @@ function WaterTracker({
           value={customOz}
           onChange={(e) => setCustomOz(e.target.value)}
           placeholder="Custom oz"
-          className="flex-1 h-9 rounded-xl bg-elevated border border-border px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          className="flex-1 h-9 rounded-xl px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          style={{ background: "hsl(218 46% 12%)", border: "1px solid hsl(217 32% 15%)" }}
         />
         <button
           type="submit"
@@ -353,6 +463,8 @@ function WaterTracker({
     </div>
   );
 }
+
+// ─── main page ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
@@ -394,7 +506,7 @@ export default function DashboardPage() {
   const waterOz = waterData?.totalOz ?? 0;
   const waterTargetOz = waterData?.targetOz ?? (plan ? Math.round(plan.waterTargetL * 33.814) : 64);
 
-  // Auto-check the water habit in the checklist when daily target is met
+  // Auto-check the water habit when daily target is met
   useEffect(() => {
     if (waterOz > 0 && waterTargetOz > 0 && waterOz >= waterTargetOz) {
       const waterHabit = habits.find((h) => h.toLowerCase().includes("water"));
@@ -431,7 +543,7 @@ export default function DashboardPage() {
       await queryClient.invalidateQueries({ queryKey: ["getWaterToday"] });
       refetchWater();
     } catch {
-      // fail silently — the button re-enables immediately
+      // fail silently
     }
   }
 
@@ -492,33 +604,33 @@ export default function DashboardPage() {
 
   function buildMission(): string {
     if (missionComplete) {
-      return "Mission complete. Keep the streak alive tomorrow.";
+      return "Mission complete. Growth requires proof — keep the streak alive tomorrow.";
     }
     if (plan && calorieDeficit > 500) {
-      return `You're ${calorieDeficit} calories behind. Eat again before bed. No skipped meals.`;
+      return `You're ${calorieDeficit} calories behind. Eat again before bed. No skipped basics.`;
     }
     if (plan && proteinDeficit > 30) {
-      return `You're ${proteinDeficit}g protein short. Make the next meal count.`;
+      return `${proteinDeficit}g protein short. Make the next meal count. Finish the mission.`;
     }
     if (isBulking && plan) {
-      return `${firstName}, you're bulking. You need ${plan.calorieTarget.toLocaleString()} calories today. No skipped meals.`;
+      return `${firstName}, you're building. Hit ${plan.calorieTarget.toLocaleString()} calories today. No skipped meals.`;
     }
     if (isCutting && plan) {
-      return `${firstName}, you're cutting. Stay locked in: protein, steps, water, and clean tracking.`;
+      return `${firstName}, stay locked in: protein, steps, water, clean tracking. Your next move matters.`;
     }
     if (goals.includes("better skin")) {
-      return "Clear skin mission: water, sleep, face wash, no sugary drinks.";
+      return "Clear skin mission: water, sleep, face wash, no sugary drinks. No skipped basics.";
     }
     if (goals.includes("higher energy")) {
-      return "Energy mission: protein breakfast, water, sunlight, sleep.";
+      return "Energy mission: protein breakfast, water, sunlight, sleep. Finish the mission.";
     }
     if (goals.includes("better sleep")) {
       return "Sleep mission: no screens after 9, magnesium, cool room, same wake time.";
     }
     if (goals.includes("discipline")) {
-      return "Discipline mission: show up, hit the checklist, no excuses. Growth requires proof.";
+      return "Discipline mission: show up, hit every item, no excuses. Growth requires proof.";
     }
-    return plan?.coachNotes?.trim() || "Today's focus is simple: hit protein, follow the workout, drink water early, and protect your sleep. No random snacks, no excuses.";
+    return plan?.coachNotes?.trim() || "Hit protein, follow the workout, drink water early, and protect your sleep. No random snacks — no excuses.";
   }
 
   const coachMessage = buildMission();
@@ -527,42 +639,58 @@ export default function DashboardPage() {
     <div className="h-full overflow-y-auto scroll-area">
       <div className="max-w-lg mx-auto px-4 pt-5 pb-6 space-y-5">
 
-        {/* Greeting */}
-        <div>
-          <p className="text-sm text-muted-foreground">
-            {dayName}, {dateStr}
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight mt-0.5">
-            Hi, {firstName}
-          </h1>
-          {streakData && (streakData.currentStreak ?? 0) > 0 && (
-            <p className="text-xs font-semibold text-primary mt-1 flex items-center gap-1">
-              <Flame className="w-3 h-3" strokeWidth={2.4} />
-              {streakData.currentStreak} Day Ascend Streak
+        {/* ── Greeting ── */}
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="label-caps text-muted-foreground" style={{ fontSize: "9px" }}>
+              {dayName} · {dateStr}
             </p>
+            <h1 className="text-[1.9rem] font-black tracking-tight leading-tight mt-0.5">
+              {firstName}
+            </h1>
+            {streakData && (streakData.currentStreak ?? 0) > 0 && (
+              <div className="flex items-center gap-1.5 mt-1">
+                <Flame className="w-3.5 h-3.5" style={{ color: "#F59E0B" }} strokeWidth={2.4} />
+                <p className="text-[11px] font-black tracking-[0.1em]" style={{ color: "#F59E0B" }}>
+                  {streakData.currentStreak}-DAY STREAK
+                </p>
+              </div>
+            )}
+          </div>
+          {displayScore > 0 && (
+            <div className="flex flex-col items-center gap-1 pt-1">
+              <ScoreRing score={displayScore} />
+              <span className="label-caps text-muted-foreground" style={{ fontSize: "8px" }}>
+                {displayLabel}
+              </span>
+            </div>
           )}
         </div>
 
-        {/* Goal Reached Celebration */}
+        {/* ── Goal Reached ── */}
         {progress?.goalReached && (
-          <div className="bg-primary/10 border border-primary/30 rounded-2xl p-4 text-center space-y-2">
+          <div
+            className="rounded-2xl p-4 text-center space-y-2"
+            style={{
+              background: "rgba(59,130,246,0.08)",
+              border: "1px solid rgba(59,130,246,0.25)",
+              boxShadow: "0 0 24px rgba(59,130,246,0.08)",
+            }}
+          >
             <div className="flex items-center justify-center gap-2">
               <Trophy className="w-5 h-5 text-primary" strokeWidth={2} />
-              <p className="text-base font-bold text-primary tracking-tight">Goal Reached</p>
+              <p className="text-base font-black text-primary tracking-tight">Objective Reached</p>
             </div>
             <p className="text-xs text-muted-foreground">
               You hit {Math.round((progress.goalWeightKg ?? 0) * 2.2046226)} lbs.
             </p>
-            <Link
-              href="/progress"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
-            >
-              View progress <ChevronRight className="w-3 h-3" />
+            <Link href="/progress" className="inline-flex items-center gap-1 text-xs font-bold text-primary">
+              View Progress <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
         )}
 
-        {/* Weekly Goal Check-In Prompt */}
+        {/* ── Weekly Goal Check-In ── */}
         {goals.length > 0 && (
           <div>
             {(() => {
@@ -580,15 +708,21 @@ export default function DashboardPage() {
               });
               if (goalsNeedingCheckIn.length === 0) return null;
               return (
-                <div className="bg-primary/10 border border-primary/30 rounded-2xl p-4 space-y-3">
+                <div
+                  className="rounded-2xl p-4 space-y-3"
+                  style={{
+                    background: "rgba(59,130,246,0.07)",
+                    border: "1px solid rgba(59,130,246,0.2)",
+                  }}
+                >
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-primary" />
-                    <p className="text-sm font-bold text-primary">Weekly Check-In</p>
+                    <p className="label-caps text-primary">Weekly Check-In</p>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {goalsNeedingCheckIn.length === 1
                       ? `Rate your progress on ${goalsNeedingCheckIn[0]} this week.`
-                      : `Rate your progress on ${goalsNeedingCheckIn.length} goals this week.`}
+                      : `Rate your progress on ${goalsNeedingCheckIn.length} objectives this week.`}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {goalsNeedingCheckIn.map((g: string) => {
@@ -597,7 +731,11 @@ export default function DashboardPage() {
                         <Link
                           key={g}
                           href="/progress"
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-card border border-border text-xs font-semibold capitalize"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold capitalize"
+                          style={{
+                            background: "hsl(220 52% 8%)",
+                            border: "1px solid hsl(217 32% 15%)",
+                          }}
                         >
                           <Star className="w-3 h-3 text-primary" />
                           {g}
@@ -606,10 +744,7 @@ export default function DashboardPage() {
                       );
                     })}
                   </div>
-                  <Link
-                    href="/progress"
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
-                  >
+                  <Link href="/progress" className="inline-flex items-center gap-1 text-xs font-bold text-primary">
                     Go to Progress <ChevronRight className="w-3 h-3" />
                   </Link>
                 </div>
@@ -618,34 +753,44 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Today's Mission + Daily Score */}
-        <div className="rounded-2xl bg-gradient-to-br from-primary/15 to-success/5 border border-primary/20 p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <Target className="w-3.5 h-3.5 text-primary" strokeWidth={2.4} />
-                <p className="text-xs font-semibold text-primary uppercase tracking-wide">Today's Mission</p>
+        {/* ── Mission Card ── */}
+        <div className="ascend-mission-card rounded-2xl p-4">
+          <div className="flex items-start gap-4">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-2.5">
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{
+                    background: missionComplete ? "#10B981" : "#3B82F6",
+                    boxShadow: missionComplete
+                      ? "0 0 6px rgba(16,185,129,0.8)"
+                      : "0 0 6px rgba(59,130,246,0.8)",
+                    animation: missionComplete ? "none" : "pulse 2s infinite",
+                  }}
+                />
+                <p className="label-caps" style={{ color: missionComplete ? "#10B981" : "#3B82F6", fontSize: "9px" }}>
+                  {missionComplete ? "Mission Complete" : "Mission Active"}
+                </p>
               </div>
-              <p className="mt-2 text-sm leading-relaxed text-foreground">{coachMessage}</p>
+              <p className="text-[13px] leading-relaxed text-foreground font-medium">{coachMessage}</p>
             </div>
-            <div className="flex flex-col items-center shrink-0">
-              <ScoreRing score={displayScore} />
-              <span className="text-[10px] text-muted-foreground mt-1.5">
-                {displayScore > 0 ? displayLabel : "Start"}
-              </span>
-            </div>
+            {displayScore === 0 && (
+              <div className="shrink-0 pt-1">
+                <ScoreRing score={0} />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Today's Checklist — combined daily mission from selected goals */}
+        {/* ── Today's Mission Checklist ── */}
         {plan && Array.isArray(plan.keyHabits) && plan.keyHabits.length > 0 && (
           <DailyChecklist habits={plan.keyHabits} done={done} setDone={setDone} />
         )}
 
-        {/* Today's Intake */}
+        {/* ── Fuel Intake ── */}
         {plan && (
           <div>
-            <p className="text-sm font-semibold text-foreground mb-3">Today's Intake</p>
+            <SectionLabel>Fuel Intake</SectionLabel>
             <div className="grid grid-cols-2 gap-3">
               <IntakeBar icon={Flame} label="Calories" eaten={todayCalories} target={plan.calorieTarget} tint="blue" />
               <IntakeBar icon={Beef} label="Protein" eaten={todayProtein} target={plan.proteinTargetG} unit="g" tint="green" />
@@ -653,31 +798,28 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Water Tracker */}
+        {/* ── Water ── */}
         {plan && (
-          <div>
-            <p className="text-sm font-semibold text-foreground mb-3">Hydration</p>
-            <WaterTracker
-              totalOz={waterOz}
-              targetOz={waterTargetOz}
-              onLog={handleLogWater}
-              onLogPhoto={handleLogWaterPhoto}
-              isLogging={waterLogging}
-              isAnalyzing={waterAnalyzing}
-              photoFeedback={waterPhotoFeedback}
-            />
-          </div>
+          <WaterTracker
+            totalOz={waterOz}
+            targetOz={waterTargetOz}
+            onLog={handleLogWater}
+            onLogPhoto={handleLogWaterPhoto}
+            isLogging={waterLogging}
+            isAnalyzing={waterAnalyzing}
+            photoFeedback={waterPhotoFeedback}
+          />
         )}
 
-        {/* Other Targets */}
+        {/* ── Performance Targets ── */}
         {plan && (
           <div>
-            <p className="text-sm font-semibold text-foreground mb-3">Today's Targets</p>
+            <SectionLabel>Performance Targets</SectionLabel>
             <div className="grid grid-cols-3 gap-3">
               <MetricCard icon={Footprints} value={plan.stepsTarget.toLocaleString()} label="Steps" tint="green" />
               <MetricCard icon={Moon} value={plan.sleepTargetHours} unit="h" label="Sleep" tint="blue" />
               <MetricCard
-                icon={Target}
+                icon={Zap}
                 value={profile.workoutDaysPerWeek}
                 unit="x"
                 label="Workouts/wk"
@@ -687,16 +829,26 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Today's Workout */}
-        <Link href="/workouts" className="block">
-          <div className="rounded-2xl bg-card border border-border p-4 flex items-center justify-between active:bg-elevated transition-colors">
+        {/* ── Today's Training ── */}
+        <Link href="/workouts" className="block active:scale-[0.99] transition-transform">
+          <div
+            className="rounded-2xl p-4 flex items-center justify-between"
+            style={{
+              background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+              border: "1px solid hsl(217 32% 15%)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+            }}
+          >
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "rgba(59,130,246,0.18)", boxShadow: "0 0 14px rgba(59,130,246,0.18)" }}
+              >
                 <Dumbbell className="w-5 h-5 text-primary" strokeWidth={2.2} />
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">Today's Workout</p>
-                <p className="text-sm font-semibold truncate">
+                <p className="label-caps text-muted-foreground" style={{ fontSize: "9px" }}>Today's Training</p>
+                <p className="text-sm font-bold truncate mt-0.5">
                   {workout?.name ?? "View Training Plan"}
                 </p>
                 {workout && (
@@ -710,15 +862,20 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        {/* Goals */}
+        {/* ── Active Objectives ── */}
         {goals.length > 0 && (
           <div>
-            <p className="text-sm font-semibold text-foreground mb-3">Your Goals</p>
+            <SectionLabel>Active Objectives</SectionLabel>
             <div className="flex flex-wrap gap-2">
               {goals.map((g) => (
                 <span
                   key={g}
-                  className="text-xs font-medium px-3 py-1.5 rounded-full bg-elevated border border-border text-foreground capitalize"
+                  className="text-[10px] font-bold px-3 py-1.5 rounded-full capitalize tracking-wide"
+                  style={{
+                    background: "hsl(218 46% 12%)",
+                    border: "1px solid hsl(217 32% 16%)",
+                    color: "hsl(215 22% 70%)",
+                  }}
                 >
                   {g}
                 </span>
@@ -727,10 +884,10 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Quick Actions */}
+        {/* ── Quick Access ── */}
         <div>
-          <p className="text-sm font-semibold text-foreground mb-3">Quick Actions</p>
-          <div className="grid grid-cols-4 gap-3">
+          <SectionLabel>Quick Access</SectionLabel>
+          <div className="grid grid-cols-4 gap-2.5">
             <QuickAction href="/meals" icon={Utensils} label="Meal" />
             <QuickAction href="/coach" icon={MessageSquare} label="Coach" />
             <QuickAction href="/journal" icon={BookOpen} label="Journal" />

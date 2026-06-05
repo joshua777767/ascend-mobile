@@ -45,10 +45,16 @@ export default function SignupPage() {
       }}
     >
       <div className="px-6 pt-8 flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground font-extrabold">A</span>
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center"
+          style={{ background: "linear-gradient(140deg, #3B82F6 0%, #2DD4BF 100%)", boxShadow: "0 0 14px rgba(59,130,246,0.45)" }}
+        >
+          <span className="text-white font-black text-[13px]" style={{ letterSpacing: "-0.03em" }}>A</span>
         </div>
-        <span className="text-lg font-bold tracking-tight">Ascend</span>
+        <div>
+          <span className="text-[15px] font-black tracking-tight leading-none">Ascend</span>
+          <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Command Center</p>
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col justify-center px-6 py-10 max-w-md w-full mx-auto">

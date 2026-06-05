@@ -60,7 +60,7 @@
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: ui-monospace, monospace;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
 
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 4px);
@@ -75,51 +75,51 @@
   --elevate-1: rgba(255,255,255, .03);
   --elevate-2: rgba(255,255,255, .06);
 
-  /* ── Premium health-app palette ── */
-  --background: 220 49% 8%;       /* #0B1220 */
-  --foreground: 210 40% 98%;      /* #F8FAFC */
-  --border: 215 28% 17%;          /* #1F2937 */
-  --input: 215 28% 17%;
-  --ring: 217 91% 60%;            /* #3B82F6 */
+  /* ── Ascend Command Palette ── */
+  --background: 222 65% 5%;        /* #050D1A — near-black navy */
+  --foreground: 210 40% 97%;       /* #F1F5F9 */
+  --border: 217 32% 14%;           /* subtle blue-tinted border */
+  --input: 217 32% 14%;
+  --ring: 217 91% 60%;             /* #3B82F6 */
 
-  --card: 222 39% 11%;            /* #111827 */
-  --card-foreground: 210 40% 98%;
-  --card-border: 215 28% 17%;
+  --card: 220 52% 8%;              /* #08121F — dark command panel */
+  --card-foreground: 210 40% 97%;
+  --card-border: 217 32% 14%;
 
-  --elevated: 222 38% 15%;        /* #172033 */
+  --elevated: 218 46% 12%;         /* #0F1D2E */
 
-  --popover: 222 39% 11%;
-  --popover-foreground: 210 40% 98%;
-  --popover-border: 215 28% 17%;
+  --popover: 220 52% 8%;
+  --popover-foreground: 210 40% 97%;
+  --popover-border: 217 32% 14%;
 
-  --primary: 217 91% 60%;         /* #3B82F6 */
+  --primary: 217 91% 60%;          /* #3B82F6 — electric blue */
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 222 38% 15%;       /* elevated */
-  --secondary-foreground: 210 40% 98%;
+  --secondary: 218 46% 12%;
+  --secondary-foreground: 210 40% 97%;
 
-  --muted: 222 38% 15%;
-  --muted-foreground: 215 20% 65%; /* #94A3B8 */
+  --muted: 218 46% 12%;
+  --muted-foreground: 215 22% 58%; /* slightly brighter muted */
 
-  --accent: 222 38% 15%;
-  --accent-foreground: 210 40% 98%;
+  --accent: 218 46% 12%;
+  --accent-foreground: 210 40% 97%;
 
-  --success: 160 84% 39%;         /* #10B981 */
+  --success: 160 84% 39%;          /* #10B981 — electric green */
   --success-foreground: 0 0% 100%;
 
-  --warning: 38 92% 50%;          /* #F59E0B */
+  --warning: 38 92% 50%;           /* #F59E0B — amber */
   --warning-foreground: 222 47% 11%;
 
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
-  --sidebar: 222 39% 11%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-border: 215 28% 17%;
+  --sidebar: 220 52% 8%;
+  --sidebar-foreground: 210 40% 97%;
+  --sidebar-border: 217 32% 14%;
   --sidebar-primary: 217 91% 60%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 222 38% 15%;
-  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-accent: 218 46% 12%;
+  --sidebar-accent-foreground: 210 40% 97%;
   --sidebar-ring: 217 91% 60%;
 
   --app-font-sans: 'Inter', system-ui, sans-serif;
@@ -131,29 +131,29 @@
 }
 
 .dark {
-  --background: 220 49% 8%;
-  --foreground: 210 40% 98%;
-  --card: 222 39% 11%;
-  --card-foreground: 210 40% 98%;
-  --elevated: 222 38% 15%;
-  --popover: 222 39% 11%;
-  --popover-foreground: 210 40% 98%;
+  --background: 222 65% 5%;
+  --foreground: 210 40% 97%;
+  --card: 220 52% 8%;
+  --card-foreground: 210 40% 97%;
+  --elevated: 218 46% 12%;
+  --popover: 220 52% 8%;
+  --popover-foreground: 210 40% 97%;
   --primary: 217 91% 60%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 222 38% 15%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 222 38% 15%;
-  --muted-foreground: 215 20% 65%;
-  --accent: 222 38% 15%;
-  --accent-foreground: 210 40% 98%;
+  --secondary: 218 46% 12%;
+  --secondary-foreground: 210 40% 97%;
+  --muted: 218 46% 12%;
+  --muted-foreground: 215 22% 58%;
+  --accent: 218 46% 12%;
+  --accent-foreground: 210 40% 97%;
   --success: 160 84% 39%;
   --success-foreground: 0 0% 100%;
   --warning: 38 92% 50%;
   --warning-foreground: 222 47% 11%;
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
-  --border: 215 28% 17%;
-  --input: 215 28% 17%;
+  --border: 217 32% 14%;
+  --input: 217 32% 14%;
   --ring: 217 91% 60%;
 }
 
@@ -175,7 +175,10 @@
     -webkit-overflow-scrolling: touch;
     overflow: hidden;
     font-feature-settings: "cv11", "ss01";
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
+    /* Ambient command-center glow at top */
+    background-image:
+      radial-gradient(ellipse 70% 35% at 50% -5%, rgba(59,130,246,0.09) 0%, transparent 70%);
   }
 
   /* Smooth scrolling for scroll containers */
@@ -184,4 +187,29 @@
     overscroll-behavior: contain;
   }
   .scroll-area::-webkit-scrollbar { width: 0; height: 0; }
+}
+
+/* ── Ascend brand utilities ── */
+@layer utilities {
+  .ascend-panel {
+    background: linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%);
+    border-color: hsl(217 32% 16%);
+  }
+  .ascend-mission-card {
+    background: linear-gradient(135deg, rgba(59,130,246,0.08) 0%, rgba(16,185,129,0.04) 100%);
+    border: 1px solid rgba(59,130,246,0.28);
+    box-shadow: 0 0 28px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .ascend-glow-blue {
+    box-shadow: 0 0 18px rgba(59,130,246,0.25);
+  }
+  .ascend-glow-green {
+    box-shadow: 0 0 18px rgba(16,185,129,0.25);
+  }
+  .label-caps {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
 }
