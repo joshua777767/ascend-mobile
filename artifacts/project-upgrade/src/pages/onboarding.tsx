@@ -128,7 +128,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <p className="text-sm font-semibold text-foreground mb-2.5">{children}</p>;
 }
 
-const inputClass = "bg-elevated border-border rounded-xl h-12 text-base";
+const inputClass = "bg-elevated border border-border rounded-xl h-12 text-base px-3 w-full";
 const textareaClass = "bg-elevated border border-border rounded-xl p-3 text-base text-foreground placeholder:text-muted-foreground w-full resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[100px]";
 
 const ONBOARD_KEY = "ascend.onboarding";
@@ -551,7 +551,7 @@ export default function OnboardingPage() {
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Duration (min)</p>
                       <input
-                        type="number"
+                        type="text"
                         inputMode="numeric"
                         pattern="[0-9]*"
                         value={sportDurationRaw}
