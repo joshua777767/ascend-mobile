@@ -42,8 +42,10 @@ export interface UserProfileInput {
   biggestStruggle?: string;
   sport?: string;
   sportCustom?: string;
+  sportSchedule?: string;
   hasOwnSchedule?: string;
   ownSchedule?: string;
+  customWorkoutSchedule?: string;
   workoutFocus?: string;
   /** @nullable */
   commitmentLevel: UserProfileInputCommitmentLevel;

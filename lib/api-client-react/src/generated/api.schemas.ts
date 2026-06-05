@@ -93,9 +93,13 @@ export interface UserProfile {
   /** @nullable */
   sportCustom?: string | null;
   /** @nullable */
+  sportSchedule?: string | null;
+  /** @nullable */
   hasOwnSchedule?: string | null;
   /** @nullable */
   ownSchedule?: string | null;
+  /** @nullable */
+  customWorkoutSchedule?: string | null;
   /** @nullable */
   workoutFocus?: string | null;
   /** @nullable */
@@ -154,8 +158,10 @@ export interface UserProfileInput {
   biggestStruggle?: string;
   sport?: string;
   sportCustom?: string;
+  sportSchedule?: string;
   hasOwnSchedule?: string;
   ownSchedule?: string;
+  customWorkoutSchedule?: string;
   workoutFocus?: string;
   /** @nullable */
   commitmentLevel: UserProfileInputCommitmentLevel;
@@ -181,8 +187,10 @@ export interface UserProfileUpdate {
   stressLevel?: number;
   sport?: string;
   sportCustom?: string;
+  sportSchedule?: string;
   hasOwnSchedule?: string;
   ownSchedule?: string;
+  customWorkoutSchedule?: string;
   workoutFocus?: string;
   /** @nullable */
   commitmentLevel?: UserProfileUpdateCommitmentLevel;

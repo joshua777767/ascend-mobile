@@ -837,9 +837,13 @@ components:
           type: ["string", "null"]
         sportCustom:
           type: ["string", "null"]
+        sportSchedule:
+          type: ["string", "null"]
         hasOwnSchedule:
           type: ["string", "null"]
         ownSchedule:
+          type: ["string", "null"]
+        customWorkoutSchedule:
           type: ["string", "null"]
         workoutFocus:
           type: ["string", "null"]
@@ -946,9 +950,13 @@ components:
           type: string
         sportCustom:
           type: string
+        sportSchedule:
+          type: string
         hasOwnSchedule:
           type: string
         ownSchedule:
+          type: string
+        customWorkoutSchedule:
           type: string
         workoutFocus:
           type: string
@@ -971,9 +979,13 @@ components:
           type: string
         sportCustom:
           type: string
+        sportSchedule:
+          type: string
         hasOwnSchedule:
           type: string
         ownSchedule:
+          type: string
+        customWorkoutSchedule:
           type: string
         workoutFocus:
           type: string

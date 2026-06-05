@@ -1,4 +1,5 @@
 import type { UserProfile } from "@workspace/db";
+import { parseSportSchedule, getSportAdjustmentForPlan } from "./sportUtils";
 
 export interface GeneratedPlan {
   goalType: string;
@@ -276,9 +277,13 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     ? ` | Sport: ${sport === "other" && profile.sportCustom ? profile.sportCustom : sport}`
     : "";
 
+  // Parse sport schedule for plan adjustments
+  const sportSchedule = parseSportSchedule(profile);
+  const sportAdjustment = sportSchedule ? getSportAdjustmentForPlan(goalType, sportSchedule) : "";
+
   let workoutSchedule = "";
   if (hasOwnSchedule === "yes" && ownSchedule) {
-    workoutSchedule = `Custom schedule: ${ownSchedule}`;
+    workoutSchedule = `Custom schedule: ${ownSchedule}${sportText}`;
   } else if (workoutFocus && FOCUS_LABELS[workoutFocus]) {
     workoutSchedule = `${workoutDays}x/week — focus: ${FOCUS_LABELS[workoutFocus]}${sportText}`;
   } else if (goalType === "fat_loss") {
@@ -380,9 +385,9 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
 
   let coachNotes: string;
   if (hasOwnSchedule === "yes" && ownSchedule) {
-    coachNotes = `You picked ${goalText}. The plan respects your own training schedule and builds nutrition and recovery around it. Today's mission: ${missionLine}. Hit ${proteinTargetG}g protein every day regardless of the gym.${commitmentNote}${sportNote}${skinNote}`;
+    coachNotes = `You picked ${goalText}. The plan respects your own training schedule and builds nutrition and recovery around it. Today's mission: ${missionLine}. Hit ${proteinTargetG}g protein every day regardless of the gym.${commitmentNote}${sportNote}${skinNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
   } else {
-    coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${skinNote}`;
+    coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${skinNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
   }
 
   return {

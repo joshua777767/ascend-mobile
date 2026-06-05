@@ -1,4 +1,5 @@
 import type { UserProfile, Plan } from "@workspace/db";
+import { parseSportSchedule, estimateSportCaloriesBurned } from "./sportUtils";
 
 export interface ScheduleItem {
   time: string;
@@ -53,6 +54,36 @@ export function generateDailySchedule(profile: UserProfile, plan: Plan): Schedul
   }
 
   items.push({ time: addMinutes(wake, 480), activity: "Meal 3 — Dinner", type: "meal", notes: `Target: ~${Math.round((plan.proteinTargetG || 150) * 0.35)}g protein` });
+
+  // Sport practice injection
+  const sportSchedule = parseSportSchedule(profile);
+  if (sportSchedule) {
+    const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+    const isPracticeDay = sportSchedule.days.some(d => d.toLowerCase() === today.toLowerCase());
+    if (isPracticeDay) {
+      const calNote = estimateSportCaloriesBurned(sportSchedule.sport, sportSchedule.durationMinutes, sportSchedule.intensity, profile.currentWeightKg);
+      const intensityLabel = sportSchedule.intensity === "hard" ? "hard" : sportSchedule.intensity === "light" ? "light" : "moderate";
+      items.push({
+        time: sportSchedule.startTime,
+        activity: `${sportSchedule.sport} practice`,
+        type: "sport",
+        notes: `${sportSchedule.durationMinutes} min, ${intensityLabel}. ${calNote}. Stay hydrated.`,
+      });
+      // Post-practice meal
+      const endTime = addMinutes(
+        sportSchedule.startTime.split(":").map(Number) as [number, number],
+        sportSchedule.durationMinutes + 15
+      );
+      items.push({
+        time: endTime,
+        activity: "Post-practice meal / shake",
+        type: "meal",
+        notes: plan.goalType === "muscle_gain"
+          ? `Hit ${Math.round((plan.proteinTargetG || 150) * 0.3)}g protein. Add a shake or extra meal.`
+          : `Protein + carbs within 1 hour.`,
+      });
+    }
+  }
 
   if (plan.goalType === "muscle_gain" && profile.mealsPerDay >= 4) {
     items.push({ time: addMinutes(wake, 600), activity: "Optional mass shake / snack", type: "meal", notes: "Oats, peanut butter, banana, milk, protein" });

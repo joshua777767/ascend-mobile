@@ -26,6 +26,8 @@ const WORKOUT_FOCUSES = [
   { label: "General fitness", value: "general_fitness" },
 ];
 
+const DAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
 function Chip({ label, selected, onToggle }: { label: string; selected: boolean; onToggle: () => void }) {
   return (
     <button
@@ -64,6 +66,16 @@ export default function SettingsPage() {
   // Commitment level
   const [commitmentLevel, setCommitmentLevel] = useState<string>("");
 
+  // Sport schedule state
+  const [sportDays, setSportDays] = useState<string[]>([]);
+  const [sportStartTime, setSportStartTime] = useState("16:00");
+  const [sportDuration, setSportDuration] = useState(90);
+  const [sportIntensity, setSportIntensity] = useState("moderate");
+  const [sportGameDays, setSportGameDays] = useState<string[]>([]);
+
+  // Custom workout schedule state
+  const [customWorkoutDays, setCustomWorkoutDays] = useState<{ day: string; focus: string }[]>([]);
+
   // Load current profile values
   useEffect(() => {
     if (!profile) return;
@@ -74,6 +86,30 @@ export default function SettingsPage() {
     if (p.ownSchedule) setOwnScheduleText(p.ownSchedule);
     if (p.workoutFocus) setSelectedWorkoutFocus(p.workoutFocus);
     if (p.commitmentLevel) setCommitmentLevel(p.commitmentLevel);
+
+    // Load sport schedule
+    if (p.sportSchedule) {
+      try {
+        const ss = JSON.parse(p.sportSchedule);
+        if (ss.days) setSportDays(ss.days);
+        if (ss.startTime) setSportStartTime(ss.startTime);
+        if (ss.durationMinutes) setSportDuration(ss.durationMinutes);
+        if (ss.intensity) setSportIntensity(ss.intensity);
+        if (ss.gameDays) setSportGameDays(ss.gameDays);
+      } catch {
+        // ignore
+      }
+    }
+
+    // Load custom workout schedule
+    if (p.customWorkoutSchedule) {
+      try {
+        const cs = JSON.parse(p.customWorkoutSchedule);
+        if (cs.days) setCustomWorkoutDays(cs.days);
+      } catch {
+        // ignore
+      }
+    }
   }, [profile]);
 
   const handleLogout = async () => {
@@ -105,6 +141,23 @@ export default function SettingsPage() {
     if (scheduleChoice === "yes" && ownScheduleText) payload.ownSchedule = ownScheduleText;
     if (scheduleChoice === "no" && selectedWorkoutFocus) payload.workoutFocus = selectedWorkoutFocus;
     if (commitmentLevel) payload.commitmentLevel = commitmentLevel;
+
+    // Build sportSchedule JSON
+    if (sportValue && sportValue !== "no sport" && sportDays.length > 0) {
+      payload.sportSchedule = JSON.stringify({
+        sport: sportCustomText || sportValue,
+        days: sportDays,
+        startTime: sportStartTime,
+        durationMinutes: sportDuration,
+        intensity: sportIntensity,
+        gameDays: sportGameDays.length > 0 ? sportGameDays : undefined,
+      });
+    }
+
+    // Build customWorkoutSchedule JSON
+    if (customWorkoutDays.length > 0) {
+      payload.customWorkoutSchedule = JSON.stringify({ days: customWorkoutDays });
+    }
 
     try {
       await updateProfile.mutateAsync({ data: payload as any });
@@ -195,6 +248,69 @@ export default function SettingsPage() {
                 className="mt-3 w-full bg-elevated border border-border rounded-xl h-11 px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             )}
+
+            {/* Sport schedule edit */}
+            {selectedSport && selectedSport.toLowerCase() !== "no sport" && selectedSport.toLowerCase() !== "none" && (
+              <div className="mt-4 space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Practice schedule</p>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1.5">Practice days</p>
+                  <div className="flex flex-wrap gap-2">
+                    {DAY_NAMES.map(d => (
+                      <Chip
+                        key={d}
+                        label={d.slice(0,3)}
+                        selected={sportDays.includes(d)}
+                        onToggle={() => setSportDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d])}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Start time</p>
+                    <input
+                      type="time"
+                      value={sportStartTime}
+                      onChange={e => setSportStartTime(e.target.value)}
+                      className="w-full bg-elevated border border-border rounded-xl h-10 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Duration (min)</p>
+                    <input
+                      type="number"
+                      min={15}
+                      max={300}
+                      value={sportDuration}
+                      onChange={e => setSportDuration(Math.max(15, Math.min(300, parseInt(e.target.value) || 90)))}
+                      className="w-full bg-elevated border border-border rounded-xl h-10 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1.5">Intensity</p>
+                  <div className="flex flex-wrap gap-2">
+                    {["light","moderate","hard"].map(i => (
+                      <Chip key={i} label={i} selected={sportIntensity === i} onToggle={() => setSportIntensity(i)} />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1.5">Game days (optional)</p>
+                  <div className="flex flex-wrap gap-2">
+                    {DAY_NAMES.map(d => (
+                      <Chip
+                        key={d}
+                        label={d.slice(0,3)}
+                        selected={sportGameDays.includes(d)}
+                        onToggle={() => setSportGameDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d])}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -213,7 +329,7 @@ export default function SettingsPage() {
             </div>
 
             {scheduleChoice === "yes" && (
-              <div className="mt-3">
+              <div className="mt-3 space-y-3">
                 <p className="text-xs text-muted-foreground mb-2">Enter your weekly schedule. Example: Monday chest/back, Tuesday practice, Wednesday legs, Thursday rest, Friday full body.</p>
                 <textarea
                   value={ownScheduleText}
@@ -222,6 +338,32 @@ export default function SettingsPage() {
                   className={textareaClass}
                   rows={3}
                 />
+                {/* Structured custom workout split builder */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-foreground">Or build a structured split:</p>
+                  {DAY_NAMES.map(d => {
+                    const entry = customWorkoutDays.find(x => x.day === d);
+                    const focus = entry?.focus ?? "";
+                    return (
+                      <div key={d} className="flex items-center gap-2">
+                        <span className="text-xs font-medium w-20 text-muted-foreground">{d}</span>
+                        <input
+                          value={focus}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setCustomWorkoutDays(prev => {
+                              const next = prev.filter(x => x.day !== d);
+                              if (val.trim()) next.push({ day: d, focus: val.trim() });
+                              return next;
+                            });
+                          }}
+                          placeholder="e.g. chest, rest, practice"
+                          className="flex-1 bg-elevated border border-border rounded-xl h-10 px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

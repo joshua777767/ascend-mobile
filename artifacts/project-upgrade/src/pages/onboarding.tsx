@@ -149,7 +149,17 @@ type OnboardingState = {
   scheduleChoice: "" | "yes" | "no";
   ownScheduleText: string;
   selectedWorkoutFocus: string;
+  // Sport schedule
+  sportDays: string[];
+  sportStartTime: string;
+  sportDuration: number;
+  sportIntensity: string;
+  sportGameDays: string[];
+  // Custom workout schedule
+  customWorkoutDays: { day: string; focus: string }[];
 };
+
+const DAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
 function loadState(): OnboardingState | null {
   try {
@@ -188,16 +198,30 @@ export default function OnboardingPage() {
   const [ownScheduleText, setOwnScheduleText] = useState(persisted?.ownScheduleText ?? "");
   const [selectedWorkoutFocus, setSelectedWorkoutFocus] = useState(persisted?.selectedWorkoutFocus ?? "");
 
+  // Sport schedule state
+  const [sportDays, setSportDays] = useState<string[]>(persisted?.sportDays ?? []);
+  const [sportStartTime, setSportStartTime] = useState(persisted?.sportStartTime ?? "16:00");
+  const [sportDuration, setSportDuration] = useState(persisted?.sportDuration ?? 90);
+  const [sportIntensity, setSportIntensity] = useState(persisted?.sportIntensity ?? "moderate");
+  const [sportGameDays, setSportGameDays] = useState<string[]>(persisted?.sportGameDays ?? []);
+
+  // Custom workout schedule state
+  const [customWorkoutDays, setCustomWorkoutDays] = useState<{ day: string; focus: string }[]>(persisted?.customWorkoutDays ?? []);
+
   // Persist everything when any state changes
   useEffect(() => {
     saveState({
       step, selectedGoals, skinConcerns, digestionConcerns, biggestStruggle,
       sleepQuality, energyLevel, stressLevel, formData, commitmentLevel,
       selectedSport, sportCustomText, scheduleChoice, ownScheduleText, selectedWorkoutFocus,
+      sportDays, sportStartTime, sportDuration, sportIntensity, sportGameDays,
+      customWorkoutDays,
     });
   }, [step, selectedGoals, skinConcerns, digestionConcerns, biggestStruggle,
       sleepQuality, energyLevel, stressLevel, formData, commitmentLevel,
-      selectedSport, sportCustomText, scheduleChoice, ownScheduleText, selectedWorkoutFocus]);
+      selectedSport, sportCustomText, scheduleChoice, ownScheduleText, selectedWorkoutFocus,
+      sportDays, sportStartTime, sportDuration, sportIntensity, sportGameDays,
+      customWorkoutDays]);
 
   const createProfile = useCreateUserProfile();
   const generatePlan = useGeneratePlan();
@@ -246,6 +270,23 @@ export default function OnboardingPage() {
     const ownSchedule = scheduleChoice === "yes" ? ownScheduleText : undefined;
     const workoutFocus = scheduleChoice === "no" ? selectedWorkoutFocus : undefined;
 
+    // Build sportSchedule JSON
+    const sportSchedule = sportValue && sportValue !== "no sport" && sportDays.length > 0
+      ? JSON.stringify({
+          sport: sportCustom || sportValue,
+          days: sportDays,
+          startTime: sportStartTime,
+          durationMinutes: sportDuration,
+          intensity: sportIntensity,
+          gameDays: sportGameDays.length > 0 ? sportGameDays : undefined,
+        })
+      : undefined;
+
+    // Build customWorkoutSchedule JSON
+    const customWorkoutSchedule = customWorkoutDays.length > 0
+      ? JSON.stringify({ days: customWorkoutDays })
+      : undefined;
+
     const payload = {
       ...rest,
       heightCm,
@@ -268,6 +309,8 @@ export default function OnboardingPage() {
       ...(hasOwnSchedule ? { hasOwnSchedule } : {}),
       ...(ownSchedule ? { ownSchedule } : {}),
       ...(workoutFocus ? { workoutFocus } : {}),
+      ...(sportSchedule ? { sportSchedule } : {}),
+      ...(customWorkoutSchedule ? { customWorkoutSchedule } : {}),
       commitmentLevel,
     } as any;
     try {
@@ -477,6 +520,74 @@ export default function OnboardingPage() {
                 )}
               </div>
 
+              {/* Sport schedule input (shown when sport is selected) */}
+              {selectedSport && selectedSport.toLowerCase() !== "no sport" && selectedSport.toLowerCase() !== "none" && (
+                <div className="space-y-4">
+                  <SectionLabel>Sport practice schedule</SectionLabel>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">What days do you practice?</p>
+                    <div className="flex flex-wrap gap-2">
+                      {DAY_NAMES.map(d => (
+                        <Chip
+                          key={d}
+                          label={d.slice(0,3)}
+                          selected={sportDays.includes(d)}
+                          onToggle={() => setSportDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d])}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Start time</p>
+                      <Input
+                        type="time"
+                        value={sportStartTime}
+                        onChange={e => setSportStartTime(e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Duration (min)</p>
+                      <Input
+                        type="number"
+                        min={15}
+                        max={300}
+                        value={sportDuration}
+                        onChange={e => setSportDuration(Math.max(15, Math.min(300, parseInt(e.target.value) || 90)))}
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">Intensity</p>
+                    <div className="flex flex-wrap gap-2">
+                      {["light","moderate","hard"].map(i => (
+                        <Chip
+                          key={i}
+                          label={i}
+                          selected={sportIntensity === i}
+                          onToggle={() => setSportIntensity(i)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">Game days (optional)</p>
+                    <div className="flex flex-wrap gap-2">
+                      {DAY_NAMES.map(d => (
+                        <Chip
+                          key={d}
+                          label={d.slice(0,3)}
+                          selected={sportGameDays.includes(d)}
+                          onToggle={() => setSportGameDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d])}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Schedule question */}
               <div>
                 <SectionLabel>Do you already have a workout schedule?</SectionLabel>
@@ -494,7 +605,7 @@ export default function OnboardingPage() {
                 </div>
 
                 {scheduleChoice === "yes" && (
-                  <div className="mt-3 space-y-2">
+                  <div className="mt-3 space-y-4">
                     <p className="text-xs text-muted-foreground">Enter your weekly schedule. Example: Monday chest/back, Tuesday football practice, Wednesday legs, Thursday rest, Friday full body.</p>
                     <textarea
                       value={ownScheduleText}
@@ -503,6 +614,32 @@ export default function OnboardingPage() {
                       className={textareaClass}
                       rows={4}
                     />
+                    {/* Structured custom workout split builder */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-foreground">Or build a structured split:</p>
+                      {DAY_NAMES.map(d => {
+                        const entry = customWorkoutDays.find(x => x.day === d);
+                        const focus = entry?.focus ?? "";
+                        return (
+                          <div key={d} className="flex items-center gap-2">
+                            <span className="text-xs font-medium w-20 text-muted-foreground">{d}</span>
+                            <Input
+                              value={focus}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setCustomWorkoutDays(prev => {
+                                  const next = prev.filter(x => x.day !== d);
+                                  if (val.trim()) next.push({ day: d, focus: val.trim() });
+                                  return next;
+                                });
+                              }}
+                              placeholder="e.g. chest, rest, practice"
+                              className="bg-elevated border-border rounded-xl h-10 text-sm"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 

@@ -15,6 +15,7 @@ import { SendChatMessageBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
 import { logger } from "../lib/logger";
 import { getUserId } from "../middlewares/auth";
+import { getSportContextForCoach, parseCustomWorkoutSchedule } from "../lib/sportUtils";
 
 const router: IRouter = Router();
 
@@ -437,6 +438,15 @@ function buildContextSummary(
       ? profile.commitmentLevel.replace(/_/g, " ")
       : null;
 
+    // Parse custom workout schedule for context
+    const customSchedule = parseCustomWorkoutSchedule(profile);
+    const customScheduleText = customSchedule
+      ? `Custom workout split: ${customSchedule.days.map(d => `${d.day}=${d.focus}`).join(", ")}. `
+      : "";
+
+    // Get sport context for coach
+    const sportContext = getSportContextForCoach(profile);
+
     parts.push(
       `PROFILE: ${profile.name}, ${profile.age}yo ${profile.gender}. ` +
         `${currentLbs} lbs now → ${goalLbs} lbs goal (${direction} ${absDiff} lbs). ` +
@@ -447,6 +457,9 @@ function buildContextSummary(
         (profile.workoutFocus ? `Workout focus: ${profile.workoutFocus.replace(/_/g, " ")}. ` : "") +
         (profile.hasOwnSchedule === "yes" && profile.ownSchedule
           ? `Custom workout schedule: ${profile.ownSchedule}. Coach must respect this schedule and build nutrition/recovery around it. `
+          : "") +
+        customScheduleText +
+        (sportContext ? `Sport schedule: ${sportContext} Coach must respect practice days and adjust recovery and nutrition. `
           : "") +
         (goals.length ? `Goals: ${goals.join(", ")}. ` : "") +
         (skin.length ? `Skin concerns: ${skin.join(", ")}. ` : "") +

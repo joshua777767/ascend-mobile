@@ -1,4 +1,5 @@
 import type { UserProfile, Plan } from "@workspace/db";
+import { parseCustomWorkoutSchedule, parseSportSchedule } from "./sportUtils";
 
 export interface Exercise {
   name: string;
@@ -220,12 +221,218 @@ function getDayOfWeek(): string {
   return days[new Date().getDay()];
 }
 
+const BODY_PART_EXERCISES: Record<string, Record<string, { name: string; sets: number; reps: string; restSeconds: number; coachTip: string }[]>> = {
+  beginner: {
+    chest: [
+      { name: "Push-Up", sets: 3, reps: "10-15", restSeconds: 60, coachTip: "Chest to floor. No half reps." },
+      { name: "Incline Push-Up", sets: 3, reps: "12", restSeconds: 60, coachTip: "Hands on a bench or table. Lower slow." },
+    ],
+    back: [
+      { name: "Dumbbell Row", sets: 3, reps: "12 each", restSeconds: 60, coachTip: "Pull to hip. Don't swing." },
+      { name: "Superman Holds", sets: 3, reps: "20 sec", restSeconds: 45, coachTip: "Squeeze lower back and glutes." },
+    ],
+    biceps: [
+      { name: "Dumbbell Curl", sets: 3, reps: "12", restSeconds: 60, coachTip: "No swinging. Control the negative." },
+    ],
+    triceps: [
+      { name: "Diamond Push-Up", sets: 3, reps: "8-12", restSeconds: 60, coachTip: "Hands close together. Elbows stay tucked." },
+    ],
+    shoulders: [
+      { name: "Pike Push-Up", sets: 3, reps: "8-12", restSeconds: 60, coachTip: "Hips high. Head between arms. Press through shoulders." },
+    ],
+    legs: [
+      { name: "Bodyweight Squat", sets: 3, reps: "15", restSeconds: 60, coachTip: "Sit back. Break parallel. Stay controlled." },
+      { name: "Reverse Lunge", sets: 3, reps: "10 each", restSeconds: 60, coachTip: "Back knee hovers 1 inch off floor." },
+    ],
+    glutes: [
+      { name: "Glute Bridge", sets: 3, reps: "15", restSeconds: 45, coachTip: "Squeeze glutes at top. Hold 1 second." },
+      { name: "Fire Hydrant", sets: 3, reps: "12 each", restSeconds: 45, coachTip: "Lift knee to side. No arching back." },
+    ],
+    core: [
+      { name: "Plank", sets: 3, reps: "30-45 sec", restSeconds: 45, coachTip: "Squeeze everything. No hips up." },
+      { name: "Dead Bug", sets: 3, reps: "10 each side", restSeconds: 45, coachTip: "Lower back stays glued to floor." },
+    ],
+    conditioning: [
+      { name: "Jumping Jacks", sets: 3, reps: "30 sec", restSeconds: 30, coachTip: "Keep arms and legs straight." },
+      { name: "High Knees", sets: 3, reps: "30 sec", restSeconds: 30, coachTip: "Drive arms. Knees up above hip level." },
+    ],
+    rest: [
+      { name: "Brisk Walk", sets: 1, reps: "20-30 min", restSeconds: 0, coachTip: "Keep moving. Light recovery." },
+    ],
+  },
+  intermediate: {
+    chest: [
+      { name: "Dumbbell Bench Press", sets: 3, reps: "10-12", restSeconds: 90, coachTip: "Full range. Don't bounce off chest." },
+      { name: "Push-Up", sets: 3, reps: "15-20", restSeconds: 60, coachTip: "Chest to floor. Explode up." },
+    ],
+    back: [
+      { name: "Lat Pulldown", sets: 3, reps: "10-12", restSeconds: 90, coachTip: "Pull to chest. Squeeze lats at bottom." },
+      { name: "Dumbbell Row", sets: 3, reps: "10-12 each", restSeconds: 90, coachTip: "Pull to hip. No rotation." },
+    ],
+    biceps: [
+      { name: "Barbell Curl", sets: 3, reps: "10-12", restSeconds: 60, coachTip: "No swinging. Full stretch at bottom." },
+    ],
+    triceps: [
+      { name: "Tricep Pushdown", sets: 3, reps: "12-15", restSeconds: 60, coachTip: "Lock upper arms. Full extension." },
+    ],
+    shoulders: [
+      { name: "Overhead Press", sets: 3, reps: "10-12", restSeconds: 90, coachTip: "Brace core. Press overhead. No arching." },
+      { name: "Lateral Raise", sets: 3, reps: "12-15", restSeconds: 60, coachTip: "Lead with elbows. Slight forward lean." },
+    ],
+    legs: [
+      { name: "Goblet Squat", sets: 3, reps: "12", restSeconds: 90, coachTip: "Drive through heels. Keep chest up." },
+      { name: "Romanian Deadlift", sets: 3, reps: "10", restSeconds: 90, coachTip: "Hinge at hips. Feel hamstrings load." },
+    ],
+    glutes: [
+      { name: "Hip Thrust", sets: 3, reps: "12", restSeconds: 60, coachTip: "Drive hips. Squeeze at top." },
+      { name: "Bulgarian Split Squat", sets: 3, reps: "10 each", restSeconds: 90, coachTip: "Front foot forward. Back knee touches floor." },
+    ],
+    core: [
+      { name: "Hanging Knee Raise", sets: 3, reps: "12", restSeconds: 60, coachTip: "Control the swing. No momentum." },
+      { name: "Ab Wheel Rollout", sets: 3, reps: "8-10", restSeconds: 60, coachTip: "Hollow body. Don't arch." },
+    ],
+    conditioning: [
+      { name: "Burpee", sets: 4, reps: "10", restSeconds: 60, coachTip: "Full push-up at bottom. Full jump at top." },
+      { name: "Mountain Climbers", sets: 3, reps: "20 each", restSeconds: 45, coachTip: "Hips stay level. Brace hard." },
+    ],
+    rest: [
+      { name: "Brisk Walk or Light Stretch", sets: 1, reps: "20-30 min", restSeconds: 0, coachTip: "Active recovery. Keep blood moving." },
+    ],
+  },
+  advanced: {
+    chest: [
+      { name: "Bench Press", sets: 4, reps: "6-8", restSeconds: 120, coachTip: "Control the eccentric. 2 seconds down." },
+      { name: "Incline Dumbbell Press", sets: 4, reps: "8-10", restSeconds: 90, coachTip: "Full stretch at bottom. Squeeze at top." },
+    ],
+    back: [
+      { name: "Barbell Row", sets: 4, reps: "6-8", restSeconds: 120, coachTip: "Chest up. Pull to lower chest." },
+      { name: "Weighted Pull-Up", sets: 4, reps: "5-8", restSeconds: 120, coachTip: "Full hang. Chin over bar." },
+    ],
+    biceps: [
+      { name: "Barbell Curl", sets: 4, reps: "8-10", restSeconds: 90, coachTip: "No swinging. Slow negative." },
+      { name: "Hammer Curl", sets: 3, reps: "10-12", restSeconds: 60, coachTip: "Neutral grip. Control the lowering." },
+    ],
+    triceps: [
+      { name: "Close-Grip Bench Press", sets: 4, reps: "8-10", restSeconds: 90, coachTip: "Elbows tucked. Lower to chest." },
+      { name: "Overhead Tricep Extension", sets: 3, reps: "12-15", restSeconds: 60, coachTip: "Keep elbows close. Full extension." },
+    ],
+    shoulders: [
+      { name: "Overhead Press", sets: 4, reps: "6-8", restSeconds: 120, coachTip: "Brace core. Full press overhead." },
+      { name: "Lateral Raise", sets: 4, reps: "12-15", restSeconds: 60, coachTip: "Lead with elbows. Slow negative." },
+    ],
+    legs: [
+      { name: "Squat", sets: 4, reps: "5-8", restSeconds: 180, coachTip: "Break parallel. Knees track toes." },
+      { name: "Romanian Deadlift", sets: 4, reps: "8-10", restSeconds: 120, coachTip: "Hinge deep. Feel hamstrings load." },
+    ],
+    glutes: [
+      { name: "Hip Thrust", sets: 4, reps: "8-10", restSeconds: 90, coachTip: "Heavy. Drive hips. Squeeze hard." },
+      { name: "Bulgarian Split Squat", sets: 3, reps: "8 each", restSeconds: 90, coachTip: "Front foot forward. Back knee touches." },
+    ],
+    core: [
+      { name: "Hanging Leg Raise", sets: 4, reps: "10", restSeconds: 60, coachTip: "Strict. No swinging." },
+      { name: "Weighted Plank", sets: 3, reps: "45-60 sec", restSeconds: 60, coachTip: "Add weight on back. Squeeze glutes." },
+    ],
+    conditioning: [
+      { name: "Sprint Intervals", sets: 6, reps: "30 sec sprint / 90 sec rest", restSeconds: 90, coachTip: "Max effort. Full recovery." },
+      { name: "Box Jump", sets: 4, reps: "5", restSeconds: 90, coachTip: "Maximum effort. Land soft." },
+    ],
+    rest: [
+      { name: "Brisk Walk, Foam Roll, Stretch", sets: 1, reps: "20-30 min", restSeconds: 0, coachTip: "Recovery work. Keep moving." },
+    ],
+  },
+};
+
+function buildCustomWorkout(
+  focus: string,
+  level: string,
+  gymAccess: string
+): PlannedWorkout {
+  const parts = focus.toLowerCase().split(/[,\/]|\band\b/).map(p => p.trim().replace(/s$/, "")).filter(Boolean);
+  const levelKey = level === "advanced" ? "advanced" : level === "intermediate" ? "intermediate" : "beginner";
+  const exercises: Exercise[] = [];
+  const seen = new Set<string>();
+
+  for (const part of parts) {
+    const full = part.endsWith("s") ? part : part + "s";
+    const partKey = Object.keys(BODY_PART_EXERCISES[levelKey]).find(k =>
+      k.includes(part) || part.includes(k)
+    ) || (parts.includes("rest") ? "rest" : undefined);
+
+    if (!partKey) continue;
+    const partExercises = BODY_PART_EXERCISES[levelKey][partKey];
+    if (!partExercises) continue;
+
+    for (const ex of partExercises) {
+      const key = ex.name.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        // Adjust for gym access
+        if (gymAccess === "no gym" && ex.name.includes("Dumbbell")) {
+          exercises.push({ ...ex, name: ex.name.replace("Dumbbell ", "").replace("Barbell ", "Bodyweight "), coachTip: "Use bodyweight or bands. " + ex.coachTip });
+        } else {
+          exercises.push(ex);
+        }
+      }
+    }
+  }
+
+  const name = parts.length > 1 ? `${parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(" / ")}` : focus;
+  return {
+    day: "",
+    name: name || "Custom Workout",
+    type: parts.includes("rest") ? "rest" : "strength",
+    exercises: exercises.length > 0 ? exercises : [
+      { name: "Brisk Walk", sets: 1, reps: "30-45 min", restSeconds: 0, coachTip: "Keep moving every day." },
+    ],
+  };
+}
+
 export function getTodayWorkout(profile: UserProfile, plan: Plan): PlannedWorkout {
   const today = getDayOfWeek();
   const goalType = plan.goalType;
   const gymAccess = profile.gymAccess;
   const workoutFocus = profile.workoutFocus;
   const sport = profile.sport;
+
+  // Check custom workout schedule first
+  const customSchedule = parseCustomWorkoutSchedule(profile);
+  if (customSchedule) {
+    const customDay = customSchedule.days.find(d => d.day.toLowerCase() === today.toLowerCase());
+    if (customDay) {
+      if (customDay.focus.toLowerCase().includes("rest")) {
+        return {
+          day: today,
+          name: "Rest Day",
+          type: "rest",
+          exercises: [
+            { name: "Brisk Walk", sets: 1, reps: "20-30 min", restSeconds: 0, coachTip: "Active recovery. Keep blood moving." },
+            { name: "Light Stretching", sets: 1, reps: "10-15 min", restSeconds: 0, coachTip: "Focus on hips and shoulders." },
+          ],
+        };
+      }
+      const result = buildCustomWorkout(customDay.focus, profile.fitnessLevel, gymAccess);
+      result.day = today;
+      return result;
+    }
+  }
+
+  // Check if today is a sport practice day
+  const sportSchedule = parseSportSchedule(profile);
+  if (sportSchedule) {
+    const practiceDay = sportSchedule.days.find(d => d.toLowerCase() === today.toLowerCase());
+    if (practiceDay) {
+      return {
+        day: today,
+        name: `${sportSchedule.sport} Practice`,
+        type: "sport",
+        exercises: [
+          { name: "Sport-Specific Warm-Up", sets: 1, reps: "10-15 min", restSeconds: 0, coachTip: "Dynamic stretches. Sport-specific movement prep." },
+          { name: `${sportSchedule.sport} Practice`, sets: 1, reps: `${sportSchedule.durationMinutes} min`, restSeconds: 0, coachTip: `${sportSchedule.intensity} intensity. Stay hydrated. Focus on technique.` },
+          { name: "Cool Down + Stretch", sets: 1, reps: "10 min", restSeconds: 0, coachTip: "Static stretches. Foam roll if available." },
+        ],
+      };
+    }
+  }
 
   let workoutList: PlannedWorkout[];
 

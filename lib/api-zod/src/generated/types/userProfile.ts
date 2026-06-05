@@ -58,9 +58,13 @@ export interface UserProfile {
   /** @nullable */
   sportCustom?: string | null;
   /** @nullable */
+  sportSchedule?: string | null;
+  /** @nullable */
   hasOwnSchedule?: string | null;
   /** @nullable */
   ownSchedule?: string | null;
+  /** @nullable */
+  customWorkoutSchedule?: string | null;
   /** @nullable */
   workoutFocus?: string | null;
   /** @nullable */
