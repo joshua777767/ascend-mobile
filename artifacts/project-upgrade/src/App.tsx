@@ -19,6 +19,7 @@ import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import SettingsPage from "@/pages/settings";
 import TrialReviewPage from "@/pages/trial-review";
+import AdminPage from "@/pages/admin";
 import { Layout } from "@/components/layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useGetUserProfile } from "@workspace/api-client-react";
@@ -239,6 +240,7 @@ function AppRouter() {
       <Route path="/signup" component={SignupPage} />
       <Route path="/pricing" component={PricingPage} />
       <Route path="/onboarding">{isAuthed ? <OnboardingGuard /> : <Redirect to="/login" />}</Route>
+      <Route path="/admin">{isAuthed ? <AdminPage /> : <Redirect to="/login" />}</Route>
       <Route path="/:rest*">{isAuthed ? <ProtectedApp /> : <Redirect to="/login" />}</Route>
     </Switch>
   );

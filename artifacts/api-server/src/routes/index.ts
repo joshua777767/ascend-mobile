@@ -14,6 +14,7 @@ import progressRouter from "./progress";
 import waterRouter from "./water";
 import streakRouter from "./streak";
 import goalCheckinsRouter from "./goalCheckins";
+import adminRouter from "./admin";
 import { requireAuth } from "./../middlewares/auth";
 
 const router: IRouter = Router();
@@ -37,5 +38,6 @@ router.use(progressRouter);
 router.use(waterRouter);
 router.use(streakRouter);
 router.use(goalCheckinsRouter);
+router.use(adminRouter);
 
 export default router;
