@@ -36,11 +36,20 @@ const GOOD_FOODS = [
   "grilled", "steamed", "baked",
 ];
 
+// Hydration/wellness foods — good for skin, energy, recovery goals; not penalised for low protein
+const HYDRATION_FOODS = [
+  "coconut water", "coconut", "green tea", "herbal tea", "matcha", "electrolyte",
+  "watermelon", "cucumber", "celery juice", "lemon water", "aloe", "kombucha",
+];
+
+// Goals where hydration/wellness foods should be treated positively, not penalised
+const WELLNESS_GOALS = ["better skin", "clear skin", "higher energy", "better sleep", "hydration"];
+
 const BAD_FOODS = [
   "soda", "coke", "pepsi", "candy", "cake", "donut", "doughnut", "fries", "fried",
   "burger", "cheeseburger", "pizza", "chips", "ice cream", "beer", "wine", "alcohol",
-  "sugar", "sugary", "cookie", "cookies", "chocolate", "fast food", "milkshake", "shake",
-  "bacon", "sausage", "processed", "white bread", "pastry", "syrup", "juice", "energy drink",
+  "sugar", "sugary", "cookie", "cookies", "chocolate", "fast food", "milkshake",
+  "bacon", "sausage", "processed", "white bread", "pastry", "syrup", "energy drink",
 ];
 
 function detect(text: string, list: string[]): string[] {
@@ -75,21 +84,51 @@ function heuristicFeedback(description: string, goalType: string, goals: string[
     };
   }
 
+  const isWellnessGoal = goals.some(g => WELLNESS_GOALS.includes(g));
+  const hydrationMatches = detect(text, HYDRATION_FOODS);
+  const isHydrationItem = hydrationMatches.length > 0;
+
+  // Hydration drinks with wellness goals get special handling — not scored as a full meal,
+  // but not rated BAD either
+  if (isHydrationItem && isWellnessGoal && detect(text, GOOD_FOODS).length === 0) {
+    const drinkName = hydrationMatches[0] ?? "this drink";
+    return {
+      feedback: `Good for hydration and electrolytes — that supports your ${goalLabel} goal. But this isn't a complete meal. Pair it with real food and protein.`,
+      score: 62,
+      quality: "neutral",
+      whatWasGood: `${drinkName.charAt(0).toUpperCase() + drinkName.slice(1)} supports hydration and recovery. Helpful for ${goalLabel}.`,
+      whatWasBad: "Low protein and calories — not enough to count as a meal on its own.",
+      whatToFixNext: "Add protein and whole food alongside this. Think eggs, Greek yogurt, or a handful of nuts.",
+      detectedFoods: null,
+    };
+  }
+
   const good = detect(text, GOOD_FOODS);
   const bad = detect(text, BAD_FOODS);
 
-  let score = 60 + good.length * 9 - bad.length * 14;
+  // Base score — for wellness/hydration goals, don't penalise low protein as hard
+  let score: number;
+  if (isWellnessGoal && goalType !== "muscle_gain") {
+    // Wellness goals: score on food quality, not protein density
+    score = 60 + good.length * 8 - bad.length * 14 + (isHydrationItem ? 6 : 0);
+  } else if (goalType === "muscle_gain") {
+    // Muscle gain: protein is critical — penalise low-protein items more
+    score = 60 + good.length * 9 - bad.length * 14;
+  } else {
+    // Fat loss / maintain / default
+    score = 60 + good.length * 9 - bad.length * 14;
+  }
   score = Math.max(5, Math.min(100, score));
 
   const quality = score >= 70 ? "good" : score >= 45 ? "neutral" : "bad";
 
   const whatWasGood = good.length > 0
     ? `Solid choices: ${good.slice(0, 3).join(", ")}. That supports ${goalLabel}.`
-    : null;
+    : isHydrationItem ? `${hydrationMatches[0]} is good for hydration.` : null;
 
   const whatWasBad = bad.length > 0
     ? `${bad.slice(0, 3).join(", ")} ${bad.length === 1 ? "is" : "are"} working against ${goalLabel}.`
-    : (good.length === 0 ? `Hard to tell how this serves ${goalLabel} — be more specific with portions and protein.` : null);
+    : (good.length === 0 && !isHydrationItem ? `Hard to tell how this serves ${goalLabel} — be more specific with portions and protein.` : null);
 
   let whatToFixNext: string;
   if (goalType === "fat_loss") {
@@ -100,6 +139,8 @@ function heuristicFeedback(description: string, goalType: string, goals: string[
     whatToFixNext = good.length > 0 && bad.length === 0
       ? "Good base — add more calories and protein (rice, eggs, milk) to actually grow."
       : "Build the plate around protein plus quality carbs. Undereating kills muscle gain.";
+  } else if (isWellnessGoal) {
+    whatToFixNext = "Pair this with whole foods and a protein source to make it a complete meal.";
   } else {
     whatToFixNext = "Anchor every meal with a protein source and a vegetable, and keep snacks intentional.";
   }
@@ -154,23 +195,36 @@ async function getMealFeedback(
       ? `${calorieTarget} cal/day is a controlled surplus to build lean mass without excessive fat gain.`
       : `${calorieTarget} cal/day supports energy balance for your goal.`;
 
-    const systemPrompt = `You are a strict AI personal coach AND food nutrition analyzer — at the level of a premium $50/month fitness coach.
+    const isWellnessGoal = goals.some((g: string) => WELLNESS_GOALS.includes(g));
+    const systemPrompt = `You are a strict AI personal coach AND food nutrition analyzer.
 
 USER CONTEXT:
-- Goal: "${goalType}" (${goalsList})
+- Plan goal: "${goalType}"
+- User's selected goals: ${goalsList}
 - Daily targets: ${calorieTarget} cal (${goalCalNote}), ${proteinTarget}g protein
 
 YOUR TASK:
 ${imageUrl ? `1. ANALYZE THE IMAGE: Identify every visible food item. Estimate serving sizes and nutrition from what you can see.
 2. Use the user's description as additional context if provided.
 3. If you're uncertain about an item, make your best estimate and note it in the feedback.` : `1. Use the description to assess the meal.`}
-4. Score the meal 0–100 against the user's specific goal.
-5. Give direct, strict coaching — no fluff, no praise padding.
+4. Score the meal 0–100 against the user's specific goals — not just protein and calories.
+5. Give direct coaching — no fluff, no praise padding.
 
-SCORING BY GOAL:
+SCORING RULES:
 - fat_loss: reward calorie control + high protein + whole foods; penalize excess calories, low protein, fried/sugary food
 - muscle_gain: reward calorie density + high protein; penalize undereating, low protein, missing surplus
 - maintain: reward protein adequacy + balance; penalize extremes
+${isWellnessGoal ? `
+WELLNESS/HYDRATION GOAL RULES (user has: ${goalsList}):
+- Drinks like coconut water, green tea, kombucha, lemon water are HYDRATION SUPPORT — score 55–70 (neutral), NEVER "bad"
+- Do NOT penalize low protein for hydration drinks — that is not their purpose
+- If a food item supports skin (antioxidants, hydration, low-glycemic), reward it
+- If the logged item is ONLY a drink with no protein/food, say: "Good for hydration/electrolytes, but add protein and real food if this is a meal."
+- Score these as snacks/supplements, not full meals` : ""}
+
+CONTEXT AWARENESS — check if this is a drink, snack, or full meal:
+- If it's clearly a drink or supplement (coconut water, green tea, smoothie), score it as such — not as a 3-course meal
+- Don't penalize a glass of coconut water for having "no protein" if the user's goals include skin or hydration
 
 If the meal was poor, suggest a better option from:
 ${swapOptions}
@@ -181,18 +235,20 @@ Respond with ONLY valid JSON in this exact format:
     {"item": "food name", "serving": "e.g. 2 slices / ~200g", "calories": 300, "protein": 12, "carbs": 35, "fat": 10}
   ],
   "score": 0-100,
-  "feedback": "2-3 sentences. ${imageUrl ? 'Start with what you detected: e.g. \\"I detected pepperoni pizza — 2 slices, ~600 cal, ~25g protein. \\"' : ''}Give direct coaching. If uncertain about amounts, say so and ask for confirmation.",
+  "feedback": "2-3 sentences. ${imageUrl ? 'Start with what you detected: e.g. \\"I detected coconut water — ~50 cal, electrolytes. \\"' : ''}Give direct coaching.",
   "quality": "good|neutral|bad",
   "whatWasGood": "1 sentence or null",
   "whatWasBad": "1 sentence or null",
-  "whatToFixNext": "1-2 actionable sentences. Name a specific better food if the meal was neutral or bad."
+  "whatToFixNext": "1-2 actionable sentences. If it's a drink, say what to pair it with."
 }
 
-Tone: direct and strict — no shaming, but no false praise either.
-- Fat loss bad: "The fries and soda wiped out your deficit. ~800 cal with almost no protein. Next meal: chicken + rice + broccoli."
-- Fat loss good: "Solid fat-loss meal. High protein, controlled carbs, no junk. This is what consistent fat loss looks like."
-- Muscle gain too small: "Too small to move the needle. You need 600–800 cal per meal. Add rice, peanut butter, or a shake."
-- Muscle gain good: "Good bulk meal. High protein and enough calories to support growth."`;
+Tone: direct and honest — no shaming, but no false praise either.
+Examples:
+- Coconut water + clear skin goal: "Good hydration choice — electrolytes support skin and energy. Not a meal though. Pair it with eggs or Greek yogurt to hit protein."  score: 65, quality: "neutral"
+- Fat loss bad: "The fries and soda wiped out your deficit. ~800 cal with almost no protein. Next meal: chicken + rice + broccoli." score: 20, quality: "bad"
+- Fat loss good: "Solid fat-loss meal. High protein, controlled carbs, no junk." score: 85, quality: "good"
+- Muscle gain too small: "Too small to move the needle. You need 600–800 cal per meal. Add rice, peanut butter, or a shake." score: 35, quality: "bad"`;
+
 
     const userText = description.trim()
       ? `Meal description: ${description.trim()}`
