@@ -1,10 +1,13 @@
+import { randomBytes } from "node:crypto";
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
-import { db, usersTable } from "@workspace/db";
-import { SignupBody, LoginBody } from "@workspace/api-zod";
+import { and, eq, gt, isNull } from "drizzle-orm";
+import { db, usersTable, passwordResetTokensTable } from "@workspace/db";
+import { SignupBody, LoginBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword } from "../lib/password";
 
 const router: IRouter = Router();
+
+const SAFE_RESET_MSG = "If an account exists with that email, a reset link has been sent.";
 
 function publicUser(user: { id: number; email: string }) {
   return { id: user.id, email: user.email };
@@ -91,6 +94,72 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     return;
   }
   res.json(publicUser(user));
+});
+
+router.post("/auth/forgot-password", async (req, res): Promise<void> => {
+  const parsed = ForgotPasswordBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request" });
+    return;
+  }
+
+  const email = parsed.data.email.trim().toLowerCase();
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
+
+  if (!user) {
+    res.json({ message: SAFE_RESET_MSG });
+    return;
+  }
+
+  const token = randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+  await db.insert(passwordResetTokensTable).values({ userId: user.id, token, expiresAt });
+
+  req.log.info(
+    { token, expiresAt },
+    `[FORGOT PASSWORD] Reset link → /reset-password?token=${token}`
+  );
+
+  res.json({ message: SAFE_RESET_MSG });
+});
+
+router.post("/auth/reset-password", async (req, res): Promise<void> => {
+  const parsed = ResetPasswordBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request" });
+    return;
+  }
+
+  const { token, password } = parsed.data;
+
+  const [resetToken] = await db
+    .select()
+    .from(passwordResetTokensTable)
+    .where(
+      and(
+        eq(passwordResetTokensTable.token, token),
+        gt(passwordResetTokensTable.expiresAt, new Date()),
+        isNull(passwordResetTokensTable.usedAt)
+      )
+    );
+
+  if (!resetToken) {
+    res.status(400).json({ error: "This reset link is invalid or has expired." });
+    return;
+  }
+
+  const passwordHash = await hashPassword(password);
+
+  await Promise.all([
+    db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, resetToken.userId)),
+    db
+      .update(passwordResetTokensTable)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetTokensTable.id, resetToken.id)),
+  ]);
+
+  res.json({ message: "Password updated. You can now log in with your new password." });
 });
 
 export default router;

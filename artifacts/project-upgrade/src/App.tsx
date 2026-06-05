@@ -17,6 +17,8 @@ import ProgressPage from "@/pages/progress";
 import PricingPage from "@/pages/pricing";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 import SettingsPage from "@/pages/settings";
 import TrialReviewPage from "@/pages/trial-review";
 import AdminPage from "@/pages/admin";
@@ -238,6 +240,8 @@ function AppRouter() {
       <Route path="/" component={LandingPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/signup" component={SignupPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/pricing" component={PricingPage} />
       <Route path="/onboarding">{isAuthed ? <OnboardingGuard /> : <Redirect to="/login" />}</Route>
       <Route path="/admin">{isAuthed ? <AdminPage /> : <Redirect to="/login" />}</Route>

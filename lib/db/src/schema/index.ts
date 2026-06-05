@@ -11,3 +11,4 @@ export * from "./chatMessages";
 export * from "./waterLogs";
 export * from "./scheduleOverrides";
 export * from "./goalCheckIns";
+export * from "./passwordResetTokens";

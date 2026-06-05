@@ -29,6 +29,20 @@ export interface ApiError {
   error: string;
 }
 
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export interface ResetPasswordInput {
+  token: string;
+  /** @minLength 8 */
+  password: string;
+}
+
+export interface MessageResponse {
+  message: string;
+}
+
 /**
  * @nullable
  */
