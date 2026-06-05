@@ -71,12 +71,35 @@ type ProfileWithRange = UserProfile & { wakeTimeRange?: string | null; sleepTime
 
 function effectiveWake(profile: ProfileWithRange): string {
   const r = parseRange(profile.wakeTimeRange ?? null);
-  return rangeMidpoint(r) ?? profile.wakeTime ?? "07:00";
+  // Use || (not ??) so empty strings also fall through to the default
+  return rangeMidpoint(r) || profile.wakeTime || "07:00";
 }
 
 function effectiveSleep(profile: ProfileWithRange): string {
   const r = parseRange(profile.sleepTimeRange ?? null);
-  return rangeMidpoint(r) ?? profile.sleepTime ?? "23:00";
+  return rangeMidpoint(r) || profile.sleepTime || "23:00";
+}
+
+// ─── Day-flow sort key ─────────────────────────────────────────────────────────
+// When a schedule crosses midnight (sleepMin < wakeMin), items in the pre-wake
+// zone (00:xx – wake) belong at the END of the day, not the start.
+// Sorting by (tm - wakeMin + 1440) % 1440 achieves the correct day-flow order.
+function dayFlowKey(t: string, wakeMin: number): number {
+  return (toMin(t) - wakeMin + 1440) % 1440;
+}
+
+// ─── Evening pin ───────────────────────────────────────────────────────────────
+// The nightly journal should never display as "00:00" — that reads as the start
+// of the day. For near-midnight sleepers (sleep=00:00–01:29) whose journal would
+// land in the first 60 min past midnight, pin it to 23:30 instead.
+// The day-flow sort handles the remaining items (sleep prep, skincare at 00:xx)
+// correctly — they'll display at 00:xx but sort at the end of the day.
+function eveningPin(t: string, wakeMin: number, crossesMidnight: boolean): string {
+  if (!crossesMidnight) return t;
+  const tm = toMin(t);
+  // 00:00–00:59 lands in first hour past midnight → pull back to 23:30
+  if (tm < wakeMin && tm < 60) return "23:30";
+  return t;
 }
 
 // ─── Main generator ────────────────────────────────────────────────────────────
@@ -86,6 +109,10 @@ export function generateDailySchedule(profile: ProfileWithRange, plan: Plan): Sc
 
   const wake = effectiveWake(profile);
   const sleep = effectiveSleep(profile);
+  const wakeMin = toMin(wake);
+  const sleepMin = toMin(sleep);
+  // Schedule crosses midnight when sleep-time is numerically before wake-time (e.g. sleep=00:30, wake=07:00)
+  const crossesMidnight = sleepMin <= wakeMin;
   const wakeRange = parseRange(profile.wakeTimeRange ?? null);
   const sleepRange = parseRange(profile.sleepTimeRange ?? null);
 
@@ -373,7 +400,8 @@ export function generateDailySchedule(profile: ProfileWithRange, plan: Plan): Sc
   }
 
   items.push({
-    time: addMins(sleep, -30),
+    // Pin to evening (≤23:59) for near-midnight sleepers so it never sorts to top of day
+    time: eveningPin(addMins(sleep, -30), wakeMin, crossesMidnight),
     activity: "Nightly journal + review",
     type: "journal",
     notes: "Score today 1–10. What did you win? What do you fix tomorrow?",
@@ -401,12 +429,22 @@ export function generateDailySchedule(profile: ProfileWithRange, plan: Plan): Sc
   items.push({ time: sleep, activity: "Sleep", type: "sleep", notes: sleepNote });
 
   // ─── Sort and deduplicate ──────────────────────────────────────────────────
-  const sorted = items.sort((a, b) => a.time.localeCompare(b.time));
-  for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i].time === sorted[i - 1]!.time) {
-      sorted[i]!.time = addMins(sorted[i]!.time, 5);
+  // Use day-flow order anchored to wake time so that post-midnight items
+  // (e.g. sleep prep at 00:20 when bed is 00:30) sort at the END of the day,
+  // not the beginning — regardless of their 24-hour clock value.
+  const sk = (t: string) => dayFlowKey(t, wakeMin);
+
+  items.sort((a, b) => sk(a.time) - sk(b.time));
+
+  // Nudge duplicate timestamps forward (in day-flow direction) by 5 min
+  for (let i = 1; i < items.length; i++) {
+    if (items[i]!.time === items[i - 1]!.time) {
+      items[i]!.time = addMins(items[i]!.time, 5);
     }
   }
 
-  return sorted.sort((a, b) => a.time.localeCompare(b.time));
+  // Re-sort after nudging
+  items.sort((a, b) => sk(a.time) - sk(b.time));
+
+  return items;
 }
