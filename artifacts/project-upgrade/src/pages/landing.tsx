@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowRight, Dumbbell, Apple, Moon, Sparkles, BatteryCharging, ShieldCheck } from "lucide-react";
+import { AscendMark } from "@/components/ascend-mark";
 
 export default function LandingPage() {
   const pillars = [
@@ -29,15 +30,7 @@ export default function LandingPage() {
     >
       {/* Brand */}
       <div className="px-6 pt-8 flex items-center gap-2.5">
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{
-            background: "linear-gradient(140deg, #3B82F6 0%, #2DD4BF 100%)",
-            boxShadow: "0 0 14px rgba(59,130,246,0.45)",
-          }}
-        >
-          <span className="text-white font-black text-[13px]" style={{ letterSpacing: "-0.03em" }}>A</span>
-        </div>
+        <AscendMark size="lg" />
         <div>
           <span className="text-[15px] font-black tracking-tight leading-none">Ascend</span>
           <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Command Center</p>

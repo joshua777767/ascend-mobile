@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
+import { AscendMark } from "@/components/ascend-mark";
 import {
   Home,
   Calendar,
@@ -43,24 +44,7 @@ const PAGE_TITLES: Record<string, string> = {
 };
 
 function AscendLogo({ size = "md" }: { size?: "sm" | "md" }) {
-  const dim = size === "sm" ? "w-7 h-7 rounded-lg" : "w-8 h-8 rounded-xl";
-  const text = size === "sm" ? "text-[11px]" : "text-sm";
-  return (
-    <div
-      className={`${dim} flex items-center justify-center shrink-0 select-none`}
-      style={{
-        background: "linear-gradient(140deg, #3B82F6 0%, #2DD4BF 100%)",
-        boxShadow: "0 0 14px rgba(59,130,246,0.45), 0 2px 6px rgba(0,0,0,0.4)",
-      }}
-    >
-      <span
-        className={`text-white font-black ${text}`}
-        style={{ letterSpacing: "-0.03em", fontFamily: "'Inter', sans-serif" }}
-      >
-        A
-      </span>
-    </div>
-  );
+  return <AscendMark size={size} />;
 }
 
 function TrialPill() {
