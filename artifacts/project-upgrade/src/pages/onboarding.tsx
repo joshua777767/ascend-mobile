@@ -606,17 +606,7 @@ export default function OnboardingPage() {
 
                 {scheduleChoice === "yes" && (
                   <div className="mt-3 space-y-4">
-                    <p className="text-xs text-muted-foreground">Enter your weekly schedule. Example: Monday chest/back, Tuesday football practice, Wednesday legs, Thursday rest, Friday full body.</p>
-                    <textarea
-                      value={ownScheduleText}
-                      onChange={e => setOwnScheduleText(e.target.value)}
-                      placeholder="Mon: chest/back, Tue: practice, Wed: legs, Thu: rest, Fri: full body..."
-                      className={textareaClass}
-                      rows={4}
-                    />
-                    {/* Structured custom workout split builder */}
                     <div className="space-y-2">
-                      <p className="text-xs font-semibold text-foreground">Or build a structured split:</p>
                       {DAY_NAMES.map(d => {
                         const entry = customWorkoutDays.find(x => x.day === d);
                         const focus = entry?.focus ?? "";
