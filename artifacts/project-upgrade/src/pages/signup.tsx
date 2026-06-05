@@ -6,7 +6,7 @@ import {
   getGetMeQueryKey,
   getGetUserProfileQueryKey,
 } from "@workspace/api-client-react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { AscendMark } from "@/components/ascend-mark";
 
 export default function SignupPage() {
@@ -15,6 +15,7 @@ export default function SignupPage() {
   const signup = useSignup();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -73,16 +74,26 @@ export default function SignupPage() {
           </div>
           <div>
             <label className="text-sm font-semibold text-foreground mb-2 block">Password</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
-              className="w-full bg-elevated border border-border rounded-xl h-12 px-4 text-base outline-none focus:border-primary transition-colors"
-              data-testid="input-password"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                className="w-full bg-elevated border border-border rounded-xl h-12 px-4 pr-12 text-base outline-none focus:border-primary transition-colors"
+                data-testid="input-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
