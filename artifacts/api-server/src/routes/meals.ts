@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
-import { db, mealsTable, userProfilesTable, plansTable } from "@workspace/db";
+import { db, mealsTable, userProfilesTable, plansTable, waterLogsTable } from "@workspace/db";
 import { CreateMealBody, GenerateMealsBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
 import { logger } from "../lib/logger";
@@ -155,6 +155,112 @@ function heuristicFeedback(description: string, goalType: string, goals: string[
   }
 
   return { feedback, score, quality, whatWasGood, whatWasBad, whatToFixNext, detectedFoods: null };
+}
+
+// Keywords in a description that rule out plain water
+const NOT_PLAIN_WATER_KEYWORDS = [
+  "coconut water", "coconut", "juice", "soda", "coke", "pepsi", "milk",
+  "smoothie", "shake", "protein shake", "electrolyte", "gatorade", "coffee",
+  "espresso", "beer", "wine", "alcohol", "sports drink", "flavored water",
+  "flavored", "kombucha", "lemonade",
+];
+
+// Container-size heuristic for oz estimate
+const CONTAINER_OZ: [string, number][] = [
+  ["gallon", 128],
+  ["nalgene", 32],
+  ["large bottle", 32],
+  ["32 oz", 32],
+  ["24 oz", 24],
+  ["20 oz", 20],
+  ["16 oz", 16],
+  ["water bottle", 20],
+  ["shaker", 20],
+  ["sports bottle", 24],
+  ["tall glass", 16],
+  ["large glass", 16],
+  ["big glass", 16],
+  ["glass", 12],
+  ["mug", 12],
+  ["cup", 8],
+  ["small glass", 8],
+];
+
+function descriptionOzEstimate(text: string): number {
+  const lower = text.toLowerCase();
+  for (const [key, oz] of CONTAINER_OZ) {
+    if (lower.includes(key)) return oz;
+  }
+  return 12;
+}
+
+interface WaterDetection {
+  isWater: boolean;
+  oz: number;
+}
+
+async function detectPlainWater(description: string, imageUrl: string | null): Promise<WaterDetection> {
+  const lower = description.toLowerCase();
+
+  // If the description explicitly rules out plain water, skip AI entirely
+  if (NOT_PLAIN_WATER_KEYWORDS.some(k => lower.includes(k))) {
+    return { isWater: false, oz: 0 };
+  }
+
+  const plainWaterInText = ["water bottle", "glass of water", "cup of water", "water", "h2o"]
+    .some(k => lower.includes(k));
+
+  // No photo — trust description only
+  if (!imageUrl) {
+    return {
+      isWater: plainWaterInText,
+      oz: plainWaterInText ? descriptionOzEstimate(lower) : 0,
+    };
+  }
+
+  // Photo present — use AI for a fast, cheap vision check
+  try {
+    const userContent: Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail: "low" } }> = [
+      { type: "image_url", image_url: { url: imageUrl, detail: "low" } },
+    ];
+    if (description.trim()) {
+      userContent.unshift({ type: "text", text: `Description: ${description.trim()}` });
+    }
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      max_tokens: 80,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `You are a photo analyzer checking ONE thing: is this PLAIN WATER?
+
+Plain water = tap water, filtered water, or clear water in any container (cup, glass, bottle, shaker, reusable bottle).
+
+NOT plain water = coconut water, juice, soda, milk, smoothie, protein shake, coffee, tea, beer, wine, sports drinks, electrolyte drinks.
+
+Container oz estimates: small cup=8, standard glass=12, large glass=16, water bottle=20, large bottle/Nalgene=32, shaker=20. Default=12.
+
+Respond ONLY with valid JSON: {"isWater": true|false, "oz": <number>}`,
+        },
+        { role: "user", content: userContent },
+      ],
+    });
+
+    const content = response.choices[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    const isWater = parsed.isWater === true;
+    const oz = typeof parsed.oz === "number" && parsed.oz >= 1 && parsed.oz <= 256
+      ? Math.round(parsed.oz)
+      : 12;
+
+    logger.info({ isWater, oz }, "Plain water detection");
+    return { isWater, oz };
+  } catch (err) {
+    logger.warn({ err }, "Water detection AI failed, falling back to heuristic");
+    return { isWater: plainWaterInText, oz: plainWaterInText ? descriptionOzEstimate(lower) : 0 };
+  }
 }
 
 async function getMealFeedback(
@@ -327,6 +433,20 @@ router.post("/meals", async (req, res): Promise<void> => {
 
   if (imageUrl && !/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(imageUrl)) {
     res.status(400).json({ error: "Invalid image format." });
+    return;
+  }
+
+  // Plain water check — intercept before meal scoring
+  const waterDetection = await detectPlainWater(description, imageUrl);
+  if (waterDetection.isWater) {
+    const userId = getUserId(req);
+    const date = new Date().toISOString().slice(0, 10);
+    await db.insert(waterLogsTable).values({ userId, date, amountOz: waterDetection.oz });
+    res.status(201).json({
+      waterLogged: true,
+      amountOz: waterDetection.oz,
+      message: `Water logged — estimated ${waterDetection.oz} oz.`,
+    });
     return;
   }
 

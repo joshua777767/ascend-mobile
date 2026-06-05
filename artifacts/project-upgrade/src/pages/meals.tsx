@@ -1,12 +1,12 @@
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { useGetTodayMeals, useListMeals, useCreateMeal, useGenerateMeals, useGetUserProfile, getGetTodayMealsQueryKey, getListMealsQueryKey } from "@workspace/api-client-react";
+import { useGetTodayMeals, useListMeals, useCreateMeal, useGenerateMeals, useGetUserProfile, getGetTodayMealsQueryKey, getListMealsQueryKey, getGetWaterTodayQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Utensils, CheckCircle, XCircle, AlertCircle, Camera, X, ChefHat, Sparkles, ArrowLeft } from "lucide-react";
+import { Utensils, CheckCircle, XCircle, AlertCircle, Camera, X, ChefHat, Sparkles, ArrowLeft, Droplets } from "lucide-react";
 
 const QUALITY_STYLE: Record<string, string> = {
   good: "text-green-400 border-green-400/30 bg-green-400/5",
@@ -94,6 +94,7 @@ export default function MealsPage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [waterLog, setWaterLog] = useState<{ oz: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Meal generator state
@@ -126,17 +127,26 @@ export default function MealsPage() {
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setError(null);
+    setWaterLog(null);
     try {
-      await createMeal.mutateAsync({
+      const result = await createMeal.mutateAsync({
         data: {
           description: mealText.trim(),
           ...(imageData ? { imageUrl: imageData } : {}),
         },
       });
-      queryClient.invalidateQueries({ queryKey: getGetTodayMealsQueryKey() });
-      queryClient.invalidateQueries({ queryKey: getListMealsQueryKey() });
       setMealText("");
       setImageData(null);
+      // Plain water detected — log water, don't show as meal
+      if ((result as any)?.waterLogged) {
+        const oz = (result as any).amountOz ?? 12;
+        setWaterLog({ oz });
+        queryClient.invalidateQueries({ queryKey: getGetWaterTodayQueryKey() });
+        setTimeout(() => setWaterLog(null), 5000);
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: getGetTodayMealsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getListMealsQueryKey() });
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
     } catch (e) {
@@ -425,6 +435,12 @@ export default function MealsPage() {
               </Button>
               {error && (
                 <p className="text-xs text-red-400 text-center" data-testid="text-meal-error">{error}</p>
+              )}
+              {waterLog && (
+                <div className="bg-blue-500/10 border border-blue-500/30 p-3 flex items-center justify-center gap-2" data-testid="water-logged-banner">
+                  <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
+                  <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Water logged — estimated {waterLog.oz} oz.</p>
+                </div>
               )}
               {submitted && (
                 <div className="bg-primary/10 border border-primary/20 p-3 text-center">
