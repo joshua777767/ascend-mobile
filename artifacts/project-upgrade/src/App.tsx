@@ -18,6 +18,7 @@ import PricingPage from "@/pages/pricing";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import SettingsPage from "@/pages/settings";
+import TrialReviewPage from "@/pages/trial-review";
 import { Layout } from "@/components/layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useGetUserProfile } from "@workspace/api-client-react";
@@ -194,6 +195,7 @@ function ProtectedApp() {
         <Route path="/journal" component={JournalPage} />
         <Route path="/progress" component={ProgressPage} />
         <Route path="/settings" component={SettingsPage} />
+        <Route path="/trial-review" component={TrialReviewPage} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

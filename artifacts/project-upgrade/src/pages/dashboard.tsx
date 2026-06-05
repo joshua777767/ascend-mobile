@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useTrialDay } from "@/hooks/use-trial";
 import {
   useGetUserProfile,
   useGetCurrentPlan,
@@ -566,6 +567,9 @@ export default function DashboardPage() {
     }
   }
 
+  const { trialDay, daysLeft, trialComplete } = useTrialDay();
+  const showTrialNudge = trialDay >= 5;
+
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric" });
 
@@ -666,6 +670,31 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+
+        {/* ── Trial Nudge (days 5-7) ── */}
+        {showTrialNudge && (
+          <Link href={trialComplete ? "/trial-review" : "/pricing"}>
+            <div
+              className="rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer transition-opacity hover:opacity-80"
+              style={{
+                background: "rgba(245,158,11,0.07)",
+                border: "1px solid rgba(245,158,11,0.22)",
+              }}
+            >
+              <Zap className="w-4 h-4 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={2.5} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-bold text-foreground leading-tight">
+                  {trialComplete
+                    ? "Your Week 2 plan is ready — see your 7-day review"
+                    : daysLeft === 1
+                    ? "Last day of your trial. See what you've built."
+                    : `Day ${trialDay} of 7 — ${daysLeft} days left in your free trial`}
+                </p>
+              </div>
+              <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
+            </div>
+          </Link>
+        )}
 
         {/* ── Goal Reached ── */}
         {progress?.goalReached && (
