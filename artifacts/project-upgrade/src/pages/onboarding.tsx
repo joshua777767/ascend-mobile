@@ -202,6 +202,7 @@ export default function OnboardingPage() {
   const [sportDays, setSportDays] = useState<string[]>(persisted?.sportDays ?? []);
   const [sportStartTime, setSportStartTime] = useState(persisted?.sportStartTime ?? "16:00");
   const [sportDuration, setSportDuration] = useState(persisted?.sportDuration ?? 90);
+  const [sportDurationRaw, setSportDurationRaw] = useState(String(persisted?.sportDuration ?? 90));
   const [sportIntensity, setSportIntensity] = useState(persisted?.sportIntensity ?? "moderate");
   const [sportGameDays, setSportGameDays] = useState<string[]>(persisted?.sportGameDays ?? []);
 
@@ -549,12 +550,24 @@ export default function OnboardingPage() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Duration (min)</p>
-                      <Input
+                      <input
                         type="number"
-                        min={15}
-                        max={300}
-                        value={sportDuration}
-                        onChange={e => setSportDuration(Math.max(15, Math.min(300, parseInt(e.target.value) || 90)))}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={sportDurationRaw}
+                        onChange={e => setSportDurationRaw(e.target.value)}
+                        onFocus={e => e.target.select()}
+                        onBlur={e => {
+                          const val = parseInt(e.target.value, 10);
+                          if (Number.isNaN(val) || val <= 0) {
+                            setSportDurationRaw("60");
+                            setSportDuration(60);
+                          } else {
+                            const clamped = Math.max(15, Math.min(300, val));
+                            setSportDurationRaw(String(clamped));
+                            setSportDuration(clamped);
+                          }
+                        }}
                         className={inputClass}
                       />
                     </div>
