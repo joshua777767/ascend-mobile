@@ -49,4 +49,8 @@ export interface UserProfileInput {
   workoutFocus?: string;
   /** @nullable */
   commitmentLevel: UserProfileInputCommitmentLevel;
+  /** @nullable */
+  wakeTimeRange?: string | null;
+  /** @nullable */
+  sleepTimeRange?: string | null;
 }

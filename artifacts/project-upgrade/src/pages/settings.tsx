@@ -187,6 +187,12 @@ export default function SettingsPage() {
   // ── Section 4: Daily Schedule ─────────────────────────────────────────────
   const [wakeTime, setWakeTime] = useState("");
   const [sleepTime, setSleepTime] = useState("");
+  const [wakeMode, setWakeMode] = useState<"exact" | "range">("exact");
+  const [wakeRangeStart, setWakeRangeStart] = useState("");
+  const [wakeRangeEnd, setWakeRangeEnd] = useState("");
+  const [sleepMode, setSleepMode] = useState<"exact" | "range">("exact");
+  const [sleepRangeStart, setSleepRangeStart] = useState("");
+  const [sleepRangeEnd, setSleepRangeEnd] = useState("");
   const [mealsPerDay, setMealsPerDay] = useState(3);
   const [waterIntakeLiters, setWaterIntakeLiters] = useState(2);
 
@@ -245,6 +251,18 @@ export default function SettingsPage() {
     // Daily Schedule
     if (p.wakeTime) setWakeTime(p.wakeTime);
     if (p.sleepTime) setSleepTime(p.sleepTime);
+    if (p.wakeTimeRange) {
+      try {
+        const wr = JSON.parse(p.wakeTimeRange);
+        if (wr.start && wr.end) { setWakeMode("range"); setWakeRangeStart(wr.start); setWakeRangeEnd(wr.end); }
+      } catch { /* ignore */ }
+    }
+    if (p.sleepTimeRange) {
+      try {
+        const sr = JSON.parse(p.sleepTimeRange);
+        if (sr.start && sr.end) { setSleepMode("range"); setSleepRangeStart(sr.start); setSleepRangeEnd(sr.end); }
+      } catch { /* ignore */ }
+    }
     if (p.mealsPerDay) setMealsPerDay(p.mealsPerDay);
     if (p.waterIntakeLiters) setWaterIntakeLiters(p.waterIntakeLiters);
 
@@ -319,8 +337,26 @@ export default function SettingsPage() {
 
   const handleSaveSchedule = () => {
     const payload: Record<string, unknown> = {};
-    if (wakeTime) payload.wakeTime = wakeTime;
-    if (sleepTime) payload.sleepTime = sleepTime;
+    if (wakeMode === "range" && wakeRangeStart && wakeRangeEnd) {
+      const midH = (parseInt(wakeRangeStart.split(":")[0]!, 10) * 60 + parseInt(wakeRangeStart.split(":")[1]!, 10)
+        + parseInt(wakeRangeEnd.split(":")[0]!, 10) * 60 + parseInt(wakeRangeEnd.split(":")[1]!, 10)) / 2;
+      const mh = Math.floor(midH / 60), mm = Math.round(midH % 60);
+      payload.wakeTime = `${String(mh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
+      payload.wakeTimeRange = JSON.stringify({ start: wakeRangeStart, end: wakeRangeEnd });
+    } else {
+      if (wakeTime) payload.wakeTime = wakeTime;
+      payload.wakeTimeRange = null;
+    }
+    if (sleepMode === "range" && sleepRangeStart && sleepRangeEnd) {
+      const midH = (parseInt(sleepRangeStart.split(":")[0]!, 10) * 60 + parseInt(sleepRangeStart.split(":")[1]!, 10)
+        + parseInt(sleepRangeEnd.split(":")[0]!, 10) * 60 + parseInt(sleepRangeEnd.split(":")[1]!, 10)) / 2;
+      const mh = Math.floor(midH / 60), mm = Math.round(midH % 60);
+      payload.sleepTime = `${String(mh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
+      payload.sleepTimeRange = JSON.stringify({ start: sleepRangeStart, end: sleepRangeEnd });
+    } else {
+      if (sleepTime) payload.sleepTime = sleepTime;
+      payload.sleepTimeRange = null;
+    }
     payload.mealsPerDay = mealsPerDay;
     payload.waterIntakeLiters = waterIntakeLiters;
     saveAndRegenerate(payload, setSaved4);
@@ -686,13 +722,62 @@ export default function SettingsPage() {
         <section className="rounded-2xl bg-card border border-border p-5 space-y-5">
           <p className="text-sm font-semibold text-foreground">Daily Schedule</p>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Wake time">
+          {/* Wake time */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Wake time</p>
+              <div className="flex rounded-lg overflow-hidden border border-border text-xs">
+                {(["exact","range"] as const).map(m => (
+                  <button key={m} onClick={() => setWakeMode(m)}
+                    className={`px-2.5 py-1 font-semibold capitalize transition-colors ${wakeMode === m ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"}`}>
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {wakeMode === "exact" ? (
               <input type="time" value={wakeTime} onChange={e => setWakeTime(e.target.value)} className={inputCls} />
-            </Field>
-            <Field label="Sleep time">
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-[10px] text-muted-foreground mb-1">Earliest</p>
+                  <input type="time" value={wakeRangeStart} onChange={e => setWakeRangeStart(e.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground mb-1">Latest</p>
+                  <input type="time" value={wakeRangeEnd} onChange={e => setWakeRangeEnd(e.target.value)} className={inputCls} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sleep time */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sleep time</p>
+              <div className="flex rounded-lg overflow-hidden border border-border text-xs">
+                {(["exact","range"] as const).map(m => (
+                  <button key={m} onClick={() => setSleepMode(m)}
+                    className={`px-2.5 py-1 font-semibold capitalize transition-colors ${sleepMode === m ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"}`}>
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {sleepMode === "exact" ? (
               <input type="time" value={sleepTime} onChange={e => setSleepTime(e.target.value)} className={inputCls} />
-            </Field>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-[10px] text-muted-foreground mb-1">Earliest</p>
+                  <input type="time" value={sleepRangeStart} onChange={e => setSleepRangeStart(e.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground mb-1">Latest</p>
+                  <input type="time" value={sleepRangeEnd} onChange={e => setSleepRangeEnd(e.target.value)} className={inputCls} />
+                </div>
+              </div>
+            )}
           </div>
 
           <Field label={`Meals per day — ${mealsPerDay}`}>

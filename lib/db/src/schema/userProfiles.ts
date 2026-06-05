@@ -46,6 +46,8 @@ export const userProfilesTable = pgTable("user_profiles", {
   customWorkoutSchedule: text("custom_workout_schedule"),
   workoutFocus: text("workout_focus"),
   commitmentLevel: text("commitment_level"),
+  wakeTimeRange: text("wake_time_range"),
+  sleepTimeRange: text("sleep_time_range"),
   currentStreak: integer("current_streak").notNull().default(0),
   lastStreakDate: text("last_streak_date"),
   goalReachedAt: timestamp("goal_reached_at", { withTimezone: true }),

@@ -69,6 +69,10 @@ export interface UserProfile {
   workoutFocus?: string | null;
   /** @nullable */
   commitmentLevel?: UserProfileCommitmentLevel;
+  /** @nullable */
+  wakeTimeRange?: string | null;
+  /** @nullable */
+  sleepTimeRange?: string | null;
   currentStreak?: number;
   /** @nullable */
   lastStreakDate?: string | null;

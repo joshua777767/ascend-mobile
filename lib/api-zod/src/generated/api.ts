@@ -61,6 +61,8 @@ export const GetUserProfileResponse = zod.object({
   "customWorkoutSchedule": zod.string().nullish(),
   "workoutFocus": zod.string().nullish(),
   "commitmentLevel": zod.enum(['casual', 'serious', 'locked_in', 'extreme_discipline']).nullish(),
+  "wakeTimeRange": zod.string().nullish(),
+  "sleepTimeRange": zod.string().nullish(),
   "currentStreak": zod.number().optional(),
   "lastStreakDate": zod.string().nullish(),
   "createdAt": zod.coerce.date()
@@ -110,7 +112,9 @@ export const CreateUserProfileBody = zod.object({
   "ownSchedule": zod.string().optional(),
   "customWorkoutSchedule": zod.string().optional(),
   "workoutFocus": zod.string().optional(),
-  "commitmentLevel": zod.enum(['casual', 'serious', 'locked_in', 'extreme_discipline']).nullable()
+  "commitmentLevel": zod.enum(['casual', 'serious', 'locked_in', 'extreme_discipline']).nullable(),
+  "wakeTimeRange": zod.string().nullish(),
+  "sleepTimeRange": zod.string().nullish()
 })
 
 
@@ -145,7 +149,9 @@ export const UpdateUserProfileBody = zod.object({
   "ownSchedule": zod.string().optional(),
   "customWorkoutSchedule": zod.string().optional(),
   "workoutFocus": zod.string().optional(),
-  "commitmentLevel": zod.enum(['casual', 'serious', 'locked_in', 'extreme_discipline']).nullish()
+  "commitmentLevel": zod.enum(['casual', 'serious', 'locked_in', 'extreme_discipline']).nullish(),
+  "wakeTimeRange": zod.string().nullish(),
+  "sleepTimeRange": zod.string().nullish()
 })
 
 export const UpdateUserProfileResponse = zod.object({
@@ -190,6 +196,8 @@ export const UpdateUserProfileResponse = zod.object({
   "customWorkoutSchedule": zod.string().nullish(),
   "workoutFocus": zod.string().nullish(),
   "commitmentLevel": zod.enum(['casual', 'serious', 'locked_in', 'extreme_discipline']).nullish(),
+  "wakeTimeRange": zod.string().nullish(),
+  "sleepTimeRange": zod.string().nullish(),
   "currentStreak": zod.number().optional(),
   "lastStreakDate": zod.string().nullish(),
   "createdAt": zod.coerce.date()
@@ -247,6 +255,8 @@ export const UpdateGoalResponse = zod.object({
   "customWorkoutSchedule": zod.string().nullish(),
   "workoutFocus": zod.string().nullish(),
   "commitmentLevel": zod.enum(['casual', 'serious', 'locked_in', 'extreme_discipline']).nullish(),
+  "wakeTimeRange": zod.string().nullish(),
+  "sleepTimeRange": zod.string().nullish(),
   "currentStreak": zod.number().optional(),
   "lastStreakDate": zod.string().nullish(),
   "createdAt": zod.coerce.date()

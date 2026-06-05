@@ -37,4 +37,8 @@ export interface UserProfileUpdate {
   workoutFocus?: string;
   /** @nullable */
   commitmentLevel?: UserProfileUpdateCommitmentLevel;
+  /** @nullable */
+  wakeTimeRange?: string | null;
+  /** @nullable */
+  sleepTimeRange?: string | null;
 }

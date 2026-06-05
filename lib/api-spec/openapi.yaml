@@ -850,6 +850,10 @@ components:
         commitmentLevel:
           type: ["string", "null"]
           enum: ["casual", "serious", "locked_in", "extreme_discipline"]
+        wakeTimeRange:
+          type: ["string", "null"]
+        sleepTimeRange:
+          type: ["string", "null"]
         currentStreak:
           type: integer
         lastStreakDate:
@@ -963,6 +967,10 @@ components:
         commitmentLevel:
           type: ["string", "null"]
           enum: ["casual", "serious", "locked_in", "extreme_discipline"]
+        wakeTimeRange:
+          type: ["string", "null"]
+        sleepTimeRange:
+          type: ["string", "null"]
 
     UserProfileUpdate:
       type: object
@@ -1026,6 +1034,10 @@ components:
         commitmentLevel:
           type: ["string", "null"]
           enum: ["casual", "serious", "locked_in", "extreme_discipline"]
+        wakeTimeRange:
+          type: ["string", "null"]
+        sleepTimeRange:
+          type: ["string", "null"]
 
     Plan:
       type: object

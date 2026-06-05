@@ -1,0 +1,78 @@
+Bug fix / schedule intelligence and mobile planner fix only.
+
+Do not redesign.
+Do not run Playwright.
+Do not install packages.
+Do not change authentication.
+Keep this focused.
+If this requires a broad rewrite, stop and ask me first.
+
+Problem:
+The Plan/Schedule page is hard to use on mobile, and the automatic schedule sometimes feels random or bad. The app should create a strong default schedule automatically, because most users will not manually fix it.
+
+Fix:
+Make the AI/plan generator create the best possible default daily schedule using the user's:
+- wake time
+- sleep time
+- sleep/wake range if provided
+- workout days
+- preferred workout time
+- sport schedule
+- meal goals
+- water goal
+- school/work style schedule if available
+- goals like weight loss, weight gain, sleep, skin, energy, discipline
+
+Schedule rules:
+- Put wake/check-in near wake time.
+- Put meals spaced every 3–4 hours.
+- For weight gain, schedule extra snack/shake reminders.
+- For weight loss, schedule meal logging, steps, water, and workout.
+- Put workouts near preferred workout time.
+- If user has sport practice, do not schedule hard lifting right before practice.
+- Put wind-down, screen cutoff, journal, and sleep prep before bed.
+- Put sleep at the user’s sleep time.
+- Avoid tasks after sleep or before wake unless intentional.
+- Keep the schedule realistic and clean.
+
+Sleep time fix:
+Add two options:
+1. Exact sleep/wake time
+Example:
+Sleep: 12:00 AM
+Wake: 9:00 AM
+
+2. Sleep/wake range
+Example:
+Fall asleep between 11:30 PM–12:30 AM
+Wake between 8:30 AM–9:30 AM
+
+If the user chooses a range, generate the schedule using the midpoint, but show the range in the UI.
+
+Example:
+Sleep range 11:30 PM–12:30 AM → schedule sleep prep around 11:00 PM and sleep around 12:00 AM.
+
+Manual control:
+Users should still be able to edit/move schedule items after the AI generates the best default.
+
+Mobile planner UX:
+- Make schedule easier to scroll vertically on iPhone.
+- Remove cramped tiny icon-only controls if needed.
+- Add a clear “Edit Time” button on each schedule item.
+- When user taps “Edit Time,” show a simple time input/time picker.
+- Make move up/down buttons larger and easier to tap.
+- Make complete/skip buttons larger and easier to tap.
+- Prevent horizontal overflow.
+- Timeline labels should not block the cards.
+- Cards should have enough spacing so tapping one button does not hit another.
+
+Do not delete user data.
+Do not erase existing plans unless regenerating the schedule after settings change.
+
+Tell me exact files changed and how to test:
+1. smart default schedule
+2. sleep/wake exact time
+3. sleep/wake range
+4. mobile scrolling
+5. Edit Time button
+6. move/complete/skip buttons

@@ -104,6 +104,10 @@ export interface UserProfile {
   workoutFocus?: string | null;
   /** @nullable */
   commitmentLevel?: UserProfileCommitmentLevel;
+  /** @nullable */
+  wakeTimeRange?: string | null;
+  /** @nullable */
+  sleepTimeRange?: string | null;
   currentStreak?: number;
   /** @nullable */
   lastStreakDate?: string | null;
@@ -165,6 +169,10 @@ export interface UserProfileInput {
   workoutFocus?: string;
   /** @nullable */
   commitmentLevel: UserProfileInputCommitmentLevel;
+  /** @nullable */
+  wakeTimeRange?: string | null;
+  /** @nullable */
+  sleepTimeRange?: string | null;
 }
 
 /**
@@ -210,6 +218,10 @@ export interface UserProfileUpdate {
   workoutFocus?: string;
   /** @nullable */
   commitmentLevel?: UserProfileUpdateCommitmentLevel;
+  /** @nullable */
+  wakeTimeRange?: string | null;
+  /** @nullable */
+  sleepTimeRange?: string | null;
 }
 
 export interface Plan {
