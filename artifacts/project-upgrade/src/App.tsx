@@ -159,9 +159,30 @@ function useFirstLoadSpinner(isLoading: boolean, timeoutMs = 8000): boolean {
 
 // Authenticated app shell — requires a completed profile, else redirects to onboarding.
 function ProtectedApp() {
-  const { data: profile, isLoading, isError } = useGetUserProfile();
-  if (useFirstLoadSpinner(isLoading)) return <FullScreenSpinner />;
-  if (isError || !profile) return <Redirect to="/onboarding" />;
+  const { data: profile, isLoading, isError, error, isFetching } = useGetUserProfile();
+  const status = (error as { status?: number } | null | undefined)?.status;
+
+  // Wait until we have a settled answer: either profile data, or a fetch that
+  // has fully finished. While the initial load OR a refetch is in flight and we
+  // don't yet have data, keep waiting — a stale cached error/404 (e.g. from a
+  // prior signed-out state or a previous new-user attempt) must never decide
+  // routing, or an existing user gets bounced to onboarding right after login.
+  const undecided = !profile && (isLoading || isFetching);
+  // The `useFirstLoadSpinner` timeout (8s) only guards against a pending query
+  // that never settles. It must NOT let a stale cached 404 win a race against a
+  // live refetch, so we additionally block any routing decision while a fetch
+  // is actually in flight without data.
+  if (useFirstLoadSpinner(undecided) || (isFetching && !profile)) return <FullScreenSpinner />;
+
+  // Settled with a genuine "this user has no profile yet" → onboarding.
+  if (!profile && status === 404) return <Redirect to="/onboarding" />;
+  // Settled with a real error (5xx, network) — don't dump an existing user into
+  // onboarding; show a retry screen instead.
+  if (isError || !profile) {
+    return (
+      <FullScreenError message="We couldn't load your profile. Please check your connection and try again." />
+    );
+  }
   return (
     <Layout>
       <Switch>
@@ -181,9 +202,21 @@ function ProtectedApp() {
 
 // Onboarding — requires auth; if a profile already exists, go to dashboard.
 function OnboardingGuard() {
-  const { data: profile, isLoading } = useGetUserProfile();
-  if (useFirstLoadSpinner(isLoading)) return <FullScreenSpinner />;
+  const { data: profile, isLoading, isError, error, isFetching } = useGetUserProfile();
+  const status = (error as { status?: number } | null | undefined)?.status;
+  // Same rule as ProtectedApp: don't decide while a fetch is in flight and we
+  // have no data yet, so an existing user landing on /onboarding is reliably
+  // bounced to the dashboard instead of seeing onboarding flash.
+  const undecided = !profile && (isLoading || isFetching);
+  if (useFirstLoadSpinner(undecided) || (isFetching && !profile)) return <FullScreenSpinner />;
   if (profile) return <Redirect to="/dashboard" />;
+  // A real error (5xx, network) — not a genuine "no profile yet" 404 — should
+  // surface a retry screen rather than silently dropping into onboarding.
+  if (isError && status !== 404) {
+    return (
+      <FullScreenError message="We couldn't load your profile. Please check your connection and try again." />
+    );
+  }
   return <OnboardingPage />;
 }
 

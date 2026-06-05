@@ -22,7 +22,10 @@ export default function LoginPage() {
     try {
       await login.mutateAsync({ data: { email, password } });
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-      await queryClient.invalidateQueries({ queryKey: getGetUserProfileQueryKey() });
+      // Drop any stale profile cache from a previous session / new-user attempt
+      // so the route guard refetches fresh and decides dashboard vs onboarding
+      // from this user's real profile, not a leftover 404/401.
+      queryClient.removeQueries({ queryKey: getGetUserProfileQueryKey() });
       setLocation("/dashboard");
     } catch (err: any) {
       setError(err?.data?.error ?? "Invalid email or password");

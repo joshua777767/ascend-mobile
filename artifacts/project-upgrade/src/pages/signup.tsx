@@ -26,7 +26,9 @@ export default function SignupPage() {
     try {
       await signup.mutateAsync({ data: { email, password } });
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-      await queryClient.invalidateQueries({ queryKey: getGetUserProfileQueryKey() });
+      // Clear any leftover profile cache so the onboarding guard fetches fresh
+      // for this brand-new account (no profile yet → onboarding).
+      queryClient.removeQueries({ queryKey: getGetUserProfileQueryKey() });
       setLocation("/onboarding");
     } catch (err: any) {
       setError(err?.data?.error ?? "Could not create account");
