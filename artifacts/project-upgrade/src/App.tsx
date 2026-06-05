@@ -233,8 +233,8 @@ function AppRouter() {
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
-      <Route path="/login">{isAuthed ? <Redirect to="/dashboard" /> : <LoginPage />}</Route>
-      <Route path="/signup">{isAuthed ? <Redirect to="/dashboard" /> : <SignupPage />}</Route>
+      <Route path="/login" component={LoginPage} />
+      <Route path="/signup" component={SignupPage} />
       <Route path="/pricing" component={PricingPage} />
       <Route path="/onboarding">{isAuthed ? <OnboardingGuard /> : <Redirect to="/login" />}</Route>
       <Route path="/:rest*">{isAuthed ? <ProtectedApp /> : <Redirect to="/login" />}</Route>
