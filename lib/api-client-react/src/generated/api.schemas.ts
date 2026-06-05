@@ -181,6 +181,22 @@ export const UserProfileUpdateCommitmentLevel = {
 } as const;
 
 export interface UserProfileUpdate {
+  name?: string;
+  age?: number;
+  gender?: string;
+  heightCm?: number;
+  goalWeightKg?: number;
+  bodyType?: string;
+  goals?: string[];
+  targetDate?: string;
+  fitnessLevel?: string;
+  gymAccess?: string;
+  workoutDaysPerWeek?: number;
+  preferredWorkoutTime?: string;
+  wakeTime?: string;
+  sleepTime?: string;
+  mealsPerDay?: number;
+  waterIntakeLiters?: number;
   currentWeightKg?: number;
   sleepQuality?: number;
   energyLevel?: number;

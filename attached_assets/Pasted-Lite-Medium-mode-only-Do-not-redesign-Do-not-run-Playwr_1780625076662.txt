@@ -1,0 +1,79 @@
+Lite/Medium mode only.
+
+Do not redesign.
+Do not run Playwright.
+Do not install packages.
+Do not change authentication.
+Keep this focused. If this needs a broad rewrite, stop and ask me first.
+
+Add editable profile/settings for onboarding answers.
+
+Problem:
+Users choose things during onboarding like workout days, sport, wake time, sleep time, gym access, goals, schedule, etc. But later their life can change. They need to update those inside Settings without making a new account.
+
+Add Settings sections:
+
+1. Personal Info
+- name
+- age
+- gender
+- height
+- current weight
+- goal weight
+- body type if used
+
+2. Goals
+- weight loss / weight gain / maintain
+- clear skin
+- energy
+- sleep
+- discipline
+- athletic performance
+- allow multiple goals
+- allow changing goal weight and timeframe
+
+3. Training
+- fitness level
+- gym access
+- workout days per week
+- preferred workout time
+- custom workout split
+- sport
+- sport practice schedule
+- game days
+- sport intensity
+
+4. Daily Schedule
+- wake time
+- sleep time
+- meal times if used
+- workout time
+- journal/check-in time
+
+5. Preferences
+- commitment level
+- coach strictness if available
+- units: lbs/oz default for US users
+
+Rules:
+- When user saves changes, update their profile.
+- Regenerate or adjust the plan based on the new settings.
+- Do not delete meal history, weigh-ins, streaks, progress, or journal.
+- Show a confirmation:
+“Settings updated. Your plan has been adjusted.”
+
+Important:
+If the change affects calories, workouts, sport schedule, or goals, the dashboard and coach should use the new info immediately.
+
+Examples:
+- If user changes sport from No Sport to Football, coach should include football recovery/training.
+- If user changes wake time, schedule should shift.
+- If user changes workout days from 3 to 5, plan should adjust.
+- If user changes goal weight, progress tracking should update.
+
+Tell me exact files changed and how to test:
+1. change wake time
+2. change sport
+3. change workout days
+4. change goal weight
+5. confirm old progress is not deleted

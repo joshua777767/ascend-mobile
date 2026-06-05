@@ -118,6 +118,22 @@ export const CreateUserProfileBody = zod.object({
  * @summary Update user profile
  */
 export const UpdateUserProfileBody = zod.object({
+  "name": zod.string().optional(),
+  "age": zod.number().optional(),
+  "gender": zod.string().optional(),
+  "heightCm": zod.number().optional(),
+  "goalWeightKg": zod.number().optional(),
+  "bodyType": zod.string().optional(),
+  "goals": zod.array(zod.string()).optional(),
+  "targetDate": zod.string().optional(),
+  "fitnessLevel": zod.string().optional(),
+  "gymAccess": zod.string().optional(),
+  "workoutDaysPerWeek": zod.number().optional(),
+  "preferredWorkoutTime": zod.string().optional(),
+  "wakeTime": zod.string().optional(),
+  "sleepTime": zod.string().optional(),
+  "mealsPerDay": zod.number().optional(),
+  "waterIntakeLiters": zod.number().optional(),
   "currentWeightKg": zod.number().optional(),
   "sleepQuality": zod.number().optional(),
   "energyLevel": zod.number().optional(),

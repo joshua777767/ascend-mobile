@@ -77,9 +77,15 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
     return;
   }
 
+  const { goals, ...rest } = parsed.data as any;
+  const setValues: Record<string, unknown> = { ...rest };
+  if (goals !== undefined) {
+    setValues.goals = JSON.stringify(goals);
+  }
+
   const [profile] = await db
     .update(userProfilesTable)
-    .set(parsed.data as any)
+    .set(setValues as any)
     .where(eq(userProfilesTable.userId, userId))
     .returning();
   if (!profile) {

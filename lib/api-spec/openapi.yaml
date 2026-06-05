@@ -967,6 +967,40 @@ components:
     UserProfileUpdate:
       type: object
       properties:
+        name:
+          type: string
+        age:
+          type: integer
+        gender:
+          type: string
+        heightCm:
+          type: number
+        goalWeightKg:
+          type: number
+        bodyType:
+          type: string
+        goals:
+          type: array
+          items:
+            type: string
+        targetDate:
+          type: string
+        fitnessLevel:
+          type: string
+        gymAccess:
+          type: string
+        workoutDaysPerWeek:
+          type: integer
+        preferredWorkoutTime:
+          type: string
+        wakeTime:
+          type: string
+        sleepTime:
+          type: string
+        mealsPerDay:
+          type: integer
+        waterIntakeLiters:
+          type: number
         currentWeightKg:
           type: number
         sleepQuality:
