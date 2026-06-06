@@ -13,6 +13,7 @@ import {
   useRecordStreak,
   useGetProgressSummary,
   useListGoalCheckIns,
+  getGetWaterTodayQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -586,28 +587,42 @@ export default function DashboardPage() {
 
   async function handleLogWater(oz: number) {
     try {
-      await logWaterFn({ data: { amountOz: oz } });
-      await queryClient.invalidateQueries({ queryKey: ["getWaterToday"] });
-      refetchWater();
+      const result = await logWaterFn({ data: { amountOz: oz } });
+      // Write the new total straight into the cache — counter updates immediately
+      if (result) queryClient.setQueryData(getGetWaterTodayQueryKey(), result);
     } catch {
       // fail silently
     }
   }
 
   async function handleLogWaterPhoto(imageUrl: string) {
+    if (waterAnalyzing) return; // prevent double submit
     setWaterAnalyzing(true);
     setWaterPhotoFeedback(null);
+
+    // 20-second hard timeout so "Analyzing…" never gets stuck
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), 20_000),
+    );
+
     try {
-      const result = await logWaterFn({ data: { imageUrl } });
-      await queryClient.invalidateQueries({ queryKey: ["getWaterToday"] });
-      refetchWater();
-      if (result?.detectedOz) {
-        setWaterPhotoFeedback(`Photo detected ~${result.detectedOz} oz — added!`);
-        setTimeout(() => setWaterPhotoFeedback(null), 4000);
-      }
-    } catch {
-      setWaterPhotoFeedback("Couldn't analyze photo. Try again.");
-      setTimeout(() => setWaterPhotoFeedback(null), 3000);
+      const result = await Promise.race([
+        logWaterFn({ data: { imageUrl } }),
+        timeoutPromise,
+      ]);
+      // Write the new total straight into the cache — counter updates immediately
+      if (result) queryClient.setQueryData(getGetWaterTodayQueryKey(), result);
+      const oz = result?.detectedOz ?? 16;
+      setWaterPhotoFeedback(`Water logged — added ${oz} oz.`);
+      setTimeout(() => setWaterPhotoFeedback(null), 4000);
+    } catch (err) {
+      const isTimeout = err instanceof Error && err.message === "timeout";
+      setWaterPhotoFeedback(
+        isTimeout
+          ? "Couldn't analyze photo. Add manually?"
+          : "Couldn't analyze photo. Add manually?",
+      );
+      setTimeout(() => setWaterPhotoFeedback(null), 4000);
     } finally {
       setWaterAnalyzing(false);
     }
