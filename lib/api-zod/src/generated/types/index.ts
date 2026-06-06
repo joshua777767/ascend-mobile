@@ -18,6 +18,7 @@ export * from './exercise';
 export * from './forgotPasswordInput';
 export * from './goalCheckIn';
 export * from './goalCheckInInput';
+export * from './goalCheckInInputTrend';
 export * from './goalCheckInStatus';
 export * from './goalUpdate';
 export * from './healthStatus';

@@ -8,6 +8,9 @@ export const goalCheckInsTable = pgTable("goal_checkins", {
   weekNumber: integer("week_number").notNull(),
   score: integer("score").notNull(),
   notes: text("notes"),
+  trend: text("trend"),              // "better" | "same" | "worse"
+  whatHelped: text("what_helped"),
+  whatHardened: text("what_hardened"),
   coachFeedback: text("coach_feedback"),
   status: text("status").notNull().default("on_track"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

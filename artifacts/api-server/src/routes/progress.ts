@@ -13,6 +13,7 @@ router.get("/progress/summary", async (req, res): Promise<void> => {
   const reviews = await db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, getUserId(req)));
   const meals = await db.select().from(mealsTable).where(eq(mealsTable.userId, getUserId(req))).orderBy(desc(mealsTable.loggedAt));
 
+  // Latest single weigh-in used for display + progress calculation
   const currentWeightKg = weighIns.length > 0
     ? weighIns[weighIns.length - 1].weightKg
     : profile?.currentWeightKg ?? 0;
@@ -27,10 +28,17 @@ router.get("/progress/summary", async (req, res): Promise<void> => {
   const currentChange = Math.abs(startWeightKg - currentWeightKg);
   const progressPercent = totalChange > 0 ? Math.min(100, (currentChange / totalChange) * 100) : 0;
 
-  // Goal reached detection: weight is within 0.5 kg of goal and moving in the right direction
+  // Goal reached detection: use 7-day average to avoid single-day fluctuations
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const recentWeighIns = weighIns.filter(w => new Date(w.loggedAt) >= sevenDaysAgo);
+  const avg7DayWeightKg = recentWeighIns.length > 0
+    ? recentWeighIns.reduce((s, w) => s + w.weightKg, 0) / recentWeighIns.length
+    : currentWeightKg;
+
   const isLosing = goalWeightKg < startWeightKg;
   const isGaining = goalWeightKg > startWeightKg;
-  const withinThreshold = Math.abs(currentWeightKg - goalWeightKg) <= 0.5;
+  const withinThreshold = Math.abs(avg7DayWeightKg - goalWeightKg) <= 0.5;
   const goalReached = (isLosing || isGaining) ? withinThreshold : false;
   const goalReachedAt = profile?.goalReachedAt ?? null;
 

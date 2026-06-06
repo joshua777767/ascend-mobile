@@ -587,6 +587,8 @@ export const GoalCheckInStatus = {
   on_track: 'on_track',
   plateau: 'plateau',
   achieved: 'achieved',
+  needs_confirmation: 'needs_confirmation',
+  goal_complete: 'goal_complete',
 } as const;
 
 export interface GoalCheckIn {
@@ -608,6 +610,21 @@ export interface GoalCheckIn {
      */
   notes?: string | null;
   /**
+     * Trend vs last week ("better", "same", "worse")
+     * @nullable
+     */
+  trend?: string | null;
+  /**
+     * What helped this week
+     * @nullable
+     */
+  whatHelped?: string | null;
+  /**
+     * What made it harder this week
+     * @nullable
+     */
+  whatHardened?: string | null;
+  /**
      * AI coach feedback on this goal
      * @nullable
      */
@@ -616,6 +633,18 @@ export interface GoalCheckIn {
   status: GoalCheckInStatus;
   createdAt: string;
 }
+
+/**
+ * Trend vs last week
+ */
+export type GoalCheckInInputTrend = typeof GoalCheckInInputTrend[keyof typeof GoalCheckInInputTrend];
+
+
+export const GoalCheckInInputTrend = {
+  better: 'better',
+  same: 'same',
+  worse: 'worse',
+} as const;
 
 export interface GoalCheckInInput {
   /** Goal name */
@@ -628,5 +657,11 @@ export interface GoalCheckInInput {
   score: number;
   /** Optional notes */
   notes?: string;
+  /** Trend vs last week */
+  trend?: GoalCheckInInputTrend;
+  /** What helped this week */
+  whatHelped?: string;
+  /** What made it harder this week */
+  whatHardened?: string;
 }
 

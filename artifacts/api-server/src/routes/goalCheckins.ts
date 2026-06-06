@@ -35,19 +35,19 @@ function getGoalContext(goal: string, score: number, profile: any): string {
 }
 
 function determineStatus(score: number, previousScores: number[]): string {
-  // previousScores is newest-first (desc order). Most recent 2 are at index 0,1.
-  if (score >= 8) {
-    const recent = previousScores.slice(0, 2);
-    if (recent.length >= 2 && recent.every(s => s >= 8)) {
-      return "achieved";
-    }
+  // previousScores is newest-first (desc order).
+  // Two consecutive 9–10 scores → prompt user to confirm goal complete
+  if (score >= 9 && previousScores.length > 0 && previousScores[0] >= 9) {
+    return "needs_confirmation";
   }
+  // Plateau: score stuck at ≤5 with minimal movement for 2+ consecutive check-ins
   if (previousScores.length >= 2) {
     const recent = previousScores.slice(0, 2);
     if (recent.every(s => Math.abs(s - score) <= 1) && score <= 5) {
       return "plateau";
     }
   }
+  if (score >= 7) return "achieved";
   return "on_track";
 }
 
@@ -55,6 +55,9 @@ async function getGoalFeedback(
   goal: string,
   score: number,
   notes: string | null,
+  trend: string | null,
+  whatHelped: string | null,
+  whatHardened: string | null,
   weekNumber: number,
   profile: any,
   previousScores: number[],
@@ -71,9 +74,12 @@ WEEKLY GOAL CHECK-IN:
 - Goal: ${goal}
 - Week: ${weekNumber}
 - Score: ${score}/10
+- Trend vs last week: ${trend ?? "not reported"}
 - Previous scores: ${previousScores.length > 0 ? previousScores.join(", ") : "first check-in"}
 - Status: ${status}
-${notes ? `- User notes: ${notes}` : ""}
+${whatHelped ? `- What helped this week: ${whatHelped}` : ""}
+${whatHardened ? `- What made it harder: ${whatHardened}` : ""}
+${notes ? `- Notes: ${notes}` : ""}
 
 SCORING INTERPRETATION:
 1-3: Significant issues. Need major intervention.
@@ -89,6 +95,7 @@ FEEDBACK RULES BY GOAL:
 - "lose fat" / "lose weight": Focus on calorie deficit, protein, NEAT, and adherence. Reference metabolic adaptation.
 - "build muscle" / "gain weight": Focus on progressive overload, protein, surplus, and recovery. Reference mTOR signaling.
 - "maintain fitness": Focus on consistency, stress management, and recovery.
+${status === "needs_confirmation" ? `\nThe user has rated this goal 9-10 two weeks in a row. Acknowledge their excellent progress. The app will ask them to confirm the goal is complete.` : ""}
 
 Respond as JSON ONLY:
 {
@@ -157,6 +164,9 @@ router.post("/goal-checkins", async (req, res): Promise<void> => {
     parsed.data.goal,
     parsed.data.score,
     parsed.data.notes ?? null,
+    parsed.data.trend ?? null,
+    parsed.data.whatHelped ?? null,
+    parsed.data.whatHardened ?? null,
     weekNumber,
     profileData,
     previousScores,
@@ -168,6 +178,9 @@ router.post("/goal-checkins", async (req, res): Promise<void> => {
     weekNumber,
     score: parsed.data.score,
     notes: parsed.data.notes ?? null,
+    trend: parsed.data.trend ?? null,
+    whatHelped: parsed.data.whatHelped ?? null,
+    whatHardened: parsed.data.whatHardened ?? null,
     coachFeedback,
     status,
   }).returning();

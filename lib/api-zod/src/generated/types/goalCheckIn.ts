@@ -26,6 +26,21 @@ export interface GoalCheckIn {
      */
   notes?: string | null;
   /**
+     * Trend vs last week ("better", "same", "worse")
+     * @nullable
+     */
+  trend?: string | null;
+  /**
+     * What helped this week
+     * @nullable
+     */
+  whatHelped?: string | null;
+  /**
+     * What made it harder this week
+     * @nullable
+     */
+  whatHardened?: string | null;
+  /**
      * AI coach feedback on this goal
      * @nullable
      */

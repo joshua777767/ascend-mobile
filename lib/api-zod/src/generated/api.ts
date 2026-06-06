@@ -786,8 +786,11 @@ export const ListGoalCheckInsResponseItem = zod.object({
   "weekNumber": zod.number().describe('Sequential week number'),
   "score": zod.number().min(1).max(listGoalCheckInsResponseScoreMax).describe('User self-rated score for this goal'),
   "notes": zod.string().nullish().describe('Optional user notes'),
+  "trend": zod.string().nullish().describe('Trend vs last week (\"better\", \"same\", \"worse\")'),
+  "whatHelped": zod.string().nullish().describe('What helped this week'),
+  "whatHardened": zod.string().nullish().describe('What made it harder this week'),
   "coachFeedback": zod.string().nullish().describe('AI coach feedback on this goal'),
-  "status": zod.enum(['on_track', 'plateau', 'achieved']).describe('Coach-assessed status'),
+  "status": zod.enum(['on_track', 'plateau', 'achieved', 'needs_confirmation', 'goal_complete']).describe('Coach-assessed status'),
   "createdAt": zod.coerce.date()
 })
 export const ListGoalCheckInsResponse = zod.array(ListGoalCheckInsResponseItem)
@@ -803,7 +806,10 @@ export const createGoalCheckInBodyScoreMax = 10;
 export const CreateGoalCheckInBody = zod.object({
   "goal": zod.string().describe('Goal name'),
   "score": zod.number().min(1).max(createGoalCheckInBodyScoreMax).describe('Self-rated score'),
-  "notes": zod.string().optional().describe('Optional notes')
+  "notes": zod.string().optional().describe('Optional notes'),
+  "trend": zod.enum(['better', 'same', 'worse']).optional().describe('Trend vs last week'),
+  "whatHelped": zod.string().optional().describe('What helped this week'),
+  "whatHardened": zod.string().optional().describe('What made it harder this week')
 })
 
 

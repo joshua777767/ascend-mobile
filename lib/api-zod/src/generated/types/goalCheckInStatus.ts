@@ -16,4 +16,6 @@ export const GoalCheckInStatus = {
   on_track: 'on_track',
   plateau: 'plateau',
   achieved: 'achieved',
+  needs_confirmation: 'needs_confirmation',
+  goal_complete: 'goal_complete',
 } as const;

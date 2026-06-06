@@ -1764,12 +1764,21 @@ components:
         notes:
           type: ["string", "null"]
           description: Optional user notes
+        trend:
+          type: ["string", "null"]
+          description: Trend vs last week ("better", "same", "worse")
+        whatHelped:
+          type: ["string", "null"]
+          description: What helped this week
+        whatHardened:
+          type: ["string", "null"]
+          description: What made it harder this week
         coachFeedback:
           type: ["string", "null"]
           description: AI coach feedback on this goal
         status:
           type: string
-          enum: ["on_track", "plateau", "achieved"]
+          enum: ["on_track", "plateau", "achieved", "needs_confirmation", "goal_complete"]
           description: Coach-assessed status
         createdAt:
           type: string
@@ -1792,3 +1801,13 @@ components:
         notes:
           type: string
           description: Optional notes
+        trend:
+          type: string
+          enum: ["better", "same", "worse"]
+          description: Trend vs last week
+        whatHelped:
+          type: string
+          description: What helped this week
+        whatHardened:
+          type: string
+          description: What made it harder this week

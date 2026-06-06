@@ -5,6 +5,7 @@
  * Ascend API
  * OpenAPI spec version: 0.1.0
  */
+import type { GoalCheckInInputTrend } from './goalCheckInInputTrend';
 
 export interface GoalCheckInInput {
   /** Goal name */
@@ -17,4 +18,10 @@ export interface GoalCheckInInput {
   score: number;
   /** Optional notes */
   notes?: string;
+  /** Trend vs last week */
+  trend?: GoalCheckInInputTrend;
+  /** What helped this week */
+  whatHelped?: string;
+  /** What made it harder this week */
+  whatHardened?: string;
 }
