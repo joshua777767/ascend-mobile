@@ -224,6 +224,52 @@ function IntakeBar({
   );
 }
 
+// Priority families — ordered by importance. Each habit is assigned to the
+// first family whose keywords match, so duplicates like "Train 3x" and
+// "Strength train 3x" collapse into one entry.
+const HABIT_FAMILIES: Array<{ family: string; keywords: string[] }> = [
+  { family: "calorie",  keywords: ["calorie", "caloric", "deficit", "surplus", "kcal"] },
+  { family: "protein",  keywords: ["protein", "macro"] },
+  { family: "water",    keywords: ["water", "hydrat", "drink"] },
+  { family: "log",      keywords: ["log", "track", "scan", "meal"] },
+  { family: "train",    keywords: ["train", "workout", "gym", "exercise", "lift", "strength", "cardio", "run", "recover", "recovery", "rest day", "sport", "practice"] },
+  { family: "sleep",    keywords: ["sleep", "bed", "night", "wake"] },
+  { family: "skin",     keywords: ["skin", "face", "moistur", "spf", "sunscreen"] },
+  { family: "mindset",  keywords: ["stress", "meditat", "breath", "journal", "gratitude", "focus"] },
+  { family: "steps",    keywords: ["step", "walk", "10k", "active"] },
+];
+
+function habitFamily(habit: string): string {
+  const lower = habit.toLowerCase();
+  for (const { family, keywords } of HABIT_FAMILIES) {
+    if (keywords.some((k) => lower.includes(k))) return family;
+  }
+  return `other:${habit}`;
+}
+
+function habitPriorityScore(habit: string): number {
+  const lower = habit.toLowerCase();
+  for (let i = 0; i < HABIT_FAMILIES.length; i++) {
+    if (HABIT_FAMILIES[i].keywords.some((k) => lower.includes(k))) return i;
+  }
+  return HABIT_FAMILIES.length;
+}
+
+// Deduplicates by family (keeping the shorter label), sorts by priority, caps at 5.
+function prioritizeHabits(rawHabits: string[]): string[] {
+  const byFamily = new Map<string, string>();
+  for (const h of rawHabits) {
+    const fam = habitFamily(h);
+    const existing = byFamily.get(fam);
+    if (!existing || h.length < existing.length) {
+      byFamily.set(fam, h);
+    }
+  }
+  return Array.from(byFamily.values())
+    .sort((a, b) => habitPriorityScore(a) - habitPriorityScore(b))
+    .slice(0, 5);
+}
+
 function DailyChecklist({
   habits,
   done,
@@ -485,7 +531,7 @@ export default function DashboardPage() {
   useEffect(() => { refetchMeals(); }, [refetchMeals]);
   useEffect(() => { refetchWater(); }, [refetchWater]);
 
-  const habits = plan && Array.isArray(plan.keyHabits) ? plan.keyHabits : [];
+  const habits = prioritizeHabits(plan && Array.isArray(plan.keyHabits) ? plan.keyHabits : []);
   const todayKey = new Date().toISOString().slice(0, 10);
   const storageKey = `ascend.checklist.${todayKey}`;
   const [done, setDone] = useState<Record<string, boolean>>(() => {
@@ -812,8 +858,8 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Today's Mission Checklist ── */}
-        {plan && Array.isArray(plan.keyHabits) && plan.keyHabits.length > 0 && (
-          <DailyChecklist habits={plan.keyHabits} done={done} setDone={setDone} />
+        {habits.length > 0 && (
+          <DailyChecklist habits={habits} done={done} setDone={setDone} />
         )}
 
         {/* ── Fuel Intake ── */}
