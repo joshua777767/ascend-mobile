@@ -23,6 +23,7 @@ import SettingsPage from "@/pages/settings";
 import TrialReviewPage from "@/pages/trial-review";
 import AdminPage from "@/pages/admin";
 import { Layout } from "@/components/layout";
+import { WeeklyCheckInModal } from "@/components/WeeklyCheckInModal";
 import { useAuth } from "@/hooks/use-auth";
 import { useGetUserProfile } from "@workspace/api-client-react";
 
@@ -166,6 +167,23 @@ function ProtectedApp() {
   const { data: profile, isLoading, isError, error, isFetching } = useGetUserProfile();
   const status = (error as { status?: number } | null | undefined)?.status;
 
+  const [showWeeklyCheckIn, setShowWeeklyCheckIn] = useState(false);
+
+  // Check if weekly check-in is due (once every 7 days) after profile has loaded.
+  useEffect(() => {
+    if (!profile) return;
+    // Initialize trial start date on first authenticated load
+    if (!localStorage.getItem("ascend.trialStartDate")) {
+      localStorage.setItem("ascend.trialStartDate", new Date().toISOString());
+    }
+    const last = localStorage.getItem("ascend.lastWeeklyCheckIn");
+    const isDue = !last || (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24) >= 7;
+    if (!isDue) return;
+    // Small delay so the app shell renders first before the modal appears
+    const t = setTimeout(() => setShowWeeklyCheckIn(true), 1500);
+    return () => clearTimeout(t);
+  }, [profile]);
+
   // Wait until we have a settled answer: either profile data, or a fetch that
   // has fully finished. While the initial load OR a refetch is in flight and we
   // don't yet have data, keep waiting — a stale cached error/404 (e.g. from a
@@ -187,21 +205,31 @@ function ProtectedApp() {
       <FullScreenError message="We couldn't load your profile. Please check your connection and try again." />
     );
   }
+
+  const userGoals = Array.isArray((profile as any).goals) ? (profile as any).goals as string[] : [];
+
   return (
-    <Layout>
-      <Switch>
-        <Route path="/dashboard" component={DashboardPage} />
-        <Route path="/schedule" component={SchedulePage} />
-        <Route path="/workouts" component={WorkoutsPage} />
-        <Route path="/meals" component={MealsPage} />
-        <Route path="/coach" component={CoachPage} />
-        <Route path="/journal" component={JournalPage} />
-        <Route path="/progress" component={ProgressPage} />
-        <Route path="/settings" component={SettingsPage} />
-        <Route path="/trial-review" component={TrialReviewPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
+    <>
+      <Layout>
+        <Switch>
+          <Route path="/dashboard" component={DashboardPage} />
+          <Route path="/schedule" component={SchedulePage} />
+          <Route path="/workouts" component={WorkoutsPage} />
+          <Route path="/meals" component={MealsPage} />
+          <Route path="/coach" component={CoachPage} />
+          <Route path="/journal" component={JournalPage} />
+          <Route path="/progress" component={ProgressPage} />
+          <Route path="/settings" component={SettingsPage} />
+          <Route path="/trial-review" component={TrialReviewPage} />
+          <Route component={NotFound} />
+        </Switch>
+      </Layout>
+      <WeeklyCheckInModal
+        open={showWeeklyCheckIn}
+        onClose={() => setShowWeeklyCheckIn(false)}
+        goals={userGoals}
+      />
+    </>
   );
 }
 
