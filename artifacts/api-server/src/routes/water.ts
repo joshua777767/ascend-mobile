@@ -1,15 +1,42 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, waterLogsTable, plansTable } from "@workspace/db";
+import { db, waterLogsTable, plansTable, userProfilesTable } from "@workspace/db";
 import { LogWaterBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
 import { logger } from "../lib/logger";
 import { getUserId } from "../middlewares/auth";
+import { parseSportSchedule } from "../lib/sportUtils";
 
 const router: IRouter = Router();
 
 function todayString(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+// Compute today's water target in oz.
+// Base comes from the plan (set at plan generation with goal/training adjustments).
+// On top of that: add extra oz when today is a sport practice or game day.
+async function getDailyTargetOz(userId: number, baseTargetL: number): Promise<number> {
+  const baseOz = Math.round(baseTargetL * 33.814);
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, userId));
+  if (!profile) return baseOz;
+
+  const sportSchedule = parseSportSchedule(profile);
+  if (!sportSchedule) return baseOz;
+
+  const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+  const hasPractice = sportSchedule.days.some(d => d.toLowerCase() === todayName);
+  const hasGame = (sportSchedule.gameDays ?? []).some(d => d.toLowerCase() === todayName);
+  if (!hasPractice && !hasGame) return baseOz;
+
+  // Extra hydration for practice/game intensity and duration
+  let extraOz = sportSchedule.intensity === "light" ? 6
+    : sportSchedule.intensity === "hard" ? 14
+    : 10; // moderate
+  if (sportSchedule.durationMinutes > 90) extraOz += 4;
+  if (hasGame && !hasPractice) extraOz = Math.max(extraOz, 10);
+
+  return Math.min(baseOz + extraOz, 140); // 140 oz hard ceiling
 }
 
 async function getWaterSummary(
@@ -18,7 +45,7 @@ async function getWaterSummary(
 ): Promise<{ totalOz: number; targetOz: number; date: string; detectedOz?: number }> {
   const date = todayString();
   const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, userId));
-  const targetOz = plan ? Math.round(plan.waterTargetL * 33.814) : 64;
+  const targetOz = plan ? await getDailyTargetOz(userId, plan.waterTargetL) : 64;
 
   const rows = await db
     .select({ amountOz: waterLogsTable.amountOz })

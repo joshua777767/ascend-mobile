@@ -257,7 +257,18 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     weeklyPace = "Maintain current weight";
   }
 
-  const waterTargetL = Math.max(2.5, Math.round((weightKg * 0.033) * 10) / 10);
+  // Personalized water target — weight base + goal/training adjustments
+  // Rest-day base. Sport-day on-top boosts happen dynamically in getWaterSummary.
+  let waterTargetL = weightKg * 0.033;
+  if (goals.includes("better skin"))                                         waterTargetL += 0.30;
+  if (goalType === "fat_loss")                                               waterTargetL += 0.25;
+  if (goals.includes("higher energy"))                                       waterTargetL += 0.15;
+  if (profile.workoutFocus === "athletic_performance"
+    || profile.workoutFocus === "conditioning")                              waterTargetL += 0.35;
+  if (profile.workoutDaysPerWeek >= 5)                                       waterTargetL += 0.20;
+  else if (profile.workoutDaysPerWeek >= 3)                                  waterTargetL += 0.10;
+  if (parseSportSchedule(profile))                                           waterTargetL += 0.20;
+  waterTargetL = Math.max(2.3, Math.min(3.8, Math.round(waterTargetL * 10) / 10));
 
   const stepsTarget = goalType === "fat_loss"
     ? (isCasual ? 8000 : isExtreme ? 12000 : 10000)
