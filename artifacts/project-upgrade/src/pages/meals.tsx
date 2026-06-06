@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { useGetTodayMeals, useListMeals, useCreateMeal, useGenerateMeals, useGetUserProfile, getGetTodayMealsQueryKey, getListMealsQueryKey, getGetWaterTodayQueryKey } from "@workspace/api-client-react";
+import { useGetTodayMeals, useListMeals, useCreateMeal, useGenerateMeals, useGetUserProfile, useLogWater, getGetTodayMealsQueryKey, getListMealsQueryKey, getGetWaterTodayQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,6 +88,7 @@ export default function MealsPage() {
   useListMeals();
   const createMeal = useCreateMeal();
   const generateMeals = useGenerateMeals();
+  const logWater = useLogWater();
 
   const [mealText, setMealText] = useState("");
   const [imageData, setImageData] = useState<string | null>(null);
@@ -95,6 +96,7 @@ export default function MealsPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [waterLog, setWaterLog] = useState<{ oz: number } | null>(null);
+  const [waterConfirm, setWaterConfirm] = useState<{ oz: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Meal generator state
@@ -124,10 +126,23 @@ export default function MealsPage() {
 
   const canSubmit = (!!mealText.trim() || !!imageData) && !createMeal.isPending && !processing;
 
+  const handleConfirmWater = async (oz: number) => {
+    setWaterConfirm(null);
+    try {
+      await logWater.mutateAsync({ data: { amountOz: oz } });
+      setWaterLog({ oz });
+      queryClient.invalidateQueries({ queryKey: getGetWaterTodayQueryKey() });
+      setTimeout(() => setWaterLog(null), 5000);
+    } catch {
+      setError("Couldn't log water. Try again.");
+    }
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setError(null);
     setWaterLog(null);
+    setWaterConfirm(null);
     try {
       const result = await createMeal.mutateAsync({
         data: {
@@ -137,7 +152,12 @@ export default function MealsPage() {
       });
       setMealText("");
       setImageData(null);
-      // Plain water detected — log water, don't show as meal
+      // Low-confidence water — ask user to confirm before logging
+      if ((result as any)?.waterConfirmNeeded) {
+        setWaterConfirm({ oz: (result as any).amountOz ?? 12 });
+        return;
+      }
+      // High-confidence water — already logged on the server
       if ((result as any)?.waterLogged) {
         const oz = (result as any).amountOz ?? 12;
         setWaterLog({ oz });
@@ -436,10 +456,36 @@ export default function MealsPage() {
               {error && (
                 <p className="text-xs text-red-400 text-center" data-testid="text-meal-error">{error}</p>
               )}
+              {waterConfirm && (
+                <div className="bg-blue-500/10 border border-blue-500/30 p-4 space-y-3" data-testid="water-confirm-banner">
+                  <div className="flex items-center gap-2">
+                    <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
+                    <p className="text-xs font-semibold text-blue-300">Looks like water — add {waterConfirm.oz} oz to your water tracker?</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 h-8 text-xs bg-blue-500 hover:bg-blue-600 text-white"
+                      onClick={() => handleConfirmWater(waterConfirm.oz)}
+                      disabled={logWater.isPending}
+                    >
+                      Yes, add it
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 h-8 text-xs border-white/10"
+                      onClick={() => setWaterConfirm(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
               {waterLog && (
                 <div className="bg-blue-500/10 border border-blue-500/30 p-3 flex items-center justify-center gap-2" data-testid="water-logged-banner">
                   <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
-                  <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Water logged — estimated {waterLog.oz} oz.</p>
+                  <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Detected water — added {waterLog.oz} oz to your water tracker.</p>
                 </div>
               )}
               {submitted && (

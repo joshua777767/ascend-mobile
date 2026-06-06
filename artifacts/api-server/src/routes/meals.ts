@@ -197,6 +197,7 @@ function descriptionOzEstimate(text: string): number {
 interface WaterDetection {
   isWater: boolean;
   oz: number;
+  confidence: "high" | "low";
 }
 
 async function detectPlainWater(description: string, imageUrl: string | null): Promise<WaterDetection> {
@@ -204,21 +205,22 @@ async function detectPlainWater(description: string, imageUrl: string | null): P
 
   // If the description explicitly rules out plain water, skip AI entirely
   if (NOT_PLAIN_WATER_KEYWORDS.some(k => lower.includes(k))) {
-    return { isWater: false, oz: 0 };
+    return { isWater: false, oz: 0, confidence: "high" };
   }
 
   const plainWaterInText = ["water bottle", "glass of water", "cup of water", "water", "h2o"]
     .some(k => lower.includes(k));
 
-  // No photo — trust description only
+  // No photo — description is explicit, always high confidence
   if (!imageUrl) {
     return {
       isWater: plainWaterInText,
       oz: plainWaterInText ? descriptionOzEstimate(lower) : 0,
+      confidence: "high",
     };
   }
 
-  // Photo present — use AI for a fast, cheap vision check
+  // Photo present — use AI for a fast vision check with confidence scoring
   try {
     const userContent: Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail: "low" } }> = [
       { type: "image_url", image_url: { url: imageUrl, detail: "low" } },
@@ -229,20 +231,23 @@ async function detectPlainWater(description: string, imageUrl: string | null): P
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      max_tokens: 80,
+      max_tokens: 100,
       response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
           content: `You are a photo analyzer checking ONE thing: is this PLAIN WATER?
 
-Plain water = tap water, filtered water, or clear water in any container (cup, glass, bottle, shaker, reusable bottle).
+Plain water = tap water, filtered water, or clear water in a cup, glass, bottle, tumbler, jug, or shaker.
+NOT plain water = coconut water, juice, soda, milk, smoothie, protein shake, coffee, tea, beer, sports drinks.
 
-NOT plain water = coconut water, juice, soda, milk, smoothie, protein shake, coffee, tea, beer, wine, sports drinks, electrolyte drinks.
+Container oz estimates: small cup=8, standard glass=12, large glass/tumbler=16, water bottle=20, large bottle/Nalgene=32, shaker=20. Default=12.
 
-Container oz estimates: small cup=8, standard glass=12, large glass=16, water bottle=20, large bottle/Nalgene=32, shaker=20. Default=12.
+confidence rules:
+- "high": liquid is clearly plain water (clear/colorless) OR clearly NOT water
+- "low": liquid color is ambiguous, container is obscured, or you are genuinely unsure
 
-Respond ONLY with valid JSON: {"isWater": true|false, "oz": <number>}`,
+Respond ONLY with valid JSON: {"isWater": true|false, "oz": <number>, "confidence": "high"|"low"}`,
         },
         { role: "user", content: userContent },
       ],
@@ -254,12 +259,13 @@ Respond ONLY with valid JSON: {"isWater": true|false, "oz": <number>}`,
     const oz = typeof parsed.oz === "number" && parsed.oz >= 1 && parsed.oz <= 256
       ? Math.round(parsed.oz)
       : 12;
+    const confidence: "high" | "low" = parsed.confidence === "low" ? "low" : "high";
 
-    logger.info({ isWater, oz }, "Plain water detection");
-    return { isWater, oz };
+    logger.info({ isWater, oz, confidence }, "Plain water detection");
+    return { isWater, oz, confidence };
   } catch (err) {
     logger.warn({ err }, "Water detection AI failed, falling back to heuristic");
-    return { isWater: plainWaterInText, oz: plainWaterInText ? descriptionOzEstimate(lower) : 0 };
+    return { isWater: plainWaterInText, oz: plainWaterInText ? descriptionOzEstimate(lower) : 0, confidence: "high" };
   }
 }
 
@@ -440,12 +446,21 @@ router.post("/meals", async (req, res): Promise<void> => {
   const waterDetection = await detectPlainWater(description, imageUrl);
   if (waterDetection.isWater) {
     const userId = getUserId(req);
+    // Low confidence — ask the user to confirm before logging
+    if (waterDetection.confidence === "low") {
+      res.status(200).json({
+        waterConfirmNeeded: true,
+        amountOz: waterDetection.oz,
+      });
+      return;
+    }
+    // High confidence — log immediately
     const date = new Date().toISOString().slice(0, 10);
     await db.insert(waterLogsTable).values({ userId, date, amountOz: waterDetection.oz });
     res.status(201).json({
       waterLogged: true,
       amountOz: waterDetection.oz,
-      message: `Water logged — estimated ${waterDetection.oz} oz.`,
+      message: `Detected water — added ${waterDetection.oz} oz to your water tracker.`,
     });
     return;
   }
