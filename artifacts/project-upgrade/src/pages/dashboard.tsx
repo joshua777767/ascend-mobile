@@ -600,31 +600,38 @@ export default function DashboardPage() {
     setWaterAnalyzing(true);
     setWaterPhotoFeedback(null);
 
-    // 20-second hard timeout so "Analyzing…" never gets stuck
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), 20_000),
-    );
+    // 20-second timeout via setTimeout — does NOT use Promise.race so the
+    // mutation path stays identical to the manual +oz button path.
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      setWaterAnalyzing(false);
+      setWaterPhotoFeedback("Couldn't analyze photo. Add manually?");
+      setTimeout(() => setWaterPhotoFeedback(null), 4000);
+    }, 20_000);
 
     try {
-      const result = await Promise.race([
-        logWaterFn({ data: { imageUrl } }),
-        timeoutPromise,
-      ]);
-      // Write the new total straight into the cache — counter updates immediately
+      // Same await pattern as handleLogWater — guarantees identical cache update
+      const result = await logWaterFn({ data: { imageUrl } });
+      clearTimeout(timeoutId);
+      if (timedOut) return; // timeout already handled UI
+
+      // Mirror the manual button: write result straight into cache
       if (result) queryClient.setQueryData(getGetWaterTodayQueryKey(), result);
-      const oz = result?.detectedOz ?? 16;
+      // Belt-and-suspenders: also trigger a background refetch
+      refetchWater();
+
+      const oz = result?.detectedOz ?? 12;
       setWaterPhotoFeedback(`Water logged — added ${oz} oz.`);
       setTimeout(() => setWaterPhotoFeedback(null), 4000);
-    } catch (err) {
-      const isTimeout = err instanceof Error && err.message === "timeout";
-      setWaterPhotoFeedback(
-        isTimeout
-          ? "Couldn't analyze photo. Add manually?"
-          : "Couldn't analyze photo. Add manually?",
-      );
-      setTimeout(() => setWaterPhotoFeedback(null), 4000);
+    } catch {
+      clearTimeout(timeoutId);
+      if (!timedOut) {
+        setWaterPhotoFeedback("Couldn't analyze photo. Add manually?");
+        setTimeout(() => setWaterPhotoFeedback(null), 4000);
+      }
     } finally {
-      setWaterAnalyzing(false);
+      if (!timedOut) setWaterAnalyzing(false);
     }
   }
 
