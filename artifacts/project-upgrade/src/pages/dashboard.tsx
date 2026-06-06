@@ -356,6 +356,9 @@ function WaterTracker({
   isLogging,
   isAnalyzing,
   photoFeedback,
+  confirmOz,
+  onConfirmOz,
+  onCancelConfirm,
 }: {
   totalOz: number;
   targetOz: number;
@@ -364,6 +367,9 @@ function WaterTracker({
   isLogging: boolean;
   isAnalyzing: boolean;
   photoFeedback: string | null;
+  confirmOz: number | null;
+  onConfirmOz: (oz: number) => void;
+  onCancelConfirm: () => void;
 }) {
   const [customOz, setCustomOz] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -446,6 +452,41 @@ function WaterTracker({
 
       {photoFeedback && (
         <p className="text-xs font-semibold mb-3" style={{ color: "#10B981" }}>{photoFeedback}</p>
+      )}
+
+      {confirmOz !== null && (
+        <div
+          className="mb-3 rounded-xl p-3 space-y-2"
+          style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.22)" }}
+        >
+          <p className="text-xs font-semibold leading-snug" style={{ color: "#93C5FD" }}>
+            Couldn't clearly detect water. How much to add?
+          </p>
+          <div className="flex gap-2">
+            {[8, 12, 16].map((oz) => (
+              <button
+                key={oz}
+                type="button"
+                onClick={() => onConfirmOz(oz)}
+                className="flex-1 py-1.5 rounded-lg text-xs font-bold active:scale-[0.97] transition-transform"
+                style={{
+                  background: "rgba(59,130,246,0.15)",
+                  border: "1px solid rgba(59,130,246,0.3)",
+                  color: "#3B82F6",
+                }}
+              >
+                Add {oz} oz
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={onCancelConfirm}
+            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
       )}
 
       <div className="flex gap-2 mb-3">
@@ -584,51 +625,65 @@ export default function DashboardPage() {
 
   const [waterAnalyzing, setWaterAnalyzing] = useState(false);
   const [waterPhotoFeedback, setWaterPhotoFeedback] = useState<string | null>(null);
+  const [waterConfirmOz, setWaterConfirmOz] = useState<number | null>(null);
 
   async function handleLogWater(oz: number) {
     try {
-      const result = await logWaterFn({ data: { amountOz: oz } });
-      // Write the new total straight into the cache — counter updates immediately
-      if (result) queryClient.setQueryData(getGetWaterTodayQueryKey(), result);
+      await logWaterFn({ data: { amountOz: oz } });
+      // invalidateQueries marks the query stale and immediately refetches
+      // since the dashboard is mounted — this is the most reliable update path
+      await queryClient.invalidateQueries({ queryKey: getGetWaterTodayQueryKey() });
     } catch {
       // fail silently
     }
+  }
+
+  async function handleConfirmWaterOz(oz: number) {
+    setWaterConfirmOz(null);
+    await handleLogWater(oz);
+    setWaterPhotoFeedback(`Water logged — added ${oz} oz.`);
+    setTimeout(() => setWaterPhotoFeedback(null), 4000);
+  }
+
+  function handleCancelWaterConfirm() {
+    setWaterConfirmOz(null);
   }
 
   async function handleLogWaterPhoto(imageUrl: string) {
     if (waterAnalyzing) return; // prevent double submit
     setWaterAnalyzing(true);
     setWaterPhotoFeedback(null);
+    setWaterConfirmOz(null);
 
-    // 20-second timeout via setTimeout — does NOT use Promise.race so the
-    // mutation path stays identical to the manual +oz button path.
     let timedOut = false;
     const timeoutId = setTimeout(() => {
       timedOut = true;
       setWaterAnalyzing(false);
-      setWaterPhotoFeedback("Couldn't analyze photo. Add manually?");
-      setTimeout(() => setWaterPhotoFeedback(null), 4000);
+      // On timeout, show the manual-confirm UI instead of a dead end
+      setWaterConfirmOz(12);
     }, 20_000);
 
     try {
-      // Same await pattern as handleLogWater — guarantees identical cache update
       const result = await logWaterFn({ data: { imageUrl } });
       clearTimeout(timeoutId);
-      if (timedOut) return; // timeout already handled UI
+      if (timedOut) return;
 
-      // Mirror the manual button: write result straight into cache
-      if (result) queryClient.setQueryData(getGetWaterTodayQueryKey(), result);
-      // Belt-and-suspenders: also trigger a background refetch
-      refetchWater();
+      // Low confidence (dark cup, unclear photo) — show multi-button confirm
+      if ((result as any)?.lowConfidence) {
+        setWaterConfirmOz((result as any).suggestedOz ?? 12);
+        return;
+      }
 
-      const oz = result?.detectedOz ?? 12;
+      // High confidence — logged by server, refetch to update counter
+      await queryClient.invalidateQueries({ queryKey: getGetWaterTodayQueryKey() });
+      const oz = (result as any)?.detectedOz ?? 12;
       setWaterPhotoFeedback(`Water logged — added ${oz} oz.`);
       setTimeout(() => setWaterPhotoFeedback(null), 4000);
     } catch {
       clearTimeout(timeoutId);
       if (!timedOut) {
-        setWaterPhotoFeedback("Couldn't analyze photo. Add manually?");
-        setTimeout(() => setWaterPhotoFeedback(null), 4000);
+        // On error, show confirm options so user isn't stuck
+        setWaterConfirmOz(12);
       }
     } finally {
       if (!timedOut) setWaterAnalyzing(false);
@@ -926,6 +981,9 @@ export default function DashboardPage() {
             isLogging={waterLogging}
             isAnalyzing={waterAnalyzing}
             photoFeedback={waterPhotoFeedback}
+            confirmOz={waterConfirmOz}
+            onConfirmOz={handleConfirmWaterOz}
+            onCancelConfirm={handleCancelWaterConfirm}
           />
         )}
 

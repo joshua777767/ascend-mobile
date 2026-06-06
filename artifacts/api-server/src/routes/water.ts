@@ -50,7 +50,7 @@ function heuristicWaterOz(): number {
   return 12;
 }
 
-async function estimateWaterOzFromPhoto(imageUrl: string): Promise<number> {
+async function estimateWaterOzFromPhoto(imageUrl: string): Promise<{ oz: number; lowConfidence: boolean }> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -60,16 +60,16 @@ async function estimateWaterOzFromPhoto(imageUrl: string): Promise<number> {
         {
           role: "system",
           content: `You are a water intake estimator. The user has taken a photo of a water or drink container.
-Your job: estimate how many fluid ounces of water (or clear liquid) are in the container.
+Your job: estimate how many fluid ounces of liquid are in the container.
 
 Rules:
-- Focus on the water/liquid level relative to the container size.
-- Common references: small glass = 8 oz, standard glass = 12 oz, large glass = 16 oz, mug = 12 oz, standard water bottle = 16-24 oz, large Nalgene = 32 oz.
-- If the container is not water or a clear drink (e.g. coffee, soda, juice), still estimate the volume.
-- If no container or liquid is visible, return 12 as a default.
+- Focus on the liquid level relative to the container size.
+- Common references: small glass = 8 oz, standard glass = 12 oz, large glass = 16 oz, mug = 12 oz, standard water bottle = 16-24 oz, large Nalgene = 32 oz, tumbler/dark cup = 16-24 oz.
+- Dark, opaque, or metal containers (black cup, Yeti, Stanley): estimate based on container shape and fill level.
+- If no container or liquid is visible, set confident to false.
 - Round to the nearest 2 oz.
 
-Respond with ONLY valid JSON: {"oz": <number>, "description": "<1-sentence description of what you see>"}`,
+Respond with ONLY valid JSON: {"oz": <number>, "confident": true|false, "description": "<1-sentence description>"}`,
         },
         {
           role: "user",
@@ -83,14 +83,15 @@ Respond with ONLY valid JSON: {"oz": <number>, "description": "<1-sentence descr
     const content = response.choices[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(content) as Record<string, unknown>;
     const oz = typeof parsed.oz === "number" ? Math.round(parsed.oz) : null;
+    const confident = parsed.confident !== false; // default true unless AI says false
     if (oz && oz >= 1 && oz <= 500) {
-      logger.info({ oz, description: parsed.description }, "AI water photo estimate");
-      return oz;
+      logger.info({ oz, confident, description: parsed.description }, "AI water photo estimate");
+      return { oz, lowConfidence: !confident };
     }
-    return heuristicWaterOz();
+    return { oz: heuristicWaterOz(), lowConfidence: true };
   } catch (err) {
     logger.warn({ err }, "AI water photo estimate failed, using heuristic");
-    return heuristicWaterOz();
+    return { oz: heuristicWaterOz(), lowConfidence: true };
   }
 }
 
@@ -131,8 +132,14 @@ router.post("/water", async (req, res): Promise<void> => {
 
     if (imageUrl) {
       // Photo path: AI estimates the volume
-      detectedOz = await estimateWaterOzFromPhoto(imageUrl);
-      ozToLog = detectedOz;
+      const estimate = await estimateWaterOzFromPhoto(imageUrl);
+      if (estimate.lowConfidence) {
+        // Can't confidently read the container — ask user to confirm amount
+        res.status(200).json({ lowConfidence: true, suggestedOz: estimate.oz });
+        return;
+      }
+      detectedOz = estimate.oz;
+      ozToLog = estimate.oz;
     } else {
       ozToLog = amountOz!;
     }
