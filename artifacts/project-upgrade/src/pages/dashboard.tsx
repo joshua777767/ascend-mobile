@@ -660,12 +660,29 @@ export default function DashboardPage() {
 
   const goals: string[] = Array.isArray(profile.goals) ? profile.goals : [];
   const reviewScore = review && typeof review.dailyScore === "number" ? review.dailyScore : null;
-  const displayScore = reviewScore !== null ? reviewScore : checklistScore;
-  const displayLabel = reviewScore !== null ? "Today" : "Checklist";
   const firstName = profile.name?.split(" ")[0] ?? profile.name;
 
   const todayCalories = (todayMeals ?? []).reduce((s, m) => s + (m.calories ?? 0), 0);
   const todayProtein = (todayMeals ?? []).reduce((s, m) => s + (m.protein ?? 0), 0);
+
+  // Blended Ascend Score — reflects real daily progress across 4 signals
+  // Weights: calories 30 | protein 25 | water 20 | mission checklist 25 = 100 pts max
+  const calorieProgress = plan && plan.calorieTarget > 0
+    ? Math.min(todayCalories / plan.calorieTarget, 1) : 0;
+  const proteinProgress = plan && plan.proteinTargetG > 0
+    ? Math.min(todayProtein / plan.proteinTargetG, 1) : 0;
+  const waterProgress = waterTargetOz > 0
+    ? Math.min(waterOz / waterTargetOz, 1) : 0;
+  const missionProgress = habits.length > 0 ? checklistCompleted / habits.length : 0;
+  const ascendScore = Math.round(
+    calorieProgress * 30 +
+    proteinProgress * 25 +
+    waterProgress * 20 +
+    missionProgress * 25,
+  );
+
+  const displayScore = reviewScore !== null ? reviewScore : ascendScore;
+  const hasAnyData = todayCalories > 0 || todayProtein > 0 || waterOz > 0 || checklistCompleted > 0;
 
   // --- Personalized mission copy ---
   const calorieDeficit = plan ? plan.calorieTarget - todayCalories : 0;
@@ -729,14 +746,18 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-          {displayScore > 0 && (
-            <div className="flex flex-col items-center gap-1 pt-1">
-              <ScoreRing score={displayScore} />
-              <span className="label-caps text-muted-foreground" style={{ fontSize: "8px" }}>
-                {displayLabel}
-              </span>
-            </div>
-          )}
+          <div className="flex flex-col items-center gap-1 pt-1">
+            {hasAnyData || reviewScore !== null ? (
+              <>
+                <ScoreRing score={displayScore} />
+                <span className="label-caps text-muted-foreground" style={{ fontSize: "8px" }}>Today</span>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-0.5 w-14 text-center">
+                <span className="text-[9px] font-bold tracking-wide text-muted-foreground uppercase leading-tight">Start today's mission</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── Trial Nudge (days 5-7) ── */}
