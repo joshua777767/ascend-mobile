@@ -315,51 +315,71 @@ USER CONTEXT:
 - User's selected goals: ${goalsList}
 - Daily targets: ${calorieTarget} cal (${goalCalNote}), ${proteinTarget}g protein
 
-YOUR TASK:
-${imageUrl ? `1. ANALYZE THE IMAGE: Identify every visible food item. Estimate serving sizes and nutrition from what you can see.
-2. Use the user's description as additional context if provided.
-3. If you're uncertain about an item, make your best estimate and note it in the feedback.` : `1. Use the description to assess the meal.`}
-4. Score the meal 0–100 against the user's specific goals — not just protein and calories.
-5. Give direct coaching — no fluff, no praise padding.
+STEP 1 — CLASSIFY what was logged:
+Before scoring, decide: is this a SNACK, DRINK, or FULL MEAL?
+- SNACK: single whole food, no protein source (banana, apple, nuts, oats, rice cake, energy bar, yogurt)
+- DRINK: liquid only (water, juice, coconut water, tea, coffee, protein shake)
+- FULL MEAL: has a protein source + carbs/veg (chicken + rice, eggs + toast, salmon + salad)
 
-SCORING RULES:
+STEP 2 — SCORE using the correct standard for the type:
+
+SNACK scoring:
+- A snack is NOT judged as a full meal. Never penalize a snack for missing protein unless it was explicitly logged as a meal.
+- Healthy whole-food snacks (banana, apple, berries, nuts, Greek yogurt, oats): score 70–90 depending on goal fit.
+- Low protein is expected in snacks — note it briefly but do NOT let it drag the score below 65.
+- Junk snacks (chips, candy, cookies, donuts): score 30–55.
+- NEVER score a banana or single piece of fruit below 65 unless logged as "meal" with a strict muscle-gain goal.
+
+FULL MEAL scoring:
 - fat_loss: reward calorie control + high protein + whole foods; penalize excess calories, low protein, fried/sugary food
 - muscle_gain: reward calorie density + high protein; penalize undereating, low protein, missing surplus
 - maintain: reward protein adequacy + balance; penalize extremes
+
+DRINK scoring: 50–70 (neutral). Never score a standalone drink as "bad" unless pure sugar/alcohol.
 ${isWellnessGoal ? `
-WELLNESS/HYDRATION GOAL RULES (user has: ${goalsList}):
-- Drinks like coconut water, green tea, kombucha, lemon water are HYDRATION SUPPORT — score 55–70 (neutral), NEVER "bad"
-- Do NOT penalize low protein for hydration drinks — that is not their purpose
-- If a food item supports skin (antioxidants, hydration, low-glycemic), reward it
-- If the logged item is ONLY a drink with no protein/food, say: "Good for hydration/electrolytes, but add protein and real food if this is a meal."
-- Score these as snacks/supplements, not full meals` : ""}
+WELLNESS/SKIN/ENERGY GOAL BOOST (user has: ${goalsList}):
+- Fruit (banana, berries, mango, citrus) = micronutrients + antioxidants → add 5–10 pts
+- Hydration drinks (coconut water, lemon water, green tea) = score 60–70, NEVER "bad"
+- Do NOT penalize low protein for drinks or fruit snacks
+- Banana for clear skin/energy goals: score 78–88` : ""}
 
-CONTEXT AWARENESS — check if this is a drink, snack, or full meal:
-- If it's clearly a drink or supplement (coconut water, green tea, smoothie), score it as such — not as a 3-course meal
-- Don't penalize a glass of coconut water for having "no protein" if the user's goals include skin or hydration
+GOAL-SPECIFIC snack rules:
+- fat_loss + fruit snack: low-cal, clean carbs — good snack. Score 72–82. Note protein pairing.
+- muscle_gain + fruit snack: fine as pre/post-workout fuel. Score 68–75. Note: low protein, not a standalone meal.
+- maintain/energy/skin + fruit snack: excellent. Score 80–88.
 
-If the meal was poor, suggest a better option from:
+If the logged item was poor, suggest a better option from:
 ${swapOptions}
+
+YOUR TASK:
+${imageUrl ? `1. Analyze the image — identify every visible food item, estimate serving sizes and nutrition.
+2. Use the description as additional context.
+3. Classify as SNACK / DRINK / FULL MEAL before scoring.` : `1. Use the description to assess the item. Classify as SNACK / DRINK / FULL MEAL before scoring.`}
+4. Score using the correct standard for what was actually logged.
+5. Give direct coaching — no fluff, no shaming.
 
 Respond with ONLY valid JSON in this exact format:
 {
   "detectedFoods": [
-    {"item": "food name", "serving": "e.g. 2 slices / ~200g", "calories": 300, "protein": 12, "carbs": 35, "fat": 10}
+    {"item": "food name", "serving": "e.g. 1 medium / ~118g", "calories": 105, "protein": 1, "carbs": 27, "fat": 0}
   ],
   "score": 0-100,
-  "feedback": "2-3 sentences. ${imageUrl ? 'Start with what you detected: e.g. \\"I detected coconut water — ~50 cal, electrolytes. \\"' : ''}Give direct coaching.",
+  "feedback": "2-3 sentences. ${imageUrl ? 'Start with what you detected. ' : ''}State the classification (snack/meal/drink) then give direct coaching.",
   "quality": "good|neutral|bad",
   "whatWasGood": "1 sentence or null",
   "whatWasBad": "1 sentence or null",
-  "whatToFixNext": "1-2 actionable sentences. If it's a drink, say what to pair it with."
+  "whatToFixNext": "1-2 sentences. For snacks, say what to pair with — not what to replace it with."
 }
 
-Tone: direct and honest — no shaming, but no false praise either.
+Tone: direct and honest — no shaming, no false praise.
 Examples:
-- Coconut water + clear skin goal: "Good hydration choice — electrolytes support skin and energy. Not a meal though. Pair it with eggs or Greek yogurt to hit protein."  score: 65, quality: "neutral"
-- Fat loss bad: "The fries and soda wiped out your deficit. ~800 cal with almost no protein. Next meal: chicken + rice + broccoli." score: 20, quality: "bad"
-- Fat loss good: "Solid fat-loss meal. High protein, controlled carbs, no junk." score: 85, quality: "good"
-- Muscle gain too small: "Too small to move the needle. You need 600–800 cal per meal. Add rice, peanut butter, or a shake." score: 35, quality: "bad"`;
+- Banana (fat_loss): feedback: "Good snack — clean carbs, ~105 cal, won't touch your deficit. Not a meal, so pair with protein if this was meant to replace one." score: 78, quality: "good"
+- Banana (muscle_gain): feedback: "Decent pre-workout snack for fast carbs. Too low in protein and calories to count as a meal — add a shake or chicken alongside it." score: 70, quality: "neutral"
+- Banana (clear skin / energy): feedback: "Good snack for quick energy, potassium, and micronutrients. Not a complete meal, so pair with protein if this was meant to replace a meal." score: 85, quality: "good"
+- Coconut water + clear skin: feedback: "Good hydration — electrolytes support skin and energy. Not a meal. Pair with eggs or Greek yogurt to hit protein." score: 65, quality: "neutral"
+- Fat loss bad meal: feedback: "The fries and soda wiped out your deficit. ~800 cal with almost no protein. Next meal: chicken + rice + broccoli." score: 20, quality: "bad"
+- Fat loss good meal: feedback: "Solid fat-loss meal. High protein, controlled carbs, no junk." score: 85, quality: "good"
+- Muscle gain too small: feedback: "Too small to move the needle. You need 600–800 cal per meal. Add rice, peanut butter, or a shake." score: 35, quality: "bad"`;
 
 
     const userText = description.trim()
