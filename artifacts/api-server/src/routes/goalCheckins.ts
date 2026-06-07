@@ -99,7 +99,7 @@ ${status === "needs_confirmation" ? `\nThe user has rated this goal 9-10 two wee
 
 Respond as JSON ONLY:
 {
-  "coachFeedback": "2-3 sentences of strict, direct, personalized feedback. Use actual science. Reference the user's numbers. Tell them exactly what to do next week.",
+  "coachFeedback": "2-3 sentences. Directly reference what the user said helped or made it harder (quote their words if possible). Give ONE specific, small adjustment for next week that addresses their reported struggle. Use 'may help' language — no absolute claims, no medical diagnoses.",
   "status": "${status}"
 }`;
 

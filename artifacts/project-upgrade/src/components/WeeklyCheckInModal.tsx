@@ -460,6 +460,88 @@ function getTrialDay(): number {
   return Math.floor((Date.now() - new Date(s).getTime()) / (1000 * 60 * 60 * 24)) + 1;
 }
 
+function deriveNextWeekFocus(goal: string, ans: GoalAnswers): string {
+  const harder = [ans.whatHardened, ans.caloriesCravingsStruggle, ans.recoverySoreness]
+    .join(" ")
+    .toLowerCase();
+  const helped = [ans.whatHelped, ans.proteinConsistency, ans.strengthProgress]
+    .join(" ")
+    .toLowerCase();
+
+  if (goal === "better skin") {
+    if (/dairy|milk|cheese|yogurt|cream/.test(harder))
+      return 'Try cutting dairy for 5 days — it may help reduce inflammation. Track any change in skin texture or breakouts.';
+    if (/sugar|sweet|candy|dessert|chocolate/.test(harder))
+      return 'Limit added sugar this week. High glycemic foods may spike sebum production — track the pattern.';
+    if (/sleep|rest|tired/.test(harder))
+      return 'Protect your sleep this week. Poor sleep raises cortisol, which may worsen skin. Aim for 7–8h and note any difference.';
+    if (/sleep|rest|hydrat/.test(helped))
+      return 'Sleep and hydration are clearly helping your skin. Keep your wind-down routine tight — lights low by 10pm.';
+    if (/stress|work|anxious/.test(harder))
+      return 'Stress may be triggering flare-ups. Add a 10-min walk or breathing break daily — cortisol regulation can help skin over time.';
+  }
+
+  if (goal === "higher energy") {
+    if (/sleep|tired|rest|fatigue/.test(harder))
+      return 'Prioritize a consistent bedtime this week — even 30 min earlier may help. Cut screens 30 min before bed and track your energy the next morning.';
+    if (/breakfast|skip|meal|eat|fast/.test(harder))
+      return 'Add a protein-rich breakfast within 1 hour of waking. Skipping it may be causing a cortisol spike and mid-morning energy crash.';
+    if (/stress|overwhelm|work|anxious/.test(harder))
+      return 'Chronic stress depletes energy faster than you can restore it. Add one 10-min decompression break per day — walk, breathe, or stretch.';
+    if (/caffeine|coffee|energy drink/.test(harder))
+      return 'Try cutting caffeine off by 1pm this week. Caffeine has a 5-hour half-life — an afternoon coffee may still be active at midnight.';
+    if (/sleep|movement|walk|exercise/.test(helped))
+      return 'Keep protecting what\'s working. A consistent wake-up time is the highest-leverage energy habit — don\'t let it slip on weekends.';
+  }
+
+  if (goal === "lose fat" || goal === "lose weight") {
+    if (/snack|late|night|evening|midnight|binge/.test(harder))
+      return 'Set a kitchen close time (8pm or earlier). If hunger hits, try sparkling water or a small protein snack — late-night calories add up fast.';
+    if (/craving|sweets|sugar|carb|bread|junk|fast food/.test(harder))
+      return 'Cravings often signal low protein or fiber at your previous meal. Add 20–30g of protein to your biggest meal this week — it may help cravings fade by day 3.';
+    if (/meal prep|cook|food|eat out|restaurant/.test(harder))
+      return 'Meal prep one batch of protein this week (chicken, eggs, or Greek yogurt) so you always have a fast on-plan option when willpower is low.';
+    if (/cardio|step|walk|exercise|gym/.test(harder))
+      return 'If formal cardio feels like too much, focus on NEAT: a 10-min walk after each meal may add 10k+ steps with no gym time needed.';
+  }
+
+  if (goal === "build muscle" || goal === "gain weight") {
+    if (/sore|recover|fatigue|tired|ache/.test(harder) || /sore|recover/.test(ans.recoverySoreness.toLowerCase()))
+      return 'Add one active recovery session this week — 15 min of mobility or a light walk. Also check sleep quality: poor sleep may cut muscle protein synthesis significantly.';
+    if (/protein|shake|hit|track/.test(harder) || /miss|low|inconsistent/.test(ans.proteinConsistency.toLowerCase()))
+      return 'Make protein easier to hit: add one Greek yogurt or protein shake daily as a snack. Track it as a single daily habit — consistency beats perfection.';
+    if (/gym|workout|miss|skip|schedule/.test(harder))
+      return 'Missed sessions happen. Schedule workouts like appointments this week — even a 25-min session beats zero and keeps the habit chain intact.';
+    if (/strength|progress|plateau|stuck/.test(harder) || /no progress|same/.test(ans.strengthProgress.toLowerCase()))
+      return 'If you\'ve plateaued, try adding one rep or 2.5kg to one movement this week. Small progressive overload beats chasing big jumps.';
+  }
+
+  if (goal === "better sleep") {
+    if (/phone|screen|tv|scroll|device/.test(harder))
+      return 'Set a screen-off alarm 30 min before your target bedtime. Blue light suppresses melatonin — one week of consistency may noticeably shift sleep quality.';
+    if (/caffeine|coffee|tea|energy/.test(harder))
+      return 'Move your caffeine cutoff to 1pm this week. Caffeine has a 5-hour half-life — an afternoon coffee may still be disrupting your sleep onset.';
+    if (/stress|mind|anxious|think|racing/.test(harder))
+      return 'Try a 5-min brain dump before bed: write down tomorrow\'s tasks so your mind can let go. Racing thoughts are often just unfinished cognitive loops.';
+  }
+
+  if (goal === "discipline") {
+    if (/distract|phone|social|scroll|procrastin/.test(harder))
+      return 'Use one environment design change: put your phone in another room during your top work block. Friction is the most reliable habit blocker.';
+    if (/motivation|mood|feel|energy/.test(harder))
+      return 'Motivation follows action. Try the 2-minute start rule this week: begin any task for just 2 minutes — momentum usually carries you through.';
+    if (/routine|morning|schedule|consistent/.test(helped))
+      return 'Your routine is your foundation. Protect it by keeping your morning anchor habit non-negotiable, even on hard days.';
+  }
+
+  // Fallback: use their own words
+  if (ans.whatHardened)
+    return `Address what made it harder: "${ans.whatHardened.slice(0, 70)}". Pick one small change and track it daily this week.`;
+  if (ans.whatHelped)
+    return `"${ans.whatHelped.slice(0, 70)}" is working — protect it this week. Keep what's working and add one small improvement.`;
+  return "Keep what's working. Pick the one thing that slipped and fix it with a single small habit this week.";
+}
+
 function defaultAnswers(): GoalAnswers {
   return {
     score: "5",
@@ -672,12 +754,6 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
         : avgScore >= 5
         ? "bg-amber-500/15"
         : "bg-red-500/15";
-    const nextFocus =
-      overallStatus === "On Track"
-        ? "You're executing well. Tighten your weakest area and maintain the habits that are working."
-        : overallStatus === "Improving"
-        ? "You're making progress. Identify the one thing that slipped this week and fix it tomorrow."
-        : "Review your daily habits. Pick the single biggest blocker and eliminate it this week.";
 
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col">
@@ -705,40 +781,43 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
             </p>
           </div>
 
-          {results.map((r) => (
-            <div
-              key={r.goal}
-              className="bg-card border border-border rounded-xl p-4 space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <p className="text-sm font-semibold capitalize">{r.goal}</p>
+          {results.map((r) => {
+            const goalAns = answers[r.goal] ?? defaultAnswers();
+            const focus = deriveNextWeekFocus(r.goal, goalAns);
+            return (
+              <div
+                key={r.goal}
+                className="bg-card border border-border rounded-xl p-4 space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <p className="text-sm font-semibold capitalize">{r.goal}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Star className="w-3 h-3 text-primary" />
+                    <span className="text-sm font-bold text-primary">{r.score}/10</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Star className="w-3 h-3 text-primary" />
-                  <span className="text-sm font-bold text-primary">{r.score}/10</span>
+                {r.coachFeedback && (
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {r.coachFeedback}
+                  </p>
+                )}
+                <div className="pt-2 border-t border-border/40">
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                    Next Week Focus
+                  </p>
+                  <p className="text-xs leading-relaxed text-foreground/80">{focus}</p>
                 </div>
+                {r.status === "needs_confirmation" && (
+                  <p className="text-xs font-semibold text-green-400">
+                    ★ You may have reached this goal. Check the Progress page to confirm.
+                  </p>
+                )}
               </div>
-              {r.coachFeedback && (
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {r.coachFeedback}
-                </p>
-              )}
-              {r.status === "needs_confirmation" && (
-                <p className="text-xs font-semibold text-green-400">
-                  ★ You may have reached this goal. Check the Progress page to confirm.
-                </p>
-              )}
-            </div>
-          ))}
-
-          <div className="bg-card border border-border rounded-xl p-4 space-y-1.5">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-              Next Week Focus
-            </p>
-            <p className="text-sm leading-relaxed">{nextFocus}</p>
-          </div>
+            );
+          })}
 
           <Button className="w-full" onClick={onClose}>
             Done
