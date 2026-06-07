@@ -21,7 +21,8 @@ import {
 } from "lucide-react";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const WEIGHT_GOALS = ["lose fat", "lose weight", "build muscle", "gain weight"];
+const LOSE_FAT_GOALS = ["lose fat", "lose weight"];
+const BUILD_MUSCLE_GOALS = ["build muscle", "gain weight"];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface GoalAnswers {
@@ -34,6 +35,13 @@ interface GoalAnswers {
   workoutsCompleted: string;
   avgSleepHours: string;
   missionPercent: string;
+  // lose-fat specific
+  stepsCardio: string;
+  caloriesCravingsStruggle: string;
+  // build-muscle specific
+  proteinConsistency: string;
+  strengthProgress: string;
+  recoverySoreness: string;
 }
 
 interface CheckInResult {
@@ -144,12 +152,10 @@ function Field({
 }
 
 // ── Goal-specific forms ───────────────────────────────────────────────────────
-function WeightGoalForm({
-  goal,
+function LoseFatGoalForm({
   ans,
   update,
 }: {
-  goal: string;
   ans: GoalAnswers;
   update: (k: keyof GoalAnswers, v: string) => void;
 }) {
@@ -164,9 +170,7 @@ function WeightGoalForm({
       />
       <div className="space-y-1.5">
         <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          {goal === "build muscle" || goal === "gain weight"
-            ? "Is your progress better, same, or worse than last week?"
-            : "Did this week feel easier, same, or harder?"}
+          Did this week feel easier, same, or harder?
         </Label>
         <TrendButtons value={ans.trend} onChange={(v) => update("trend", v)} />
       </div>
@@ -178,6 +182,44 @@ function WeightGoalForm({
         placeholder="0–21"
       />
       <Field
+        label="Steps / cardio consistency"
+        value={ans.stepsCardio}
+        onChange={(v) => update("stepsCardio", v)}
+        placeholder="e.g. 8k steps daily, 3 cardio sessions"
+      />
+      <Field
+        label="Biggest struggle with calories or cravings"
+        value={ans.caloriesCravingsStruggle}
+        onChange={(v) => update("caloriesCravingsStruggle", v)}
+        placeholder="e.g. late-night snacking, office donuts"
+      />
+    </>
+  );
+}
+
+function BuildMuscleGoalForm({
+  ans,
+  update,
+}: {
+  ans: GoalAnswers;
+  update: (k: keyof GoalAnswers, v: string) => void;
+}) {
+  return (
+    <>
+      <Field
+        label="Current weight (lbs)"
+        type="number"
+        value={ans.weight}
+        onChange={(v) => update("weight", v)}
+        placeholder="e.g. 185"
+      />
+      <div className="space-y-1.5">
+        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          Is your progress better, same, or worse than last week?
+        </Label>
+        <TrendButtons value={ans.trend} onChange={(v) => update("trend", v)} />
+      </div>
+      <Field
         label="Workouts completed"
         type="number"
         value={ans.workoutsCompleted}
@@ -185,10 +227,22 @@ function WeightGoalForm({
         placeholder="0–7"
       />
       <Field
-        label="Biggest struggle this week"
-        value={ans.whatHardened}
-        onChange={(v) => update("whatHardened", v)}
-        placeholder="e.g. late-night snacking, missed workouts"
+        label="Protein consistency"
+        value={ans.proteinConsistency}
+        onChange={(v) => update("proteinConsistency", v)}
+        placeholder="e.g. hit protein goal 5/7 days"
+      />
+      <Field
+        label="Strength progress: did you add reps or weight?"
+        value={ans.strengthProgress}
+        onChange={(v) => update("strengthProgress", v)}
+        placeholder="e.g. +5 lbs on bench, +2 reps on pull-ups"
+      />
+      <Field
+        label="Recovery / soreness"
+        value={ans.recoverySoreness}
+        onChange={(v) => update("recoverySoreness", v)}
+        placeholder="e.g. DOMS day 1, fine by day 3"
       />
     </>
   );
@@ -417,6 +471,11 @@ function defaultAnswers(): GoalAnswers {
     workoutsCompleted: "",
     avgSleepHours: "",
     missionPercent: "50",
+    stepsCardio: "",
+    caloriesCravingsStruggle: "",
+    proteinConsistency: "",
+    strengthProgress: "",
+    recoverySoreness: "",
   };
 }
 
@@ -466,10 +525,20 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
       const score = computeScore(goal, ans);
 
       const noteParts: string[] = [];
-      if (WEIGHT_GOALS.includes(goal) && ans.mealsLogged)
+      if (LOSE_FAT_GOALS.includes(goal) && ans.mealsLogged)
         noteParts.push(`Meals logged: ${ans.mealsLogged}`);
-      if (WEIGHT_GOALS.includes(goal) && ans.workoutsCompleted)
+      if (LOSE_FAT_GOALS.includes(goal) && ans.stepsCardio)
+        noteParts.push(`Steps/cardio: ${ans.stepsCardio}`);
+      if (LOSE_FAT_GOALS.includes(goal) && ans.caloriesCravingsStruggle)
+        noteParts.push(`Cravings struggle: ${ans.caloriesCravingsStruggle}`);
+      if (BUILD_MUSCLE_GOALS.includes(goal) && ans.workoutsCompleted)
         noteParts.push(`Workouts: ${ans.workoutsCompleted}`);
+      if (BUILD_MUSCLE_GOALS.includes(goal) && ans.proteinConsistency)
+        noteParts.push(`Protein: ${ans.proteinConsistency}`);
+      if (BUILD_MUSCLE_GOALS.includes(goal) && ans.strengthProgress)
+        noteParts.push(`Strength: ${ans.strengthProgress}`);
+      if (BUILD_MUSCLE_GOALS.includes(goal) && ans.recoverySoreness)
+        noteParts.push(`Recovery: ${ans.recoverySoreness}`);
       if (goal === "better sleep" && ans.avgSleepHours)
         noteParts.push(`Avg sleep: ${ans.avgSleepHours}h`);
 
@@ -491,7 +560,7 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
           status: result.status,
         });
 
-        if (WEIGHT_GOALS.includes(goal) && ans.weight && parseFloat(ans.weight) > 0) {
+        if ((LOSE_FAT_GOALS.includes(goal) || BUILD_MUSCLE_GOALS.includes(goal)) && ans.weight && parseFloat(ans.weight) > 0) {
           try {
             await createWeighIn.mutateAsync({
               data: { weightKg: parseFloat(ans.weight) / 2.2046226 },
@@ -746,8 +815,10 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
   const renderGoalForm = () => {
     const update = (k: keyof GoalAnswers, v: string) =>
       updateAnswer(currentGoal, k, v);
-    if (WEIGHT_GOALS.includes(currentGoal))
-      return <WeightGoalForm goal={currentGoal} ans={ans} update={update} />;
+    if (LOSE_FAT_GOALS.includes(currentGoal))
+      return <LoseFatGoalForm ans={ans} update={update} />;
+    if (BUILD_MUSCLE_GOALS.includes(currentGoal))
+      return <BuildMuscleGoalForm ans={ans} update={update} />;
     if (currentGoal === "better skin")
       return <SkinGoalForm ans={ans} update={update} />;
     if (currentGoal === "higher energy")
