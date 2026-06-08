@@ -140,7 +140,9 @@ function heuristicFeedback(description: string, goalType: string, goals: string[
       ? "Good base — add more calories and protein (rice, eggs, milk) to actually grow."
       : "Build the plate around protein plus quality carbs. Undereating kills muscle gain.";
   } else if (isWellnessGoal) {
-    whatToFixNext = "Pair this with whole foods and a protein source to make it a complete meal.";
+    whatToFixNext = good.length > 0
+      ? "Keep the quality up — add variety with different vegetables and whole foods across the day."
+      : "Anchor your meals with a protein source and a vegetable to support your wellness goals.";
   } else {
     whatToFixNext = "Anchor every meal with a protein source and a vegetable, and keep snacks intentional.";
   }
@@ -317,9 +319,11 @@ USER CONTEXT:
 
 STEP 1 — CLASSIFY what was logged:
 Before scoring, decide: is this a SNACK, DRINK, or FULL MEAL?
-- SNACK: single whole food, no protein source (banana, apple, nuts, oats, rice cake, energy bar, yogurt)
+- FULL MEAL: ANYTHING described as "breakfast", "lunch", "dinner", or "brunch" — even if it's a light plate. Also: 2+ distinct foods logged together, or any description with a protein source + carb/veg.
+- SNACK: a single whole food with no meal-time label (banana, apple, nuts, rice cake, energy bar). Yogurt and oats alone may be snacks ONLY if NOT described as breakfast.
 - DRINK: liquid only (water, juice, coconut water, tea, coffee, protein shake)
-- FULL MEAL: has a protein source + carbs/veg (chicken + rice, eggs + toast, salmon + salad)
+
+CRITICAL: If the user says "breakfast", "lunch", "dinner", or "it's my [meal]" — classify as FULL MEAL. NEVER say "not a complete meal" for anything the user identified as a meal or breakfast.
 
 STEP 2 — SCORE using the correct standard for the type:
 
@@ -373,9 +377,10 @@ Respond with ONLY valid JSON in this exact format:
 
 Tone: direct and honest — no shaming, no false praise.
 Examples:
-- Banana (fat_loss): feedback: "Good snack — clean carbs, ~105 cal, won't touch your deficit. Not a meal, so pair with protein if this was meant to replace one." score: 78, quality: "good"
-- Banana (muscle_gain): feedback: "Decent pre-workout snack for fast carbs. Too low in protein and calories to count as a meal — add a shake or chicken alongside it." score: 70, quality: "neutral"
-- Banana (clear skin / energy): feedback: "Good snack for quick energy, potassium, and micronutrients. Not a complete meal, so pair with protein if this was meant to replace a meal." score: 85, quality: "good"
+- Banana as snack (fat_loss): feedback: "Good snack — clean carbs, ~105 cal, won't touch your deficit. If this is a standalone snack, add protein before your next meal." score: 78, quality: "good"
+- Banana as snack (muscle_gain): feedback: "Decent pre-workout fuel for fast carbs. Low in protein and calories, so make sure your next meal is a full one." score: 70, quality: "neutral"
+- Banana as part of breakfast (clear skin / energy): feedback: "Good breakfast addition — potassium and micronutrients support skin and energy. Solid start to the day." score: 85, quality: "good"
+- Eggs and toast (breakfast, fat_loss): feedback: "Solid breakfast. Protein from eggs supports satiety and muscle retention. Controlled carbs from the toast — good way to start the day." score: 82, quality: "good"
 - Coconut water + clear skin: feedback: "Good hydration — electrolytes support skin and energy. Not a meal. Pair with eggs or Greek yogurt to hit protein." score: 65, quality: "neutral"
 - Fat loss bad meal: feedback: "The fries and soda wiped out your deficit. ~800 cal with almost no protein. Next meal: chicken + rice + broccoli." score: 20, quality: "bad"
 - Fat loss good meal: feedback: "Solid fat-loss meal. High protein, controlled carbs, no junk." score: 85, quality: "good"
