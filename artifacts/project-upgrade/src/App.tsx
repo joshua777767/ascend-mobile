@@ -226,7 +226,10 @@ function ProtectedApp() {
       </Layout>
       <WeeklyCheckInModal
         open={showWeeklyCheckIn}
-        onClose={() => setShowWeeklyCheckIn(false)}
+        onClose={() => {
+          localStorage.setItem("ascend.lastWeeklyCheckIn", new Date().toISOString());
+          setShowWeeklyCheckIn(false);
+        }}
         goals={userGoals}
       />
     </>
