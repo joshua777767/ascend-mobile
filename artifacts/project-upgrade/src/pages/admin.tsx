@@ -3,8 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Redirect } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield } from "lucide-react";
-import { useMemo } from "react";
+import { Shield, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 
 const OWNER_EMAIL = "joshquag2010@icloud.com";
 
@@ -34,6 +34,7 @@ function timeAgo(d: string | null): string {
 export default function AdminPage() {
   const { user, isAuthed, isLoading } = useAuth();
   const [, setLocation] = useLocation();
+  const [search, setSearch] = useState("");
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["adminStats"],
@@ -46,6 +47,17 @@ export default function AdminPage() {
     enabled: !!user,
     retry: false,
   });
+
+  const filteredUsers = useMemo(() => {
+    const all: any[] = stats?.allUsers ?? [];
+    if (!search.trim()) return all;
+    const q = search.trim().toLowerCase();
+    return all.filter(
+      (u) =>
+        u.email?.toLowerCase().includes(q) ||
+        u.name?.toLowerCase().includes(q),
+    );
+  }, [stats?.allUsers, search]);
 
   if (isLoading) {
     return (
@@ -139,11 +151,34 @@ export default function AdminPage() {
             </div>
 
             {/* Users list */}
-            <p className="text-sm font-bold text-foreground mb-3">Users</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold text-foreground">
+                All Users
+                <span className="ml-2 text-[10px] font-semibold text-muted-foreground">
+                  {filteredUsers.length} / {stats?.allUsers?.length ?? 0}
+                </span>
+              </p>
+            </div>
+
+            {/* Search */}
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search by name or email…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-xl bg-card border border-border pl-8 pr-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
             <div className="space-y-2.5">
-              {stats?.lastActiveUsers?.map((u: any) => (
+              {filteredUsers.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-6">No users match your search.</p>
+              )}
+              {filteredUsers.map((u: any) => (
                 <div key={u.id} className={CARD}>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
                         {(u.name ?? u.email).charAt(0).toUpperCase()}
@@ -153,15 +188,32 @@ export default function AdminPage() {
                         <p className="text-[10px] text-muted-foreground truncate">{u.email}</p>
                       </div>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-[10px] font-semibold text-muted-foreground">{timeAgo(u.lastActive)}</p>
+                    <div className="shrink-0 flex flex-col items-end gap-1">
+                      <span
+                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+                        style={
+                          u.profileCompleted
+                            ? { background: "rgba(52,211,153,0.15)", color: "#34D399" }
+                            : { background: "rgba(156,163,175,0.15)", color: "#6B7280" }
+                        }
+                      >
+                        {u.profileCompleted ? "Profile ✓" : "No profile"}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex gap-3 text-[10px] text-muted-foreground">
+
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground mb-2">
+                    <span>Signed up: <span className="text-foreground/70">{formatDate(u.signedUpAt)}</span></span>
+                    <span>Last active: <span className="text-foreground/70">{timeAgo(u.lastActive)}</span></span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
                     <span>{u.mealsLogged} meals</span>
                     <span>{u.coachMessages} chats</span>
                     <span>{u.mealScans} scans</span>
-                    <span className="text-primary font-semibold">{u.currentStreak} streak</span>
+                    {u.currentStreak > 0 && (
+                      <span className="text-primary font-semibold">{u.currentStreak} streak</span>
+                    )}
                   </div>
                 </div>
               ))}

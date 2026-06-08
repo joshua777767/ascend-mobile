@@ -124,26 +124,15 @@ router.get("/admin/stats", async (req, res): Promise<void> => {
       id: u.id,
       email: u.email,
       name: p?.name ?? null,
+      signedUpAt: u.createdAt,
       lastActive: lastActivityMap.get(u.id) ?? null,
+      profileCompleted: profileMap.has(u.id),
       mealsLogged: mealCountMap.get(u.id) ?? 0,
       coachMessages: chatCountMap.get(u.id) ?? 0,
       mealScans: scanCountMap.get(u.id) ?? 0,
       currentStreak: p?.currentStreak ?? 0,
     };
   });
-
-  const lastActiveUsers = userList
-    .filter(u => u.lastActive)
-    .sort((a, b) => new Date(b.lastActive!).getTime() - new Date(a.lastActive!).getTime())
-    .slice(0, 20);
-
-  const mostActiveUsers = userList
-    .sort((a, b) => {
-      const aTotal = (mostActiveMap.get(a.id) ?? 0);
-      const bTotal = (mostActiveMap.get(b.id) ?? 0);
-      return bTotal - aTotal;
-    })
-    .slice(0, 20);
 
   res.json({
     totalUsers,
@@ -154,8 +143,7 @@ router.get("/admin/stats", async (req, res): Promise<void> => {
     coachMessagesToday: coachMessagesToday,
     waterLogsToday: waterLogsToday,
     weeklyCheckinsCompleted: weeklyCheckins,
-    lastActiveUsers,
-    mostActiveUsers,
+    allUsers: userList,
   });
 });
 
