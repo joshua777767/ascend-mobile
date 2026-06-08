@@ -926,6 +926,62 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* ── Next Week Focus ── */}
+        {(() => {
+          type CheckIn = { goal: string; whatHelped: string | null; whatHardened: string | null; createdAt: string; score: number };
+          const sorted = [...(goalCheckIns ?? [] as CheckIn[])].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          );
+          const items: Array<{ type: "fix" | "keep"; text: string; goal: string }> = [];
+          const seen = new Set<string>();
+          for (const c of sorted) {
+            if (c.whatHardened && !seen.has(c.whatHardened)) {
+              seen.add(c.whatHardened);
+              items.push({ type: "fix", text: c.whatHardened, goal: c.goal });
+            }
+            if (c.whatHelped && !seen.has(c.whatHelped)) {
+              seen.add(c.whatHelped);
+              items.push({ type: "keep", text: c.whatHelped, goal: c.goal });
+            }
+            if (items.length >= 3) break;
+          }
+          if (items.length === 0) return null;
+          return (
+            <div
+              className="rounded-2xl p-4 space-y-3"
+              style={{ background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.15)" }}
+            >
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-primary" />
+                <p className="label-caps text-primary">Next Week Focus</p>
+              </div>
+              <div className="space-y-2.5">
+                {items.map((item, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <span
+                      className="mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0"
+                      style={
+                        item.type === "fix"
+                          ? { background: "rgba(245,158,11,0.15)", color: "#F59E0B" }
+                          : { background: "rgba(52,211,153,0.15)", color: "#34D399" }
+                      }
+                    >
+                      {item.type === "fix" ? "REDUCE" : "KEEP"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs leading-snug text-foreground capitalize">{item.text}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 capitalize">{item.goal}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Based on your last check-in — may help, track the pattern.
+              </p>
+            </div>
+          );
+        })()}
+
         {/* ── Mission Card ── */}
         <div className="ascend-mission-card rounded-2xl p-4">
           <div className="flex items-start gap-4">

@@ -10,6 +10,7 @@ import {
   journalEntriesTable,
   weighInsTable,
   coachReviewsTable,
+  goalCheckInsTable,
 } from "@workspace/db";
 import { SendChatMessageBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
@@ -418,6 +419,7 @@ function buildContextSummary(
   journals: (typeof journalEntriesTable.$inferSelect)[],
   weighIns: (typeof weighInsTable.$inferSelect)[],
   reviews: (typeof coachReviewsTable.$inferSelect)[],
+  checkIns: (typeof goalCheckInsTable.$inferSelect)[],
 ): string {
   const parts: string[] = [];
 
@@ -518,6 +520,23 @@ function buildContextSummary(
     parts.push(`LATEST WEIGH-IN: ${Math.round(w.weightKg * LBS)} lbs (week ${w.weekNumber}). ${w.adjustment ? `Adjustment: ${w.adjustment}.` : ""}`);
   }
 
+  if (checkIns.length > 0) {
+    const lines: string[] = [];
+    // One entry per (goal, weekNumber) — most recent first, cap at 8
+    checkIns.slice(0, 8).forEach((c) => {
+      const fragments: string[] = [`${c.goal} wk${c.weekNumber} — score ${c.score}/10`];
+      if (c.trend) fragments.push(`trend: ${c.trend}`);
+      if (c.whatHelped) fragments.push(`helped: "${c.whatHelped}"`);
+      if (c.whatHardened) fragments.push(`hurt: "${c.whatHardened}"`);
+      if (c.notes) fragments.push(`notes: "${c.notes.slice(0, 80)}"`);
+      lines.push("  • " + fragments.join(" | "));
+    });
+    parts.push(
+      "COACH MEMORY (from weekly check-ins — repeat their own words back naturally when relevant, don't force it every reply):\n" +
+        lines.join("\n"),
+    );
+  }
+
   return parts.join("\n");
 }
 
@@ -538,13 +557,14 @@ router.post("/chat", async (req, res): Promise<void> => {
   const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, getUserId(req)));
   const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, getUserId(req)));
 
-  const [recentMessages, recentMeals, recentWorkouts, recentJournals, recentWeighIns, recentReviews] = await Promise.all([
+  const [recentMessages, recentMeals, recentWorkouts, recentJournals, recentWeighIns, recentReviews, recentCheckIns] = await Promise.all([
     db.select().from(chatMessagesTable).where(eq(chatMessagesTable.userId, getUserId(req))).orderBy(desc(chatMessagesTable.createdAt)).limit(20),
     db.select().from(mealsTable).where(eq(mealsTable.userId, getUserId(req))).orderBy(desc(mealsTable.loggedAt)).limit(3),
     db.select().from(workoutsTable).where(eq(workoutsTable.userId, getUserId(req))).orderBy(desc(workoutsTable.completedAt)).limit(3),
     db.select().from(journalEntriesTable).where(eq(journalEntriesTable.userId, getUserId(req))).orderBy(desc(journalEntriesTable.createdAt)).limit(2),
     db.select().from(weighInsTable).where(eq(weighInsTable.userId, getUserId(req))).orderBy(desc(weighInsTable.loggedAt)).limit(1),
     db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, getUserId(req))).orderBy(desc(coachReviewsTable.createdAt)).limit(1),
+    db.select().from(goalCheckInsTable).where(eq(goalCheckInsTable.userId, getUserId(req))).orderBy(desc(goalCheckInsTable.createdAt)).limit(8),
   ]);
 
   const ctx: ChatContext = {
@@ -556,7 +576,7 @@ router.post("/chat", async (req, res): Promise<void> => {
     proteinTarget: plan?.proteinTargetG ?? null,
   };
 
-  const contextSummary = buildContextSummary(profile, plan, recentMeals, recentWorkouts, recentJournals, recentWeighIns, recentReviews);
+  const contextSummary = buildContextSummary(profile, plan, recentMeals, recentWorkouts, recentJournals, recentWeighIns, recentReviews, recentCheckIns);
 
   // Build goal-specific meal options for the system prompt
   const goalType = plan?.goalType ?? "general";
@@ -574,6 +594,8 @@ REPEAT RULE: Check the conversation history. If the user is asking the same thin
 - Give a shorter version, OR
 - Ask: "What part are you actually stuck on?"
 Don't repeat the full answer.
+
+MEMORY RULE: If COACH MEMORY is in the user data, bring it up naturally when relevant — not every message. Say things like "You mentioned dairy made your skin worse — has that improved?" or "You said late-night snacking was the struggle — did that get better?" Use their exact words.
 
 ---
 
