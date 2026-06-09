@@ -593,6 +593,10 @@ export default function DashboardPage() {
 
   const habits = prioritizeHabits(plan && Array.isArray(plan.keyHabits) ? plan.keyHabits : []);
   const storageKey = `ascend.checklist.${localDate}`;
+
+  // Track which storageKey was used to initialize `done` so we can detect
+  // a date change without writing yesterday's state to today's key.
+  const activeKeyRef = useRef(storageKey);
   const [done, setDone] = useState<Record<string, boolean>>(() => {
     try {
       const raw = localStorage.getItem(storageKey);
@@ -601,15 +605,36 @@ export default function DashboardPage() {
       return {};
     }
   });
+
+  // When the local date changes while the app is open, reset checklist state
+  // for the new day BEFORE the save effect can write yesterday's state to it.
+  useEffect(() => {
+    if (activeKeyRef.current === storageKey) return;
+    activeKeyRef.current = storageKey;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      setDone(raw ? (JSON.parse(raw) as Record<string, boolean>) : {});
+    } catch {
+      setDone({});
+    }
+  }, [storageKey]);
+
+  // Persist done state — only dep is `done` so this never fires on a date
+  // change before the reset above has run.
   useEffect(() => {
     try {
-      localStorage.setItem(storageKey, JSON.stringify(done));
+      localStorage.setItem(activeKeyRef.current, JSON.stringify(done));
     } catch {
       // ignore
     }
-  }, [done, storageKey]);
+  }, [done]);
 
-  const waterOz = waterData?.totalOz ?? 0;
+  // Only count water that was logged on today's local date.
+  // waterData.date comes from the server's getUserToday(); comparing it with
+  // the client's localDate guards against stale logs stored with the UTC date
+  // (from before the timezone fix) appearing as today's hydration.
+  const waterIsToday = waterData?.date === localDate;
+  const waterOz = waterIsToday ? (waterData?.totalOz ?? 0) : 0;
   const waterTargetOz = waterData?.targetOz ?? (plan ? Math.round(plan.waterTargetL * 33.814) : 64);
 
   // Auto-check the water habit when daily target is met
