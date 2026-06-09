@@ -53,7 +53,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-2xl mx-auto px-4 py-16">
+      <div className="max-w-2xl mx-auto px-4 py-16 pb-24">
         <div className="text-center mb-12">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">Pricing</p>
           <h1 className="text-4xl font-bold uppercase tracking-tighter mb-4">One Price. Everything Included.</h1>
