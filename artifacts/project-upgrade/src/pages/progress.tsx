@@ -144,14 +144,34 @@ export default function ProgressPage() {
     Object.entries(checkInsByGoal).map(([g, arr]) => [g, arr[0]])
   );
 
-  const chartData = weighIns?.slice(-12).map((w) => ({
-    week: `W${w.weekNumber}`,
-    weight: Math.round(kgToLbs(w.weightKg) * 10) / 10,
-  })) ?? [];
+  // Build chart with onboarding weight as first point, then logged weigh-ins
+  const startWeightLbs = summary?.startWeightKg
+    ? Math.round(kgToLbs(summary.startWeightKg) * 10) / 10
+    : (profile?.currentWeightKg ? Math.round(kgToLbs(profile.currentWeightKg) * 10) / 10 : null);
+  const chartData = (() => {
+    const logged = (weighIns ?? []).slice(-12).map((w) => ({
+      week: `W${w.weekNumber}`,
+      weight: Math.round(kgToLbs(w.weightKg) * 10) / 10,
+    }));
+    if (startWeightLbs && logged.length > 0) {
+      return [{ week: "Start", weight: startWeightLbs }, ...logged];
+    }
+    if (startWeightLbs && logged.length === 0) {
+      return [{ week: "Start", weight: startWeightLbs }];
+    }
+    return logged;
+  })();
 
   const trend = weighIns && weighIns.length >= 2
     ? kgToLbs(weighIns[weighIns.length - 1].weightKg - weighIns[weighIns.length - 2].weightKg)
     : null;
+
+  // Avg Score from real reviews (not summary fallback)
+  const avgScore = (() => {
+    const validReviews = (reviews ?? []).filter((r) => typeof r.dailyScore === "number" && r.dailyScore > 0);
+    if (validReviews.length === 0) return null;
+    return Math.round(validReviews.reduce((s, r) => s + r.dailyScore, 0) / validReviews.length);
+  })();
 
   return (
     <div className="h-full overflow-y-auto scroll-area">
@@ -246,7 +266,7 @@ export default function ProgressPage() {
             {[
               { label: "Current Weight", value: `${Math.round(kgToLbs(summary.currentWeightKg))} lbs`, sub: `Goal: ${Math.round(kgToLbs(summary.goalWeightKg))} lbs` },
               { label: "Total Change", value: `${(summary.totalLbsChange ?? 0) > 0 ? "+" : ""}${summary.totalLbsChange ?? 0} lbs`, sub: `Started at ${Math.round(kgToLbs(summary.startWeightKg))} lbs` },
-              { label: "Avg Score", value: summary.avgDailyScore.toFixed(0), sub: "out of 100" },
+              { label: "Avg Score", value: avgScore === null ? "—" : avgScore.toString(), sub: "out of 100" },
               { label: "Workouts", value: summary.totalWorkouts, sub: "total logged" },
             ].map((stat, i) => (
               <div key={i} className="bg-card border border-border p-4 text-center" data-testid={`stat-${i}`}>
