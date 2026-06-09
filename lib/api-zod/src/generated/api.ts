@@ -343,7 +343,8 @@ export const LoginBody = zod.object({
 
 export const LoginResponse = zod.object({
   "id": zod.number(),
-  "email": zod.string()
+  "email": zod.string(),
+  "isFreePro": zod.boolean()
 })
 
 
@@ -381,7 +382,8 @@ export const ResetPasswordResponse = zod.object({
  */
 export const GetMeResponse = zod.object({
   "id": zod.number(),
-  "email": zod.string()
+  "email": zod.string(),
+  "isFreePro": zod.boolean()
 })
 
 

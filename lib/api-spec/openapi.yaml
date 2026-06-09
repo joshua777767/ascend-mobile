@@ -853,9 +853,12 @@ components:
           type: integer
         email:
           type: string
+        isFreePro:
+          type: boolean
       required:
         - id
         - email
+        - isFreePro
 
     SignupInput:
       type: object

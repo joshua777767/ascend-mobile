@@ -9,8 +9,11 @@ const router: IRouter = Router();
 
 const SAFE_RESET_MSG = "If an account exists with that email, a reset link has been sent.";
 
-function publicUser(user: { id: number; email: string }) {
-  return { id: user.id, email: user.email };
+function publicUser(user: { id: number; email: string; freePro: boolean; freeProExpiresAt: Date | null }) {
+  const isFreePro = user.freePro && (
+    !user.freeProExpiresAt || user.freeProExpiresAt > new Date()
+  );
+  return { id: user.id, email: user.email, isFreePro: !!isFreePro };
 }
 
 router.post("/auth/signup", async (req, res): Promise<void> => {

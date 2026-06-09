@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Redirect } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,10 +31,35 @@ function timeAgo(d: string | null): string {
   return `${days}d ago`;
 }
 
+function AccessBadge({ status }: { status: string }) {
+  if (status === "Free Pro") {
+    return (
+      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B" }}>
+        Free Pro
+      </span>
+    );
+  }
+  if (status === "Trial Expired") {
+    return (
+      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "rgba(239,68,68,0.12)", color: "#F87171" }}>
+        Trial Expired
+      </span>
+    );
+  }
+  return (
+    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "rgba(156,163,175,0.12)", color: "#9CA3AF" }}>
+      {status}
+    </span>
+  );
+}
+
 export default function AdminPage() {
   const { user, isAuthed, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
+  const queryClient = useQueryClient();
+  const [expiryDates, setExpiryDates] = useState<Record<number, string>>({});
+  const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["adminStats"],
@@ -58,6 +83,38 @@ export default function AdminPage() {
         u.name?.toLowerCase().includes(q),
     );
   }, [stats?.allUsers, search]);
+
+  async function grantFreePro(userId: number) {
+    setPendingIds(prev => { const s = new Set(prev); s.add(userId); return s; });
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}api/admin/grant-free-pro`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, expiresAt: expiryDates[userId] || null }),
+      });
+      if (!res.ok) throw new Error("Failed to grant Free Pro");
+      await queryClient.invalidateQueries({ queryKey: ["adminStats"] });
+    } finally {
+      setPendingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
+    }
+  }
+
+  async function revokeFreePro(userId: number) {
+    setPendingIds(prev => { const s = new Set(prev); s.add(userId); return s; });
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}api/admin/revoke-free-pro`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      if (!res.ok) throw new Error("Failed to revoke Free Pro");
+      await queryClient.invalidateQueries({ queryKey: ["adminStats"] });
+    } finally {
+      setPendingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
+    }
+  }
 
   if (isLoading) {
     return (
@@ -176,47 +233,82 @@ export default function AdminPage() {
               {filteredUsers.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-6">No users match your search.</p>
               )}
-              {filteredUsers.map((u: any) => (
-                <div key={u.id} className={CARD}>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
-                        {(u.name ?? u.email).charAt(0).toUpperCase()}
+              {filteredUsers.map((u: any) => {
+                const isPending = pendingIds.has(u.id);
+                return (
+                  <div key={u.id} className={CARD}>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                          {(u.name ?? u.email).charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold truncate leading-tight">{u.name ?? u.email}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{u.email}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold truncate leading-tight">{u.name ?? u.email}</p>
-                        <p className="text-[10px] text-muted-foreground truncate">{u.email}</p>
+                      <div className="shrink-0 flex flex-col items-end gap-1">
+                        <AccessBadge status={u.accessStatus ?? `Trial Day ${u.trialDay}`} />
+                        {u.profileCompleted && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "rgba(52,211,153,0.15)", color: "#34D399" }}>
+                            Profile ✓
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <div className="shrink-0 flex flex-col items-end gap-1">
-                      <span
-                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
-                        style={
-                          u.profileCompleted
-                            ? { background: "rgba(52,211,153,0.15)", color: "#34D399" }
-                            : { background: "rgba(156,163,175,0.15)", color: "#6B7280" }
-                        }
-                      >
-                        {u.profileCompleted ? "Profile ✓" : "No profile"}
-                      </span>
+
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground mb-2">
+                      <span>Signed up: <span className="text-foreground/70">{formatDate(u.signedUpAt)}</span></span>
+                      <span>Last active: <span className="text-foreground/70">{timeAgo(u.lastActive)}</span></span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground mb-3">
+                      <span>{u.mealsLogged} meals</span>
+                      <span>{u.coachMessages} chats</span>
+                      <span>{u.mealScans} scans</span>
+                      {u.currentStreak > 0 && (
+                        <span className="text-primary font-semibold">{u.currentStreak} streak</span>
+                      )}
+                      {u.freeProExpiresAt && u.isFreePro && (
+                        <span className="text-amber-400/70">expires {formatDate(u.freeProExpiresAt)}</span>
+                      )}
+                    </div>
+
+                    {/* Subscription controls */}
+                    <div className="border-t border-border pt-2.5 space-y-2">
+                      {u.isFreePro ? (
+                        <button
+                          disabled={isPending}
+                          onClick={() => revokeFreePro(u.id)}
+                          className="w-full rounded-xl border border-red-500/30 text-red-400 text-[11px] font-semibold py-1.5 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                        >
+                          {isPending ? "Removing…" : "Remove Free Pro"}
+                        </button>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <div className="flex gap-2 items-center">
+                            <input
+                              type="date"
+                              value={expiryDates[u.id] ?? ""}
+                              onChange={(e) => setExpiryDates(prev => ({ ...prev, [u.id]: e.target.value }))}
+                              className="flex-1 rounded-xl bg-background border border-border px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              placeholder="Expiry (optional)"
+                            />
+                            <button
+                              disabled={isPending}
+                              onClick={() => grantFreePro(u.id)}
+                              className="rounded-xl bg-primary/10 border border-primary/30 text-primary text-[11px] font-semibold px-3 py-1.5 hover:bg-primary/20 transition-colors disabled:opacity-50 shrink-0"
+                            >
+                              {isPending ? "Granting…" : "Grant Free Pro"}
+                            </button>
+                          </div>
+                          <p className="text-[9px] text-muted-foreground">Leave date empty for no expiration.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground mb-2">
-                    <span>Signed up: <span className="text-foreground/70">{formatDate(u.signedUpAt)}</span></span>
-                    <span>Last active: <span className="text-foreground/70">{timeAgo(u.lastActive)}</span></span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
-                    <span>{u.mealsLogged} meals</span>
-                    <span>{u.coachMessages} chats</span>
-                    <span>{u.mealScans} scans</span>
-                    {u.currentStreak > 0 && (
-                      <span className="text-primary font-semibold">{u.currentStreak} streak</span>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}

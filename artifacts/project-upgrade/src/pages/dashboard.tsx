@@ -731,8 +731,8 @@ export default function DashboardPage() {
     }
   }
 
-  const { trialDay, daysLeft, trialComplete } = useTrialDay();
-  const showTrialNudge = trialDay >= 5;
+  const { trialDay, daysLeft, trialComplete, isFreePro } = useTrialDay();
+  const showTrialNudge = !isFreePro && trialDay >= 5;
 
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric" });

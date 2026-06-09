@@ -12,6 +12,7 @@ export interface HealthStatus {
 export interface AuthUser {
   id: number;
   email: string;
+  isFreePro: boolean;
 }
 
 export interface SignupInput {
