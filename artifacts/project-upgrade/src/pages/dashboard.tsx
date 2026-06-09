@@ -784,90 +784,157 @@ export default function DashboardPage() {
     <div className="h-full overflow-y-auto scroll-area">
       <div className="max-w-lg mx-auto px-4 pt-5 pb-6 space-y-5">
 
-        {/* ── Today Header ── */}
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="label-caps-strong text-muted-foreground" style={{ fontSize: "9px" }}>
-              {dayName} · {dateStr}
-            </p>
-            <h1 className="text-[2.1rem] font-black tracking-tight leading-tight mt-1">
-              {firstName}
-            </h1>
-            {streakData && (streakData.currentStreak ?? 0) > 0 && (
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <Flame className="w-3.5 h-3.5" style={{ color: "#F59E0B" }} strokeWidth={2.4} />
+        {/* ── Hero / Command Center ── */}
+        <div
+          className="rounded-2xl p-5 relative overflow-hidden"
+          style={{
+            background: "linear-gradient(145deg, hsl(220 60% 7%) 0%, hsl(220 52% 10%) 60%, hsl(220 48% 8%) 100%)",
+            border: "1px solid hsl(217 32% 16%)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 0 40px rgba(59,130,246,0.07)",
+          }}
+        >
+          {/* ambient glow orb */}
+          <div className="pointer-events-none absolute -top-8 -right-8 w-40 h-40 rounded-full" style={{ background: "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)" }} />
+
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-muted-foreground">
+                {dayName} · {dateStr}
+              </p>
+              <h1 className="text-[2.3rem] font-black tracking-tight leading-tight mt-0.5">
+                {firstName}
+              </h1>
+              {/* Phase label */}
+              <p className="text-[11px] font-semibold text-muted-foreground mt-0.5">
+                {trialDay > 0 ? `Day ${trialDay}` : "Day 1"}
+                {plan && isCutting ? " — Cut Phase" : plan && isBulking ? " — Build Phase" : " — Maintenance"}
+              </p>
+              {/* Status badge */}
+              {(() => {
+                const statusLabel = displayScore >= 90
+                  ? { text: "Perfect Day", color: "#10B981", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.3)" }
+                  : displayScore >= 65
+                  ? { text: "Locked In", color: "#3B82F6", bg: "rgba(59,130,246,0.12)", border: "rgba(59,130,246,0.3)" }
+                  : displayScore >= 30
+                  ? { text: "Building Momentum", color: "#F59E0B", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.3)" }
+                  : { text: "Comeback Day", color: "#F59E0B", bg: "rgba(245,158,11,0.10)", border: "rgba(245,158,11,0.25)" };
+                if (!hasAnyData) return null;
+                return (
+                  <span
+                    className="inline-block mt-2 text-[9px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 rounded-full"
+                    style={{ color: statusLabel.color, background: statusLabel.bg, border: `1px solid ${statusLabel.border}` }}
+                  >
+                    {statusLabel.text}
+                  </span>
+                );
+              })()}
+              {streakData && (streakData.currentStreak ?? 0) > 0 && (
+                <div className="flex items-center gap-1.5 mt-2.5">
+                  <Flame className="w-3.5 h-3.5" style={{ color: "#F59E0B" }} strokeWidth={2.4} />
                 <p className="text-[11px] font-black tracking-[0.1em]" style={{ color: "#F59E0B" }}>
                   {streakData.currentStreak}-DAY STREAK
                 </p>
               </div>
             )}
           </div>
-          <div className="flex flex-col items-center gap-1 pt-1">
-            {hasAnyData || reviewScore !== null ? (
-              <>
-                <ScoreRing score={displayScore} />
-                <span className="label-caps-strong text-muted-foreground" style={{ fontSize: "8px" }}>Ascend Score</span>
-              </>
-            ) : (
-              <div className="flex flex-col items-center gap-0.5 w-14 text-center">
-                <span className="text-[9px] font-bold tracking-wide text-muted-foreground uppercase leading-tight">Start today's mission</span>
-              </div>
-            )}
+          <div className="flex flex-col items-center gap-1 pt-1 shrink-0">
+            <ScoreRing score={displayScore} />
+            <span className="label-caps-strong text-muted-foreground mt-0.5" style={{ fontSize: "8px" }}>Ascend Score</span>
           </div>
         </div>
+        </div>
 
-        {/* ── Weight Change Card ── */}
-        {progress && (progress.weeklyWeighIns ?? []).length >= 2 ? (
-          <div className="rounded-2xl p-4 flex items-center justify-between" style={{ background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)", border: "1px solid hsl(217 32% 15%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03), 0 0 18px rgba(59,130,246,0.06)" }}>
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Weight Change</p>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <p className={`text-2xl font-black ${(progress.totalLbsChange ?? 0) < 0 ? "text-green-400" : (progress.totalLbsChange ?? 0) > 0 ? "text-red-400" : "text-foreground"}`}>
-                  {(progress.totalLbsChange ?? 0) > 0 ? "+" : ""}{progress.totalLbsChange ?? 0} <span className="text-sm font-bold text-muted-foreground">lbs</span>
-                </p>
+        {/* ── Today's Mission ── */}
+        <Link href="/schedule" className="block active:scale-[0.99] transition-transform">
+          <div
+            className="rounded-2xl p-4 flex items-center justify-between"
+            style={{
+              background: "linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(59,130,246,0.05) 100%)",
+              border: "1px solid rgba(59,130,246,0.28)",
+              boxShadow: "0 0 24px rgba(59,130,246,0.08)",
+            }}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "rgba(59,130,246,0.18)", boxShadow: "0 0 14px rgba(59,130,246,0.25)" }}
+              >
+                <Target className="w-5 h-5 text-primary" strokeWidth={2.2} />
               </div>
-              <p className="text-[10px] text-muted-foreground">since starting ({Math.round((progress.startWeightKg ?? 0) * 2.2046226)} lbs)</p>
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-primary mb-0.5">Today's Mission</p>
+                <p className="text-sm font-bold leading-tight">Hit the plan. Keep the streak alive.</p>
+              </div>
             </div>
-            <Link href="/progress" className="text-xs font-bold text-primary">
-              Track
-            </Link>
+            <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 ml-2" />
           </div>
-        ) : (
-          <div className="rounded-2xl p-4 flex items-center justify-between" style={{ background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)", border: "1px solid hsl(217 32% 15%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)" }}>
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Weight Change</p>
-              <p className="text-xs text-muted-foreground mt-1">Log another weigh-in to see weight change.</p>
-            </div>
-            <Link href="/progress" className="text-xs font-bold text-primary">
-              Weigh In
-            </Link>
-          </div>
-        )}
+        </Link>
 
-        {/* ── Trial Nudge (days 5-7) ── */}
-        {showTrialNudge && (
-          <Link href={trialComplete ? "/trial-review" : "/pricing"}>
+        {/* ── Proof of Change ── */}
+        {(() => {
+          const startKg = progress?.startWeightKg ?? profile.currentWeightKg ?? 0;
+          const currentKg = profile.currentWeightKg ?? 0;
+          const goalKg = profile.goalWeightKg ?? 0;
+          const startLbs = Math.round(startKg * 2.2046226);
+          const currentLbs = Math.round(currentKg * 2.2046226);
+          const goalLbs = goalKg > 0 ? Math.round(goalKg * 2.2046226) : 0;
+          const totalChange = progress?.totalLbsChange ?? 0;
+          const hasChange = Math.abs(totalChange) > 0;
+          const isLoss = totalChange < 0;
+          const changeColor = isLoss ? "#10B981" : totalChange > 0 ? "#F59E0B" : "#3B82F6";
+          // Progress bar: start→goal, clamped
+          const progressPct = goalLbs > 0 && startLbs !== goalLbs
+            ? Math.max(0, Math.min(100, Math.round(Math.abs(startLbs - currentLbs) / Math.abs(startLbs - goalLbs) * 100)))
+            : 0;
+          return (
             <div
-              className="rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer transition-opacity hover:opacity-80"
+              className="rounded-2xl p-4 space-y-3"
               style={{
-                background: "rgba(245,158,11,0.07)",
-                border: "1px solid rgba(245,158,11,0.22)",
+                background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+                border: "1px solid hsl(217 32% 15%)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03), 0 0 18px rgba(16,185,129,0.04)",
               }}
             >
-              <Zap className="w-4 h-4 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={2.5} />
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-bold text-foreground leading-tight">
-                  {trialComplete
-                    ? "Your Week 2 plan is ready — see your 7-day review"
-                    : daysLeft === 1
-                    ? "Last day of your trial. See what you've built."
-                    : `Day ${trialDay} of 7 — ${daysLeft} days left in your free trial`}
-                </p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mb-1">Proof of Change</p>
+                  {hasChange ? (
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-2xl font-black" style={{ color: changeColor }}>
+                        {isLoss ? "" : "+"}{totalChange}
+                      </span>
+                      <span className="text-sm font-bold text-muted-foreground">lbs</span>
+                      <span className="text-[11px] text-muted-foreground">since starting</span>
+                    </div>
+                  ) : (
+                    <p className="text-sm font-semibold text-muted-foreground">Log a weigh-in to see your change.</p>
+                  )}
+                  {/* start → current → goal */}
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {startLbs} lbs
+                    {hasChange ? ` → ${currentLbs} lbs` : ""}
+                    {goalLbs > 0 ? ` → ${goalLbs} goal` : ""}
+                  </p>
+                </div>
+                <Link href="/progress" className="text-xs font-bold text-primary shrink-0 pt-1">
+                  {hasChange ? "Track" : "Weigh In"}
+                </Link>
               </div>
-              <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
+              {/* progress bar */}
+              {goalLbs > 0 && startLbs !== goalLbs && (
+                <div className="space-y-1">
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "hsl(218 46% 12%)" }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${progressPct}%`, background: `linear-gradient(90deg, ${changeColor}, ${changeColor}aa)` }}
+                    />
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">{progressPct}% of the way to goal</p>
+                </div>
+              )}
             </div>
-          </Link>
-        )}
+          );
+        })()}
 
         {/* ── Goal Reached ── */}
         {progress?.goalReached && (
@@ -974,7 +1041,38 @@ export default function DashboardPage() {
             }
             if (items.length >= 3) break;
           }
-          if (items.length === 0) return null;
+
+          // Sleep-specific mission when no check-in data but sleep is a goal
+          const hasSleepGoal = goals.some((g: string) => g.toLowerCase().includes("sleep"));
+          const hour = new Date().getHours();
+          const isEvening = hour >= 20;
+
+          if (items.length === 0) {
+            // Show a sleep/tonight nudge in the evening if relevant
+            if (hasSleepGoal || isEvening) {
+              return (
+                <div
+                  className="rounded-2xl p-4 space-y-2"
+                  style={{ background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.15)" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Moon className="w-4 h-4 text-primary" />
+                    <p className="label-caps text-primary">Tonight's Mission</p>
+                  </div>
+                  <p className="text-sm font-medium leading-snug">
+                    {hasSleepGoal
+                      ? plan && plan.sleepTargetHours
+                        ? `Phone down by ${22 - Math.max(0, plan.sleepTargetHours - 7)}:00. Protect your ${plan.sleepTargetHours}h target.`
+                        : "Phone down by 10:30. Get 8+ hours. Recovery drives results."
+                      : "Wind down early. Recovery drives every result tomorrow."}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">Sleep is when the gains happen.</p>
+                </div>
+              );
+            }
+            return null;
+          }
+
           return (
             <div
               className="rounded-2xl p-4 space-y-3"
@@ -1005,39 +1103,51 @@ export default function DashboardPage() {
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Based on your last check-in — may help, track the pattern.
+                Based on your last check-in — track the pattern.
               </p>
             </div>
           );
         })()}
 
         {/* ── Mission Card ── */}
-        <div className={`rounded-2xl p-4 ${missionComplete ? "ascend-mission-complete-glow" : "ascend-mission-card"}`}>
-          <div className="flex items-start gap-4">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-2.5">
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${missionComplete ? "ascend-pulse-green" : ""}`}
-                  style={{
-                    background: missionComplete ? "#10B981" : "#3B82F6",
-                    boxShadow: missionComplete
-                      ? "0 0 12px rgba(16,185,129,0.9)"
-                      : "0 0 8px rgba(59,130,246,0.9)",
-                    animation: missionComplete ? "none" : "pulse 2s infinite",
-                  }}
-                />
-                <p className="label-caps" style={{ color: missionComplete ? "#10B981" : "#3B82F6", fontSize: "9px" }}>
-                  {missionComplete ? "Mission Complete" : "Mission Active"}
-                </p>
-                {missionComplete && (
-                  <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-primary/15 text-primary">DAY STACKED</span>
-                )}
+        {missionComplete ? (
+          /* ── Reward / Mission Complete state ── */
+          <div
+            className="rounded-2xl p-5 space-y-3 relative overflow-hidden"
+            style={{
+              background: "linear-gradient(145deg, rgba(16,185,129,0.10) 0%, rgba(16,185,129,0.04) 100%)",
+              border: "1px solid rgba(16,185,129,0.30)",
+              boxShadow: "0 0 32px rgba(16,185,129,0.12), inset 0 1px 0 rgba(16,185,129,0.08)",
+            }}
+          >
+            <div className="pointer-events-none absolute -top-6 -right-6 w-32 h-32 rounded-full" style={{ background: "radial-gradient(circle, rgba(16,185,129,0.14) 0%, transparent 70%)" }} />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(16,185,129,0.18)", boxShadow: "0 0 14px rgba(16,185,129,0.3)" }}>
+                <CheckCircle2 className="w-4 h-4" style={{ color: "#10B981" }} strokeWidth={2.2} />
               </div>
-              <p className="text-[13px] leading-relaxed text-foreground font-medium">{coachMessage}</p>
-              {missionComplete && (
-                <p className="text-[11px] text-green-400 mt-2 italic">You kept the promise. Another vote for who you're becoming.</p>
-              )}
-              {!missionComplete && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-[9px] font-bold tracking-[0.18em] uppercase" style={{ color: "#10B981" }}>Mission Complete</p>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.3)" }}>DAY STACKED</span>
+              </div>
+            </div>
+            <p className="text-sm font-bold leading-snug text-foreground">You kept the promise today.</p>
+            <p className="text-[11px] leading-relaxed" style={{ color: "#10B981" }}>
+              Proof logged. Stack another win tomorrow. Don't break the chain.
+            </p>
+          </div>
+        ) : (
+          /* ── Mission Active state ── */
+          <div className="rounded-2xl p-4 ascend-mission-card">
+            <div className="flex items-start gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-2.5">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: "#3B82F6", boxShadow: "0 0 8px rgba(59,130,246,0.9)", animation: "pulse 2s infinite" }}
+                  />
+                  <p className="label-caps" style={{ color: "#3B82F6", fontSize: "9px" }}>Mission Active</p>
+                </div>
+                <p className="text-[13px] leading-relaxed text-foreground font-medium">{coachMessage}</p>
                 <div className="mt-2.5">
                   {(() => {
                     const nextAction = (() => {
@@ -1050,15 +1160,10 @@ export default function DashboardPage() {
                     return <span className="ascend-next-action">{nextAction}</span>;
                   })()}
                 </div>
-              )}
-            </div>
-            {displayScore === 0 && !missionComplete && (
-              <div className="shrink-0 pt-1">
-                <ScoreRing score={0} />
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ── Daily Mission Checklist ── */}
         {habits.length > 0 && (
@@ -1142,6 +1247,28 @@ export default function DashboardPage() {
             <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 ml-2" />
           </div>
         </Link>
+
+        {/* ── Trial Nudge (days 5-7) — moved below mission content ── */}
+        {showTrialNudge && (
+          <Link href={trialComplete ? "/trial-review" : "/pricing"}>
+            <div
+              className="rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer transition-opacity hover:opacity-80"
+              style={{ background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.22)" }}
+            >
+              <Zap className="w-4 h-4 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={2.5} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-bold text-foreground leading-tight">
+                  {trialComplete
+                    ? "Your Week 2 plan is ready — see your 7-day review"
+                    : daysLeft === 1
+                    ? "Last day of your trial. See what you've built."
+                    : `Day ${trialDay} of 7 — ${daysLeft} days left in your free trial`}
+                </p>
+              </div>
+              <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
+            </div>
+          </Link>
+        )}
 
         {/* ── Objectives ── */}
         {goals.length > 0 && (
