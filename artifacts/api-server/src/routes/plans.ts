@@ -22,6 +22,16 @@ router.get("/plans/current", async (req, res): Promise<void> => {
   res.json(formatPlan(plan));
 });
 
+// Alias for backward compatibility
+router.get("/plan", async (req, res): Promise<void> => {
+  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, getUserId(req))).orderBy(plansTable.createdAt);
+  if (!plan) {
+    res.status(404).json({ error: "No plan found" });
+    return;
+  }
+  res.json(formatPlan(plan));
+});
+
 router.post("/plans/current", async (req, res): Promise<void> => {
   const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, getUserId(req)));
   if (!profile) {

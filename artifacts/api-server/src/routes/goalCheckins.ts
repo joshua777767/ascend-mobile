@@ -135,7 +135,8 @@ router.get("/goal-checkins", async (req, res): Promise<void> => {
 router.post("/goal-checkins", async (req, res): Promise<void> => {
   const parsed = CreateGoalCheckInBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    const issues = parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ");
+    res.status(400).json({ error: `Invalid input: ${issues}` });
     return;
   }
 

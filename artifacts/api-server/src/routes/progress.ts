@@ -43,10 +43,34 @@ router.get("/progress/summary", async (req, res): Promise<void> => {
   const goalReachedAt = profile?.goalReachedAt ?? null;
 
   // If goal just reached now, record it
+  let updatedGoalReachedAt = goalReachedAt;
   if (goalReached && !goalReachedAt && profile) {
+    const now = new Date();
     await db.update(userProfilesTable)
-      .set({ goalReachedAt: new Date() })
+      .set({ goalReachedAt: now })
       .where(eq(userProfilesTable.userId, getUserId(req)));
+    updatedGoalReachedAt = now;
+  }
+
+  // Calculate streak from journals
+  const journals = await db.select().from(journalEntriesTable)
+    .where(eq(journalEntriesTable.userId, getUserId(req)))
+    .orderBy(desc(journalEntriesTable.date));
+  let currentStreak = 0;
+  let prevDate: Date | null = null;
+  for (const entry of journals) {
+    const entryDate = new Date(entry.date);
+    if (prevDate === null) {
+      currentStreak = 1;
+    } else {
+      const diff = (prevDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (diff === 1) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+    prevDate = entryDate;
   }
 
   const avgScore = reviews.length > 0
@@ -61,9 +85,9 @@ router.get("/progress/summary", async (req, res): Promise<void> => {
     startWeightKg,
     progressPercent: Math.round(progressPercent * 10) / 10,
     goalReached,
-    goalReachedAt: goalReached ? (goalReachedAt ?? new Date().toISOString()) : null,
+    goalReachedAt: goalReached ? (updatedGoalReachedAt ?? new Date().toISOString()) : null,
     lbsToGo: Math.round(lbsToGo * 10) / 10,
-    dayStreak: 0,
+    dayStreak: currentStreak,
     totalWorkouts: workouts.length,
     avgDailyScore: Math.round(avgScore * 10) / 10,
     weeklyWeighIns: weighIns.slice(-8),
@@ -227,6 +251,7 @@ router.get("/progress/milestones", async (req, res): Promise<void> => {
   const unlock = (date: Date | null) => date ? date.toISOString() : null;
   const firstMeal = meals.length > 0 ? new Date(meals[0].loggedAt ?? Date.now()) : null;
   const firstJournal = journals.length > 0 ? new Date(journals[0].date + "T00:00:00") : null;
+  const firstWorkout = workouts.length > 0 ? new Date(workouts[0].completedAt ?? Date.now()) : null;
 
   // Streak milestones
   for (const days of [3, 7, 14, 30, 60, 100]) {
@@ -234,7 +259,7 @@ router.get("/progress/milestones", async (req, res): Promise<void> => {
       id: `streak_${days}`,
       label: `${days}-Day Streak`,
       description: `Log your mission for ${days} days in a row`,
-      unlockedAt: streak >= days ? unlock(firstMeal) : null,
+      unlockedAt: streak >= days ? unlock(firstJournal) : null,
       category: "streak",
     });
   }
@@ -288,7 +313,7 @@ router.get("/progress/milestones", async (req, res): Promise<void> => {
       id: `workouts_${count}`,
       label: `${count} Workout${count > 1 ? "s" : ""}`,
       description: `Log ${count} workout${count > 1 ? "s" : ""}`,
-      unlockedAt: totalWorkouts >= count ? unlock(firstMeal) : null,
+      unlockedAt: totalWorkouts >= count ? unlock(firstWorkout) : null,
       category: "consistency",
     });
   }
