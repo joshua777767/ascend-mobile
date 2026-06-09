@@ -5,6 +5,7 @@ import {
   useGetProgressSummary, useGetMissionStreak, useListWeighIns, useCreateWeighIn,
   useListReviews, useGetUserProfile, useUpdateGoal,
   useListGoalCheckIns, useCreateGoalCheckIn,
+  useGetMilestones,
   getListWeighInsQueryKey, getGetProgressSummaryQueryKey, getGetMissionStreakQueryKey,
   getGetUserProfileQueryKey, getListGoalCheckInsQueryKey
 } from "@workspace/api-client-react";
@@ -14,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { TrendingDown, TrendingUp, Minus, CheckCircle, XCircle, Trophy, ArrowRight, Target, Sparkles, Star } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus, CheckCircle, XCircle, Trophy, ArrowRight, Target, Sparkles, Star, Medal, Lock } from "lucide-react";
 
 export default function ProgressPage() {
   const [, setLocation] = useLocation();
@@ -25,6 +26,7 @@ export default function ProgressPage() {
   const { data: weighIns, isLoading: loadingWeighIns } = useListWeighIns();
   const { data: reviews } = useListReviews();
   const { data: goalCheckIns } = useListGoalCheckIns();
+  const { data: milestonesData } = useGetMilestones();
   const createWeighIn = useCreateWeighIn();
   const createGoalCheckIn = useCreateGoalCheckIn();
   const updateGoal = useUpdateGoal();
@@ -523,6 +525,59 @@ export default function ProgressPage() {
             </div>
           </div>
         )}
+
+        {/* ── Milestone Badges ── */}
+        {milestonesData?.milestones && milestonesData.milestones.some(m => m.unlockedAt) && (() => {
+          const unlocked = milestonesData.milestones.filter(m => m.unlockedAt);
+          const locked = milestonesData.milestones.filter(m => !m.unlockedAt).slice(0, 4);
+          const categoryColor: Record<string, string> = {
+            streak: "text-amber-400 bg-amber-500/15",
+            weight: "text-green-400 bg-green-500/15",
+            meals: "text-blue-400 bg-blue-500/15",
+            consistency: "text-purple-400 bg-purple-500/15",
+          };
+          const categoryIcon: Record<string, string> = {
+            streak: "🔥", weight: "⚖️", meals: "🥗", consistency: "📓",
+          };
+          return (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Medal className="w-4 h-4 text-primary" />
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Milestones</p>
+                <span className="ml-auto text-[10px] font-bold text-primary">{unlocked.length} unlocked</span>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {unlocked.map(m => (
+                  <div
+                    key={m.id}
+                    title={m.description}
+                    className={cn("flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-bold", categoryColor[m.category] ?? "text-primary bg-primary/15")}
+                  >
+                    <span>{categoryIcon[m.category] ?? "🏅"}</span>
+                    <span>{m.label}</span>
+                  </div>
+                ))}
+              </div>
+              {locked.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Next up</p>
+                  <div className="flex flex-wrap gap-2">
+                    {locked.map(m => (
+                      <div
+                        key={m.id}
+                        title={m.description}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-bold bg-muted/20 text-muted-foreground border border-border/50"
+                      >
+                        <Lock className="w-2.5 h-2.5" />
+                        <span>{m.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {reviews && reviews.length > 0 && (
           <div>

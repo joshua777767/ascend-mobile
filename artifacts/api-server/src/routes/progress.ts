@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, gte } from "drizzle-orm";
 import { db, userProfilesTable, plansTable, workoutsTable, weighInsTable, mealsTable, coachReviewsTable, journalEntriesTable } from "@workspace/db";
 import { getUserId } from "../middlewares/auth";
 
@@ -123,6 +123,177 @@ router.get("/progress/streak", async (req, res): Promise<void> => {
     longestStreak,
     lastActiveDate: journals.length > 0 ? journals[0].date : new Date().toISOString().split("T")[0],
   });
+});
+
+// ── Weekly Recap ─────────────────────────────────────────────────────────────
+router.get("/progress/weekly-recap", async (req, res): Promise<void> => {
+  const userId = getUserId(req);
+  const now = new Date();
+  const weekAgo = new Date(now);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const weekStart = weekAgo.toISOString().slice(0, 10);
+  const weekEnd = now.toISOString().slice(0, 10);
+
+  const [meals, journals, reviews, weighIns, profile] = await Promise.all([
+    db.select().from(mealsTable).where(eq(mealsTable.userId, userId)),
+    db.select().from(journalEntriesTable).where(eq(journalEntriesTable.userId, userId)),
+    db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, userId)),
+    db.select().from(weighInsTable).where(eq(weighInsTable.userId, userId)).orderBy(weighInsTable.loggedAt),
+    db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, userId)),
+  ]);
+
+  const weekMeals = meals.filter(m => m.loggedAt && m.loggedAt >= weekAgo);
+  const weekJournals = journals.filter(j => j.date >= weekStart);
+  const weekReviews = reviews.filter(r => r.date >= weekStart);
+
+  const avgDailyScore = weekReviews.length > 0
+    ? Math.round(weekReviews.reduce((s, r) => s + r.dailyScore, 0) / weekReviews.length)
+    : 0;
+
+  const bestReview = weekReviews.sort((a, b) => b.dailyScore - a.dailyScore)[0];
+  const bestDay = bestReview
+    ? new Date(bestReview.date + "T00:00:00").toLocaleDateString("en-US", { weekday: "long" })
+    : null;
+
+  // Weight change over the week
+  const recentWeighIns = weighIns.filter(w => new Date(w.loggedAt) >= weekAgo);
+  let lbsChange: number | null = null;
+  if (recentWeighIns.length >= 2) {
+    const diff = recentWeighIns[recentWeighIns.length - 1].weightKg - recentWeighIns[0].weightKg;
+    lbsChange = Math.round(diff * 2.2046 * 10) / 10;
+  } else if (weighIns.length >= 2) {
+    const last = weighIns[weighIns.length - 1].weightKg;
+    const prev = weighIns[weighIns.length - 2].weightKg;
+    lbsChange = Math.round((last - prev) * 2.2046 * 10) / 10;
+  }
+
+  // Top win from best journal
+  const bestJournal = weekJournals.sort((a, b) => (b.date > a.date ? 1 : -1))[0];
+  const topWin = bestJournal?.biggestWin ?? null;
+
+  // Headline
+  const streak = profile[0]?.currentStreak ?? 0;
+  let headline = "";
+  if (avgDailyScore >= 80) headline = "Dominant week. Keep that standard.";
+  else if (avgDailyScore >= 65) headline = "Solid week — momentum is building.";
+  else if (weekMeals.length >= 10) headline = "You showed up. Build on it.";
+  else if (streak >= 7) headline = `${streak}-day streak intact. Don't break it now.`;
+  else headline = "Every week is a new shot. Make this one count.";
+
+  res.json({
+    weekStart,
+    weekEnd,
+    mealsLogged: weekMeals.length,
+    journalDays: weekJournals.length,
+    avgDailyScore,
+    bestDay,
+    streakDays: streak,
+    lbsChange,
+    topWin,
+    headline,
+  });
+});
+
+// ── Milestones ────────────────────────────────────────────────────────────────
+router.get("/progress/milestones", async (req, res): Promise<void> => {
+  const userId = getUserId(req);
+
+  const [profile, meals, workouts, weighIns, journals] = await Promise.all([
+    db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, userId)),
+    db.select().from(mealsTable).where(eq(mealsTable.userId, userId)),
+    db.select().from(workoutsTable).where(eq(workoutsTable.userId, userId)),
+    db.select().from(weighInsTable).where(eq(weighInsTable.userId, userId)).orderBy(weighInsTable.loggedAt),
+    db.select().from(journalEntriesTable).where(eq(journalEntriesTable.userId, userId)),
+  ]);
+
+  const p = profile[0];
+  const streak = p?.currentStreak ?? 0;
+  const longestStreak = p?.currentStreak ?? 0; // use current; /progress/streak has full calc
+  const totalMeals = meals.length;
+  const totalWorkouts = workouts.length;
+
+  // Weight lost
+  const startKg = weighIns.length > 0 ? weighIns[0].weightKg : (p?.currentWeightKg ?? 0);
+  const currentKg = weighIns.length > 0 ? weighIns[weighIns.length - 1].weightKg : (p?.currentWeightKg ?? 0);
+  const goalKg = p?.goalWeightKg ?? currentKg;
+  const isLosing = goalKg < startKg;
+  const lbsLost = isLosing ? Math.max(0, (startKg - currentKg) * 2.2046) : 0;
+  const lbsGained = !isLosing && goalKg > startKg ? Math.max(0, (currentKg - startKg) * 2.2046) : 0;
+
+  type MilestoneCategory = "weight" | "streak" | "meals" | "consistency";
+  type MS = { id: string; label: string; description: string; unlockedAt: string | null; category: MilestoneCategory };
+  const milestones: MS[] = [];
+
+  const unlock = (date: Date | null) => date ? date.toISOString() : null;
+  const firstMeal = meals.length > 0 ? new Date(meals[0].loggedAt ?? Date.now()) : null;
+  const firstJournal = journals.length > 0 ? new Date(journals[0].date + "T00:00:00") : null;
+
+  // Streak milestones
+  for (const days of [3, 7, 14, 30, 60, 100]) {
+    milestones.push({
+      id: `streak_${days}`,
+      label: `${days}-Day Streak`,
+      description: `Log your mission for ${days} days in a row`,
+      unlockedAt: streak >= days ? unlock(firstMeal) : null,
+      category: "streak",
+    });
+  }
+
+  // Weight milestones
+  if (isLosing) {
+    for (const lbs of [1, 5, 10, 15, 20, 25, 30]) {
+      milestones.push({
+        id: `lost_${lbs}lbs`,
+        label: `Lost ${lbs} lb${lbs > 1 ? "s" : ""}`,
+        description: `Drop ${lbs} lb${lbs > 1 ? "s" : ""} from your starting weight`,
+        unlockedAt: lbsLost >= lbs ? unlock(weighIns.length > 0 ? new Date(weighIns[weighIns.length - 1].loggedAt) : null) : null,
+        category: "weight",
+      });
+    }
+  } else if (goalKg > startKg) {
+    for (const lbs of [1, 5, 10, 15, 20]) {
+      milestones.push({
+        id: `gained_${lbs}lbs`,
+        label: `Gained ${lbs} lb${lbs > 1 ? "s" : ""}`,
+        description: `Add ${lbs} lb${lbs > 1 ? "s" : ""} from your starting weight`,
+        unlockedAt: lbsGained >= lbs ? unlock(weighIns.length > 0 ? new Date(weighIns[weighIns.length - 1].loggedAt) : null) : null,
+        category: "weight",
+      });
+    }
+  }
+
+  // Meal milestones
+  for (const count of [1, 10, 25, 50, 100, 200]) {
+    milestones.push({
+      id: `meals_${count}`,
+      label: `${count} Meal${count > 1 ? "s" : ""} Logged`,
+      description: `Log ${count} meal${count > 1 ? "s" : ""} with the coach`,
+      unlockedAt: totalMeals >= count ? unlock(firstMeal) : null,
+      category: "meals",
+    });
+  }
+
+  // Consistency milestones
+  for (const count of [1, 7, 14, 30]) {
+    milestones.push({
+      id: `journal_${count}`,
+      label: `${count} Journal${count > 1 ? "s" : ""}`,
+      description: `Complete ${count} nightly journal${count > 1 ? "s" : ""}`,
+      unlockedAt: journals.length >= count ? unlock(firstJournal) : null,
+      category: "consistency",
+    });
+  }
+  for (const count of [1, 5, 10, 25]) {
+    milestones.push({
+      id: `workouts_${count}`,
+      label: `${count} Workout${count > 1 ? "s" : ""}`,
+      description: `Log ${count} workout${count > 1 ? "s" : ""}`,
+      unlockedAt: totalWorkouts >= count ? unlock(firstMeal) : null,
+      category: "consistency",
+    });
+  }
+
+  res.json({ milestones });
 });
 
 export default router;

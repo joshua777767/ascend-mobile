@@ -29,6 +29,7 @@ import type {
   CoachReview,
   DailySchedule,
   ForgotPasswordInput,
+  GetMilestones200,
   GoalCheckIn,
   GoalCheckInInput,
   GoalUpdate,
@@ -53,6 +54,7 @@ import type {
   UserProfileInput,
   UserProfileUpdate,
   WaterSummary,
+  WeeklyRecap,
   WeighIn,
   WeighInInput,
   Workout,
@@ -2712,6 +2714,160 @@ export function useGetMissionStreak<TData = Awaited<ReturnType<typeof getMission
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetMissionStreakQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetWeeklyRecapUrl = () => {
+
+
+
+
+  return `/api/progress/weekly-recap`
+}
+
+/**
+ * @summary Get last 7 days recap — meals, journals, weight, streak
+ */
+export const getWeeklyRecap = async ( options?: RequestInit): Promise<WeeklyRecap> => {
+
+  return customFetch<WeeklyRecap>(getGetWeeklyRecapUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWeeklyRecapQueryKey = () => {
+    return [
+    `/api/progress/weekly-recap`
+    ] as const;
+    }
+
+
+export const getGetWeeklyRecapQueryOptions = <TData = Awaited<ReturnType<typeof getWeeklyRecap>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWeeklyRecap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWeeklyRecapQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWeeklyRecap>>> = ({ signal }) => getWeeklyRecap({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWeeklyRecap>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWeeklyRecapQueryResult = NonNullable<Awaited<ReturnType<typeof getWeeklyRecap>>>
+export type GetWeeklyRecapQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get last 7 days recap — meals, journals, weight, streak
+ */
+
+export function useGetWeeklyRecap<TData = Awaited<ReturnType<typeof getWeeklyRecap>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWeeklyRecap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWeeklyRecapQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMilestonesUrl = () => {
+
+
+
+
+  return `/api/progress/milestones`
+}
+
+/**
+ * @summary Get unlocked milestones for the user
+ */
+export const getMilestones = async ( options?: RequestInit): Promise<GetMilestones200> => {
+
+  return customFetch<GetMilestones200>(getGetMilestonesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMilestonesQueryKey = () => {
+    return [
+    `/api/progress/milestones`
+    ] as const;
+    }
+
+
+export const getGetMilestonesQueryOptions = <TData = Awaited<ReturnType<typeof getMilestones>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMilestones>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMilestonesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMilestones>>> = ({ signal }) => getMilestones({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMilestones>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMilestonesQueryResult = NonNullable<Awaited<ReturnType<typeof getMilestones>>>
+export type GetMilestonesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get unlocked milestones for the user
+ */
+
+export function useGetMilestones<TData = Awaited<ReturnType<typeof getMilestones>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMilestones>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMilestonesQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -629,6 +629,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/MissionStreak"
 
+  /progress/weekly-recap:
+    get:
+      operationId: getWeeklyRecap
+      tags: [progress]
+      summary: Get last 7 days recap — meals, journals, weight, streak
+      responses:
+        "200":
+          description: Weekly recap
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyRecap"
+
+  /progress/milestones:
+    get:
+      operationId: getMilestones
+      tags: [progress]
+      summary: Get unlocked milestones for the user
+      responses:
+        "200":
+          description: Milestones list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  milestones:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Milestone"
+
   /streak:
     get:
       operationId: getStreak
@@ -1589,6 +1620,62 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Meal"
+
+    WeeklyRecap:
+      type: object
+      required:
+        - weekStart
+        - weekEnd
+        - mealsLogged
+        - journalDays
+        - avgDailyScore
+        - bestDay
+        - streakDays
+        - lbsChange
+        - topWin
+        - headline
+      properties:
+        weekStart:
+          type: string
+        weekEnd:
+          type: string
+        mealsLogged:
+          type: integer
+        journalDays:
+          type: integer
+        avgDailyScore:
+          type: number
+        bestDay:
+          type: ["string", "null"]
+        streakDays:
+          type: integer
+        lbsChange:
+          type: ["number", "null"]
+        topWin:
+          type: ["string", "null"]
+        headline:
+          type: string
+
+    Milestone:
+      type: object
+      required:
+        - id
+        - label
+        - description
+        - unlockedAt
+        - category
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        description:
+          type: string
+        unlockedAt:
+          type: ["string", "null"]
+        category:
+          type: string
+          enum: [weight, streak, meals, consistency]
 
     MealGeneratorInput:
       type: object

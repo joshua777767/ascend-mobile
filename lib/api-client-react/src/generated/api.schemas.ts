@@ -460,6 +460,41 @@ export interface ProgressSummary {
   recentMeals: Meal[];
 }
 
+export interface WeeklyRecap {
+  weekStart: string;
+  weekEnd: string;
+  mealsLogged: number;
+  journalDays: number;
+  avgDailyScore: number;
+  /** @nullable */
+  bestDay: string | null;
+  streakDays: number;
+  /** @nullable */
+  lbsChange: number | null;
+  /** @nullable */
+  topWin: string | null;
+  headline: string;
+}
+
+export type MilestoneCategory = typeof MilestoneCategory[keyof typeof MilestoneCategory];
+
+
+export const MilestoneCategory = {
+  weight: 'weight',
+  streak: 'streak',
+  meals: 'meals',
+  consistency: 'consistency',
+} as const;
+
+export interface Milestone {
+  id: string;
+  label: string;
+  description: string;
+  /** @nullable */
+  unlockedAt: string | null;
+  category: MilestoneCategory;
+}
+
 /**
  * Target goal for the meal plan
  */
@@ -664,4 +699,8 @@ export interface GoalCheckInInput {
   /** What made it harder this week */
   whatHardened?: string;
 }
+
+export type GetMilestones200 = {
+  milestones?: Milestone[];
+};
 

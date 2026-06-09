@@ -731,6 +731,37 @@ export const GetMissionStreakResponse = zod.object({
 
 
 /**
+ * @summary Get last 7 days recap — meals, journals, weight, streak
+ */
+export const GetWeeklyRecapResponse = zod.object({
+  "weekStart": zod.string(),
+  "weekEnd": zod.string(),
+  "mealsLogged": zod.number(),
+  "journalDays": zod.number(),
+  "avgDailyScore": zod.number(),
+  "bestDay": zod.string().nullable(),
+  "streakDays": zod.number(),
+  "lbsChange": zod.number().nullable(),
+  "topWin": zod.string().nullable(),
+  "headline": zod.string()
+})
+
+
+/**
+ * @summary Get unlocked milestones for the user
+ */
+export const GetMilestonesResponse = zod.object({
+  "milestones": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "description": zod.string(),
+  "unlockedAt": zod.string().nullable(),
+  "category": zod.enum(['weight', 'streak', 'meals', 'consistency'])
+})).optional()
+})
+
+
+/**
  * @summary Get current Ascend streak
  */
 export const GetStreakResponse = zod.object({

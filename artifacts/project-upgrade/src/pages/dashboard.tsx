@@ -13,6 +13,7 @@ import {
   useRecordStreak,
   useGetProgressSummary,
   useListGoalCheckIns,
+  useGetWeeklyRecap,
   getGetWaterTodayQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -37,6 +38,8 @@ import {
   Sparkles,
   Star,
   Zap,
+  BarChart2,
+  Medal,
 } from "lucide-react";
 
 // ─── image util ───────────────────────────────────────────────────────────────
@@ -569,6 +572,7 @@ export default function DashboardPage() {
   const { mutateAsync: recordStreakFn } = useRecordStreak();
   const { data: progress } = useGetProgressSummary();
   const { data: goalCheckIns } = useListGoalCheckIns();
+  const { data: weeklyRecap } = useGetWeeklyRecap();
 
   useEffect(() => { refetchMeals(); }, [refetchMeals]);
   useEffect(() => { refetchWater(); }, [refetchWater]);
@@ -981,6 +985,63 @@ export default function DashboardPage() {
             </div>
           );
         })()}
+
+        {/* ── Weekly Recap ── */}
+        {weeklyRecap && (weeklyRecap.mealsLogged > 0 || weeklyRecap.journalDays > 0) && (
+          <div
+            className="rounded-2xl p-4 space-y-3"
+            style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)" }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BarChart2 className="w-4 h-4 text-primary" />
+                <p className="label-caps text-primary">This Week</p>
+              </div>
+              <p className="text-[10px] text-muted-foreground">{weeklyRecap.weekStart} – {weeklyRecap.weekEnd}</p>
+            </div>
+            <p className="text-sm font-semibold leading-snug">{weeklyRecap.headline}</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-card/60 rounded-xl p-2.5 text-center">
+                <p className="text-lg font-black text-foreground">{weeklyRecap.mealsLogged}</p>
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Meals</p>
+              </div>
+              <div className="bg-card/60 rounded-xl p-2.5 text-center">
+                <p className="text-lg font-black text-foreground">{weeklyRecap.journalDays}</p>
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Journals</p>
+              </div>
+              <div className="bg-card/60 rounded-xl p-2.5 text-center">
+                <p className={`text-lg font-black ${weeklyRecap.avgDailyScore >= 70 ? "text-green-400" : weeklyRecap.avgDailyScore >= 50 ? "text-amber-400" : "text-muted-foreground"}`}>
+                  {weeklyRecap.avgDailyScore > 0 ? weeklyRecap.avgDailyScore : "—"}
+                </p>
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Avg Score</p>
+              </div>
+            </div>
+            {(weeklyRecap.lbsChange !== null || weeklyRecap.topWin || weeklyRecap.bestDay) && (
+              <div className="space-y-1.5">
+                {weeklyRecap.lbsChange !== null && (
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${weeklyRecap.lbsChange < 0 ? "bg-green-500/15 text-green-400" : weeklyRecap.lbsChange > 0 ? "bg-red-500/15 text-red-400" : "bg-muted/20 text-muted-foreground"}`}>
+                      {weeklyRecap.lbsChange > 0 ? "+" : ""}{weeklyRecap.lbsChange} lbs
+                    </span>
+                    <p className="text-[10px] text-muted-foreground">weight change this week</p>
+                  </div>
+                )}
+                {weeklyRecap.bestDay && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-primary/15 text-primary">BEST DAY</span>
+                    <p className="text-[10px] text-muted-foreground">{weeklyRecap.bestDay}</p>
+                  </div>
+                )}
+                {weeklyRecap.topWin && (
+                  <p className="text-xs text-muted-foreground italic">"{weeklyRecap.topWin}"</p>
+                )}
+              </div>
+            )}
+            <Link href="/progress" className="inline-flex items-center gap-1 text-xs font-bold text-primary">
+              Full Progress <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+        )}
 
         {/* ── Mission Card ── */}
         <div className="ascend-mission-card rounded-2xl p-4">
