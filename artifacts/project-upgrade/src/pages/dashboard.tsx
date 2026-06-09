@@ -575,7 +575,7 @@ export default function DashboardPage() {
   useEffect(() => { refetchWater(); }, [refetchWater]);
 
   const habits = prioritizeHabits(plan && Array.isArray(plan.keyHabits) ? plan.keyHabits : []);
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = new Date().toLocaleDateString("en-CA");
   const storageKey = `ascend.checklist.${todayKey}`;
   const [done, setDone] = useState<Record<string, boolean>>(() => {
     try {
@@ -613,7 +613,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (checklistScore >= 70 && habits.length > 0) {
       const lastDate = streakData?.lastStreakDate ?? null;
-      const today = new Date().toISOString().slice(0, 10);
+      const today = new Date().toLocaleDateString("en-CA");
       if (lastDate !== today) {
         recordStreakFn().catch(() => {});
       }
