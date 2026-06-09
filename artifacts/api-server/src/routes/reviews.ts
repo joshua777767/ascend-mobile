@@ -97,13 +97,19 @@ router.get("/reviews", async (req, res): Promise<void> => {
 });
 
 router.post("/reviews", async (req, res): Promise<void> => {
-  const today = getUserToday(req);
+  const { dayStart, dayEnd } = getTodayUtcRange(req);
 
-  // Get today's journal entry
-  const allEntries = await db.select().from(journalEntriesTable)
-    .where(eq(journalEntriesTable.userId, getUserId(req)))
-    .orderBy(desc(journalEntriesTable.createdAt));
-  const todayEntry = allEntries.find(e => e.date === today);
+  // Get today's journal entry by created_at range (not stored date string)
+  const [todayEntry] = await db.select().from(journalEntriesTable)
+    .where(
+      and(
+        eq(journalEntriesTable.userId, getUserId(req)),
+        gte(journalEntriesTable.createdAt, dayStart),
+        lt(journalEntriesTable.createdAt, dayEnd),
+      ),
+    )
+    .orderBy(desc(journalEntriesTable.createdAt))
+    .limit(1);
 
   if (!todayEntry) {
     res.status(400).json({ error: "Submit your journal entry first." });
@@ -115,10 +121,20 @@ router.post("/reviews", async (req, res): Promise<void> => {
 
   const generated = await generateCoachReview(todayEntry, plan, profile);
 
-  // Upsert today's review
-  const existing = (await db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, getUserId(req)))).find(r => r.date === today);
+  // Upsert today's review by created_at range (not stored date string)
+  const [existing] = await db.select().from(coachReviewsTable)
+    .where(
+      and(
+        eq(coachReviewsTable.userId, getUserId(req)),
+        gte(coachReviewsTable.createdAt, dayStart),
+        lt(coachReviewsTable.createdAt, dayEnd),
+      ),
+    )
+    .orderBy(desc(coachReviewsTable.createdAt))
+    .limit(1);
 
   let review;
+  const today = getUserToday(req);
   if (existing) {
     [review] = await db.update(coachReviewsTable).set(generated).where(eq(coachReviewsTable.id, existing.id)).returning();
   } else {
