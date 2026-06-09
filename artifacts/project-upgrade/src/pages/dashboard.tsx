@@ -14,6 +14,9 @@ import {
   useGetProgressSummary,
   useListGoalCheckIns,
   getGetWaterTodayQueryKey,
+  getGetTodayMealsQueryKey,
+  getGetTodayWorkoutQueryKey,
+  getGetTodayReviewQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -559,12 +562,26 @@ function WaterTracker({
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+
+  // Scope all "today" queries to the user's local date so React Query
+  // treats each calendar day as a separate cache entry and never serves
+  // yesterday's data on a new local day.
+  const localDate = new Date().toLocaleDateString("en-CA");
+
   const { data: profile, isLoading: loadingProfile, error } = useGetUserProfile();
   const { data: plan } = useGetCurrentPlan();
-  const { data: workout } = useGetTodayWorkout();
-  const { data: review } = useGetTodayReview();
-  const { data: todayMeals, refetch: refetchMeals } = useGetTodayMeals();
-  const { data: waterData, refetch: refetchWater } = useGetWaterToday();
+  const { data: workout } = useGetTodayWorkout({
+    query: { queryKey: [...getGetTodayWorkoutQueryKey(), localDate] },
+  });
+  const { data: review } = useGetTodayReview({
+    query: { queryKey: [...getGetTodayReviewQueryKey(), localDate] },
+  });
+  const { data: todayMeals, refetch: refetchMeals } = useGetTodayMeals({
+    query: { queryKey: [...getGetTodayMealsQueryKey(), localDate] },
+  });
+  const { data: waterData, refetch: refetchWater } = useGetWaterToday({
+    query: { queryKey: [...getGetWaterTodayQueryKey(), localDate] },
+  });
   const { mutateAsync: logWaterFn, isPending: waterLogging } = useLogWater();
   const { data: streakData } = useGetStreak();
   const { mutateAsync: recordStreakFn } = useRecordStreak();
@@ -575,8 +592,7 @@ export default function DashboardPage() {
   useEffect(() => { refetchWater(); }, [refetchWater]);
 
   const habits = prioritizeHabits(plan && Array.isArray(plan.keyHabits) ? plan.keyHabits : []);
-  const todayKey = new Date().toLocaleDateString("en-CA");
-  const storageKey = `ascend.checklist.${todayKey}`;
+  const storageKey = `ascend.checklist.${localDate}`;
   const [done, setDone] = useState<Record<string, boolean>>(() => {
     try {
       const raw = localStorage.getItem(storageKey);
@@ -613,8 +629,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (checklistScore >= 70 && habits.length > 0) {
       const lastDate = streakData?.lastStreakDate ?? null;
-      const today = new Date().toLocaleDateString("en-CA");
-      if (lastDate !== today) {
+      if (lastDate !== localDate) {
         recordStreakFn().catch(() => {});
       }
     }
