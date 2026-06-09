@@ -608,6 +608,20 @@ export default function DashboardPage() {
   const dailyHabits = habits.filter(h => !isWeeklyHabit(h));
   const weeklyHabits = habits.filter(h => isWeeklyHabit(h));
 
+  // Weekly counter state — stored at top level with a key per habit
+  const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {};
+    const weekPrefix = `ascend.weekly.${localDate.slice(0, 7)}`;
+    for (const h of weeklyHabits) {
+      const key = `${weekPrefix}.${h}`;
+      try {
+        const raw = localStorage.getItem(key);
+        initial[h] = raw ? parseInt(raw, 10) || 0 : 0;
+      } catch { initial[h] = 0; }
+    }
+    return initial;
+  });
+
   const storageKey = `ascend.checklist.v2.${localDate}`;
 
   // Track which storageKey was used to initialize `done` so we can detect
@@ -1248,20 +1262,63 @@ export default function DashboardPage() {
                 const lower = habit.toLowerCase();
                 const isWorkoutFreq = /\b(train|workout|strength|gym|exercise|lift|cardio|run|sport|practice)\b/.test(lower) && /\b(this week|weekly|x\/week)\b/.test(lower);
                 const liveDays = profile.workoutDaysPerWeek ?? 3;
-                const displayHabit = isWorkoutFreq && liveDays > 0
-                  ? `Train ${liveDays}x this week`
-                  : habit;
+                const targetCount = isWorkoutFreq && liveDays > 0 ? liveDays : 1;
+                const weekKey = `ascend.weekly.${localDate.slice(0, 7)}.${habit}`;
+                const weeklyCount = weeklyCounts[habit] ?? 0;
+                const weeklyDone = weeklyCount >= targetCount;
+
+                function updateWeeklyCount(delta: number) {
+                  setWeeklyCounts(prev => {
+                    const next = Math.max(0, (prev[habit] ?? 0) + delta);
+                    const updated = { ...prev, [habit]: next };
+                    try { localStorage.setItem(weekKey, String(next)); } catch {}
+                    return updated;
+                  });
+                }
+
                 return (
-                  <div key={habit} className="w-full flex items-center gap-3 px-4 py-3.5 text-left">
-                    <div
-                      className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center border-2"
-                      style={{ borderColor: "hsl(217 32% 22%)" }}
-                    >
-                      <Circle className="w-3 h-3 text-muted-foreground" strokeWidth={2} />
+                  <div key={habit} className="w-full flex items-center justify-between gap-3 px-4 py-3.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => updateWeeklyCount(weeklyDone ? -1 : 1)}
+                        className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center border-2 transition-all active:scale-90"
+                        style={weeklyDone
+                          ? { background: "#10B981", borderColor: "#10B981", boxShadow: "0 0 8px rgba(16,185,129,0.4)" }
+                          : { borderColor: "hsl(217 32% 22%)" }}
+                      >
+                        {weeklyDone ? (
+                          <CheckCircle2 className="w-3 h-3 text-white" strokeWidth={3} />
+                        ) : (
+                          <Circle className="w-3 h-3 text-muted-foreground" strokeWidth={2} />
+                        )}
+                      </button>
+                      <span className={`text-sm leading-snug flex-1 ${weeklyDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                        {isWorkoutFreq && liveDays > 0 ? `Train ${liveDays}x this week` : habit}
+                      </span>
                     </div>
-                    <span className="text-sm leading-snug flex-1 text-muted-foreground">
-                      {displayHabit}
-                    </span>
+                    {/* Counter — tap + to add, tap − to undo */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => updateWeeklyCount(-1)}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-muted-foreground active:bg-elevated"
+                        style={{ border: "1px solid hsl(217 32% 22%)" }}
+                      >
+                        −
+                      </button>
+                      <span className="text-sm font-bold tabular-nums w-8 text-center">
+                        {weeklyCount}/{targetCount}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => updateWeeklyCount(1)}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold active:bg-elevated"
+                        style={{ border: "1px solid hsl(217 32% 22%)" }}
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                 );
               })}
