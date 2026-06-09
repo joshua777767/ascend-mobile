@@ -613,7 +613,14 @@ router.get("/meals/today", async (req, res): Promise<void> => {
   const meals = await db.select().from(mealsTable)
     .where(eq(mealsTable.userId, getUserId(req)))
     .orderBy(desc(mealsTable.loggedAt));
-  const todayMeals = meals.filter(m => m.loggedAt.toISOString().startsWith(todayStr));
+  const tz = req.headers["x-timezone"] as string | undefined;
+  const todayMeals = meals.filter(m => {
+    try {
+      return m.loggedAt.toLocaleDateString("en-CA", tz ? { timeZone: tz } : {}) === todayStr;
+    } catch {
+      return m.loggedAt.toISOString().startsWith(todayStr);
+    }
+  });
   res.json(todayMeals);
 });
 
