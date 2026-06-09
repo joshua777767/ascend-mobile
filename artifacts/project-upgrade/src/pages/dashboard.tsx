@@ -1244,19 +1244,27 @@ export default function DashboardPage() {
                 boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
               }}
             >
-              {weeklyHabits.map((habit) => (
-                <div key={habit} className="w-full flex items-center gap-3 px-4 py-3.5 text-left">
-                  <div
-                    className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center border-2"
-                    style={{ borderColor: "hsl(217 32% 22%)" }}
-                  >
-                    <Circle className="w-3 h-3 text-muted-foreground" strokeWidth={2} />
+              {weeklyHabits.map((habit) => {
+                const lower = habit.toLowerCase();
+                const isWorkoutFreq = /\b(train|workout|strength|gym|exercise|lift|cardio|run|sport|practice)\b/.test(lower) && /\b(this week|weekly|x\/week)\b/.test(lower);
+                const liveDays = profile.workoutDaysPerWeek ?? 3;
+                const displayHabit = isWorkoutFreq && liveDays > 0
+                  ? `Train ${liveDays}x this week`
+                  : habit;
+                return (
+                  <div key={habit} className="w-full flex items-center gap-3 px-4 py-3.5 text-left">
+                    <div
+                      className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center border-2"
+                      style={{ borderColor: "hsl(217 32% 22%)" }}
+                    >
+                      <Circle className="w-3 h-3 text-muted-foreground" strokeWidth={2} />
+                    </div>
+                    <span className="text-sm leading-snug flex-1 text-muted-foreground">
+                      {displayHabit}
+                    </span>
                   </div>
-                  <span className="text-sm leading-snug flex-1 text-muted-foreground">
-                    {habit}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
