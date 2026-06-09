@@ -819,6 +819,34 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* ── Weight Change Card ── */}
+        {progress && (progress.weeklyWeighIns ?? []).length >= 2 ? (
+          <div className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Weight Change</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <p className={`text-2xl font-black ${(progress.totalLbsChange ?? 0) < 0 ? "text-green-400" : (progress.totalLbsChange ?? 0) > 0 ? "text-red-400" : "text-foreground"}`}>
+                  {(progress.totalLbsChange ?? 0) > 0 ? "+" : ""}{progress.totalLbsChange ?? 0} <span className="text-sm font-bold text-muted-foreground">lbs</span>
+                </p>
+              </div>
+              <p className="text-[10px] text-muted-foreground">since starting ({Math.round((progress.startWeightKg ?? 0) * 2.2046226)} lbs)</p>
+            </div>
+            <Link href="/progress" className="text-xs font-bold text-primary">
+              Track
+            </Link>
+          </div>
+        ) : (
+          <div className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Weight Change</p>
+              <p className="text-xs text-muted-foreground mt-1">Log another weigh-in to see weight change.</p>
+            </div>
+            <Link href="/progress" className="text-xs font-bold text-primary">
+              Weigh In
+            </Link>
+          </div>
+        )}
+
         {/* ── Trial Nudge (days 5-7) ── */}
         {showTrialNudge && (
           <Link href={trialComplete ? "/trial-review" : "/pricing"}>
@@ -1016,27 +1044,27 @@ export default function DashboardPage() {
                 <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Avg Score</p>
               </div>
             </div>
-            {(weeklyRecap.lbsChange !== null || weeklyRecap.topWin || weeklyRecap.bestDay) && (
-              <div className="space-y-1.5">
-                {weeklyRecap.lbsChange !== null && (
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${weeklyRecap.lbsChange < 0 ? "bg-green-500/15 text-green-400" : weeklyRecap.lbsChange > 0 ? "bg-red-500/15 text-red-400" : "bg-muted/20 text-muted-foreground"}`}>
-                      {weeklyRecap.lbsChange > 0 ? "+" : ""}{weeklyRecap.lbsChange} lbs
-                    </span>
-                    <p className="text-[10px] text-muted-foreground">weight change this week</p>
-                  </div>
-                )}
-                {weeklyRecap.bestDay && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-primary/15 text-primary">BEST DAY</span>
-                    <p className="text-[10px] text-muted-foreground">{weeklyRecap.bestDay}</p>
-                  </div>
-                )}
-                {weeklyRecap.topWin && (
-                  <p className="text-xs text-muted-foreground italic">"{weeklyRecap.topWin}"</p>
-                )}
-              </div>
-            )}
+            <div className="space-y-1.5">
+              {weeklyRecap.lbsChange !== null ? (
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${weeklyRecap.lbsChange < 0 ? "bg-green-500/15 text-green-400" : weeklyRecap.lbsChange > 0 ? "bg-red-500/15 text-red-400" : "bg-muted/20 text-muted-foreground"}`}>
+                    {weeklyRecap.lbsChange > 0 ? "+" : ""}{weeklyRecap.lbsChange} lbs
+                  </span>
+                  <p className="text-[10px] text-muted-foreground">weight change this week</p>
+                </div>
+              ) : (
+                <p className="text-[10px] text-muted-foreground italic">Log another weigh-in to see weight change.</p>
+              )}
+              {weeklyRecap.bestDay && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-primary/15 text-primary">BEST DAY</span>
+                  <p className="text-[10px] text-muted-foreground">{weeklyRecap.bestDay}</p>
+                </div>
+              )}
+              {weeklyRecap.topWin && (
+                <p className="text-xs text-muted-foreground italic">"{weeklyRecap.topWin}"</p>
+              )}
+            </div>
             <Link href="/progress" className="inline-flex items-center gap-1 text-xs font-bold text-primary">
               Full Progress <ChevronRight className="w-3 h-3" />
             </Link>

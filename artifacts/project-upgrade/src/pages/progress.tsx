@@ -244,12 +244,12 @@ export default function ProgressPage() {
           <div className="grid grid-cols-2 gap-2">
             {[
               { label: "Current Weight", value: `${Math.round(kgToLbs(summary.currentWeightKg))} lbs`, sub: `Goal: ${Math.round(kgToLbs(summary.goalWeightKg))} lbs` },
-              { label: "Progress", value: `${Math.round(summary.progressPercent)}%`, sub: `${Math.round(kgToLbs(Math.abs(summary.currentWeightKg - summary.goalWeightKg)))} lbs to go` },
+              { label: "Total Change", value: `${(summary.totalLbsChange ?? 0) > 0 ? "+" : ""}${summary.totalLbsChange ?? 0} lbs`, sub: `Started at ${Math.round(kgToLbs(summary.startWeightKg))} lbs` },
               { label: "Avg Score", value: summary.avgDailyScore.toFixed(0), sub: "out of 100" },
               { label: "Workouts", value: summary.totalWorkouts, sub: "total logged" },
             ].map((stat, i) => (
               <div key={i} className="bg-card border border-border p-4 text-center" data-testid={`stat-${i}`}>
-                <p className="text-2xl font-bold text-primary">{stat.value}</p>
+                <p className={`text-2xl font-bold ${stat.label === "Total Change" && (summary.totalLbsChange ?? 0) < 0 ? "text-green-400" : stat.label === "Total Change" && (summary.totalLbsChange ?? 0) > 0 ? "text-red-400" : "text-primary"}`}>{stat.value}</p>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{stat.label}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">{stat.sub}</p>
               </div>

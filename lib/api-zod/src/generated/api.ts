@@ -746,6 +746,7 @@ export const GetProgressSummaryResponse = zod.object({
   "goalReached": zod.boolean(),
   "goalReachedAt": zod.string().nullable(),
   "lbsToGo": zod.number(),
+  "totalLbsChange": zod.number(),
   "dayStreak": zod.number(),
   "totalWorkouts": zod.number(),
   "avgDailyScore": zod.number(),

@@ -1657,6 +1657,7 @@ components:
         - goalReached
         - goalReachedAt
         - lbsToGo
+        - totalLbsChange
         - dayStreak
         - totalWorkouts
         - avgDailyScore
@@ -1677,6 +1678,8 @@ components:
           type: string
           nullable: true
         lbsToGo:
+          type: number
+        totalLbsChange:
           type: number
         dayStreak:
           type: integer

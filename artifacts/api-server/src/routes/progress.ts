@@ -13,20 +13,19 @@ router.get("/progress/summary", async (req, res): Promise<void> => {
   const reviews = await db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, getUserId(req)));
   const meals = await db.select().from(mealsTable).where(eq(mealsTable.userId, getUserId(req))).orderBy(desc(mealsTable.loggedAt));
 
-  // Latest single weigh-in used for display + progress calculation
+  // Start weight = onboarding weight from profile. Current = latest weigh-in or onboarding.
+  const startWeightKg = profile?.currentWeightKg ?? 0;
   const currentWeightKg = weighIns.length > 0
     ? weighIns[weighIns.length - 1].weightKg
-    : profile?.currentWeightKg ?? 0;
-
-  const startWeightKg = weighIns.length > 0
-    ? weighIns[0].weightKg
-    : profile?.currentWeightKg ?? 0;
+    : startWeightKg;
 
   const goalWeightKg = profile?.goalWeightKg ?? currentWeightKg;
 
   const totalChange = Math.abs(startWeightKg - goalWeightKg);
   const currentChange = Math.abs(startWeightKg - currentWeightKg);
   const progressPercent = totalChange > 0 ? Math.min(100, (currentChange / totalChange) * 100) : 0;
+
+  const totalLbsChange = Math.round((currentWeightKg - startWeightKg) * 2.2046226 * 10) / 10;
 
   // Goal reached detection: use 7-day average to avoid single-day fluctuations
   const sevenDaysAgo = new Date();
@@ -87,6 +86,7 @@ router.get("/progress/summary", async (req, res): Promise<void> => {
     goalReached,
     goalReachedAt: goalReached ? (updatedGoalReachedAt ?? new Date().toISOString()) : null,
     lbsToGo: Math.round(lbsToGo * 10) / 10,
+    totalLbsChange,
     dayStreak: currentStreak,
     totalWorkouts: workouts.length,
     avgDailyScore: Math.round(avgScore * 10) / 10,
@@ -182,13 +182,15 @@ router.get("/progress/weekly-recap", async (req, res): Promise<void> => {
   // Weight change over the week
   const recentWeighIns = weighIns.filter(w => new Date(w.loggedAt) >= weekAgo);
   let lbsChange: number | null = null;
-  if (recentWeighIns.length >= 2) {
-    const diff = recentWeighIns[recentWeighIns.length - 1].weightKg - recentWeighIns[0].weightKg;
-    lbsChange = Math.round(diff * 2.2046 * 10) / 10;
-  } else if (weighIns.length >= 2) {
-    const last = weighIns[weighIns.length - 1].weightKg;
-    const prev = weighIns[weighIns.length - 2].weightKg;
-    lbsChange = Math.round((last - prev) * 2.2046 * 10) / 10;
+  if (weighIns.length >= 2) {
+    if (recentWeighIns.length >= 2) {
+      const diff = recentWeighIns[recentWeighIns.length - 1].weightKg - recentWeighIns[0].weightKg;
+      lbsChange = Math.round(diff * 2.2046 * 10) / 10;
+    } else {
+      const last = weighIns[weighIns.length - 1].weightKg;
+      const prev = weighIns[weighIns.length - 2].weightKg;
+      lbsChange = Math.round((last - prev) * 2.2046 * 10) / 10;
+    }
   }
 
   // Top win from best journal
