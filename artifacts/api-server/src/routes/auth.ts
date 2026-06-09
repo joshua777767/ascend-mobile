@@ -48,15 +48,17 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   const passwordHash = await hashPassword(password);
   const [user] = await db.insert(usersTable).values({ email, passwordHash }).returning();
 
-  req.log.info({ maskedEmail, userId: user.id }, "signup success: new account created");
-
-  req.session.regenerate((err) => {
+  req.session.regenerate(async (err) => {
     if (err) {
-      req.log.error({ err }, "Failed to regenerate session on signup");
-      res.status(500).json({ error: "Failed to create session" });
+      // Roll back the user row so the email is free to retry — a partial
+      // record with no session is indistinguishable from a stuck account.
+      req.log.error({ err, maskedEmail, userId: user.id }, "signup: session failed, rolling back user row");
+      try { await db.delete(usersTable).where(eq(usersTable.id, user.id)); } catch {}
+      res.status(500).json({ error: "Account creation failed. Please try again." });
       return;
     }
     req.session.userId = user.id;
+    req.log.info({ maskedEmail, userId: user.id }, "signup success: new account created");
     res.status(201).json(publicUser(user));
   });
 });
