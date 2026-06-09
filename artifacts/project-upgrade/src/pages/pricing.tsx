@@ -80,7 +80,7 @@ export default function PricingPage() {
               <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Ascend Pro</p>
               <p className="text-sm font-bold text-foreground mb-2 leading-snug">Your Week 2 plan is ready.<br />Upgrade to keep your progress going.</p>
               <div className="flex items-end gap-1">
-                <p className="text-3xl font-bold">$9.99</p>
+                <p className="text-3xl font-bold">$19.99</p>
                 <p className="text-muted-foreground mb-1">/month</p>
               </div>
               <p className="text-xs text-muted-foreground mt-1">Cancel anytime</p>
@@ -90,7 +90,7 @@ export default function PricingPage() {
                   onClick={() => handleSubscribe("price_annual")}
                   disabled={loading}
                 >
-                  Or save 17% with $99.99/year
+                  Or save 17% with $199.99/year
                 </button>
               </div>
             </div>
@@ -117,7 +117,7 @@ export default function PricingPage() {
                   Redirecting...
                 </>
               ) : (
-                "Start Pro — $9.99/month"
+                "Start Pro — $19.99/month"
               )}
             </Button>
             <p className="text-xs text-muted-foreground text-center">Secure checkout. Cancel anytime.</p>
