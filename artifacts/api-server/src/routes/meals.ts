@@ -364,6 +364,75 @@ NEVER mark cheese alone as "bad" or put it in whatWasBad unless the overall meal
 If the logged item was poor, suggest a better option from:
 ${swapOptions}
 
+CALORIE & MACRO ANCHORS — use these exact values as reference (USDA FoodData Central):
+EGGS & DAIRY
+- 1 large egg (no fat added): 70 cal, 6g protein, 0g carbs, 5g fat
+- 2 large scrambled eggs (no oil/butter): 140 cal, 12g protein — do NOT add cooking-fat calories unless butter/oil is explicitly mentioned
+- 2 large scrambled eggs with 1 tsp butter: 175 cal, 12g protein
+- 1 cup plain nonfat Greek yogurt: 130 cal, 22g protein
+- 1 cup whole milk: 149 cal, 8g protein
+- 1oz cheddar/shredded cheese: 110 cal, 7g protein, 9g fat
+- 2 tbsp sour cream: 60 cal, 1g protein
+
+MEAT & FISH
+- 1oz grilled chicken breast (no skin): ~46 cal, 8.5g protein
+- 6oz grilled chicken breast: 280 cal, 52g protein
+- 8oz ribeye steak grilled: 544 cal, 64g protein, 0g carbs, 30g fat  ← high protein, do not undercount
+- 4oz ground beef 80/20 cooked: 290 cal, 22g protein
+- 3oz canned tuna in water: 100 cal, 22g protein
+- 1 strip cooked bacon: 43 cal, 3g protein
+
+GRAINS & STARCHES
+- 1 cup cooked white rice: 205 cal, 4g protein, 45g carbs
+- 1 cup cooked oatmeal (water): 158 cal, 6g protein, 27g carbs
+- 1 medium potato baked: 161 cal, 4g protein
+- 1 cup cooked pasta: 220 cal, 8g protein (before sauce)
+
+FRUITS & VEGETABLES
+- 1 medium banana: 105 cal, 1g protein
+- 1/2 medium avocado (~68g flesh): 115 cal, 1g protein, 10g fat
+- 1 cup broccoli: 55 cal, 4g protein
+- 1 cup mixed salad greens: 10 cal, 1g protein
+
+FATS & SAUCES — these are calorie-dense, do NOT undercount:
+- 1 tbsp olive oil / any cooking oil: 120 cal, 0g protein, 14g fat
+- 1 tbsp butter: 102 cal, 0g protein, 12g fat
+- 2 tbsp peanut butter: 190 cal, 7g protein, 16g fat
+- 2 tbsp Caesar dressing: 160 cal, 1g protein — restaurant salads typically use 3-4 tbsp (~240-320 cal from dressing alone)
+- 2 tbsp ranch: 130 cal
+- 1 tbsp mayo: 94 cal
+
+COMMON FAST FOOD & RESTAURANT (use chain data, NOT home-cooked estimates):
+- McDonald's large fries: 490 cal, 6g protein
+- McDonald's Big Mac: 550 cal, 25g protein
+- 1 slice pepperoni pizza (standard chain): 285 cal, 12g protein, 36g carbs
+- Chipotle chicken burrito bowl (rice + beans + chicken + cheese + sour cream + salsa): 850-950 cal, 48-55g protein — always use upper range for full bowls with cheese + sour cream
+- Chipotle chicken burrito (same + tortilla): 1050+ cal
+- Subway 6-inch turkey on wheat (no extras): 270-280 cal, 18g protein
+- Subway 6-inch turkey with standard veggies: 280-300 cal (do NOT add extra calories for plain lettuce/tomato/cucumber)
+- Starbucks Grande Latte (whole milk): 190 cal; oat milk: 170 cal; nonfat: 130 cal
+
+BAKED GOODS & SWEETS — these are often underestimated:
+- Glazed donut: 250 cal, 3g protein
+- Chocolate glazed donut: 300 cal, 4g protein  ← not 380, not 350
+- 1 chocolate chip cookie (large): 220 cal
+- 1 croissant: 230 cal
+
+COMPLEX ASSEMBLED MEALS — use realistic restaurant-level estimates, not lean home-cook assumptions:
+- Burrito/bowl with cheese + sour cream + rice: add 170 cal minimum for those condiments alone
+- Any meal described as "combo" or with "sides": include all components
+- Tacos at a restaurant: 180-220 cal each depending on filling + condiments
+- When a user mentions "extra" of anything, add it
+
+PORTION DEFAULT RULES (when size is unspecified):
+- "a piece of chicken" → 4-5oz, ~190-235 cal
+- "a steak" → 8oz, ~500-550 cal depending on cut
+- "a bowl of rice" → 1.5 cups cooked, ~300 cal
+- "a salad with dressing" → always include dressing (2-3 tbsp = 130-240 cal depending on type)
+- "a donut" → standard glazed ~250 cal, chocolate/filled ~290-320 cal
+- "a slice of pizza" → 250-300 cal
+- "pasta" without size → 1.5 cups cooked + sauce, ~400-500 cal
+
 YOUR TASK:
 ${imageUrl ? `1. Analyze the image — identify every visible food item, estimate serving sizes and nutrition.
 2. Use the description as additional context.
