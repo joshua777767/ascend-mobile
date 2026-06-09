@@ -6,6 +6,7 @@ import { AscendMark } from "@/components/ascend-mark";
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [resetLink, setResetLink] = useState<string | null>(null);
   const [error, setError] = useState("");
   const forgotPassword = useForgotPassword();
 
@@ -13,7 +14,10 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError("");
     try {
-      await forgotPassword.mutateAsync({ data: { email } });
+      const result = await forgotPassword.mutateAsync({ data: { email } });
+      // When no email provider is configured the server returns the reset link
+      // directly in the response so users aren't locked out.
+      setResetLink((result as any)?.resetLink ?? null);
       setSent(true);
     } catch {
       setError("Something went wrong. Please try again.");
@@ -57,13 +61,34 @@ export default function ForgotPasswordPage() {
                   <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.64A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14h0" />
                 </svg>
               </div>
-              <h1 className="text-[1.7rem] font-extrabold tracking-tight">Check your inbox</h1>
-              <p className="text-[15px] text-muted-foreground leading-relaxed">
-                If an account exists with that email, a reset link has been sent.
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                The link expires in 1 hour and can only be used once.
-              </p>
+              {resetLink ? (
+                <>
+                  <h1 className="text-[1.7rem] font-extrabold tracking-tight">Reset your password</h1>
+                  <p className="text-[15px] text-muted-foreground leading-relaxed">
+                    Click the button below to set a new password. The link expires in 1 hour.
+                  </p>
+                  <Link
+                    href={resetLink}
+                    className="inline-flex items-center justify-center w-full h-14 rounded-2xl text-[15px] font-semibold text-white mt-2"
+                    style={{
+                      background: "linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)",
+                      boxShadow: "0 4px 24px rgba(59,130,246,0.35)",
+                    }}
+                  >
+                    Set new password →
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-[1.7rem] font-extrabold tracking-tight">Check your inbox</h1>
+                  <p className="text-[15px] text-muted-foreground leading-relaxed">
+                    If an account exists with that email, a reset link has been sent.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The link expires in 1 hour and can only be used once.
+                  </p>
+                </>
+              )}
               <Link
                 href="/login"
                 className="inline-block mt-4 text-primary font-semibold text-sm"
