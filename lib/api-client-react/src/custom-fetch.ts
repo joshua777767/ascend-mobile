@@ -78,6 +78,14 @@ function resolveUrl(input: RequestInfo | URL): string {
   return input.url;
 }
 
+function getUserTimezone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return null;
+  }
+}
+
 function mergeHeaders(...sources: Array<HeadersInit | undefined>): Headers {
   const headers = new Headers();
 
@@ -86,6 +94,12 @@ function mergeHeaders(...sources: Array<HeadersInit | undefined>): Headers {
     new Headers(source).forEach((value, key) => {
       headers.set(key, value);
     });
+  }
+
+  // Attach user's local timezone so the server can compute "today" in their local time
+  const tz = getUserTimezone();
+  if (tz) {
+    headers.set("X-Timezone", tz);
   }
 
   return headers;

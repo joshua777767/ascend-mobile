@@ -2,13 +2,9 @@ import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, journalEntriesTable } from "@workspace/db";
 import { CreateJournalEntryBody } from "@workspace/api-zod";
-import { getUserId } from "../middlewares/auth";
+import { getUserId, getUserToday } from "../middlewares/auth";
 
 const router: IRouter = Router();
-
-function getTodayStr() {
-  return new Date().toISOString().split("T")[0];
-}
 
 router.get("/journal", async (req, res): Promise<void> => {
   const entries = await db.select().from(journalEntriesTable)
@@ -26,7 +22,7 @@ router.post("/journal", async (req, res): Promise<void> => {
 
   const [entry] = await db.insert(journalEntriesTable).values({
     userId: getUserId(req),
-    date: getTodayStr(),
+    date: getUserToday(req),
     ...parsed.data,
   }).returning();
 
@@ -34,7 +30,7 @@ router.post("/journal", async (req, res): Promise<void> => {
 });
 
 router.get("/journal/today", async (req, res): Promise<void> => {
-  const today = getTodayStr();
+  const today = getUserToday(req);
   const entries = await db.select().from(journalEntriesTable)
     .where(eq(journalEntriesTable.userId, getUserId(req)))
     .orderBy(desc(journalEntriesTable.createdAt));

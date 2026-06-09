@@ -1,19 +1,9 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, userProfilesTable } from "@workspace/db";
-import { getUserId } from "../middlewares/auth";
+import { getUserId, getUserToday, addDaysInUserTz } from "../middlewares/auth";
 
 const router: IRouter = Router();
-
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function addDays(date: string, days: number): string {
-  const d = new Date(date + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 
 router.get("/streak", async (req, res): Promise<void> => {
   const userId = getUserId(req);
@@ -32,13 +22,13 @@ router.post("/streak", async (req, res): Promise<void> => {
     return;
   }
 
-  const today = todayStr();
+  const today = getUserToday(req);
   const last = profile.lastStreakDate;
   let currentStreak = profile.currentStreak ?? 0;
 
   if (last === today) {
     // Already counted today
-  } else if (last === addDays(today, -1)) {
+  } else if (last === addDaysInUserTz(req, today, -1)) {
     // Consecutive day
     currentStreak += 1;
   } else {

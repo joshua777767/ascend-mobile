@@ -1,22 +1,22 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, waterLogsTable, plansTable, userProfilesTable } from "@workspace/db";
 import { LogWaterBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
 import { logger } from "../lib/logger";
-import { getUserId } from "../middlewares/auth";
+import { getUserId, getUserToday } from "../middlewares/auth";
 import { parseSportSchedule } from "../lib/sportUtils";
 
 const router: IRouter = Router();
 
-function todayString(): string {
-  return new Date().toISOString().slice(0, 10);
+function todayString(req: Request): string {
+  return getUserToday(req);
 }
 
 // Compute today's water target in oz.
 // Base comes from the plan (set at plan generation with goal/training adjustments).
 // On top of that: add extra oz when today is a sport practice or game day.
-async function getDailyTargetOz(userId: number, baseTargetL: number): Promise<number> {
+async function getDailyTargetOz(userId: number, baseTargetL: number, req?: Request): Promise<number> {
   const baseOz = Math.round(baseTargetL * 33.814);
   const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, userId));
   if (!profile) return baseOz;
@@ -24,7 +24,8 @@ async function getDailyTargetOz(userId: number, baseTargetL: number): Promise<nu
   const sportSchedule = parseSportSchedule(profile);
   if (!sportSchedule) return baseOz;
 
-  const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+  const tz = req?.headers["x-timezone"] as string | undefined;
+  const todayName = new Date().toLocaleDateString("en-US", { timeZone: tz, weekday: "long" }).toLowerCase();
   const hasPractice = sportSchedule.days.some(d => d.toLowerCase() === todayName);
   const hasGame = (sportSchedule.gameDays ?? []).some(d => d.toLowerCase() === todayName);
   if (!hasPractice && !hasGame) return baseOz;
@@ -41,11 +42,12 @@ async function getDailyTargetOz(userId: number, baseTargetL: number): Promise<nu
 
 async function getWaterSummary(
   userId: number,
+  req: Request,
   detectedOz?: number,
 ): Promise<{ totalOz: number; targetOz: number; date: string; detectedOz?: number }> {
-  const date = todayString();
+  const date = todayString(req);
   const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, userId));
-  const targetOz = plan ? await getDailyTargetOz(userId, plan.waterTargetL) : 64;
+  const targetOz = plan ? await getDailyTargetOz(userId, plan.waterTargetL, req) : 64;
 
   const rows = await db
     .select({ amountOz: waterLogsTable.amountOz })
@@ -124,7 +126,7 @@ Respond with ONLY valid JSON: {"oz": <number>, "confident": true|false, "descrip
 
 router.get("/water/today", async (req, res): Promise<void> => {
   try {
-    const summary = await getWaterSummary(getUserId(req));
+    const summary = await getWaterSummary(getUserId(req), req);
     res.json(summary);
   } catch (err) {
     logger.error({ err }, "Failed to get water summary");
@@ -171,8 +173,8 @@ router.post("/water", async (req, res): Promise<void> => {
       ozToLog = amountOz!;
     }
 
-    await db.insert(waterLogsTable).values({ userId, date: todayString(), amountOz: ozToLog });
-    const summary = await getWaterSummary(userId, detectedOz);
+    await db.insert(waterLogsTable).values({ userId, date: todayString(req), amountOz: ozToLog });
+    const summary = await getWaterSummary(userId, req, detectedOz);
     res.status(201).json(summary);
   } catch (err) {
     logger.error({ err }, "Failed to log water");

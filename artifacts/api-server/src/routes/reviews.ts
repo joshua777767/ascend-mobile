@@ -2,13 +2,9 @@ import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, coachReviewsTable, journalEntriesTable, plansTable, userProfilesTable } from "@workspace/db";
 import { openai } from "../lib/openai";
-import { getUserId } from "../middlewares/auth";
+import { getUserId, getUserToday } from "../middlewares/auth";
 
 const router: IRouter = Router();
-
-function getTodayStr() {
-  return new Date().toISOString().split("T")[0];
-}
 
 async function generateCoachReview(entry: any, plan: any, profile: any): Promise<{
   dailyScore: number; biggestWin: string; biggestMistake: string;
@@ -77,7 +73,7 @@ router.get("/reviews", async (req, res): Promise<void> => {
 });
 
 router.post("/reviews", async (req, res): Promise<void> => {
-  const today = getTodayStr();
+  const today = getUserToday(req);
 
   // Get today's journal entry
   const allEntries = await db.select().from(journalEntriesTable)
@@ -113,7 +109,7 @@ router.post("/reviews", async (req, res): Promise<void> => {
 });
 
 router.get("/reviews/today", async (req, res): Promise<void> => {
-  const today = getTodayStr();
+  const today = getUserToday(req);
   const all = await db.select().from(coachReviewsTable)
     .where(eq(coachReviewsTable.userId, getUserId(req)))
     .orderBy(desc(coachReviewsTable.createdAt));

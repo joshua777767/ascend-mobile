@@ -1,10 +1,10 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, mealsTable, userProfilesTable, plansTable, waterLogsTable } from "@workspace/db";
 import { CreateMealBody, GenerateMealsBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
 import { logger } from "../lib/logger";
-import { getUserId } from "../middlewares/auth";
+import { getUserId, getUserToday } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -561,7 +561,7 @@ router.post("/meals", async (req, res): Promise<void> => {
       return;
     }
     // High confidence — log immediately
-    const date = new Date().toISOString().slice(0, 10);
+    const date = getUserToday(req);
     await db.insert(waterLogsTable).values({ userId, date, amountOz: waterDetection.oz });
     res.status(201).json({
       waterLogged: true,
@@ -609,12 +609,11 @@ router.post("/meals", async (req, res): Promise<void> => {
 });
 
 router.get("/meals/today", async (req, res): Promise<void> => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const todayStr = getUserToday(req);
   const meals = await db.select().from(mealsTable)
     .where(eq(mealsTable.userId, getUserId(req)))
     .orderBy(desc(mealsTable.loggedAt));
-  const todayMeals = meals.filter(m => new Date(m.loggedAt) >= today);
+  const todayMeals = meals.filter(m => m.loggedAt.toISOString().startsWith(todayStr));
   res.json(todayMeals);
 });
 

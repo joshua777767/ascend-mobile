@@ -1,8 +1,8 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, userProfilesTable, plansTable, scheduleOverridesTable } from "@workspace/db";
 import { generateDailySchedule } from "../lib/scheduleGenerator";
-import { getUserId } from "../middlewares/auth";
+import { getUserId, getUserToday } from "../middlewares/auth";
 import { UpdateScheduleItemBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -15,11 +15,11 @@ interface ScheduleItem {
   status: string | null;
 }
 
-async function getScheduleItems(userId: number): Promise<{ items: ScheduleItem[]; todaysMission: string }> {
+async function getScheduleItems(userId: number, req: Request): Promise<{ items: ScheduleItem[]; todaysMission: string }> {
   const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, userId));
   const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, userId));
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getUserToday(req);
 
   if (!profile || !plan) {
     return {
@@ -60,8 +60,8 @@ async function getScheduleItems(userId: number): Promise<{ items: ScheduleItem[]
 }
 
 router.get("/schedule/today", async (req, res): Promise<void> => {
-  const { items, todaysMission } = await getScheduleItems(getUserId(req));
-  const today = new Date().toISOString().split("T")[0];
+  const { items, todaysMission } = await getScheduleItems(getUserId(req), req);
+  const today = getUserToday(req);
   res.json({ date: today, items, todaysMission });
 });
 
@@ -73,7 +73,7 @@ router.patch("/schedule/today", async (req, res): Promise<void> => {
   }
 
   const userId = getUserId(req);
-  const today = new Date().toISOString().split("T")[0];
+  const today = getUserToday(req);
   const data = parsed.data;
 
   // Upsert override
@@ -104,7 +104,7 @@ router.patch("/schedule/today", async (req, res): Promise<void> => {
     });
   }
 
-  const { items, todaysMission } = await getScheduleItems(userId);
+  const { items, todaysMission } = await getScheduleItems(userId, req);
   res.json({ date: today, items, todaysMission });
 });
 
