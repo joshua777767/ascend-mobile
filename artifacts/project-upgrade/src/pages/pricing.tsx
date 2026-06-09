@@ -5,7 +5,7 @@ import { CheckCircle, Loader2 } from "lucide-react";
 
 const PRO_FEATURES = [
   "Personalized daily schedule built around your real life",
-  "Meal check-ins with strict AI coach feedback",
+  "Meal check-ins with honest AI coach feedback",
   "AI coach chat — ask anything, 24/7",
   "Custom workout plan based on your goals and gym access",
   "Nightly review and daily score",
@@ -57,7 +57,7 @@ export default function PricingPage() {
         <div className="text-center mb-12">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">Pricing</p>
           <h1 className="text-4xl font-bold uppercase tracking-tighter mb-4">One Price. Everything Included.</h1>
-          <p className="text-muted-foreground">No upsells. No add-ons. The full strict AI coaching system.</p>
+          <p className="text-muted-foreground">No upsells. No add-ons. The full AI coaching system.</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">

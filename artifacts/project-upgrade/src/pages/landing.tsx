@@ -33,7 +33,7 @@ export default function LandingPage() {
         <AscendMark size="lg" />
         <div>
           <span className="text-[15px] font-black tracking-tight leading-none">Ascend</span>
-          <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Command Center</p>
+          <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Your Daily Coach</p>
         </div>
       </div>
 
@@ -47,11 +47,12 @@ export default function LandingPage() {
         <h1 className="text-[2.1rem] leading-[1.12] font-extrabold tracking-tight">
           Your AI Coach for{" "}
           <span className="text-primary">Body</span>,{" "}
-          <span className="text-success">Energy</span>, and Discipline
+          <span className="text-success">Energy</span>, and{" "}
+          <span className="text-foreground">Focus</span>
         </h1>
 
         <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground max-w-md">
-          Build a daily plan for your real life — workouts, meals, sleep, energy, skin habits, and strict coach reviews.
+          A personalized daily plan built for your real life — workouts, meals, sleep, energy, and skin. Your AI coach reviews every day.
         </p>
 
         {/* Pillars */}
@@ -60,6 +61,7 @@ export default function LandingPage() {
             <div
               key={label}
               className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-card border border-border py-4"
+              style={{ boxShadow: "0 0 16px rgba(59,130,246,0.04)" }}
             >
               <Icon className={`w-5 h-5 ${color}`} strokeWidth={2} />
               <span className="text-xs font-medium text-foreground">{label}</span>
@@ -71,7 +73,7 @@ export default function LandingPage() {
       {/* CTA */}
       <div className="px-6 pb-8 space-y-4">
         <p className="text-center text-[13px] leading-relaxed text-muted-foreground px-2">
-          Personalized coaching for fat loss, muscle gain, better sleep, higher energy, skin habits, and daily discipline.
+          Personalized coaching for fat loss, muscle gain, better sleep, higher energy, and daily habits.
         </p>
         <Link
           href="/signup"

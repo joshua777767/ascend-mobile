@@ -199,8 +199,8 @@ export default function TrialReviewPage() {
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Ascend already knows your body, your habits, and where you struggled.
-            Week 2 adjusts for that — tighter meals, progressive workouts, harder targets.
-            No starting over. No losing your data.
+            Week 2 adjusts for that — refined meals, progressive workouts, stronger targets.
+            Your progress stays. Your data stays. You just keep building.
           </p>
           <div className="space-y-2 pt-1">
             {[

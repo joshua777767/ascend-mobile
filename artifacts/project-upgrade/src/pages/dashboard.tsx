@@ -344,7 +344,7 @@ function DailyChecklist({
       </div>
       {allDone && (
         <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mt-2 text-center">
-          No skipped basics. Keep the streak alive.
+          All done. You're building the habit. Keep the streak going.
         </p>
       )}
     </div>
@@ -752,33 +752,33 @@ export default function DashboardPage() {
 
   function buildMission(): string {
     if (missionComplete) {
-      return "Mission locked. Every day you prove it is a day you build it.";
+      return "Mission complete. Every choice you made today built something real.";
     }
     if (plan && calorieDeficit > 500) {
-      return `You're ${calorieDeficit} calories behind. Fuel up before bed. No missed basics.`;
+      return `You're ${calorieDeficit} calories behind. Fuel up before bed. Every meal counts.`;
     }
     if (plan && proteinDeficit > 30) {
-      return `${proteinDeficit}g protein short. Make the next meal count. Finish the mission.`;
+      return `${proteinDeficit}g protein short. Make the next meal count. You're building.`;
     }
     if (isBulking && plan) {
-      return `${firstName}, you're building. Hit ${plan.calorieTarget.toLocaleString()} calories today. No skipped meals.`;
+      return `${firstName}, you're building. Hit ${plan.calorieTarget.toLocaleString()} calories today. Every meal is a choice.`;
     }
     if (isCutting && plan) {
-      return `${firstName}, stay locked in: protein, steps, water, clean tracking. Your next move matters.`;
+      return `${firstName}, stay focused: protein, steps, water, clean tracking. Your next move matters.`;
     }
     if (goals.includes("better skin")) {
-      return "Clear skin mission: water, sleep, face wash, no sugary drinks. No skipped basics.";
+      return "Clear skin is built: water, sleep, face wash, and less sugar. Small steps, daily.";
     }
     if (goals.includes("higher energy")) {
-      return "Energy mission: protein breakfast, water, sunlight, sleep. Finish the mission.";
+      return "Energy is built: protein breakfast, water, sunlight, and sleep. One choice at a time.";
     }
     if (goals.includes("better sleep")) {
-      return "Sleep mission: no screens after 9, magnesium, cool room, same wake time.";
+      return "Better sleep: wind down before 9, magnesium, cool room, and a consistent wake time.";
     }
     if (goals.includes("discipline")) {
-      return "Discipline mission: show up, hit every item, no excuses. Growth requires proof.";
+      return "Discipline is built daily. Show up. Small wins compound. Progress is proof.";
     }
-    return plan?.coachNotes?.trim() || "Hit protein, follow the workout, drink water early, and protect your sleep. No random snacks — no excuses.";
+    return plan?.coachNotes?.trim() || "Start with protein, move your body, drink water early, and protect your sleep. Small choices, big change.";
   }
 
   const coachMessage = buildMission();
@@ -787,7 +787,7 @@ export default function DashboardPage() {
     <div className="h-full overflow-y-auto scroll-area">
       <div className="max-w-lg mx-auto px-4 pt-5 pb-6 space-y-5">
 
-        {/* ── Command Header ── */}
+        {/* ── Today Header ── */}
         <div className="flex items-start justify-between">
           <div>
             <p className="label-caps-strong text-muted-foreground" style={{ fontSize: "9px" }}>
@@ -821,7 +821,7 @@ export default function DashboardPage() {
 
         {/* ── Weight Change Card ── */}
         {progress && (progress.weeklyWeighIns ?? []).length >= 2 ? (
-          <div className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between">
+          <div className="rounded-2xl p-4 flex items-center justify-between" style={{ background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)", border: "1px solid hsl(217 32% 15%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03), 0 0 18px rgba(59,130,246,0.06)" }}>
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Weight Change</p>
               <div className="flex items-baseline gap-1 mt-0.5">
@@ -836,7 +836,7 @@ export default function DashboardPage() {
             </Link>
           </div>
         ) : (
-          <div className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between">
+          <div className="rounded-2xl p-4 flex items-center justify-between" style={{ background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)", border: "1px solid hsl(217 32% 15%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)" }}>
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Weight Change</p>
               <p className="text-xs text-muted-foreground mt-1">Log another weigh-in to see weight change.</p>
@@ -1087,7 +1087,7 @@ export default function DashboardPage() {
                   }}
                 />
                 <p className="label-caps" style={{ color: missionComplete ? "#10B981" : "#3B82F6", fontSize: "9px" }}>
-                  {missionComplete ? "MISSION COMPLETE" : "MISSION ACTIVE"}
+                  {missionComplete ? "Mission Complete" : "Mission Active"}
                 </p>
               </div>
               <p className="text-[13px] leading-relaxed text-foreground font-medium">{coachMessage}</p>
@@ -1207,7 +1207,7 @@ export default function DashboardPage() {
 
         {/* ── Operations ── */}
         <div>
-          <SectionLabel>Operations</SectionLabel>
+          <SectionLabel>Quick Links</SectionLabel>
           <div className="grid grid-cols-4 gap-2.5">
             <QuickAction href="/meals" icon={Utensils} label="Meal" />
             <QuickAction href="/coach" icon={MessageSquare} label="Coach" />

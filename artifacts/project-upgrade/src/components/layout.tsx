@@ -34,7 +34,7 @@ const MOBILE_NAV_ITEMS = [
 ];
 
 const PAGE_TITLES: Record<string, string> = {
-  "/dashboard": "Command",
+  "/dashboard": "Today",
   "/schedule": "Schedule",
   "/workouts": "Workouts",
   "/meals": "Meals",
@@ -134,7 +134,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <AscendLogo />
           <div>
             <h1 className="text-[15px] font-black tracking-tight text-foreground leading-none">Ascend</h1>
-            <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Command Center</p>
+            <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Your Daily Coach</p>
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">

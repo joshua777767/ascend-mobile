@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
         <AscendMark size="lg" />
         <div>
           <span className="text-[15px] font-black tracking-tight leading-none">Ascend</span>
-          <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Command Center</p>
+          <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Your Daily Coach</p>
         </div>
       </div>
 

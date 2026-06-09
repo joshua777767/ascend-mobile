@@ -1,6 +1,6 @@
 # Ascend
 
-Ascend — Your AI Coach for Body, Energy, and Discipline. A premium mobile-first AI transformation coaching web app. Users get a strict AI coach that generates personalized daily schedules, meal feedback, workouts, nightly reviews, weekly adjustments, and a coach chat — all built around their real life and goals.
+Ascend — Your AI Coach for Body, Energy, and Focus. A premium mobile-first AI transformation coaching web app. Users get an honest AI coach that generates personalized daily schedules, meal feedback, workouts, nightly reviews, weekly adjustments, and a coach chat — all built around their real life and goals.
 
 ## Run & Operate
 
@@ -47,7 +47,7 @@ Ascend — Your AI Coach for Body, Energy, and Discipline. A premium mobile-firs
 
 - 14 screens: Landing, Onboarding (5-step), Dashboard, Schedule, Workouts, Meals, Coach Chat, Journal, Progress, Pricing
 - Onboarding collects ~30 profile fields and generates a fully personalized plan
-- Each meal logged gets instant AI coach feedback (quality, what was good/bad, fix for next meal)
+- Each meal logged gets instant AI coach feedback (quality, what worked, fix for next meal)
 - Nightly journal generates a scored daily review (0–100) with exact fixes for tomorrow
 - Weekly weigh-in generates a plan adjustment from AI
 - Coach chat is context-aware: knows the user's profile, plan, and conversation history

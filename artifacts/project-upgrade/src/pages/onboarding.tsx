@@ -97,8 +97,8 @@ const STEP_SUBTITLES = [
 const COMMITMENT_LEVELS = [
   { value: "casual", label: "Casual", desc: "I want to make small changes, no pressure." },
   { value: "serious", label: "Serious", desc: "I'm focused. I'll follow the plan and track daily." },
-  { value: "locked_in", label: "Locked In", desc: "No fake tracking. I want real results and honest accountability." },
-  { value: "extreme_discipline", label: "Extreme Discipline", desc: "I want to push. Maximum focus, strict habits, no excuses." },
+  { value: "locked_in", label: "All In", desc: "I want real results and honest accountability. Every day, every choice." },
+  { value: "extreme_discipline", label: "Deep Focus", desc: "I want to build strong habits and stay consistent. Small wins, every day." },
 ];
 
 function Chip({ label, selected, onToggle, testId }: { label: string; selected: boolean; onToggle: () => void; testId?: string }) {

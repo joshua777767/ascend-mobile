@@ -75,14 +75,14 @@
   --elevate-1: rgba(255,255,255, .03);
   --elevate-2: rgba(255,255,255, .06);
 
-  /* ── Ascend Command Palette ── */
+  /* ── Ascend Dark Theme ── */
   --background: 222 65% 5%;        /* #050D1A — near-black navy */
   --foreground: 210 40% 97%;       /* #F1F5F9 */
   --border: 217 32% 14%;           /* subtle blue-tinted border */
   --input: 217 32% 14%;
   --ring: 217 91% 60%;             /* #3B82F6 */
 
-  --card: 220 52% 8%;              /* #08121F — dark command panel */
+  --card: 220 52% 8%;              /* #08121F — dark card surface */
   --card-foreground: 210 40% 97%;
   --card-border: 217 32% 14%;
 
@@ -176,7 +176,7 @@
     overflow: hidden;
     font-feature-settings: "cv11", "ss01";
     letter-spacing: -0.015em;
-    /* Ambient command-center glow at top */
+    /* Ambient soft glow at top */
     background-image:
       radial-gradient(ellipse 70% 35% at 50% -5%, rgba(59,130,246,0.09) 0%, transparent 70%),
       radial-gradient(ellipse 50% 20% at 90% 10%, rgba(245,158,11,0.04) 0%, transparent 60%);

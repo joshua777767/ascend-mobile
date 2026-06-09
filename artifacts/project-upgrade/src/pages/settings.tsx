@@ -42,8 +42,8 @@ const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satu
 const COMMITMENT_LEVELS = [
   { value: "casual", label: "Casual", desc: "Small changes, no pressure." },
   { value: "serious", label: "Serious", desc: "Follow the plan and track daily." },
-  { value: "locked_in", label: "Locked In", desc: "Real results and honest accountability." },
-  { value: "extreme_discipline", label: "Extreme Discipline", desc: "Maximum focus, strict habits, no excuses." },
+  { value: "locked_in", label: "All In", desc: "Real results and honest accountability." },
+  { value: "extreme_discipline", label: "Deep Focus", desc: "Strong habits, consistent effort. Small wins compound." },
 ];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
