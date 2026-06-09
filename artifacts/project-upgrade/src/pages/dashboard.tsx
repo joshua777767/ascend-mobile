@@ -887,13 +887,17 @@ export default function DashboardPage() {
 
         {/* ── Proof of Change ── */}
         {(() => {
+          // All three weights come from the same API response so they're
+          // internally consistent. currentWeightKg = latest weigh-in (or start
+          // if no weigh-ins). Fallback to profile only when progress hasn't loaded.
           const startKg = progress?.startWeightKg ?? profile.currentWeightKg ?? 0;
-          const currentKg = profile.currentWeightKg ?? 0;
-          const goalKg = profile.goalWeightKg ?? 0;
+          const currentKg = progress?.currentWeightKg ?? profile.currentWeightKg ?? 0;
+          const goalKg = progress?.goalWeightKg ?? profile.goalWeightKg ?? 0;
           const startLbs = Math.round(startKg * 2.2046226);
           const currentLbs = Math.round(currentKg * 2.2046226);
           const goalLbs = goalKg > 0 ? Math.round(goalKg * 2.2046226) : 0;
-          const totalChange = progress?.totalLbsChange ?? 0;
+          // Recompute from the same values we display — can never mismatch
+          const totalChange = Math.round((currentKg - startKg) * 2.2046226 * 10) / 10;
           const hasChange = Math.abs(totalChange) > 0;
           const isLoss = totalChange < 0;
           const changeColor = isLoss ? "#10B981" : totalChange > 0 ? "#F59E0B" : "#3B82F6";
