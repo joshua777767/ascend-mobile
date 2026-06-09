@@ -39,7 +39,7 @@ Respond ONLY as valid JSON:
   "biggestMistake": "1 sentence",
   "whatSlowedProgress": "1 sentence",
   "exactFixForTomorrow": "1 concrete, specific action",
-  "strictCoachMessage": "2-3 sentences, strict coach tone, personal, based on what they actually reported"
+  "strictCoachMessage": "1-2 sentences, strict and direct, personal to what they actually reported — no generic advice"
 }`;
 
     const response = await openai.chat.completions.create({

@@ -446,27 +446,21 @@ Respond with ONLY valid JSON in this exact format:
     {"item": "food name", "serving": "e.g. 1 medium / ~118g", "calories": 105, "protein": 1, "carbs": 27, "fat": 0}
   ],
   "score": 0-100,
-  "feedback": "2-3 sentences. ${imageUrl ? 'Start with what you detected. ' : ''}State the classification (snack/meal/drink) then give direct coaching.",
+  "feedback": "1 sentence. ${imageUrl ? 'Name what you detected. ' : ''}Direct, no fluff.",
   "quality": "good|neutral|bad",
-  "whatWasGood": "1 sentence or null",
-  "whatWasBad": "1 sentence or null",
-  "whatToFixNext": "1-2 sentences. For snacks, say what to pair with — not what to replace it with."
+  "whatWasGood": "1 sentence — the single strongest thing about this meal. null if nothing stands out.",
+  "whatWasBad": "1 sentence — the one thing to watch. null if nothing is harmful.",
+  "whatToFixNext": "1 sentence — one concrete action for the next meal."
 }
 
-Tone: direct and honest — no shaming, no false praise.
+Tone: direct, personal, honest — no shaming, no false praise, no repeating the same idea across fields.
 Examples:
-- Banana as snack (fat_loss): feedback: "Good snack — clean carbs, ~105 cal, won't touch your deficit. If this is a standalone snack, add protein before your next meal." score: 78, quality: "good"
-- Banana as snack (muscle_gain): feedback: "Decent pre-workout fuel for fast carbs. Low in protein and calories, so make sure your next meal is a full one." score: 70, quality: "neutral"
-- Banana as part of breakfast (clear skin / energy): feedback: "Good breakfast addition — potassium and micronutrients support skin and energy. Solid start to the day." score: 85, quality: "good"
-- Eggs and toast (breakfast, fat_loss): feedback: "Solid breakfast. Protein from eggs supports satiety and muscle retention. Controlled carbs from the toast — good way to start the day." score: 82, quality: "good"
-- Steak arepa + extra cheese (muscle_gain): feedback: "Solid muscle-building meal. Steak delivers high-quality protein and the extra cheese adds another ~7g protein plus calorie density — good for your surplus. Well done." score: 85, quality: "good", whatWasGood: "Steak + cheese = strong protein combo. High-quality amino acids for muscle repair.", whatWasBad: null
-- Steak arepa + extra cheese (fat_loss): feedback: "Good protein base — steak arepa with cheese is a real meal. Cheese adds protein which helps satiety, but watch the portion (~110 cal/oz). Overall solid, just keep cheese to 1 oz." score: 74, quality: "good", whatWasGood: "Steak provides lean protein. Cheese boosts protein and satiety.", whatWasBad: null
-- Steak arepa + extra cheese (better skin): feedback: "Strong meal — steak and cheese both deliver protein. Dairy affects people differently when it comes to skin — if you've noticed a pattern with dairy and breakouts, it's worth tracking. Otherwise this is a solid choice." score: 78, quality: "good", whatWasGood: "High protein from steak and cheese supports tissue repair and collagen.", whatWasBad: null
-- Coconut water + clear skin: feedback: "Good hydration — electrolytes support skin and energy. Not a meal. Pair with eggs or Greek yogurt to hit protein." score: 65, quality: "neutral"
-- Fat loss bad meal: feedback: "The fries and soda wiped out your deficit. ~800 cal with almost no protein. Next meal: chicken + rice + broccoli." score: 20, quality: "bad"
-- Fat loss good meal: feedback: "Solid fat-loss meal. High protein, controlled carbs, no junk." score: 85, quality: "good"
-- Muscle gain too small: feedback: "Too small to move the needle. You need 600–800 cal per meal. Add rice, peanut butter, or a shake." score: 35, quality: "bad"`;
-
+- Steak arepa + extra cheese (fat_loss): score: 74, quality: "good", whatWasGood: "Steak adds solid protein.", whatWasBad: "Cheese adds calories fast, so portion matters for fat loss.", whatToFixNext: "Keep the arepa, add vegetables, and log the next meal clean."
+- Steak arepa + extra cheese (muscle_gain): score: 85, quality: "good", whatWasGood: "Steak and cheese are a strong protein combo for your surplus.", whatWasBad: null, whatToFixNext: "Add a carb source like rice or fruit to push total calories higher."
+- Banana snack (fat_loss): score: 78, quality: "good", whatWasGood: "Clean carbs, ~105 cal — won't touch your deficit.", whatWasBad: null, whatToFixNext: "Pair with a protein source before your next full meal."
+- Coconut water (clear skin): score: 65, quality: "neutral", whatWasGood: "Electrolytes support skin and energy.", whatWasBad: null, whatToFixNext: "Add eggs or Greek yogurt to make this a real meal."
+- Large fries + soda (fat_loss): score: 20, quality: "bad", whatWasGood: null, whatWasBad: "~800 cal with almost no protein — wipes out your deficit.", whatToFixNext: "Next meal: chicken, rice, broccoli — no exceptions."
+- Too-small muscle meal: score: 35, quality: "bad", whatWasGood: null, whatWasBad: "Too small to move the needle — you need 600–800 cal per meal.", whatToFixNext: "Add rice, peanut butter, or a shake alongside this."`;
 
     const userText = description.trim()
       ? `Meal description: ${description.trim()}`

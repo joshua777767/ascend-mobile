@@ -572,32 +572,28 @@ export default function MealsPage() {
                             </div>
                           );
                         })()}
-                        {meal.coachFeedback && (
-                          <div className="pt-3 border-t border-current/20">
-                            <p className="text-xs font-semibold uppercase tracking-wider mb-1.5">Coach Feedback</p>
-                            <p className="text-sm">{meal.coachFeedback}</p>
+                        {(meal.whatWasGood || meal.whatWasBad || meal.whatToFixNext) && (
+                          <div className="pt-3 border-t border-current/20 space-y-2">
+                            {meal.whatWasGood && (
+                              <div>
+                                <p className="text-[10px] font-semibold text-green-400 uppercase tracking-wider mb-0.5">Good</p>
+                                <p className="text-xs">{meal.whatWasGood}</p>
+                              </div>
+                            )}
+                            {meal.whatWasBad && (
+                              <div>
+                                <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider mb-0.5">Watch</p>
+                                <p className="text-xs">{meal.whatWasBad}</p>
+                              </div>
+                            )}
+                            {meal.whatToFixNext && (
+                              <div>
+                                <p className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-0.5">Next</p>
+                                <p className="text-xs">{meal.whatToFixNext}</p>
+                              </div>
+                            )}
                           </div>
                         )}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-                          {meal.whatWasGood && (
-                            <div>
-                              <p className="text-[10px] font-semibold text-green-400 uppercase tracking-wider mb-1">What was good</p>
-                              <p className="text-xs">{meal.whatWasGood}</p>
-                            </div>
-                          )}
-                          {meal.whatWasBad && (
-                            <div>
-                              <p className="text-[10px] font-semibold text-red-400 uppercase tracking-wider mb-1">What hurt the goal</p>
-                              <p className="text-xs">{meal.whatWasBad}</p>
-                            </div>
-                          )}
-                          {meal.whatToFixNext && (
-                            <div>
-                              <p className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-1">Fix next meal</p>
-                              <p className="text-xs">{meal.whatToFixNext}</p>
-                            </div>
-                          )}
-                        </div>
                       </div>
                     );
                   })}
