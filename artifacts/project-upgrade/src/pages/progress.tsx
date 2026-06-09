@@ -5,7 +5,7 @@ import {
   useGetProgressSummary, useGetMissionStreak, useListWeighIns, useCreateWeighIn,
   useListReviews, useGetUserProfile, useUpdateGoal,
   useListGoalCheckIns, useCreateGoalCheckIn,
-  useGetMilestones,
+  useGetMilestones, useGetWeeklyRecap,
   getListWeighInsQueryKey, getGetProgressSummaryQueryKey, getGetMissionStreakQueryKey,
   getGetUserProfileQueryKey, getListGoalCheckInsQueryKey
 } from "@workspace/api-client-react";
@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { TrendingDown, TrendingUp, Minus, CheckCircle, XCircle, Trophy, ArrowRight, Target, Sparkles, Star, Medal, Lock } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus, CheckCircle, XCircle, Trophy, ArrowRight, Target, Sparkles, Star, Medal, Lock, BarChart2 } from "lucide-react";
 
 export default function ProgressPage() {
   const [, setLocation] = useLocation();
@@ -27,6 +27,7 @@ export default function ProgressPage() {
   const { data: reviews } = useListReviews();
   const { data: goalCheckIns } = useListGoalCheckIns();
   const { data: milestonesData } = useGetMilestones();
+  const { data: weeklyRecap } = useGetWeeklyRecap();
   const createWeighIn = useCreateWeighIn();
   const createGoalCheckIn = useCreateGoalCheckIn();
   const updateGoal = useUpdateGoal();
@@ -254,6 +255,59 @@ export default function ProgressPage() {
                 <p className="text-[10px] text-muted-foreground mt-0.5">{stat.sub}</p>
               </div>
             ))}
+          </div>
+        )}
+
+        {weeklyRecap && (weeklyRecap.mealsLogged > 0 || weeklyRecap.journalDays > 0) && (
+          <div
+            className="rounded-2xl p-4 space-y-3"
+            style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)", boxShadow: "0 0 24px rgba(59,130,246,0.06)" }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BarChart2 className="w-4 h-4 text-primary" />
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Weekly Recap</p>
+              </div>
+              <p className="text-[10px] text-muted-foreground">{weeklyRecap.weekStart} – {weeklyRecap.weekEnd}</p>
+            </div>
+            <p className="text-sm font-semibold leading-snug">{weeklyRecap.headline}</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-card/60 rounded-xl p-2.5 text-center">
+                <p className="text-lg font-black text-foreground">{weeklyRecap.mealsLogged}</p>
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Meals</p>
+              </div>
+              <div className="bg-card/60 rounded-xl p-2.5 text-center">
+                <p className="text-lg font-black text-foreground">{weeklyRecap.journalDays}</p>
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Journals</p>
+              </div>
+              <div className="bg-card/60 rounded-xl p-2.5 text-center">
+                <p className={`text-lg font-black ${weeklyRecap.avgDailyScore >= 70 ? "text-green-400" : weeklyRecap.avgDailyScore >= 50 ? "text-amber-400" : "text-muted-foreground"}`}>
+                  {weeklyRecap.avgDailyScore > 0 ? weeklyRecap.avgDailyScore : "—"}
+                </p>
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Avg Score</p>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              {weeklyRecap.lbsChange !== null ? (
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${weeklyRecap.lbsChange < 0 ? "bg-green-500/15 text-green-400" : weeklyRecap.lbsChange > 0 ? "bg-red-500/15 text-red-400" : "bg-muted/20 text-muted-foreground"}`}>
+                    {weeklyRecap.lbsChange > 0 ? "+" : ""}{weeklyRecap.lbsChange} lbs
+                  </span>
+                  <p className="text-[10px] text-muted-foreground">weight change this week</p>
+                </div>
+              ) : (
+                <p className="text-[10px] text-muted-foreground italic">Log another weigh-in to see weight change.</p>
+              )}
+              {weeklyRecap.bestDay && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-primary/15 text-primary">Best Day</span>
+                  <p className="text-[10px] text-muted-foreground">{weeklyRecap.bestDay}</p>
+                </div>
+              )}
+              {weeklyRecap.topWin && (
+                <p className="text-xs text-muted-foreground italic">"{weeklyRecap.topWin}"</p>
+              )}
+            </div>
           </div>
         )}
 
