@@ -34,7 +34,7 @@ const MOBILE_NAV_ITEMS = [
 ];
 
 const PAGE_TITLES: Record<string, string> = {
-  "/dashboard": "Today",
+  "/dashboard": "Command",
   "/schedule": "Schedule",
   "/workouts": "Workouts",
   "/meals": "Meals",

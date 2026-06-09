@@ -156,7 +156,7 @@ export default function ProgressPage() {
     <div className="h-full overflow-y-auto scroll-area">
       <div className="p-4 max-w-2xl mx-auto space-y-6">
         <div>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Track Your Transformation</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Your Transformation</p>
           <h1 className="text-2xl font-bold uppercase tracking-tighter mt-0.5">Progress</h1>
         </div>
 

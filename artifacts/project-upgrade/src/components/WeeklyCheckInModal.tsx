@@ -798,7 +798,7 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
                 )}
                 <div className="pt-2 border-t border-border/40">
                   <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
-                    Next Week Focus
+                    Next Mission
                   </p>
                   <p className="text-xs leading-relaxed text-foreground/80">{focus}</p>
                 </div>
@@ -854,7 +854,7 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
           {activeGoals.length > 0 && (
             <div className="space-y-2">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                Goals this week
+                Objectives
               </p>
               {activeGoals.map((g) => (
                 <div key={g} className="flex items-center gap-2">

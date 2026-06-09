@@ -290,7 +290,7 @@ function DailyChecklist({
     <div>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <p className="label-caps text-muted-foreground">Today's Mission</p>
+          <p className="label-caps text-muted-foreground">Daily Mission</p>
           {allDone && (
             <span
               className="text-[8px] font-black tracking-[0.2em] uppercase px-2 py-0.5 rounded-full"
@@ -752,10 +752,10 @@ export default function DashboardPage() {
 
   function buildMission(): string {
     if (missionComplete) {
-      return "Mission complete. Growth requires proof — keep the streak alive tomorrow.";
+      return "Mission locked. Every day you prove it is a day you build it.";
     }
     if (plan && calorieDeficit > 500) {
-      return `You're ${calorieDeficit} calories behind. Eat again before bed. No skipped basics.`;
+      return `You're ${calorieDeficit} calories behind. Fuel up before bed. No missed basics.`;
     }
     if (plan && proteinDeficit > 30) {
       return `${proteinDeficit}g protein short. Make the next meal count. Finish the mission.`;
@@ -787,17 +787,17 @@ export default function DashboardPage() {
     <div className="h-full overflow-y-auto scroll-area">
       <div className="max-w-lg mx-auto px-4 pt-5 pb-6 space-y-5">
 
-        {/* ── Greeting ── */}
+        {/* ── Command Header ── */}
         <div className="flex items-start justify-between">
           <div>
-            <p className="label-caps text-muted-foreground" style={{ fontSize: "9px" }}>
+            <p className="label-caps-strong text-muted-foreground" style={{ fontSize: "9px" }}>
               {dayName} · {dateStr}
             </p>
-            <h1 className="text-[1.9rem] font-black tracking-tight leading-tight mt-0.5">
+            <h1 className="text-[2.1rem] font-black tracking-tight leading-tight mt-1">
               {firstName}
             </h1>
             {streakData && (streakData.currentStreak ?? 0) > 0 && (
-              <div className="flex items-center gap-1.5 mt-1">
+              <div className="flex items-center gap-1.5 mt-1.5">
                 <Flame className="w-3.5 h-3.5" style={{ color: "#F59E0B" }} strokeWidth={2.4} />
                 <p className="text-[11px] font-black tracking-[0.1em]" style={{ color: "#F59E0B" }}>
                   {streakData.currentStreak}-DAY STREAK
@@ -809,7 +809,7 @@ export default function DashboardPage() {
             {hasAnyData || reviewScore !== null ? (
               <>
                 <ScoreRing score={displayScore} />
-                <span className="label-caps text-muted-foreground" style={{ fontSize: "8px" }}>Today</span>
+                <span className="label-caps-strong text-muted-foreground" style={{ fontSize: "8px" }}>Ascend Score</span>
               </>
             ) : (
               <div className="flex flex-col items-center gap-0.5 w-14 text-center">
@@ -958,7 +958,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Next Week Focus ── */}
+        {/* ── Next Mission ── */}
         {(() => {
           type CheckIn = { goal: string; whatHelped: string | null; whatHardened: string | null; createdAt: string; score: number };
           const sorted = [...(goalCheckIns ?? [] as CheckIn[])].sort(
@@ -981,11 +981,11 @@ export default function DashboardPage() {
           return (
             <div
               className="rounded-2xl p-4 space-y-3"
-              style={{ background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.15)" }}
+              style={{ background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.15)", boxShadow: "0 0 20px rgba(59,130,246,0.06)" }}
             >
               <div className="flex items-center gap-2">
                 <Target className="w-4 h-4 text-primary" />
-                <p className="label-caps text-primary">Next Week Focus</p>
+                <p className="label-caps text-primary">Next Mission</p>
               </div>
               <div className="space-y-2.5">
                 {items.map((item, i) => (
@@ -1014,16 +1014,16 @@ export default function DashboardPage() {
           );
         })()}
 
-        {/* ── Weekly Recap ── */}
+        {/* ── Weekly Proof ── */}
         {weeklyRecap && (weeklyRecap.mealsLogged > 0 || weeklyRecap.journalDays > 0) && (
           <div
             className="rounded-2xl p-4 space-y-3"
-            style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)" }}
+            style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)", boxShadow: "0 0 24px rgba(59,130,246,0.06)" }}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BarChart2 className="w-4 h-4 text-primary" />
-                <p className="label-caps text-primary">This Week</p>
+                <p className="label-caps text-primary">Weekly Proof</p>
               </div>
               <p className="text-[10px] text-muted-foreground">{weeklyRecap.weekStart} – {weeklyRecap.weekEnd}</p>
             </div>
@@ -1072,7 +1072,7 @@ export default function DashboardPage() {
         )}
 
         {/* ── Mission Card ── */}
-        <div className="ascend-mission-card rounded-2xl p-4">
+        <div className={`rounded-2xl p-4 ${missionComplete ? "ascend-mission-card--complete" : "ascend-mission-card"}`}>
           <div className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-2.5">
@@ -1081,13 +1081,13 @@ export default function DashboardPage() {
                   style={{
                     background: missionComplete ? "#10B981" : "#3B82F6",
                     boxShadow: missionComplete
-                      ? "0 0 6px rgba(16,185,129,0.8)"
-                      : "0 0 6px rgba(59,130,246,0.8)",
+                      ? "0 0 8px rgba(16,185,129,0.9)"
+                      : "0 0 8px rgba(59,130,246,0.9)",
                     animation: missionComplete ? "none" : "pulse 2s infinite",
                   }}
                 />
                 <p className="label-caps" style={{ color: missionComplete ? "#10B981" : "#3B82F6", fontSize: "9px" }}>
-                  {missionComplete ? "Mission Complete" : "Mission Active"}
+                  {missionComplete ? "MISSION COMPLETE" : "MISSION ACTIVE"}
                 </p>
               </div>
               <p className="text-[13px] leading-relaxed text-foreground font-medium">{coachMessage}</p>
@@ -1100,15 +1100,15 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Today's Mission Checklist ── */}
+        {/* ── Daily Mission Checklist ── */}
         {habits.length > 0 && (
           <DailyChecklist habits={habits} done={done} setDone={setDone} />
         )}
 
-        {/* ── Fuel Intake ── */}
+        {/* ── Fuel ── */}
         {plan && (
           <div>
-            <SectionLabel>Fuel Intake</SectionLabel>
+            <SectionLabel>Fuel</SectionLabel>
             <div className="grid grid-cols-2 gap-3">
               <IntakeBar icon={Flame} label="Calories" eaten={todayCalories} target={plan.calorieTarget} tint="blue" />
               <IntakeBar icon={Beef} label="Protein" eaten={todayProtein} target={plan.proteinTargetG} unit="g" tint="green" />
@@ -1132,10 +1132,10 @@ export default function DashboardPage() {
           />
         )}
 
-        {/* ── Performance Targets ── */}
+        {/* ── Targets ── */}
         {plan && (
           <div>
-            <SectionLabel>Performance Targets</SectionLabel>
+            <SectionLabel>Targets</SectionLabel>
             <div className="grid grid-cols-3 gap-3">
               <MetricCard icon={Footprints} value={plan.stepsTarget.toLocaleString()} label="Steps" tint="green" />
               <MetricCard icon={Moon} value={plan.sleepTargetHours} unit="h" label="Sleep" tint="blue" />
@@ -1168,7 +1168,7 @@ export default function DashboardPage() {
                 <Dumbbell className="w-5 h-5 text-primary" strokeWidth={2.2} />
               </div>
               <div className="min-w-0">
-                <p className="label-caps text-muted-foreground" style={{ fontSize: "9px" }}>Today's Training</p>
+                <p className="label-caps text-muted-foreground" style={{ fontSize: "9px" }}>Training</p>
                 <p className="text-sm font-bold truncate mt-0.5">
                   {workout?.name ?? "View Training Plan"}
                 </p>
@@ -1183,10 +1183,10 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        {/* ── Active Objectives ── */}
+        {/* ── Objectives ── */}
         {goals.length > 0 && (
           <div>
-            <SectionLabel>Active Objectives</SectionLabel>
+            <SectionLabel>Objectives</SectionLabel>
             <div className="flex flex-wrap gap-2">
               {goals.map((g) => (
                 <span
@@ -1205,9 +1205,9 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Quick Access ── */}
+        {/* ── Operations ── */}
         <div>
-          <SectionLabel>Quick Access</SectionLabel>
+          <SectionLabel>Operations</SectionLabel>
           <div className="grid grid-cols-4 gap-2.5">
             <QuickAction href="/meals" icon={Utensils} label="Meal" />
             <QuickAction href="/coach" icon={MessageSquare} label="Coach" />

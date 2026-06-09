@@ -81,7 +81,7 @@ export default function SchedulePage() {
           >
             <Zap className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <div>
-              <p className="label-caps text-primary mb-0.5" style={{ fontSize: "9px" }}>Today's Mission</p>
+              <p className="label-caps text-primary mb-0.5" style={{ fontSize: "9px" }}>Daily Mission</p>
               <p className="text-sm text-foreground leading-relaxed">{schedule.todaysMission}</p>
             </div>
           </div>

@@ -41,7 +41,7 @@ export function AscendMark({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
         </linearGradient>
 
         <filter id={`${uid}-glow`} x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="2.8" result="blur" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3.2" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
