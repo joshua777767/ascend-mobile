@@ -29,10 +29,11 @@ interface MealFeedback {
 
 const GOOD_FOODS = [
   "chicken", "turkey", "fish", "salmon", "tuna", "egg", "eggs", "tofu", "tempeh",
+  "steak", "beef", "pork", "shrimp", "lamb", "bison",
   "beans", "lentil", "lentils", "chickpea", "broccoli", "spinach", "kale", "veggie",
   "vegetable", "vegetables", "salad", "greens", "oats", "oatmeal", "quinoa", "brown rice",
   "sweet potato", "fruit", "berries", "berry", "apple", "banana", "yogurt", "greek yogurt",
-  "cottage cheese", "almond", "almonds", "nuts", "avocado", "water", "protein", "lean",
+  "cottage cheese", "cheese", "almond", "almonds", "nuts", "avocado", "water", "protein", "lean",
   "grilled", "steamed", "baked",
 ];
 
@@ -352,6 +353,14 @@ GOAL-SPECIFIC snack rules:
 - muscle_gain + fruit snack: fine as pre/post-workout fuel. Score 68–75. Note: low protein, not a standalone meal.
 - maintain/energy/skin + fruit snack: excellent. Score 80–88.
 
+CHEESE & DAIRY — goal-aware rules (IMPORTANT):
+Cheese is a real protein and fat source. ~1 oz / 28g of cheese = ~7g protein, ~9g fat, ~110 cal. Never ignore its protein contribution.
+- muscle_gain: extra cheese = more protein + calories → beneficial. Acknowledge it positively: "The cheese adds ~7g protein — good for your surplus."
+- fat_loss: cheese adds protein (good for satiety) but also calories — note both: "Cheese adds protein which helps satiety, but watch the portion — ~110 cal/oz adds up."
+- better skin / clear skin: dairy affects people differently. Do NOT assume it is bad. Say: "Some people notice dairy affects their skin — if you've seen a pattern, it's worth tracking. Otherwise, the protein from cheese is a positive here."
+- maintain / energy / sleep: cheese is neutral-to-positive — protein and fat are fine. No need to flag it.
+NEVER mark cheese alone as "bad" or put it in whatWasBad unless the overall meal is already a junk context (e.g. cheeseburger + fries + soda). Extra cheese on a whole-food meal is NEVER a negative.
+
 If the logged item was poor, suggest a better option from:
 ${swapOptions}
 
@@ -381,6 +390,9 @@ Examples:
 - Banana as snack (muscle_gain): feedback: "Decent pre-workout fuel for fast carbs. Low in protein and calories, so make sure your next meal is a full one." score: 70, quality: "neutral"
 - Banana as part of breakfast (clear skin / energy): feedback: "Good breakfast addition — potassium and micronutrients support skin and energy. Solid start to the day." score: 85, quality: "good"
 - Eggs and toast (breakfast, fat_loss): feedback: "Solid breakfast. Protein from eggs supports satiety and muscle retention. Controlled carbs from the toast — good way to start the day." score: 82, quality: "good"
+- Steak arepa + extra cheese (muscle_gain): feedback: "Solid muscle-building meal. Steak delivers high-quality protein and the extra cheese adds another ~7g protein plus calorie density — good for your surplus. Well done." score: 85, quality: "good", whatWasGood: "Steak + cheese = strong protein combo. High-quality amino acids for muscle repair.", whatWasBad: null
+- Steak arepa + extra cheese (fat_loss): feedback: "Good protein base — steak arepa with cheese is a real meal. Cheese adds protein which helps satiety, but watch the portion (~110 cal/oz). Overall solid, just keep cheese to 1 oz." score: 74, quality: "good", whatWasGood: "Steak provides lean protein. Cheese boosts protein and satiety.", whatWasBad: null
+- Steak arepa + extra cheese (better skin): feedback: "Strong meal — steak and cheese both deliver protein. Dairy affects people differently when it comes to skin — if you've noticed a pattern with dairy and breakouts, it's worth tracking. Otherwise this is a solid choice." score: 78, quality: "good", whatWasGood: "High protein from steak and cheese supports tissue repair and collagen.", whatWasBad: null
 - Coconut water + clear skin: feedback: "Good hydration — electrolytes support skin and energy. Not a meal. Pair with eggs or Greek yogurt to hit protein." score: 65, quality: "neutral"
 - Fat loss bad meal: feedback: "The fries and soda wiped out your deficit. ~800 cal with almost no protein. Next meal: chicken + rice + broccoli." score: 20, quality: "bad"
 - Fat loss good meal: feedback: "Solid fat-loss meal. High protein, controlled carbs, no junk." score: 85, quality: "good"
