@@ -196,7 +196,7 @@ export function generateDailySchedule(profile: ProfileWithRange, plan: Plan): Sc
   }
 
   // ─── MORNING WORKOUT ───────────────────────────────────────────────────────
-  if (workoutPref === "morning") {
+  if (profile.workoutDaysPerWeek > 0 && workoutPref === "morning") {
     if (workoutConflictsSport) {
       items.push({
         time: workoutTime,
@@ -262,7 +262,7 @@ export function generateDailySchedule(profile: ProfileWithRange, plan: Plan): Sc
   }
 
   // ─── AFTERNOON WORKOUT ─────────────────────────────────────────────────────
-  if (workoutPref === "afternoon") {
+  if (profile.workoutDaysPerWeek > 0 && workoutPref === "afternoon") {
     if (workoutConflictsSport) {
       items.push({
         time: workoutTime,
@@ -317,7 +317,7 @@ export function generateDailySchedule(profile: ProfileWithRange, plan: Plan): Sc
   });
 
   // ─── EVENING WORKOUT ───────────────────────────────────────────────────────
-  if (workoutPref === "evening") {
+  if (profile.workoutDaysPerWeek > 0 && workoutPref === "evening") {
     if (workoutConflictsSport) {
       items.push({
         time: workoutTime,

@@ -117,7 +117,7 @@ function habitsForGoal(goal: string, v: HabitVals): string[] {
         `Drink ${v.water}L water`,
         `Walk ${v.steps.toLocaleString()} steps`,
         `Log every meal`,
-        `Train ${v.workoutDays}x this week`,
+        ...(v.workoutDays > 0 ? [`Train ${v.workoutDays}x this week`] : [`Stay active — steps and movement count`]),
       ];
     case "gain weight":
       return [
@@ -216,7 +216,8 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
     : 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
 
-  const activityMult = profile.workoutDaysPerWeek >= 5 ? 1.725
+  const activityMult = profile.workoutDaysPerWeek === 0 ? 1.2
+    : profile.workoutDaysPerWeek >= 5 ? 1.725
     : profile.workoutDaysPerWeek >= 3 ? 1.55
     : 1.375;
 
@@ -293,7 +294,11 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   const sportAdjustment = sportSchedule ? getSportAdjustmentForPlan(goalType, sportSchedule) : "";
 
   let workoutSchedule = "";
-  if (hasOwnSchedule === "yes" && ownSchedule) {
+  if (workoutDays === 0) {
+    workoutSchedule = sportText
+      ? `No structured workouts — sport${sportText} is your primary activity. Focus on NEAT: steps, walks, and daily movement.`
+      : `No structured workouts — fat loss driven by calorie deficit, high protein, and daily steps. Walk as much as possible.`;
+  } else if (hasOwnSchedule === "yes" && ownSchedule) {
     workoutSchedule = `Custom schedule: ${ownSchedule}${sportText}`;
   } else if (workoutFocus && FOCUS_LABELS[workoutFocus]) {
     workoutSchedule = `${workoutDays}x/week — focus: ${FOCUS_LABELS[workoutFocus]}${sportText}`;
@@ -339,7 +344,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   // mission is never empty.
   if (!orderedGoals.some((g) => PRIMARY_GOALS.includes(g))) {
     pushHabit(`Eat ${proteinTargetG}g protein`);
-    pushHabit(`Train ${workoutDays}x this week`);
+    if (workoutDays > 0) pushHabit(`Train ${workoutDays}x this week`);
   }
 
   for (const g of orderedGoals) {
@@ -385,7 +390,9 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
 
   let nutritionExplanation: string;
   if (goalType === "fat_loss") {
-    nutritionExplanation = `This takes real discipline: hold a ${Math.round(tdee - calorieTarget)}-calorie deficit (TDEE ~${tdee}) and hit protein every day. Steps and sleep aren't optional — they're what make the deficit work.`;
+    nutritionExplanation = workoutDays === 0
+      ? `This takes real discipline: hold a ${Math.round(tdee - calorieTarget)}-calorie deficit (TDEE ~${tdee}) and hit protein every day. You don't need a gym — your three levers are your calorie target, daily steps, and sleep. Hit all three and the fat comes off.`
+      : `This takes real discipline: hold a ${Math.round(tdee - calorieTarget)}-calorie deficit (TDEE ~${tdee}) and hit protein every day. Steps and sleep aren't optional — they're what make the deficit work.`;
   } else if (goalType === "muscle_gain") {
     nutritionExplanation = `You need ${calorieTarget} calories (TDEE ~${tdee}) to grow. Undereating is the #1 reason people don't gain — don't skip meals. Train hard, eat more, sleep more.`;
   } else if (goalType === "glow") {

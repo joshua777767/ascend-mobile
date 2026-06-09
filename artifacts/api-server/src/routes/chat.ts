@@ -249,7 +249,10 @@ function heuristicReply(message: string, ctx: ChatContext): string {
             : weeklyPace <= 1.5
               ? "Discipline Required: High. Little room for error — you need roughly 6 of 7 days fully dialed in."
               : "Discipline Required: Very high. This is near-perfect execution — every meal tracked, protein hit daily, no skipped workouts, sleep locked in. Miss the behaviors and you will not hit this number.";
-        return `Reality Check: Losing ${lbs} lbs in ${weeks < 4 ? Math.round(weeks) + " weeks" : Math.round(weeks / 4.3) + " months"} is ${verdict} — that's ${weeklyPace.toFixed(1)} lbs per week.\n\n${discipline}\n\nThe Daily Behaviors (this is what actually gets you there — not just calorie math):\n• Calorie adherence: ${calStr}, hit 6-7 days/week. One 1,500-cal blowout erases three days of deficit. This is the #1 driver.\n• Protein: ${proStr} every day. It keeps the weight you lose as fat, not muscle, and keeps you full.\n• Steps: 8,000/day minimum. Burns fat without spiking hunger like hard cardio.\n• Sleep: 7-8 hours. Under 7 spikes cravings and kills willpower — one bad night sabotages a perfect diet day.\n• Meal tracking: log every meal, every day. Untracked bites, sauces, and drinks are where the deficit silently vanishes.\n• Training: ${days}x/week, every week. Lifting tells your body to hold muscle while you lose fat.\n\nCoach Command: The math is the easy part. Win the behaviors daily and the result is automatic.`;
+        const trainingBullet = days > 0
+          ? `\n• Training: ${days}x/week, every week. Lifting tells your body to hold muscle while you lose fat.`
+          : `\n• Movement: steps, walks, and staying active. No gym needed — NEAT burns more than most people think.`;
+        return `Reality Check: Losing ${lbs} lbs in ${weeks < 4 ? Math.round(weeks) + " weeks" : Math.round(weeks / 4.3) + " months"} is ${verdict} — that's ${weeklyPace.toFixed(1)} lbs per week.\n\n${discipline}\n\nThe Daily Behaviors (this is what actually gets you there — not just calorie math):\n• Calorie adherence: ${calStr}, hit 6-7 days/week. One 1,500-cal blowout erases three days of deficit. This is the #1 driver.\n• Protein: ${proStr} every day. It keeps the weight you lose as fat, not muscle, and keeps you full.\n• Steps: 8,000/day minimum. Burns fat without spiking hunger like hard cardio.\n• Sleep: 7-8 hours. Under 7 spikes cravings and kills willpower — one bad night sabotages a perfect diet day.\n• Meal tracking: log every meal, every day. Untracked bites, sauces, and drinks are where the deficit silently vanishes.${trainingBullet}\n\nCoach Command: The math is the easy part. Win the behaviors daily and the result is automatic.`;
       } else {
         return `Reality Check: Losing ${lbs} lbs in ${weeks < 4 ? Math.round(weeks) + " weeks" : Math.round(weeks / 4.3) + " months"} requires ${weeklyPace.toFixed(1)} lbs per week — that's above the safe limit of 2 lbs/week. Crash diets cause muscle loss, metabolic slowdown, and rebound weight gain.\n\nSafer target: ${Math.round(weeks * 1.5)} lbs in that same timeframe. Focus on ${calStr}, ${proStr}, daily walking, and strength training. Slower and consistent beats fast and broken.`;
       }
@@ -310,7 +313,10 @@ function heuristicReply(message: string, ctx: ChatContext): string {
 
   // 6. Lose fat
   if (has(m, ["lose fat", "fat loss", "lose weight", "burn fat", "get lean", "leaner", "cut weight", "slim down", "losing weight"])) {
-    return `Reality Check: Fat loss isn't about one number — it's about hitting the same behaviors every day. The calorie math is the easy part. Execution is what separates people who get there from people who don't.\n\nDiscipline Required: Daily and non-negotiable. You don't need to be perfect, but you need to be consistent — roughly 6 of 7 days dialed in, every week. Sporadic effort gets sporadic results.\n\nThe Daily Behaviors that decide it:\n• Calorie adherence: ${calStr}, hit 6-7 days/week. One blowout day can erase three days of progress.\n• Protein: ${proStr} every day. Protects muscle so the weight you lose is fat, and keeps you full.\n• Steps: 8,000/day minimum. The easiest fat-loss lever and the one most people skip.\n• Sleep: 7-8 hours. Bad sleep spikes cravings and wrecks willpower the next day.\n• Meal tracking: log everything, every day. If you don't track it, you can't manage it.\n• Training: ${days}x/week, every week. Consistency keeps the muscle while the fat comes off.\n\nCoach Command: No liquid calories today. Hit protein first. Walk after meals. Log every bite.`;
+    const fatLossActivityBullet = days > 0
+      ? `\n• Training: ${days}x/week, every week. Consistency keeps the muscle while the fat comes off.`
+      : `\n• Movement: daily steps and walks. No gym needed — your deficit does the heavy lifting. Walk after meals, take the stairs, stay on your feet.`;
+    return `Reality Check: Fat loss isn't about one number — it's about hitting the same behaviors every day. The calorie math is the easy part. Execution is what separates people who get there from people who don't.\n\nDiscipline Required: Daily and non-negotiable. You don't need to be perfect, but you need to be consistent — roughly 6 of 7 days dialed in, every week. Sporadic effort gets sporadic results.\n\nThe Daily Behaviors that decide it:\n• Calorie adherence: ${calStr}, hit 6-7 days/week. One blowout day can erase three days of progress.\n• Protein: ${proStr} every day. Protects muscle so the weight you lose is fat, and keeps you full.\n• Steps: 8,000/day minimum. The easiest fat-loss lever and the one most people skip.\n• Sleep: 7-8 hours. Bad sleep spikes cravings and wrecks willpower the next day.\n• Meal tracking: log everything, every day. If you don't track it, you can't manage it.${fatLossActivityBullet}\n\nCoach Command: No liquid calories today. Hit protein first. Walk after meals. Log every bite.`;
   }
 
   // 7. Gain weight
@@ -406,7 +412,10 @@ function heuristicReply(message: string, ctx: ChatContext): string {
     return `You picked ${joined}. Here's today's combined mission:\n\n${mission}\n\nWin these daily and the goals take care of themselves. Tell me what you're stuck on and I'll give you the next step.${skinNote}`;
   }
 
-  return `Execute the basics and you win:\n\nToday's Mission:\n• Calories: ${calStr}\n• Protein: ${proStr}\n• Steps: 8,000\n• Workouts: on schedule (${days}x/week)\n• Water: 3L\n• Sleep: 7-8 hours\n\nTell me exactly what you're stuck on — meals, workouts, sleep, energy, or consistency — and I'll give you the next step.`;
+  const workoutMissionLine = days > 0
+    ? `\n• Workouts: on schedule (${days}x/week)`
+    : `\n• Movement: hit your step goal — walks, stairs, staying active`;
+  return `Execute the basics and you win:\n\nToday's Mission:\n• Calories: ${calStr}\n• Protein: ${proStr}\n• Steps: 8,000${workoutMissionLine}\n• Water: 3L\n• Sleep: 7-8 hours\n\nTell me exactly what you're stuck on — meals, sleep, energy, or consistency — and I'll give you the next step.`;
 }
 
 // ---------------------------------------------------------------------------
