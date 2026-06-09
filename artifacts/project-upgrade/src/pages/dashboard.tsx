@@ -601,6 +601,13 @@ export default function DashboardPage() {
   useEffect(() => { refetchWater(); }, [refetchWater]);
 
   const habits = prioritizeHabits(plan && Array.isArray(plan.keyHabits) ? plan.keyHabits : []);
+
+  // Split habits into daily (completable today) and weekly (tracked across the week)
+  const weeklyKeywords = ["this week", "weekly"];
+  const isWeeklyHabit = (h: string) => weeklyKeywords.some(kw => h.toLowerCase().includes(kw));
+  const dailyHabits = habits.filter(h => !isWeeklyHabit(h));
+  const weeklyHabits = habits.filter(h => isWeeklyHabit(h));
+
   const storageKey = `ascend.checklist.v2.${localDate}`;
 
   // Track which storageKey was used to initialize `done` so we can detect
@@ -649,25 +656,25 @@ export default function DashboardPage() {
   // Auto-check the water habit when daily target is met
   useEffect(() => {
     if (waterOz > 0 && waterTargetOz > 0 && waterOz >= waterTargetOz) {
-      const waterHabit = habits.find((h) => h.toLowerCase().includes("water"));
+      const waterHabit = dailyHabits.find((h) => h.toLowerCase().includes("water"));
       if (waterHabit && !done[waterHabit]) {
         setDone((prev) => ({ ...prev, [waterHabit]: true }));
       }
     }
-  }, [waterOz, waterTargetOz, habits]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [waterOz, waterTargetOz, dailyHabits]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const checklistCompleted = habits.filter((h) => done[h]).length;
-  const checklistScore = habits.length ? Math.round((checklistCompleted / habits.length) * 100) : 0;
+  const checklistCompleted = dailyHabits.filter((h) => done[h]).length;
+  const checklistScore = dailyHabits.length ? Math.round((checklistCompleted / dailyHabits.length) * 100) : 0;
 
   // Record streak when today's mission hits 70%
   useEffect(() => {
-    if (checklistScore >= 70 && habits.length > 0) {
+    if (checklistScore >= 70 && dailyHabits.length > 0) {
       const lastDate = streakData?.lastStreakDate ?? null;
       if (lastDate !== localDate) {
         recordStreakFn().catch(() => {});
       }
     }
-  }, [checklistScore, habits.length, streakData?.lastStreakDate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [checklistScore, dailyHabits.length, streakData?.lastStreakDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (error) setLocation("/onboarding");
@@ -778,7 +785,7 @@ export default function DashboardPage() {
     ? Math.min(todayProtein / plan.proteinTargetG, 1) : 0;
   const waterProgress = waterTargetOz > 0
     ? Math.min(waterOz / waterTargetOz, 1) : 0;
-  const missionProgress = habits.length > 0 ? checklistCompleted / habits.length : 0;
+  const missionProgress = dailyHabits.length > 0 ? checklistCompleted / dailyHabits.length : 0;
   const ascendScore = Math.round(
     calorieProgress * 30 +
     proteinProgress * 25 +
@@ -794,7 +801,7 @@ export default function DashboardPage() {
   const proteinDeficit = plan ? plan.proteinTargetG - todayProtein : 0;
   const isBulking = plan ? (profile.goalWeightKg ?? 0) > (profile.currentWeightKg ?? 0) : false;
   const isCutting = plan ? (profile.goalWeightKg ?? 0) < (profile.currentWeightKg ?? 0) : false;
-  const missionComplete = checklistScore >= 100 && habits.length > 0;
+  const missionComplete = checklistScore >= 100 && dailyHabits.length > 0;
 
   function buildMission(): string {
     if (missionComplete) {
@@ -1219,8 +1226,39 @@ export default function DashboardPage() {
         )}
 
         {/* ── Daily Mission Checklist ── */}
-        {habits.length > 0 && (
-          <DailyChecklist habits={habits} done={done} setDone={setDone} />
+        {dailyHabits.length > 0 && (
+          <DailyChecklist habits={dailyHabits} done={done} setDone={setDone} />
+        )}
+
+        {/* ── Weekly Goals ── */}
+        {weeklyHabits.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <p className="label-caps text-muted-foreground">Weekly Goals</p>
+            </div>
+            <div
+              className="rounded-2xl overflow-hidden divide-y"
+              style={{
+                background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+                border: "1px solid hsl(217 32% 15%)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+              }}
+            >
+              {weeklyHabits.map((habit) => (
+                <div key={habit} className="w-full flex items-center gap-3 px-4 py-3.5 text-left">
+                  <div
+                    className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center border-2"
+                    style={{ borderColor: "hsl(217 32% 22%)" }}
+                  >
+                    <Circle className="w-3 h-3 text-muted-foreground" strokeWidth={2} />
+                  </div>
+                  <span className="text-sm leading-snug flex-1 text-muted-foreground">
+                    {habit}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* ── Fuel ── */}
