@@ -17,6 +17,9 @@ import {
   getGetTodayMealsQueryKey,
   getGetTodayWorkoutQueryKey,
   getGetTodayReviewQueryKey,
+  getGetStreakQueryKey,
+  getGetProgressSummaryQueryKey,
+  getListGoalCheckInsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -583,16 +586,22 @@ export default function DashboardPage() {
     query: { queryKey: [...getGetWaterTodayQueryKey(), localDate] },
   });
   const { mutateAsync: logWaterFn, isPending: waterLogging } = useLogWater();
-  const { data: streakData } = useGetStreak();
+  const { data: streakData } = useGetStreak({
+    query: { queryKey: [...getGetStreakQueryKey(), localDate] },
+  });
   const { mutateAsync: recordStreakFn } = useRecordStreak();
-  const { data: progress } = useGetProgressSummary();
-  const { data: goalCheckIns } = useListGoalCheckIns();
+  const { data: progress } = useGetProgressSummary({
+    query: { queryKey: [...getGetProgressSummaryQueryKey(), localDate] },
+  });
+  const { data: goalCheckIns } = useListGoalCheckIns({
+    query: { queryKey: [...getListGoalCheckInsQueryKey(), localDate] },
+  });
 
   useEffect(() => { refetchMeals(); }, [refetchMeals]);
   useEffect(() => { refetchWater(); }, [refetchWater]);
 
   const habits = prioritizeHabits(plan && Array.isArray(plan.keyHabits) ? plan.keyHabits : []);
-  const storageKey = `ascend.checklist.${localDate}`;
+  const storageKey = `ascend.checklist.v2.${localDate}`;
 
   // Track which storageKey was used to initialize `done` so we can detect
   // a date change without writing yesterday's state to today's key.

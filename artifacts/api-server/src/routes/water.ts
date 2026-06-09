@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, lt } from "drizzle-orm";
 import { db, waterLogsTable, plansTable, userProfilesTable } from "@workspace/db";
 import { LogWaterBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
@@ -40,19 +40,53 @@ async function getDailyTargetOz(userId: number, baseTargetL: number, req?: Reque
   return Math.min(baseOz + extraOz, 140); // 140 oz hard ceiling
 }
 
+// Return the UTC timestamp of local midnight for the given date string + timezone.
+// Example: "2026-06-09" in "America/New_York" (EDT, UTC-4) → 2026-06-09T04:00:00Z
+function getLocalMidnightUtc(dateStr: string, tz: string): Date {
+  // Use noon UTC of that date as a reference point (avoids DST hour-boundary issues).
+  const ref = new Date(`${dateStr}T12:00:00.000Z`);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(ref);
+  const get = (type: string) =>
+    parseInt(parts.find((p) => p.type === type)?.value ?? "0", 10);
+  // Local seconds elapsed since midnight at the moment of `ref` (noon UTC)
+  const localSecsFromMidnight = (get("hour") % 24) * 3600 + get("minute") * 60 + get("second");
+  // Subtract those seconds from ref to get back to local midnight in UTC
+  return new Date(ref.getTime() - localSecsFromMidnight * 1000);
+}
+
 async function getWaterSummary(
   userId: number,
   req: Request,
   detectedOz?: number,
 ): Promise<{ totalOz: number; targetOz: number; date: string; detectedOz?: number }> {
   const date = todayString(req);
+  const tz = (req.headers["x-timezone"] as string | undefined) || "UTC";
   const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, userId));
   const targetOz = plan ? await getDailyTargetOz(userId, plan.waterTargetL, req) : 64;
+
+  // Filter by created_at range (local midnight → next local midnight) rather than
+  // the stored `date` string.  Pre-fix rows had their date written in UTC, so a
+  // log made at 11 pm local would carry tomorrow's UTC date and appear as "today"
+  // when queried by date string.  The created_at timestamp is always correct.
+  const dayStart = getLocalMidnightUtc(date, tz);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
   const rows = await db
     .select({ amountOz: waterLogsTable.amountOz })
     .from(waterLogsTable)
-    .where(and(eq(waterLogsTable.userId, userId), eq(waterLogsTable.date, date)));
+    .where(
+      and(
+        eq(waterLogsTable.userId, userId),
+        gte(waterLogsTable.createdAt, dayStart),
+        lt(waterLogsTable.createdAt, dayEnd),
+      ),
+    );
 
   const totalOz = rows.reduce((s, r) => s + r.amountOz, 0);
   return detectedOz !== undefined

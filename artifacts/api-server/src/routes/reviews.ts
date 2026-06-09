@@ -1,10 +1,34 @@
-import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { Router, type IRouter, type Request } from "express";
+import { eq, desc, gte, lt, and } from "drizzle-orm";
 import { db, coachReviewsTable, journalEntriesTable, plansTable, userProfilesTable } from "@workspace/db";
 import { openai } from "../lib/openai";
 import { getUserId, getUserToday } from "../middlewares/auth";
 
 const router: IRouter = Router();
+
+// Return the UTC timestamp of local midnight for the given date string + timezone.
+function getLocalMidnightUtc(dateStr: string, tz: string): Date {
+  const ref = new Date(`${dateStr}T12:00:00.000Z`);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(ref);
+  const get = (type: string) =>
+    parseInt(parts.find((p) => p.type === type)?.value ?? "0", 10);
+  const localSecsFromMidnight = (get("hour") % 24) * 3600 + get("minute") * 60 + get("second");
+  return new Date(ref.getTime() - localSecsFromMidnight * 1000);
+}
+
+function getTodayUtcRange(req: Request): { dayStart: Date; dayEnd: Date } {
+  const tz = (req.headers["x-timezone"] as string | undefined) || "UTC";
+  const dateStr = getUserToday(req);
+  const dayStart = getLocalMidnightUtc(dateStr, tz);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  return { dayStart, dayEnd };
+}
 
 async function generateCoachReview(entry: any, plan: any, profile: any): Promise<{
   dailyScore: number; biggestWin: string; biggestMistake: string;
@@ -109,11 +133,17 @@ router.post("/reviews", async (req, res): Promise<void> => {
 });
 
 router.get("/reviews/today", async (req, res): Promise<void> => {
-  const today = getUserToday(req);
-  const all = await db.select().from(coachReviewsTable)
-    .where(eq(coachReviewsTable.userId, getUserId(req)))
-    .orderBy(desc(coachReviewsTable.createdAt));
-  const todayReview = all.find(r => r.date === today);
+  const { dayStart, dayEnd } = getTodayUtcRange(req);
+  const [todayReview] = await db.select().from(coachReviewsTable)
+    .where(
+      and(
+        eq(coachReviewsTable.userId, getUserId(req)),
+        gte(coachReviewsTable.createdAt, dayStart),
+        lt(coachReviewsTable.createdAt, dayEnd),
+      ),
+    )
+    .orderBy(desc(coachReviewsTable.createdAt))
+    .limit(1);
   if (!todayReview) {
     res.status(404).json({ error: "No review for today" });
     return;
