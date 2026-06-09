@@ -9,6 +9,63 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Get current subscription status
+ */
+export const GetSubscriptionResponse = zod.object({
+  "subscription": zod.object({
+  "id": zod.string().optional(),
+  "status": zod.string().optional(),
+  "currentPeriodEnd": zod.string().optional(),
+  "cancelAtPeriodEnd": zod.boolean().optional()
+}).nullish(),
+  "customerId": zod.string().nullish(),
+  "status": zod.string().optional()
+})
+
+
+/**
+ * @summary Create Stripe checkout session
+ */
+export const CreateCheckoutBody = zod.object({
+  "priceId": zod.string().describe('Stripe Price ID')
+})
+
+export const CreateCheckoutResponse = zod.object({
+  "url": zod.string().url().optional()
+})
+
+
+/**
+ * @summary Create Stripe customer portal session
+ */
+export const CreatePortalResponse = zod.object({
+  "url": zod.string().url().optional()
+})
+
+
+/**
+ * @summary List Stripe products with prices
+ */
+export const GetProductsResponse = zod.object({
+  "data": zod.array(zod.object({
+  "id": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "active": zod.boolean().optional(),
+  "prices": zod.array(zod.object({
+  "id": zod.string().optional(),
+  "unitAmount": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "recurring": zod.object({
+  "interval": zod.string().optional()
+}).optional(),
+  "active": zod.boolean().optional()
+})).optional()
+})).optional()
+})
+
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({

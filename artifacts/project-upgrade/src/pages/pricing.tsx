@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Loader2 } from "lucide-react";
 
 const PRO_FEATURES = [
   "Personalized daily schedule built around your real life",
@@ -14,6 +15,32 @@ const PRO_FEATURES = [
 ];
 
 export default function PricingPage() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubscribe = async (priceId: string) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ priceId }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.error || "Checkout failed. Please try again.");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-2xl mx-auto px-4 py-16">
@@ -57,6 +84,15 @@ export default function PricingPage() {
                 <p className="text-muted-foreground mb-1">/month</p>
               </div>
               <p className="text-xs text-muted-foreground mt-1">Cancel anytime</p>
+              <div className="border-t border-border pt-3 flex items-center gap-2">
+                <button
+                  className="text-xs text-primary font-semibold hover:underline disabled:opacity-50"
+                  onClick={() => handleSubscribe("price_annual")}
+                  disabled={loading}
+                >
+                  Or save 17% with $99.99/year
+                </button>
+              </div>
             </div>
             <div className="border-t border-border pt-4 space-y-2">
               {PRO_FEATURES.map((f, i) => (
@@ -66,12 +102,23 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
+            {error && (
+              <p className="text-xs text-destructive bg-destructive/10 rounded-lg p-2 text-center">{error}</p>
+            )}
             <Button
               className="w-full"
-              onClick={() => alert("Payment integration coming soon. This is a demo.")}
+              disabled={loading}
+              onClick={() => handleSubscribe("price_monthly")}
               data-testid="button-subscribe-pro"
             >
-              Start Pro — $9.99/month
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Redirecting...
+                </>
+              ) : (
+                "Start Pro — $9.99/month"
+              )}
             </Button>
             <p className="text-xs text-muted-foreground text-center">Secure checkout. Cancel anytime.</p>
           </div>

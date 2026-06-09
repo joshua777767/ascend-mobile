@@ -700,6 +700,56 @@ export interface GoalCheckInInput {
   whatHardened?: string;
 }
 
+export interface CheckoutInput {
+  /** Stripe Price ID */
+  priceId: string;
+}
+
+export type SubscriptionStatusSubscription = {
+  id?: string;
+  status?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+} | null;
+
+export interface SubscriptionStatus {
+  subscription?: SubscriptionStatusSubscription;
+  customerId?: string | null;
+  status?: string;
+}
+
+export type StripeProductPricesItemRecurring = {
+  interval?: string;
+};
+
+export type StripeProductPricesItem = {
+  id?: string;
+  unitAmount?: number;
+  currency?: string;
+  recurring?: StripeProductPricesItemRecurring;
+  active?: boolean;
+};
+
+export interface StripeProduct {
+  id?: string;
+  name?: string;
+  description?: string;
+  active?: boolean;
+  prices?: StripeProductPricesItem[];
+}
+
+export type CreateCheckout200 = {
+  url?: string;
+};
+
+export type CreatePortal200 = {
+  url?: string;
+};
+
+export type GetProducts200 = {
+  data?: StripeProduct[];
+};
+
 export type GetMilestones200 = {
   milestones?: Milestone[];
 };

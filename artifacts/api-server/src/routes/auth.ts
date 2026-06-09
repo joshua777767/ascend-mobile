@@ -116,12 +116,21 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
 
   await db.insert(passwordResetTokensTable).values({ userId: user.id, token, expiresAt });
 
+  const resetLink = `/reset-password?token=${token}`;
   req.log.info(
     { token, expiresAt },
-    `[FORGOT PASSWORD] Reset link → /reset-password?token=${token}`
+    `[FORGOT PASSWORD] Reset link → ${resetLink}`
   );
 
-  res.json({ message: SAFE_RESET_MSG });
+  // TODO: Send email via Resend when RESEND_API_KEY is configured
+  // For now, include the reset link in the response for development testing
+  const resendConfigured = !!process.env.RESEND_API_KEY;
+  res.json({
+    message: SAFE_RESET_MSG,
+    resetLink: resendConfigured ? undefined : resetLink,
+    token: resendConfigured ? undefined : token,
+    note: resendConfigured ? undefined : "Development mode: use this link to reset your password.",
+  });
 });
 
 router.post("/auth/reset-password", async (req, res): Promise<void> => {

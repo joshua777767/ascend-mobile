@@ -11,7 +11,7 @@ import {
   getGetUserProfileQueryKey,
   getGetCurrentPlanQueryKey,
 } from "@workspace/api-client-react";
-import { LogOut, RotateCcw, AlertTriangle, Save, CheckCircle2 } from "lucide-react";
+import { LogOut, RotateCcw, AlertTriangle, Save, CheckCircle2, FileDown, Shield, ScrollText, CreditCard, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ─── constants ────────────────────────────────────────────────────────────────
@@ -395,20 +395,83 @@ export default function SettingsPage() {
         </div>
 
         {/* Account */}
-        <section className="rounded-2xl bg-card border border-border p-5">
+        <section className="rounded-2xl bg-card border border-border p-5 space-y-3">
           <p className="text-sm font-semibold text-foreground">Account</p>
-          <p className="mt-1 text-sm text-muted-foreground" data-testid="text-email">
+          <p className="text-sm text-muted-foreground" data-testid="text-email">
             {me?.email ?? "—"}
           </p>
+
           <button
             onClick={handleLogout}
             disabled={logout.isPending}
-            className="mt-4 flex items-center justify-center gap-2 w-full bg-elevated border border-border text-foreground h-12 rounded-xl text-sm font-semibold active:scale-[0.99] transition-transform disabled:opacity-60"
+            className="flex items-center justify-center gap-2 w-full bg-elevated border border-border text-foreground h-12 rounded-xl text-sm font-semibold active:scale-[0.99] transition-transform disabled:opacity-60"
             data-testid="button-logout"
           >
             <LogOut className="w-[18px] h-[18px]" strokeWidth={2} />
             {logout.isPending ? "Logging out..." : "Log out"}
           </button>
+        </section>
+
+        {/* Subscription */}
+        <section className="rounded-2xl bg-card border border-border p-5 space-y-3">
+          <p className="text-sm font-semibold text-foreground">Subscription</p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CreditCard className="w-4 h-4 text-primary" strokeWidth={2} />
+            <span>Manage your plan, billing, and payment methods</span>
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch("/api/portal", { method: "POST", credentials: "include" });
+                const data = await res.json();
+                if (data.url) window.location.href = data.url;
+              } catch {
+                /* ignore */
+              }
+            }}
+            className="flex items-center justify-center gap-2 w-full bg-primary/10 border border-primary/30 text-primary h-12 rounded-xl text-sm font-semibold active:scale-[0.99] transition-transform"
+          >
+            <ExternalLink className="w-[18px] h-[18px]" strokeWidth={2} />
+            Manage Subscription
+          </button>
+        </section>
+
+        {/* Data & Privacy */}
+        <section className="rounded-2xl bg-card border border-border p-5 space-y-3">
+          <p className="text-sm font-semibold text-foreground">Data & Privacy</p>
+
+          <a
+            href="/data-export"
+            className="flex items-center justify-center gap-2 w-full bg-elevated border border-border text-foreground h-12 rounded-xl text-sm font-semibold active:scale-[0.99] transition-transform"
+          >
+            <FileDown className="w-[18px] h-[18px]" strokeWidth={2} />
+            Export My Data
+          </a>
+
+          <div className="flex gap-2">
+            <a
+              href="/privacy"
+              className="flex-1 flex items-center justify-center gap-2 bg-elevated border border-border text-foreground h-12 rounded-xl text-sm font-semibold active:scale-[0.99] transition-transform"
+            >
+              <Shield className="w-[18px] h-[18px]" strokeWidth={2} />
+              Privacy
+            </a>
+            <a
+              href="/terms"
+              className="flex-1 flex items-center justify-center gap-2 bg-elevated border border-border text-foreground h-12 rounded-xl text-sm font-semibold active:scale-[0.99] transition-transform"
+            >
+              <ScrollText className="w-[18px] h-[18px]" strokeWidth={2} />
+              Terms
+            </a>
+          </div>
+
+          <a
+            href="/delete-account"
+            className="flex items-center justify-center gap-2 w-full bg-destructive/10 border border-destructive/30 text-destructive h-12 rounded-xl text-sm font-semibold active:scale-[0.99] transition-transform"
+          >
+            <AlertTriangle className="w-[18px] h-[18px]" strokeWidth={2} />
+            Delete Account
+          </a>
         </section>
 
         {/* ── 1. Personal Info ─────────────────────────────────────────────── */}

@@ -35,8 +35,80 @@ tags:
     description: Water intake tracking
   - name: goal-checkins
     description: Goal-specific weekly check-ins
+  - name: stripe
+    description: Stripe subscriptions and billing
 
 paths:
+  /stripe/subscription:
+    get:
+      operationId: getSubscription
+      tags: [stripe]
+      summary: Get current subscription status
+      responses:
+        "200":
+          description: Subscription status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatus"
+
+  /stripe/checkout:
+    post:
+      operationId: createCheckout
+      tags: [stripe]
+      summary: Create Stripe checkout session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutInput"
+      responses:
+        "200":
+          description: Checkout session URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+
+  /stripe/portal:
+    post:
+      operationId: createPortal
+      tags: [stripe]
+      summary: Create Stripe customer portal session
+      responses:
+        "200":
+          description: Portal session URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+
+  /stripe/products:
+    get:
+      operationId: getProducts
+      tags: [stripe]
+      summary: List Stripe products with prices
+      responses:
+        "200":
+          description: Products list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StripeProduct"
   /healthz:
     get:
       operationId: healthCheck
@@ -1898,3 +1970,62 @@ components:
         whatHardened:
           type: string
           description: What made it harder this week
+
+    CheckoutInput:
+      type: object
+      required: [priceId]
+      properties:
+        priceId:
+          type: string
+          description: Stripe Price ID
+
+    SubscriptionStatus:
+      type: object
+      properties:
+        subscription:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+            currentPeriodEnd:
+              type: string
+            cancelAtPeriodEnd:
+              type: boolean
+        customerId:
+          type: string
+          nullable: true
+        status:
+          type: string
+
+    StripeProduct:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        active:
+          type: boolean
+        prices:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              unitAmount:
+                type: integer
+              currency:
+                type: string
+              recurring:
+                type: object
+                properties:
+                  interval:
+                    type: string
+              active:
+                type: boolean

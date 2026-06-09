@@ -20,6 +20,10 @@ import SignupPage from "@/pages/signup";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import SettingsPage from "@/pages/settings";
+import PrivacyPolicyPage from "@/pages/privacy";
+import TermsOfServicePage from "@/pages/terms";
+import DeleteAccountPage from "@/pages/delete-account";
+import DataExportPage from "@/pages/data-export";
 import TrialReviewPage from "@/pages/trial-review";
 import AdminPage from "@/pages/admin";
 import { Layout } from "@/components/layout";
@@ -220,6 +224,8 @@ function ProtectedApp() {
           <Route path="/journal" component={JournalPage} />
           <Route path="/progress" component={ProgressPage} />
           <Route path="/settings" component={SettingsPage} />
+          <Route path="/delete-account" component={DeleteAccountPage} />
+          <Route path="/data-export" component={DataExportPage} />
           <Route path="/trial-review" component={TrialReviewPage} />
           <Route component={NotFound} />
         </Switch>
@@ -274,6 +280,8 @@ function AppRouter() {
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/pricing" component={PricingPage} />
+      <Route path="/privacy" component={PrivacyPolicyPage} />
+      <Route path="/terms" component={TermsOfServicePage} />
       <Route path="/onboarding">{isAuthed ? <OnboardingGuard /> : <Redirect to="/login" />}</Route>
       <Route path="/admin">{isAuthed ? <AdminPage /> : <Redirect to="/login" />}</Route>
       <Route path="/:rest*">{isAuthed ? <ProtectedApp /> : <Redirect to="/login" />}</Route>
