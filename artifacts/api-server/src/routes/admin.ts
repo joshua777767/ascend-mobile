@@ -4,11 +4,14 @@ import {
   db,
   usersTable,
   userProfilesTable,
+  plansTable,
   mealsTable,
   chatMessagesTable,
   waterLogsTable,
   coachReviewsTable,
   journalEntriesTable,
+  weighInsTable,
+  workoutsTable,
 } from "@workspace/db";
 import { getUserId } from "../middlewares/auth";
 
@@ -19,13 +22,18 @@ const router = Router();
 const today = sql`date_trunc('day', now())`;
 const weekAgo = sql`now() - interval '7 days'`;
 
-router.get("/admin/stats", async (req, res): Promise<void> => {
+async function requireOwner(req: any, res: any): Promise<boolean> {
   const userId = getUserId(req);
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (!user || user.email.toLowerCase() !== OWNER_EMAIL) {
     res.status(403).json({ error: "Access denied" });
-    return;
+    return false;
   }
+  return true;
+}
+
+router.get("/admin/stats", async (req, res): Promise<void> => {
+  if (!(await requireOwner(req, res))) return;
 
   // ── Global stats ──
   const [{ count: totalUsers }] = await db.select({ count: count() }).from(usersTable);
@@ -144,6 +152,93 @@ router.get("/admin/stats", async (req, res): Promise<void> => {
     waterLogsToday: waterLogsToday,
     weeklyCheckinsCompleted: weeklyCheckins,
     allUsers: userList,
+  });
+});
+
+router.get("/admin/users", async (req, res): Promise<void> => {
+  if (!(await requireOwner(req, res))) return;
+
+  const users = await db
+    .select({
+      id: usersTable.id,
+      email: usersTable.email,
+      createdAt: usersTable.createdAt,
+    })
+    .from(usersTable)
+    .orderBy(desc(usersTable.createdAt));
+
+  const profiles = await db
+    .select({
+      userId: userProfilesTable.userId,
+      name: userProfilesTable.name,
+      goals: userProfilesTable.goals,
+      currentWeightKg: userProfilesTable.currentWeightKg,
+      goalWeightKg: userProfilesTable.goalWeightKg,
+    })
+    .from(userProfilesTable);
+
+  const profileMap = new Map(profiles.map(p => [p.userId, p]));
+
+  res.json({
+    users: users.map(u => {
+      const p = profileMap.get(u.id);
+      return {
+        id: u.id,
+        email: u.email,
+        createdAt: u.createdAt,
+        name: p?.name ?? null,
+        goals: p?.goals ? JSON.parse(p.goals) : [],
+        currentWeightKg: p?.currentWeightKg ?? null,
+        goalWeightKg: p?.goalWeightKg ?? null,
+      };
+    }),
+  });
+});
+
+router.get("/admin/users/:id", async (req, res): Promise<void> => {
+  if (!(await requireOwner(req, res))) return;
+
+  const userId = parseInt(req.params.id, 10);
+  if (Number.isNaN(userId)) {
+    res.status(400).json({ error: "Invalid user ID" });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, userId));
+  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, userId));
+  const userMeals = await db.select().from(mealsTable).where(eq(mealsTable.userId, userId)).orderBy(desc(mealsTable.loggedAt));
+  const userWeighIns = await db.select().from(weighInsTable).where(eq(weighInsTable.userId, userId)).orderBy(desc(weighInsTable.loggedAt));
+  const userWorkouts = await db.select().from(workoutsTable).where(eq(workoutsTable.userId, userId)).orderBy(desc(workoutsTable.completedAt));
+  const userReviews = await db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, userId)).orderBy(desc(coachReviewsTable.createdAt));
+  const userJournal = await db.select().from(journalEntriesTable).where(eq(journalEntriesTable.userId, userId)).orderBy(desc(journalEntriesTable.createdAt));
+
+  res.json({
+    user: {
+      id: user.id,
+      email: user.email,
+      createdAt: user.createdAt,
+    },
+    profile: profile ? {
+      ...profile,
+      goals: (profile as any).goals ? JSON.parse((profile as any).goals) : [],
+      skinConcerns: (profile as any).skinConcerns ? JSON.parse((profile as any).skinConcerns) : [],
+      digestionConcerns: (profile as any).digestionConcerns ? JSON.parse((profile as any).digestionConcerns) : [],
+      keyHabits: (profile as any).keyHabits ? JSON.parse((profile as any).keyHabits) : [],
+      sportSchedule: (profile as any).sportSchedule ? JSON.parse((profile as any).sportSchedule) : null,
+      customWorkoutSchedule: (profile as any).customWorkoutSchedule ? JSON.parse((profile as any).customWorkoutSchedule) : null,
+    } : null,
+    plan: plan ?? null,
+    meals: userMeals.slice(0, 50),
+    weighIns: userWeighIns,
+    workouts: userWorkouts,
+    reviews: userReviews,
+    journalEntries: userJournal,
   });
 });
 

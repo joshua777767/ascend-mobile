@@ -8,6 +8,7 @@ import {
   getListWeighInsQueryKey,
   getGetProgressSummaryQueryKey,
 } from "@workspace/api-client-react";
+import { useTrialDay } from "@/hooks/use-trial";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -451,15 +452,6 @@ function GenericGoalForm({
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function getTrialDay(): number {
-  let s = localStorage.getItem("ascend.trialStartDate");
-  if (!s) {
-    s = new Date().toISOString();
-    localStorage.setItem("ascend.trialStartDate", s);
-  }
-  return Math.floor((Date.now() - new Date(s).getTime()) / (1000 * 60 * 60 * 24)) + 1;
-}
-
 function deriveNextWeekFocus(goal: string, ans: GoalAnswers): string {
   const harder = [ans.whatHardened, ans.caloriesCravingsStruggle, ans.recoverySoreness]
     .join(" ")
@@ -574,7 +566,7 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
   const createGoalCheckIn = useCreateGoalCheckIn();
   const createWeighIn = useCreateWeighIn();
 
-  const trialDay = getTrialDay();
+  const { trialDay } = useTrialDay();
   const isDay6Warning = trialDay === 6;
   const isTrialEnded = trialDay >= 7;
 
