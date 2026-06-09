@@ -22,8 +22,11 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     try {
-      await login.mutateAsync({ data: { email, password } });
-      await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      const user = await login.mutateAsync({ data: { email, password } });
+      // Write the user directly into the /me cache so isAuthed is true
+      // immediately when the router evaluates — avoids a race where the cache
+      // is empty during the background refetch and redirects back to /login.
+      queryClient.setQueryData(getGetMeQueryKey(), user);
       // Drop any stale profile cache from a previous session / new-user attempt
       // so the route guard refetches fresh and decides dashboard vs onboarding
       // from this user's real profile, not a leftover 404/401.

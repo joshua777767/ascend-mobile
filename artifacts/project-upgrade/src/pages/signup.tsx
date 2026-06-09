@@ -26,8 +26,11 @@ export default function SignupPage() {
       return;
     }
     try {
-      await signup.mutateAsync({ data: { email, password } });
-      await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      const user = await signup.mutateAsync({ data: { email, password } });
+      // Write the user directly into the /me cache so isAuthed is true
+      // immediately when the router evaluates — avoids a race where the cache
+      // is empty during the background refetch and redirects to /login.
+      queryClient.setQueryData(getGetMeQueryKey(), user);
       // Clear any leftover profile cache so the onboarding guard fetches fresh
       // for this brand-new account (no profile yet → onboarding).
       queryClient.removeQueries({ queryKey: getGetUserProfileQueryKey() });
