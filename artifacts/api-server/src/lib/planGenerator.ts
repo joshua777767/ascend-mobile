@@ -236,16 +236,29 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   let warnings: string | null = null;
 
   if (goalType === "fat_loss") {
-    // Casual: moderate deficit for sustainability. Extreme: still safe, just tighter adherence
-    const baseDeficit = Math.min(500, Math.abs(weightDiff) > 20 ? 750 : 500);
-    const deficit = isCasual ? Math.max(250, baseDeficit - 150)
-      : isExtreme ? Math.min(600, baseDeficit + 100)
-      : baseDeficit;
+    // Deficit scales with commitment — each tier meaningfully harder
+    // Casual: gentle, sustainable. Extreme: max safe 1000 cal/day deficit (~2 lb/week)
+    const deficit =
+      isExtreme ? 1000          // ~2 lb/week — near max safe
+      : isLocked ? 800          // ~1.6 lb/week — aggressive
+      : isSerious ? 650         // ~1.3 lb/week — real push
+      : isCasual ? 300          // ~0.6 lb/week — easy, sustainable
+      : 500;                    // ~1 lb/week — standard
     calorieTarget = Math.max(1200, tdee - deficit);
-    proteinTargetG = Math.round(weightKg * 2.2);
-    weeklyPace = deficit >= 500 ? "~1 lb / week" : "~0.5 lb / week";
-    if (Math.abs(weightDiff) > 20) {
-      warnings = "Your goal is ambitious. Stay consistent — do not cut more than planned. Extreme deficits cause muscle loss and burnout.";
+    // Higher deficit → higher protein to protect muscle
+    proteinTargetG = isExtreme || isLocked
+      ? Math.round(weightKg * 2.6)
+      : isSerious
+        ? Math.round(weightKg * 2.4)
+        : Math.round(weightKg * 2.2);
+    weeklyPace = deficit >= 900 ? "~2 lb / week"
+      : deficit >= 700 ? "~1.5 lb / week"
+      : deficit >= 500 ? "~1 lb / week"
+      : "~0.5 lb / week";
+    if (Math.abs(weightDiff) > 20 || isExtreme || isLocked) {
+      warnings = isExtreme || isLocked
+        ? `You're in a ${deficit}-calorie daily deficit. This requires strict daily execution — hit protein every day to protect muscle. If energy crashes or hunger becomes unmanageable, adjust.`
+        : "Your goal is ambitious. Stay consistent — do not cut more than planned. Extreme deficits cause muscle loss and burnout.";
     }
   } else if (goalType === "muscle_gain") {
     const surplus = isCasual ? 200 : isExtreme ? 400 : 300;
@@ -272,7 +285,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   waterTargetL = Math.max(2.3, Math.min(3.8, Math.round(waterTargetL * 10) / 10));
 
   const stepsTarget = goalType === "fat_loss"
-    ? (isCasual ? 8000 : isExtreme ? 12000 : 10000)
+    ? (isExtreme ? 15000 : isLocked ? 12000 : isSerious ? 10000 : isCasual ? 7500 : 10000)
     : goalType === "muscle_gain"
       ? (isCasual ? 7000 : isExtreme ? 8000 : 7500)
       : (isCasual ? 7000 : isExtreme ? 9000 : 8000);
@@ -388,11 +401,26 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
         ? ` You chose ${commitmentLabel}. Follow the plan daily and track consistently.`
         : "";
 
+  const actualDeficit = Math.round(tdee - calorieTarget);
   let nutritionExplanation: string;
   if (goalType === "fat_loss") {
-    nutritionExplanation = workoutDays === 0
-      ? `This takes real discipline: hold a ${Math.round(tdee - calorieTarget)}-calorie deficit (TDEE ~${tdee}) and hit protein every day. You don't need a gym — your three levers are your calorie target, daily steps, and sleep. Hit all three and the fat comes off.`
-      : `This takes real discipline: hold a ${Math.round(tdee - calorieTarget)}-calorie deficit (TDEE ~${tdee}) and hit protein every day. Steps and sleep aren't optional — they're what make the deficit work.`;
+    if (isExtreme) {
+      nutritionExplanation = workoutDays === 0
+        ? `${actualDeficit}-calorie daily deficit (TDEE ~${tdee}). This is aggressive — ${weeklyPace} if you execute daily. Hit ${proteinTargetG}g protein every single day or you will lose muscle, not just fat. Steps and sleep are non-negotiable.`
+        : `${actualDeficit}-calorie daily deficit (TDEE ~${tdee}). This is aggressive — ${weeklyPace} if you execute daily. Hit ${proteinTargetG}g protein every day to protect muscle. Train, sleep, and track every meal — no days off from the basics.`;
+    } else if (isLocked) {
+      nutritionExplanation = workoutDays === 0
+        ? `${actualDeficit}-calorie daily deficit (TDEE ~${tdee}) — ${weeklyPace}. This is a real cut. Hit ${proteinTargetG}g protein and ${stepsTarget.toLocaleString()} steps every day. Calories and sleep are what make this work.`
+        : `${actualDeficit}-calorie daily deficit (TDEE ~${tdee}) — ${weeklyPace}. This is a real cut. Hit ${proteinTargetG}g protein, train consistently, and sleep 8 hours. Execution every day is what separates this from another failed attempt.`;
+    } else if (isSerious) {
+      nutritionExplanation = workoutDays === 0
+        ? `${actualDeficit}-calorie daily deficit (TDEE ~${tdee}) — ${weeklyPace}. Protein, steps, and sleep are your three levers. Hit them consistently and the fat comes off on schedule.`
+        : `${actualDeficit}-calorie daily deficit (TDEE ~${tdee}) — ${weeklyPace}. Hit protein every day and train consistently. Steps and sleep amplify everything.`;
+    } else {
+      nutritionExplanation = workoutDays === 0
+        ? `${actualDeficit}-calorie daily deficit (TDEE ~${tdee}) and hit protein every day. You don't need a gym — your three levers are your calorie target, daily steps, and sleep. Hit all three and the fat comes off.`
+        : `${actualDeficit}-calorie daily deficit (TDEE ~${tdee}) and hit protein every day. Steps and sleep aren't optional — they're what make the deficit work.`;
+    }
   } else if (goalType === "muscle_gain") {
     nutritionExplanation = `You need ${calorieTarget} calories (TDEE ~${tdee}) to grow. Undereating is the #1 reason people don't gain — don't skip meals. Train hard, eat more, sleep more.`;
   } else if (goalType === "glow") {
