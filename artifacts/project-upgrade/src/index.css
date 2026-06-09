@@ -180,6 +180,8 @@
     background-image:
       radial-gradient(ellipse 70% 35% at 50% -5%, rgba(59,130,246,0.09) 0%, transparent 70%),
       radial-gradient(ellipse 50% 20% at 90% 10%, rgba(245,158,11,0.04) 0%, transparent 60%);
+    /* Background floating orbs via CSS */
+    position: relative;
   }
 
   /* Smooth scrolling for scroll containers */
