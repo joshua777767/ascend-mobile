@@ -19,21 +19,36 @@ function publicUser(user: { id: number; email: string; freePro: boolean; freePro
 router.post("/auth/signup", async (req, res): Promise<void> => {
   const parsed = SignupBody.safeParse(req.body);
   if (!parsed.success) {
+    req.log.warn({ reason: "validation_failed", issues: parsed.error.issues }, "signup blocked: invalid body");
     res.status(400).json({ error: parsed.error.message });
     return;
   }
 
-  const email = parsed.data.email.trim().toLowerCase();
+  const rawEmail = parsed.data.email;
+  const email = rawEmail.trim().toLowerCase();
   const { password } = parsed.data;
+
+  // Mask email in logs: show first 2 chars + domain only (e.g. jo***@icloud.com)
+  const [localPart, domain] = email.split("@");
+  const maskedEmail = `${localPart.slice(0, 2)}***@${domain ?? "?"}`;
 
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email));
   if (existing) {
-    res.status(409).json({ error: "An account with this email already exists" });
+    const hasValidHash = typeof existing.passwordHash === "string" && existing.passwordHash.includes(":");
+    req.log.warn(
+      { reason: "email_exists", maskedEmail, userId: existing.id, hasValidHash },
+      "signup blocked: email already registered"
+    );
+    res.status(409).json({
+      error: "An account already exists with this email. Please log in or reset your password.",
+    });
     return;
   }
 
   const passwordHash = await hashPassword(password);
   const [user] = await db.insert(usersTable).values({ email, passwordHash }).returning();
+
+  req.log.info({ maskedEmail, userId: user.id }, "signup success: new account created");
 
   req.session.regenerate((err) => {
     if (err) {
@@ -56,8 +71,18 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   const email = parsed.data.email.trim().toLowerCase();
   const { password } = parsed.data;
 
+  const [localPart2, domain2] = email.split("@");
+  const maskedEmail = `${localPart2.slice(0, 2)}***@${domain2 ?? "?"}`;
+
   const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  if (!user) {
+    req.log.warn({ reason: "no_account", maskedEmail }, "login failed: email not found");
+    res.status(401).json({ error: "Invalid email or password" });
+    return;
+  }
+  const passwordMatch = await verifyPassword(password, user.passwordHash);
+  if (!passwordMatch) {
+    req.log.warn({ reason: "wrong_password", maskedEmail, userId: user.id }, "login failed: password mismatch");
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }
