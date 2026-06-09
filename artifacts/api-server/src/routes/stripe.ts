@@ -34,7 +34,7 @@ router.post("/checkout", async (req, res): Promise<void> => {
     return;
   }
 
-  const { priceId, trial } = req.body;
+  const { priceId } = req.body;
   if (!priceId) {
     res.status(400).json({ error: "Price ID is required" });
     return;
@@ -52,15 +52,11 @@ router.post("/checkout", async (req, res): Promise<void> => {
     ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
     : `http://localhost:80`;
 
-  const trialPeriodDays = trial === true ? 7 : undefined;
-  const successPath = trial === true ? "/onboarding?checkout=success" : "/dashboard?checkout=success";
-
   const session = await stripeService.createCheckoutSession(
     customerId,
     priceId,
-    `${baseUrl}${successPath}`,
-    `${baseUrl}/pricing?checkout=cancel`,
-    trialPeriodDays
+    `${baseUrl}/dashboard?checkout=success`,
+    `${baseUrl}/pricing?checkout=cancel`
   );
 
   res.json({ url: session.url });
