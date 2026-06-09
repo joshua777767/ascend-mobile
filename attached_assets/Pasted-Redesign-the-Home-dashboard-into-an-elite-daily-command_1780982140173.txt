@@ -1,0 +1,140 @@
+Redesign the Home dashboard into an elite “daily command center” experience.
+
+Goal:
+Ascend should feel like a premium transformation system, not a generic fitness tracker. The Home page should make users feel locked in, rewarded, and clear on what to do next.
+
+IMPORTANT SAFETY RULES:
+- Do not change authentication.
+- Do not change Stripe/payment logic.
+- Do not change password reset logic.
+- Do not change database schema unless absolutely required.
+- Do not remove existing user data.
+- Do not break mobile scrolling.
+- Do not rename routes.
+- Keep existing features working.
+- UI/UX + copy/layout changes only.
+- Before coding, list the exact files you will edit.
+- After coding, run typecheck/build and fix all errors.
+
+Main change:
+Remove “Weekly Proof” from the Home page. Move weekly stats/analytics to the Progress page only.
+
+Home page should become:
+
+1. HERO / COMMAND CENTER
+Make the top section feel powerful and personalized.
+Show:
+- user name
+- current day/trial day
+- Ascend Score
+- streak
+- status label like “Perfect Day”, “Locked In”, or “Comeback Day”
+
+Example copy:
+“Day 5 — Cut Phase”
+“100 Score · Perfect Day”
+“1-Day Streak”
+
+Make this visually premium:
+- bigger typography
+- glow accent
+- score ring
+- dark gradient background
+- mobile-first spacing
+
+2. TODAY’S MAIN MISSION
+Add a strong main action card near the top.
+
+Title:
+“Today’s Mission”
+
+Copy:
+“Hit the plan. Keep the streak alive.”
+
+Button:
+“Start Today’s Plan”
+
+The button should route to the daily plan page or the existing plan flow. Do not create broken routes.
+
+3. PROOF OF CHANGE
+Replace the plain “Weight Change” card with a more emotional progress card.
+
+Title:
+“Proof of Change”
+
+Show:
+- total weight change since starting
+- starting weight
+- current weight
+- goal weight if available
+
+Example:
+“-4.9 lbs since starting”
+“165 → 160 → 155 goal”
+
+Add a simple progress bar from start weight to goal weight if goal exists. If goal is missing, just show starting → current.
+
+Keep the Track button.
+
+4. NEXT MISSION
+Keep the Next Mission card, but make it more actionable and less vague.
+
+If the mission is “More Sleep,” show something like:
+“Tonight’s Mission”
+“Phone down by 11:30. Get 8+ hours.”
+
+If the app does not have exact bedtime data, use a safe generic version:
+“Protect your sleep tonight. Recovery drives results.”
+
+5. MISSION COMPLETE / REWARD CARD
+Add or improve the reward card.
+
+Title:
+“Mission Complete”
+
+Copy examples:
+“You kept the promise today.”
+“Proof logged. Stack another win tomorrow.”
+“Day stacked. Don’t break the chain.”
+
+Make it feel rewarding:
+- subtle glow
+- success badge
+- premium card styling
+- not cluttered
+
+6. FREE TRIAL BANNER
+Keep the free trial banner, but move it lower than the main mission/proof sections so it does not interrupt the motivational flow.
+
+7. PROGRESS PAGE
+Move Weekly Proof analytics to the Progress page:
+- meals logged
+- journals completed
+- avg score
+- workouts
+- weekly weight change
+- weight history chart
+- streak history
+
+Progress page = analytics.
+Home page = mission, emotion, action.
+
+Design style:
+- premium dark fitness app
+- strong Ascend identity
+- mission/progression/streak language
+- less generic health dashboard
+- fewer boring stacked rectangles
+- more hierarchy and emotion
+- keep it clean and mobile-first
+
+Validation:
+After coding, confirm:
+- Home page loads
+- Progress page loads
+- bottom navigation still works
+- weight card still shows correct total change
+- pricing page still scrolls
+- typecheck passed
+- build passed
+- no auth/payment/password reset files changed unless only imports were affected

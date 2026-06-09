@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { TrendingDown, TrendingUp, Minus, CheckCircle, XCircle, Trophy, ArrowRight, Target, Sparkles, Star, Medal, Lock, BarChart2 } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus, CheckCircle, XCircle, Trophy, ArrowRight, Target, Sparkles, Star, Medal, Lock, BarChart2, Weight } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 export default function ProgressPage() {
   const [, setLocation] = useLocation();
@@ -70,6 +71,11 @@ export default function ProgressPage() {
       setWeight("");
       setWeighNotes("");
       setWeighEffort("");
+      toast({
+        title: "Proof logged.",
+        description: "The scale doesn't lie. Your coach sees the work.",
+        className: "ascend-toast-success",
+      });
     } catch (e) { console.error(e); }
   };
 

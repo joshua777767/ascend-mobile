@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Star } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 function BooleanToggle({ label, value, onChange, testId }: { label: string; value: boolean; onChange: (v: boolean) => void; testId: string }) {
   return (
@@ -71,6 +72,11 @@ export default function JournalPage() {
       queryClient.invalidateQueries({ queryKey: getGetTodayReviewQueryKey() });
       queryClient.invalidateQueries({ queryKey: getListReviewsQueryKey() });
       setSubmitted(true);
+      toast({
+        title: "You kept the promise.",
+        description: "Your coach is reviewing today's work. See you tomorrow.",
+        className: "ascend-toast-success",
+      });
     } catch (e) { console.error(e); }
   };
 
@@ -99,10 +105,15 @@ export default function JournalPage() {
 
         {alreadySubmitted ? (
           <div className="space-y-6">
-            <div className="bg-primary/10 border border-primary/20 p-4 text-center">
-              <CheckCircle className="w-7 h-7 text-primary mx-auto mb-2" />
-              <p className="font-semibold uppercase tracking-wider text-primary text-sm">Journal Submitted</p>
-              <p className="text-xs text-muted-foreground mt-1">Your coach reviewed today's performance.</p>
+            <div className="ascend-success-banner p-4 text-center space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <Star className="w-4 h-4 text-green-400" />
+                <p className="font-bold uppercase tracking-wider text-green-400 text-sm">You kept the promise.</p>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Your coach is reviewing today's work. See you tomorrow.</p>
+              {review && review.dailyScore >= 80 && (
+                <span className="inline-block text-[10px] font-bold px-2 py-1 rounded-md bg-primary/15 text-primary mt-1">Perfect Day — {review.dailyScore}/100</span>
+              )}
             </div>
 
             {review && (

@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Utensils, CheckCircle, XCircle, AlertCircle, Camera, X, ChefHat, Sparkles, ArrowLeft, Droplets } from "lucide-react";
+import { Utensils, CheckCircle, XCircle, AlertCircle, Camera, X, ChefHat, Sparkles, ArrowLeft, Droplets, Flame } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 const QUALITY_STYLE: Record<string, string> = {
   good: "text-green-400 border-green-400/30 bg-green-400/5",
@@ -168,6 +169,11 @@ export default function MealsPage() {
       queryClient.invalidateQueries({ queryKey: getGetTodayMealsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getListMealsQueryKey() });
       setSubmitted(true);
+      toast({
+        title: "Proof logged.",
+        description: "Every meal is a vote for who you're becoming.",
+        className: "ascend-toast-success",
+      });
       setTimeout(() => setSubmitted(false), 3000);
     } catch (e) {
       console.error(e);
@@ -489,8 +495,12 @@ export default function MealsPage() {
                 </div>
               )}
               {submitted && (
-                <div className="bg-primary/10 border border-primary/20 p-3 text-center">
-                  <p className="text-xs font-semibold text-primary uppercase tracking-wider">Meal logged. Coach reviewed it below.</p>
+                <div className="ascend-success-banner p-4 text-center space-y-2">
+                  <div className="flex items-center justify-center gap-2">
+                    <Flame className="w-4 h-4 text-green-400" />
+                    <p className="text-xs font-bold text-green-400 uppercase tracking-wider">Proof logged.</p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Every meal is a vote for who you're becoming.</p>
                 </div>
               )}
             </div>

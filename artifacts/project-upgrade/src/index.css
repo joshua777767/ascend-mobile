@@ -229,4 +229,48 @@
     letter-spacing: 0.22em;
     text-transform: uppercase;
   }
+  /* Reward/achievement toast */
+  .ascend-toast-success {
+    background: linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 100%) !important;
+    border: 1px solid rgba(16,185,129,0.25) !important;
+    box-shadow: 0 0 20px rgba(16,185,129,0.08) !important;
+  }
+  .ascend-toast-amber {
+    background: linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.05) 100%) !important;
+    border: 1px solid rgba(245,158,11,0.25) !important;
+    box-shadow: 0 0 20px rgba(245,158,11,0.08) !important;
+  }
+  .ascend-next-action {
+    background: rgba(59,130,246,0.08);
+    border: 1px solid rgba(59,130,246,0.18);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #93c5fd;
+    letter-spacing: 0.02em;
+  }
+  .ascend-success-banner {
+    background: linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%);
+    border: 1px solid rgba(16,185,129,0.20);
+    box-shadow: 0 0 24px rgba(16,185,129,0.06);
+    border-radius: 16px;
+  }
+  .ascend-mission-complete-glow {
+    background: linear-gradient(135deg, rgba(16,185,129,0.10) 0%, rgba(59,130,246,0.04) 100%);
+    border: 1px solid rgba(16,185,129,0.30);
+    box-shadow: 0 0 40px rgba(16,185,129,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
+    border-radius: 16px;
+  }
+  .ascend-mission-complete-badge {
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+    box-shadow: 0 0 12px rgba(16,185,129,0.5);
+  }
+  .ascend-pulse-green {
+    animation: pulse-green 2s ease-in-out infinite;
+  }
+  @keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 8px rgba(16,185,129,0.4); }
+    50% { box-shadow: 0 0 20px rgba(16,185,129,0.7); }
+  }
 }

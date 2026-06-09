@@ -749,7 +749,7 @@ export default function DashboardPage() {
 
   function buildMission(): string {
     if (missionComplete) {
-      return "Mission complete. Every choice you made today built something real.";
+      return "Day stacked. Every choice you made today built something real.";
     }
     if (plan && calorieDeficit > 500) {
       return `You're ${calorieDeficit} calories behind. Fuel up before bed. Every meal counts.`;
@@ -1012,16 +1012,16 @@ export default function DashboardPage() {
         })()}
 
         {/* ── Mission Card ── */}
-        <div className={`rounded-2xl p-4 ${missionComplete ? "ascend-mission-card--complete" : "ascend-mission-card"}`}>
+        <div className={`rounded-2xl p-4 ${missionComplete ? "ascend-mission-complete-glow" : "ascend-mission-card"}`}>
           <div className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-2.5">
                 <span
-                  className="w-1.5 h-1.5 rounded-full"
+                  className={`w-1.5 h-1.5 rounded-full ${missionComplete ? "ascend-pulse-green" : ""}`}
                   style={{
                     background: missionComplete ? "#10B981" : "#3B82F6",
                     boxShadow: missionComplete
-                      ? "0 0 8px rgba(16,185,129,0.9)"
+                      ? "0 0 12px rgba(16,185,129,0.9)"
                       : "0 0 8px rgba(59,130,246,0.9)",
                     animation: missionComplete ? "none" : "pulse 2s infinite",
                   }}
@@ -1029,10 +1029,30 @@ export default function DashboardPage() {
                 <p className="label-caps" style={{ color: missionComplete ? "#10B981" : "#3B82F6", fontSize: "9px" }}>
                   {missionComplete ? "Mission Complete" : "Mission Active"}
                 </p>
+                {missionComplete && (
+                  <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-primary/15 text-primary">DAY STACKED</span>
+                )}
               </div>
               <p className="text-[13px] leading-relaxed text-foreground font-medium">{coachMessage}</p>
+              {missionComplete && (
+                <p className="text-[11px] text-green-400 mt-2 italic">You kept the promise. Another vote for who you're becoming.</p>
+              )}
+              {!missionComplete && (
+                <div className="mt-2.5">
+                  {(() => {
+                    const nextAction = (() => {
+                      if (!todayMeals || todayMeals.length === 0) return "Next: log your first meal";
+                      if (plan && todayCalories < plan.calorieTarget * 0.5) return "Next: hit your calorie target";
+                      if (waterOz < waterTargetOz * 0.5) return "Next: drink water";
+                      if (!review) return "Next: journal tonight";
+                      return "Next: hit tomorrow's plan";
+                    })();
+                    return <span className="ascend-next-action">{nextAction}</span>;
+                  })()}
+                </div>
+              )}
             </div>
-            {displayScore === 0 && (
+            {displayScore === 0 && !missionComplete && (
               <div className="shrink-0 pt-1">
                 <ScoreRing score={0} />
               </div>
