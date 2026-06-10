@@ -153,18 +153,44 @@ router.post("/reviews", async (req, res): Promise<void> => {
 
   if (profileForStreak) {
     const last = profileForStreak.lastStreakDate;
+    const yesterday = addDaysInUserTz(req, today, -1);
     let newStreak: number;
 
     if (generated.dailyScore >= 70) {
       if (last === today) {
         // Already counted today — no change
         newStreak = profileForStreak.currentStreak;
-      } else if (last === addDaysInUserTz(req, today, -1)) {
+      } else if (last === yesterday) {
         // Consecutive day — extend streak
         newStreak = (profileForStreak.currentStreak ?? 0) + 1;
       } else {
-        // Gap or first qualifying day
-        newStreak = 1;
+        // lastStreakDate is null or older than yesterday.
+        // Check if there is a qualifying review from yesterday — this handles
+        // users who had reviews before streak tracking was introduced.
+        const { dayStart: yStart, dayEnd: yEnd } = (() => {
+          const tz = (req.headers["x-timezone"] as string | undefined) || "UTC";
+          const yStart = getLocalMidnightUtc(yesterday, tz);
+          return { dayStart: yStart, dayEnd: new Date(yStart.getTime() + 24 * 60 * 60 * 1000) };
+        })();
+        const [yesterdayReview] = await db
+          .select({ dailyScore: coachReviewsTable.dailyScore })
+          .from(coachReviewsTable)
+          .where(
+            and(
+              eq(coachReviewsTable.userId, getUserId(req)),
+              gte(coachReviewsTable.createdAt, yStart),
+              lt(coachReviewsTable.createdAt, yEnd),
+            ),
+          )
+          .limit(1);
+
+        if (yesterdayReview && yesterdayReview.dailyScore !== null && yesterdayReview.dailyScore >= 70) {
+          // Yesterday qualified — treat as consecutive (streak was just not recorded yet)
+          newStreak = (profileForStreak.currentStreak ?? 0) + 1;
+        } else {
+          // True gap or first qualifying day
+          newStreak = 1;
+        }
       }
     } else {
       // Score below 70 — streak resets; mark the day so tomorrow can start fresh
