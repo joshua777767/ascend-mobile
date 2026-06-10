@@ -160,12 +160,32 @@ function heuristicFeedback(description: string, goalType: string, goals: string[
   return { feedback, score, quality, whatWasGood, whatWasBad, whatToFixNext, detectedFoods: null };
 }
 
-// Keywords in a description that rule out plain water
+// Keywords in a description that rule out plain water (other drinks)
 const NOT_PLAIN_WATER_KEYWORDS = [
   "coconut water", "coconut", "juice", "soda", "coke", "pepsi", "milk",
   "smoothie", "shake", "protein shake", "electrolyte", "gatorade", "coffee",
   "espresso", "beer", "wine", "alcohol", "sports drink", "flavored water",
   "flavored", "kombucha", "lemonade",
+];
+
+// Any food present → definitely not plain water. This guard prevents "steak and water"
+// or "banana + water bottle" from being intercepted as a water log.
+const FOOD_PRESENT_KEYWORDS = [
+  // proteins
+  "steak", "beef", "chicken", "turkey", "fish", "salmon", "tuna", "shrimp", "lamb",
+  "pork", "bacon", "sausage", "egg", "eggs", "tofu", "tempeh",
+  // fruit & veg
+  "banana", "apple", "orange", "mango", "grape", "berry", "berries", "avocado",
+  "broccoli", "spinach", "kale", "salad", "vegetable", "vegetables", "veggie",
+  "potato", "sweet potato", "carrot", "cucumber", "tomato", "onion", "pepper",
+  // grains & carbs
+  "rice", "pasta", "bread", "oat", "oatmeal", "cereal", "tortilla", "wrap",
+  "sandwich", "burger", "pizza", "fries", "chips", "cracker",
+  // dairy / other food
+  "yogurt", "cheese", "cottage cheese", "butter", "cream",
+  // general meal terms
+  "meal", "food", "snack", "lunch", "dinner", "breakfast", "brunch",
+  "plate", "bowl", "dish",
 ];
 
 // Container-size heuristic for oz estimate
@@ -203,27 +223,45 @@ interface WaterDetection {
   confidence: "high" | "low";
 }
 
+// Returns true if the description text mentions any food item alongside water.
+// Used to detect "steak + water" style mixed descriptions.
+function descriptionHasFood(lower: string): boolean {
+  return FOOD_PRESENT_KEYWORDS.some(k => lower.includes(k));
+}
+
+// Returns true if the description text contains ONLY plain water (no food, no other drinks).
+function descriptionIsOnlyWater(lower: string): boolean {
+  if (descriptionHasFood(lower)) return false;
+  if (NOT_PLAIN_WATER_KEYWORDS.some(k => lower.includes(k))) return false;
+  return ["water bottle", "glass of water", "cup of water", "water", "h2o"].some(k => lower.includes(k));
+}
+
 async function detectPlainWater(description: string, imageUrl: string | null): Promise<WaterDetection> {
   const lower = description.toLowerCase();
 
-  // If the description explicitly rules out plain water, skip AI entirely
+  // FOOD GUARD: any food keyword in the description → definitely not plain water.
+  // Handles "steak and water", "banana + water bottle", etc.
+  if (descriptionHasFood(lower)) {
+    return { isWater: false, oz: 0, confidence: "high" };
+  }
+
+  // Other drinks (juice, soda, coffee…) also rule out plain water
   if (NOT_PLAIN_WATER_KEYWORDS.some(k => lower.includes(k))) {
     return { isWater: false, oz: 0, confidence: "high" };
   }
 
-  const plainWaterInText = ["water bottle", "glass of water", "cup of water", "water", "h2o"]
-    .some(k => lower.includes(k));
+  const onlyWaterInText = descriptionIsOnlyWater(lower);
 
-  // No photo — description is explicit, always high confidence
+  // No photo — rely purely on text
   if (!imageUrl) {
     return {
-      isWater: plainWaterInText,
-      oz: plainWaterInText ? descriptionOzEstimate(lower) : 0,
+      isWater: onlyWaterInText,
+      oz: onlyWaterInText ? descriptionOzEstimate(lower) : 0,
       confidence: "high",
     };
   }
 
-  // Photo present — use AI for a fast vision check with confidence scoring
+  // Photo present — use AI, but with explicit food-exclusion rules
   try {
     const userContent: Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail: "low" } }> = [
       { type: "image_url", image_url: { url: imageUrl, detail: "low" } },
@@ -239,16 +277,21 @@ async function detectPlainWater(description: string, imageUrl: string | null): P
       messages: [
         {
           role: "system",
-          content: `You are a photo analyzer checking ONE thing: is this PLAIN WATER?
+          content: `You are classifying ONE thing: does this image contain ONLY plain water — and nothing else?
 
-Plain water = tap water, filtered water, or clear water in a cup, glass, bottle, tumbler, jug, or shaker.
-NOT plain water = coconut water, juice, soda, milk, smoothie, protein shake, coffee, tea, beer, sports drinks.
+RULE 1 — FOOD OVERRIDES EVERYTHING: If you see ANY food item — fruit, meat, vegetables, bread, a plate of food, a bowl with food, a snack, or any edible solid — return {"isWater": false, "oz": 0, "confidence": "high"} IMMEDIATELY, even if a water glass or bottle is also visible in the image.
 
-Container oz estimates: small cup=8, standard glass=12, large glass/tumbler=16, water bottle=20, large bottle/Nalgene=32, shaker=20. Default=12.
+RULE 2 — MIXED CONTENT = NOT WATER: A glass of water next to a steak is NOT a water-only image. A banana with a water bottle is NOT a water-only image. Only return isWater=true when the ENTIRE image is a water container with plain water and nothing else.
 
-confidence rules:
-- "high": liquid is clearly plain water (clear/colorless) OR clearly NOT water
-- "low": liquid color is ambiguous, container is obscured, or you are genuinely unsure
+RULE 3 — PLAIN WATER ONLY: isWater=true ONLY when the image shows ONLY a cup, glass, bottle, tumbler, jug, or shaker containing clear/colorless plain water — tap water, filtered water, sparkling water. No food, no other beverages, nothing else.
+
+NOT plain water: coconut water, juice, soda, milk, smoothie, shake, coffee, tea, beer, wine, sports drinks.
+
+Container oz estimates: small cup=8, standard glass=12, large glass/tumbler=16, water bottle=20, large bottle/Nalgene=32. Default=12.
+
+confidence:
+- "high": contents are clearly plain water only, OR clearly NOT (food visible, colorful liquid, etc.)
+- "low": liquid color ambiguous AND no food visible AND you are genuinely unsure
 
 Respond ONLY with valid JSON: {"isWater": true|false, "oz": <number>, "confidence": "high"|"low"}`,
         },
@@ -268,7 +311,7 @@ Respond ONLY with valid JSON: {"isWater": true|false, "oz": <number>, "confidenc
     return { isWater, oz, confidence };
   } catch (err) {
     logger.warn({ err }, "Water detection AI failed, falling back to heuristic");
-    return { isWater: plainWaterInText, oz: plainWaterInText ? descriptionOzEstimate(lower) : 0, confidence: "high" };
+    return { isWater: onlyWaterInText, oz: onlyWaterInText ? descriptionOzEstimate(lower) : 0, confidence: "high" };
   }
 }
 
@@ -598,6 +641,16 @@ router.post("/meals", async (req, res): Promise<void> => {
       ? feedback.detectedFoods.reduce((s, f) => s + f.protein, 0)
       : null,
   }).returning();
+
+  // Mixed content: food was logged, but water was also mentioned in the description.
+  // Tell the frontend so it can offer "also log water?" without blocking the meal.
+  const lower2 = description.toLowerCase();
+  const waterMentioned = ["water", "h2o"].some(k => lower2.includes(k))
+    && !NOT_PLAIN_WATER_KEYWORDS.some(k => lower2.includes(k));
+  if (waterMentioned) {
+    res.status(201).json({ ...meal, waterAlsoDetected: { oz: descriptionOzEstimate(lower2) } });
+    return;
+  }
 
   res.status(201).json(meal);
 });

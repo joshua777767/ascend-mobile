@@ -98,6 +98,7 @@ export default function MealsPage() {
   const [submitted, setSubmitted] = useState(false);
   const [waterLog, setWaterLog] = useState<{ oz: number } | null>(null);
   const [waterConfirm, setWaterConfirm] = useState<{ oz: number } | null>(null);
+  const [waterAlsoDetected, setWaterAlsoDetected] = useState<{ oz: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Meal generator state
@@ -144,6 +145,7 @@ export default function MealsPage() {
     setError(null);
     setWaterLog(null);
     setWaterConfirm(null);
+    setWaterAlsoDetected(null);
     try {
       const result = await createMeal.mutateAsync({
         data: {
@@ -158,7 +160,7 @@ export default function MealsPage() {
         setWaterConfirm({ oz: (result as any).amountOz ?? 12 });
         return;
       }
-      // High-confidence water — already logged on the server
+      // High-confidence water only — already logged on the server, no food present
       if ((result as any)?.waterLogged) {
         const oz = (result as any).amountOz ?? 12;
         setWaterLog({ oz });
@@ -166,6 +168,7 @@ export default function MealsPage() {
         setTimeout(() => setWaterLog(null), 5000);
         return;
       }
+      // Meal logged successfully — always invalidate and show success
       queryClient.invalidateQueries({ queryKey: getGetTodayMealsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getListMealsQueryKey() });
       setSubmitted(true);
@@ -175,6 +178,10 @@ export default function MealsPage() {
         className: "ascend-toast-success",
       });
       setTimeout(() => setSubmitted(false), 3000);
+      // Mixed: food was logged AND water was also detected — offer to log water too
+      if ((result as any)?.waterAlsoDetected) {
+        setWaterAlsoDetected({ oz: (result as any).waterAlsoDetected.oz ?? 12 });
+      }
     } catch (e) {
       console.error(e);
       setError("Couldn't get coach feedback. Please try again.");
@@ -484,6 +491,32 @@ export default function MealsPage() {
                       onClick={() => setWaterConfirm(null)}
                     >
                       Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {waterAlsoDetected && (
+                <div className="bg-blue-500/10 border border-blue-500/30 p-4 space-y-3" data-testid="water-also-detected-banner">
+                  <div className="flex items-center gap-2">
+                    <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
+                    <p className="text-xs font-semibold text-blue-300">Also log {waterAlsoDetected.oz} oz of water?</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 h-8 text-xs bg-blue-500 hover:bg-blue-600 text-white"
+                      onClick={() => handleConfirmWater(waterAlsoDetected.oz)}
+                      disabled={logWater.isPending}
+                    >
+                      Yes, add it
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 h-8 text-xs border-white/10"
+                      onClick={() => setWaterAlsoDetected(null)}
+                    >
+                      No thanks
                     </Button>
                   </div>
                 </div>
