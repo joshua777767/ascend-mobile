@@ -30,6 +30,7 @@ import { Layout } from "@/components/layout";
 import { WeeklyCheckInModal } from "@/components/WeeklyCheckInModal";
 import { useAuth } from "@/hooks/use-auth";
 import { useGetUserProfile } from "@workspace/api-client-react";
+import { useTrialDay } from "@/hooks/use-trial";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -172,8 +173,11 @@ function ProtectedApp() {
   const status = (error as { status?: number } | null | undefined)?.status;
 
   const [showWeeklyCheckIn, setShowWeeklyCheckIn] = useState(false);
+  const { trialDay, isFreePro } = useTrialDay();
 
-  // Check if weekly check-in is due (once every 7 days) after profile has loaded.
+  // Check if weekly check-in is due after profile has loaded.
+  // Fires on the normal 7-day cadence, OR on the last day of the free trial
+  // so users always get a weigh-in before the trial ends.
   useEffect(() => {
     if (!profile) return;
     // Initialize trial start date on first authenticated load
@@ -181,12 +185,17 @@ function ProtectedApp() {
       localStorage.setItem("ascend.trialStartDate", new Date().toISOString());
     }
     const last = localStorage.getItem("ascend.lastWeeklyCheckIn");
-    const isDue = !last || (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24) >= 7;
+    // Standard 7-day interval trigger
+    const sevenDaysDue = !last || (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24) >= 7;
+    // Last trial day override: force check-in on day 7 if they haven't done one today
+    const checkedInToday = !!last && new Date(last).toDateString() === new Date().toDateString();
+    const isLastTrialDay = !isFreePro && trialDay >= 7;
+    const isDue = sevenDaysDue || (isLastTrialDay && !checkedInToday);
     if (!isDue) return;
     // Small delay so the app shell renders first before the modal appears
     const t = setTimeout(() => setShowWeeklyCheckIn(true), 1500);
     return () => clearTimeout(t);
-  }, [profile]);
+  }, [profile, trialDay, isFreePro]);
 
   // Wait until we have a settled answer: either profile data, or a fetch that
   // has fully finished. While the initial load OR a refetch is in flight and we
