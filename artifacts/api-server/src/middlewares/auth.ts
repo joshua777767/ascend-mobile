@@ -46,8 +46,11 @@ export function getUserToday(req: Request): string {
  */
 export function addDaysInUserTz(req: Request, date: string, days: number): string {
   const tz = req.headers["x-timezone"] as string | undefined;
-  const d = new Date(`${date}T00:00:00`);
-  d.setDate(d.getDate() + days);
+  // Anchor to noon UTC of the given date — avoids midnight UTC crossing into the
+  // previous local day for users in UTC-offset timezones (e.g. T00:00:00Z = 8 pm
+  // the night before in EDT, which toLocaleDateString would format as yesterday).
+  const d = new Date(`${date}T12:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + days);
   if (tz) {
     try {
       return d.toLocaleDateString("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
