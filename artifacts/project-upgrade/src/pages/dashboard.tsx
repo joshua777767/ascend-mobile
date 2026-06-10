@@ -806,15 +806,33 @@ export default function DashboardPage() {
   useEffect(() => {
     if (displayScore >= 70 && hasAnyData) {
       const lastDate = streakData?.lastStreakDate ?? null;
+      const currentStreak = streakData?.currentStreak ?? 0;
+      const reclaimKey = `streak_reclaimed_${localDate}`;
+
       if (lastDate !== localDate) {
+        // Normal path: new day, record streak
         recordStreakFn()
+          .then((updated) => {
+            queryClient.setQueryData([...getGetStreakQueryKey(), localDate], updated);
+          })
+          .catch(() => {});
+      } else if (lastDate === localDate && currentStreak === 1 && !localStorage.getItem(reclaimKey)) {
+        // Today already recorded as Day 1, but user also scored 70+ yesterday (deployment gap).
+        // Reclaim yesterday, then immediately record today as Day 2.
+        localStorage.setItem(reclaimKey, "1");
+        fetch("/api/streak/reclaim", {
+          method: "POST",
+          credentials: "include",
+          headers: { "X-Timezone": Intl.DateTimeFormat().resolvedOptions().timeZone },
+        })
+          .then(() => recordStreakFn())
           .then((updated) => {
             queryClient.setQueryData([...getGetStreakQueryKey(), localDate], updated);
           })
           .catch(() => {});
       }
     }
-  }, [displayScore, hasAnyData, streakData?.lastStreakDate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [displayScore, hasAnyData, streakData?.lastStreakDate, streakData?.currentStreak]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Personalized mission copy ---
   const calorieDeficit = plan ? plan.calorieTarget - todayCalories : 0;
