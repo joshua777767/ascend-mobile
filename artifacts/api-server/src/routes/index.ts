@@ -17,6 +17,7 @@ import goalCheckinsRouter from "./goalCheckins";
 import adminRouter from "./admin";
 import exportRouter from "./export";
 import stripeRouter from "./stripe";
+import revenuecatRouter from "./revenuecat";
 import { requireAuth } from "./../middlewares/auth";
 
 const router: IRouter = Router();
@@ -24,6 +25,9 @@ const router: IRouter = Router();
 // Public routes
 router.use(healthRouter);
 router.use(authRouter);
+
+// RevenueCat webhook must be public (no auth)
+router.use(revenuecatRouter);
 
 // All data routes require an authenticated session
 router.use(requireAuth);

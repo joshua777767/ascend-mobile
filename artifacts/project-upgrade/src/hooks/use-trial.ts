@@ -1,4 +1,6 @@
 import { useGetUserProfile, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
+import { getCustomerInfo, isSubscribed } from "@/lib/revenuecat";
 
 export interface TrialInfo {
   trialDay: number;
@@ -14,8 +16,25 @@ export function useTrialDay(): TrialInfo {
 
   const isFreePro = !!me?.isFreePro;
 
+  // Check RevenueCat entitlement (for native iOS app)
+  const { data: customerInfo } = useQuery({
+    queryKey: ["revenuecat", "trial-check"],
+    queryFn: async () => {
+      try {
+        return await getCustomerInfo();
+      } catch {
+        return null;
+      }
+    },
+    enabled: typeof window !== "undefined" && (window as any).Capacitor !== undefined,
+    staleTime: 60 * 1000,
+  });
+
+  const isRevenueCatPro = customerInfo ? isSubscribed(customerInfo) : false;
+  const isPro = isFreePro || isRevenueCatPro;
+
   if (!profile?.createdAt) {
-    return { trialDay: 1, daysLeft: 6, isOnTrial: true, trialComplete: false, isFreePro };
+    return { trialDay: 1, daysLeft: 6, isOnTrial: true, trialComplete: false, isFreePro: isPro };
   }
   const msPerDay = 1000 * 60 * 60 * 24;
   const daysSince = Math.floor(
@@ -26,8 +45,8 @@ export function useTrialDay(): TrialInfo {
   return {
     trialDay,
     daysLeft,
-    isOnTrial: !isFreePro,
-    trialComplete: !isFreePro && trialDay >= 7,
-    isFreePro,
+    isOnTrial: !isPro,
+    trialComplete: !isPro && trialDay >= 7,
+    isFreePro: isPro,
   };
 }

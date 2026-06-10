@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Loader2 } from "lucide-react";
+import { useSubscription } from "@/hooks/use-subscription";
+import { purchasePackage, restorePurchases } from "@/lib/revenuecat";
 
 const PRO_FEATURES = [
   "Personalized daily schedule built around your real life",
@@ -25,11 +27,30 @@ function getTrialEndDate() {
 export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { isPro, isNative, currentPackage } = useSubscription();
+
+  useEffect(() => {
+    if (isPro) {
+      window.location.href = "/dashboard";
+    }
+  }, [isPro]);
 
   const handleSubscribe = async (priceId: string, trial = false) => {
     setLoading(true);
     setError("");
     try {
+      if (isNative && currentPackage) {
+        // Native iOS: Use RevenueCat IAP
+        const customerInfo = await purchasePackage(currentPackage);
+        if (customerInfo && customerInfo.entitlements.active["pro"] !== undefined) {
+          window.location.href = "/dashboard";
+          return;
+        }
+        setError("Purchase failed. Please try again.");
+        return;
+      }
+
+      // Web: Use Stripe checkout
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -42,8 +63,25 @@ export default function PricingPage() {
       } else {
         setError(data.error || "Checkout failed. Please try again.");
       }
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (e: any) {
+      setError(e?.message || "Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const customerInfo = await restorePurchases();
+      if (customerInfo && customerInfo.entitlements.active["pro"] !== undefined) {
+        window.location.href = "/dashboard";
+        return;
+      }
+      setError("No previous purchase found.");
+    } catch (e: any) {
+      setError(e?.message || "Failed to restore purchases.");
     } finally {
       setLoading(false);
     }
@@ -178,6 +216,18 @@ export default function PricingPage() {
             ))}
           </div>
         </div>
+
+        {isNative && (
+          <div className="mt-8 text-center">
+            <button
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              onClick={handleRestore}
+              disabled={loading}
+            >
+              {loading ? "Restoring..." : "Restore Purchases"}
+            </button>
+          </div>
+        )}
 
         <div className="mt-8 text-center">
           <Link href="/dashboard">

@@ -73,5 +73,11 @@
     "vite": "catalog:",
     "wouter": "^3.3.5",
     "zod": "catalog:"
+  },
+  "dependencies": {
+    "@capacitor/cli": "8.4.0",
+    "@capacitor/core": "8.4.0",
+    "@capacitor/ios": "8.4.0",
+    "@revenuecat/purchases-capacitor": "13.1.5"
   }
 }

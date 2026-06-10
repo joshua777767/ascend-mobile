@@ -29,8 +29,9 @@ import AdminPage from "@/pages/admin";
 import { Layout } from "@/components/layout";
 import { WeeklyCheckInModal } from "@/components/WeeklyCheckInModal";
 import { useAuth } from "@/hooks/use-auth";
-import { useGetUserProfile } from "@workspace/api-client-react";
+import { useGetUserProfile, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useTrialDay } from "@/hooks/use-trial";
+import { initializeRevenueCat } from "@/lib/revenuecat";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -307,6 +308,7 @@ function App() {
   return (
     <AppErrorBoundary>
       <QueryClientProvider client={queryClient}>
+        <RevenueCatInit />
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AppRouter />
           <Toaster />
@@ -314,6 +316,20 @@ function App() {
       </QueryClientProvider>
     </AppErrorBoundary>
   );
+}
+
+function RevenueCatInit() {
+  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false } });
+
+  useEffect(() => {
+    if (me?.id) {
+      initializeRevenueCat(me.id).catch(() => {
+        // RevenueCat is optional; if it fails, the app continues as web
+      });
+    }
+  }, [me?.id]);
+
+  return null;
 }
 
 export default App;
