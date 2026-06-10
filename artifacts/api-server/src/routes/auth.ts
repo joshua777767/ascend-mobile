@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { Router, type IRouter } from "express";
 import { and, eq, gt, isNull } from "drizzle-orm";
-import { db, usersTable, passwordResetTokensTable } from "@workspace/db";
+import { db, usersTable, userProfilesTable, passwordResetTokensTable } from "@workspace/db";
 import { SignupBody, LoginBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword } from "../lib/password";
 
@@ -35,12 +35,49 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email));
   if (existing) {
     const hasValidHash = typeof existing.passwordHash === "string" && existing.passwordHash.includes(":");
+    // Check whether onboarding was ever completed (a profile row exists).
+    const [profile] = await db
+      .select({ userId: userProfilesTable.userId })
+      .from(userProfilesTable)
+      .where(eq(userProfilesTable.userId, existing.id));
+    const profileCompleted = !!profile;
+
     req.log.warn(
-      { reason: "email_exists", maskedEmail, userId: existing.id, hasValidHash },
-      "signup blocked: email already registered"
+      {
+        reason: profileCompleted ? "email_exists" : "partial_account",
+        maskedEmail,
+        userId: existing.id,
+        hasPasswordHash: hasValidHash,
+        profileCompleted,
+        createdAt: existing.createdAt,
+      },
+      profileCompleted
+        ? "signup blocked: completed account exists"
+        : "signup: partial account found (no profile), allowing retry"
     );
-    res.status(409).json({
-      error: "An account already exists with this email. Please log in or reset your password.",
+
+    if (profileCompleted) {
+      // Real account — user must log in or reset password.
+      res.status(409).json({
+        error: "An account already exists with this email. Please log in or reset your password.",
+      });
+      return;
+    }
+
+    // Partial account: user row exists but onboarding never finished.
+    // Update the password so the new attempt takes effect, then issue a session.
+    const passwordHash = await hashPassword(password);
+    await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, existing.id));
+
+    req.session.regenerate(async (err) => {
+      if (err) {
+        req.log.error({ err, maskedEmail, userId: existing.id }, "signup: session failed on partial-account retry");
+        res.status(500).json({ error: "Account creation failed. Please try again." });
+        return;
+      }
+      req.session.userId = existing.id;
+      req.log.info({ maskedEmail, userId: existing.id }, "signup success: partial account recovered");
+      res.status(201).json(publicUser(existing));
     });
     return;
   }
@@ -50,8 +87,7 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
 
   req.session.regenerate(async (err) => {
     if (err) {
-      // Roll back the user row so the email is free to retry — a partial
-      // record with no session is indistinguishable from a stuck account.
+      // Roll back the user row so the email is free to retry.
       req.log.error({ err, maskedEmail, userId: user.id }, "signup: session failed, rolling back user row");
       try { await db.delete(usersTable).where(eq(usersTable.id, user.id)); } catch {}
       res.status(500).json({ error: "Account creation failed. Please try again." });
