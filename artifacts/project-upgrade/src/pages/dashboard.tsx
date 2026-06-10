@@ -10,7 +10,6 @@ import {
   useGetWaterToday,
   useLogWater,
   useGetStreak,
-  useRecordStreak,
   useGetProgressSummary,
   useListGoalCheckIns,
   getGetWaterTodayQueryKey,
@@ -589,7 +588,7 @@ export default function DashboardPage() {
   const { data: streakData } = useGetStreak({
     query: { queryKey: [...getGetStreakQueryKey(), localDate] },
   });
-  const { mutateAsync: recordStreakFn } = useRecordStreak();
+
   const { data: progress } = useGetProgressSummary({
     query: { queryKey: [...getGetProgressSummaryQueryKey(), localDate] },
   });
@@ -680,21 +679,6 @@ export default function DashboardPage() {
   const checklistCompleted = dailyHabits.filter((h) => done[h]).length;
   const checklistScore = dailyHabits.length ? Math.round((checklistCompleted / dailyHabits.length) * 100) : 0;
 
-  // Record streak when today's mission hits 70%
-  useEffect(() => {
-    if (checklistScore >= 70 && dailyHabits.length > 0) {
-      const lastDate = streakData?.lastStreakDate ?? null;
-      if (lastDate !== localDate) {
-        recordStreakFn()
-          .then((updated) => {
-            // Write the server response directly into the cache so the UI
-            // reflects the new streak count without waiting for a refetch.
-            queryClient.setQueryData([...getGetStreakQueryKey(), localDate], updated);
-          })
-          .catch(() => {});
-      }
-    }
-  }, [checklistScore, dailyHabits.length, streakData?.lastStreakDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (error) setLocation("/onboarding");

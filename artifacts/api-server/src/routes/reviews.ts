@@ -2,7 +2,7 @@ import { Router, type IRouter, type Request } from "express";
 import { eq, desc, gte, lt, and } from "drizzle-orm";
 import { db, coachReviewsTable, journalEntriesTable, plansTable, userProfilesTable } from "@workspace/db";
 import { openai } from "../lib/openai";
-import { getUserId, getUserToday } from "../middlewares/auth";
+import { getUserId, getUserToday, addDaysInUserTz } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -143,6 +143,38 @@ router.post("/reviews", async (req, res): Promise<void> => {
       date: today,
       ...generated,
     }).returning();
+  }
+
+  // Update streak based on Daily Score — streak requires dailyScore >= 70
+  const [profileForStreak] = await db
+    .select({ currentStreak: userProfilesTable.currentStreak, lastStreakDate: userProfilesTable.lastStreakDate })
+    .from(userProfilesTable)
+    .where(eq(userProfilesTable.userId, getUserId(req)));
+
+  if (profileForStreak) {
+    const last = profileForStreak.lastStreakDate;
+    let newStreak: number;
+
+    if (generated.dailyScore >= 70) {
+      if (last === today) {
+        // Already counted today — no change
+        newStreak = profileForStreak.currentStreak;
+      } else if (last === addDaysInUserTz(req, today, -1)) {
+        // Consecutive day — extend streak
+        newStreak = (profileForStreak.currentStreak ?? 0) + 1;
+      } else {
+        // Gap or first qualifying day
+        newStreak = 1;
+      }
+    } else {
+      // Score below 70 — streak resets; mark the day so tomorrow can start fresh
+      newStreak = 0;
+    }
+
+    await db
+      .update(userProfilesTable)
+      .set({ currentStreak: newStreak, lastStreakDate: today })
+      .where(eq(userProfilesTable.userId, getUserId(req)));
   }
 
   res.status(201).json(review);

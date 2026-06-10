@@ -4,7 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetTodayJournalEntry, useCreateJournalEntry, useGenerateReview,
   useGetTodayReview, useGetUserProfile,
-  getGetTodayJournalEntryQueryKey, getGetTodayReviewQueryKey, getListReviewsQueryKey
+  getGetTodayJournalEntryQueryKey, getGetTodayReviewQueryKey, getListReviewsQueryKey,
+  getGetStreakQueryKey,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,6 +72,8 @@ export default function JournalPage() {
       await generateReview.mutateAsync(undefined as any);
       queryClient.invalidateQueries({ queryKey: getGetTodayReviewQueryKey() });
       queryClient.invalidateQueries({ queryKey: getListReviewsQueryKey() });
+      // Streak is now driven by Daily Score — invalidate so dashboard refreshes
+      queryClient.invalidateQueries({ queryKey: getGetStreakQueryKey() });
       setSubmitted(true);
       toast({
         title: "You kept the promise.",
