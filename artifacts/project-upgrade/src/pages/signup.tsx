@@ -34,7 +34,11 @@ export default function SignupPage() {
       // Clear any leftover profile cache so the onboarding guard fetches fresh
       // for this brand-new account (no profile yet → onboarding).
       queryClient.removeQueries({ queryKey: getGetUserProfileQueryKey() });
-      setLocation("/onboarding");
+      // Defer navigation one tick so React Query's subscriber re-render (which
+      // sets isAuthed=true) fires before Wouter evaluates the route guard.
+      // Without this, the router sees the old isAuthed=false on the first paint
+      // and redirects to /login before the cache update propagates.
+      setTimeout(() => setLocation("/onboarding"), 0);
     } catch (err: any) {
       setError(err?.data?.error ?? "Could not create account");
     }
