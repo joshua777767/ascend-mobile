@@ -60,6 +60,7 @@ export default function AdminPage() {
   const queryClient = useQueryClient();
   const [expiryDates, setExpiryDates] = useState<Record<number, string>>({});
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["adminStats"],
@@ -111,6 +112,23 @@ export default function AdminPage() {
       });
       if (!res.ok) throw new Error("Failed to revoke Free Pro");
       await queryClient.invalidateQueries({ queryKey: ["adminStats"] });
+    } finally {
+      setPendingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
+    }
+  }
+
+  async function deleteUser(userId: number) {
+    setPendingIds(prev => { const s = new Set(prev); s.add(userId); return s; });
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}api/admin/users/${userId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete user");
+      await queryClient.invalidateQueries({ queryKey: ["adminStats"] });
+      setConfirmDeleteId(null);
+    } catch (e) {
+      alert("Failed to delete user.");
     } finally {
       setPendingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
     }
@@ -304,6 +322,37 @@ export default function AdminPage() {
                           </div>
                           <p className="text-[9px] text-muted-foreground">Leave date empty for no expiration.</p>
                         </div>
+                      )}
+
+                      {/* Remove user */}
+                      {confirmDeleteId === u.id ? (
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] text-red-400 font-semibold">Delete {u.email} and all data? This cannot be undone.</p>
+                          <div className="flex gap-2">
+                            <button
+                              disabled={isPending}
+                              onClick={() => deleteUser(u.id)}
+                              className="flex-1 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-[11px] font-semibold py-1.5 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                            >
+                              {isPending ? "Deleting…" : "Yes, delete everything"}
+                            </button>
+                            <button
+                              disabled={isPending}
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="flex-1 rounded-xl border border-border text-[11px] font-semibold py-1.5 hover:bg-card transition-colors disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          disabled={isPending}
+                          onClick={() => setConfirmDeleteId(u.id)}
+                          className="w-full rounded-xl border border-red-500/30 text-red-400 text-[11px] font-semibold py-1.5 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                        >
+                          Remove User
+                        </button>
                       )}
                     </div>
                   </div>

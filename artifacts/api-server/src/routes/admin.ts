@@ -260,6 +260,26 @@ router.post("/admin/revoke-free-pro", async (req, res): Promise<void> => {
   res.json({ ok: true });
 });
 
+router.delete("/admin/users/:id", async (req, res): Promise<void> => {
+  if (!(await requireOwner(req, res))) return;
+
+  const userId = parseInt(req.params.id, 10);
+  if (Number.isNaN(userId)) {
+    res.status(400).json({ error: "Invalid user ID" });
+    return;
+  }
+
+  const [user] = await db.select({ id: usersTable.id, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, userId));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  await db.delete(usersTable).where(eq(usersTable.id, userId));
+  logger.info({ userId, email: user.email }, "Admin deleted user");
+  res.json({ ok: true, deleted: userId });
+});
+
 router.get("/admin/users/:id", async (req, res): Promise<void> => {
   if (!(await requireOwner(req, res))) return;
 
