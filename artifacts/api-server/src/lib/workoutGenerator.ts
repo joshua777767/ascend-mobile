@@ -261,9 +261,18 @@ const homeWorkouts: PlannedWorkout[] = [
   },
 ];
 
-function getDayOfWeek(): string {
+function getDayOfWeek(timeZone?: string): string {
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  return days[new Date().getDay()];
+  const d = new Date();
+  if (timeZone) {
+    try {
+      const dayName = d.toLocaleDateString("en-US", { timeZone, weekday: "long" });
+      return dayName;
+    } catch {
+      // fall through to default
+    }
+  }
+  return days[d.getDay()];
 }
 
 const BODY_PART_EXERCISES: Record<string, Record<string, { name: string; sets: number; reps: string; restSeconds: number; coachTip: string }[]>> = {
@@ -508,8 +517,8 @@ function buildCustomWorkout(
   };
 }
 
-export function getTodayWorkout(profile: UserProfile, plan: Plan): PlannedWorkout {
-  const today = getDayOfWeek();
+export function getTodayWorkout(profile: UserProfile, plan: Plan, timeZone?: string): PlannedWorkout {
+  const today = getDayOfWeek(timeZone);
   const goalType = plan.goalType;
   const gymAccess = profile.gymAccess;
   const workoutFocus = profile.workoutFocus;

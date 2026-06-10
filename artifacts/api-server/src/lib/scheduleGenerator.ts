@@ -135,7 +135,7 @@ export function generateDailySchedule(profile: ProfileWithRange, plan: Plan): Sc
 
   // ── Sport schedule for today ──────────────────────────────────────────────
   const sportSchedule = parseSportSchedule(profile);
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const today = new Date().toLocaleDateString("en-US", { timeZone: (profile as any)._timeZone, weekday: "long" });
   const hasSportToday = sportSchedule !== null &&
     sportSchedule.days.some(d => d.toLowerCase() === today.toLowerCase());
   const sportIsHard = hasSportToday && sportSchedule !== null && sportSchedule.intensity === "hard";

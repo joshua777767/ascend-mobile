@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, desc, gte } from "drizzle-orm";
 import { db, userProfilesTable, plansTable, workoutsTable, weighInsTable, mealsTable, coachReviewsTable, journalEntriesTable } from "@workspace/db";
-import { getUserId } from "../middlewares/auth";
+import { getUserId, getUserToday, addDaysInUserTz } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -28,9 +28,9 @@ router.get("/progress/summary", async (req, res): Promise<void> => {
   const totalLbsChange = Math.round((currentWeightKg - startWeightKg) * 2.2046226 * 10) / 10;
 
   // Goal reached detection: use 7-day average to avoid single-day fluctuations
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const recentWeighIns = weighIns.filter(w => new Date(w.loggedAt) >= sevenDaysAgo);
+  const today = getUserToday(req);
+  const sevenDaysAgo = addDaysInUserTz(req, today, -7);
+  const recentWeighIns = weighIns.filter(w => w.loggedAt && w.loggedAt >= new Date(`${sevenDaysAgo}T00:00:00Z`));
   const avg7DayWeightKg = recentWeighIns.length > 0
     ? recentWeighIns.reduce((s, w) => s + w.weightKg, 0) / recentWeighIns.length
     : currentWeightKg;
@@ -84,7 +84,7 @@ router.get("/progress/summary", async (req, res): Promise<void> => {
     startWeightKg,
     progressPercent: Math.round(progressPercent * 10) / 10,
     goalReached,
-    goalReachedAt: goalReached ? (updatedGoalReachedAt ?? new Date().toISOString()) : null,
+    goalReachedAt: goalReached ? updatedGoalReachedAt : null,
     lbsToGo: Math.round(lbsToGo * 10) / 10,
     totalLbsChange,
     dayStreak: currentStreak,
@@ -145,18 +145,16 @@ router.get("/progress/streak", async (req, res): Promise<void> => {
   res.json({
     currentStreak,
     longestStreak,
-    lastActiveDate: journals.length > 0 ? journals[0].date : new Date().toISOString().split("T")[0],
+    lastActiveDate: journals.length > 0 ? journals[0].date : getUserToday(req),
   });
 });
 
 // ── Weekly Recap ─────────────────────────────────────────────────────────────
 router.get("/progress/weekly-recap", async (req, res): Promise<void> => {
   const userId = getUserId(req);
-  const now = new Date();
-  const weekAgo = new Date(now);
-  weekAgo.setDate(weekAgo.getDate() - 7);
-  const weekStart = weekAgo.toISOString().slice(0, 10);
-  const weekEnd = now.toISOString().slice(0, 10);
+  const today = getUserToday(req);
+  const weekStart = addDaysInUserTz(req, today, -7);
+  const weekEnd = today;
 
   const [meals, journals, reviews, weighIns, profile] = await Promise.all([
     db.select().from(mealsTable).where(eq(mealsTable.userId, userId)),
@@ -166,7 +164,7 @@ router.get("/progress/weekly-recap", async (req, res): Promise<void> => {
     db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, userId)),
   ]);
 
-  const weekMeals = meals.filter(m => m.loggedAt && m.loggedAt >= weekAgo);
+  const weekMeals = meals.filter(m => m.loggedAt && m.loggedAt >= new Date(`${weekStart}T00:00:00Z`));
   const weekJournals = journals.filter(j => j.date >= weekStart);
   const weekReviews = reviews.filter(r => r.date >= weekStart);
 
@@ -176,11 +174,11 @@ router.get("/progress/weekly-recap", async (req, res): Promise<void> => {
 
   const bestReview = weekReviews.sort((a, b) => b.dailyScore - a.dailyScore)[0];
   const bestDay = bestReview
-    ? new Date(bestReview.date + "T00:00:00").toLocaleDateString("en-US", { weekday: "long" })
+    ? new Date(bestReview.date + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: (req.headers["x-timezone"] as string | undefined) || "UTC", weekday: "long" })
     : null;
 
   // Weight change over the week
-  const recentWeighIns = weighIns.filter(w => new Date(w.loggedAt) >= weekAgo);
+  const recentWeighIns = weighIns.filter(w => w.loggedAt && w.loggedAt >= new Date(`${weekStart}T00:00:00Z`));
   let lbsChange: number | null = null;
   if (weighIns.length >= 2) {
     if (recentWeighIns.length >= 2) {

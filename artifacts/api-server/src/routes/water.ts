@@ -4,7 +4,7 @@ import { db, waterLogsTable, plansTable, userProfilesTable } from "@workspace/db
 import { LogWaterBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
 import { logger } from "../lib/logger";
-import { getUserId, getUserToday } from "../middlewares/auth";
+import { getUserId, getUserToday, getLocalMidnightUtc } from "../middlewares/auth";
 import { parseSportSchedule } from "../lib/sportUtils";
 
 const router: IRouter = Router();
@@ -38,26 +38,6 @@ async function getDailyTargetOz(userId: number, baseTargetL: number, req?: Reque
   if (hasGame && !hasPractice) extraOz = Math.max(extraOz, 10);
 
   return Math.min(baseOz + extraOz, 140); // 140 oz hard ceiling
-}
-
-// Return the UTC timestamp of local midnight for the given date string + timezone.
-// Example: "2026-06-09" in "America/New_York" (EDT, UTC-4) → 2026-06-09T04:00:00Z
-function getLocalMidnightUtc(dateStr: string, tz: string): Date {
-  // Use noon UTC of that date as a reference point (avoids DST hour-boundary issues).
-  const ref = new Date(`${dateStr}T12:00:00.000Z`);
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(ref);
-  const get = (type: string) =>
-    parseInt(parts.find((p) => p.type === type)?.value ?? "0", 10);
-  // Local seconds elapsed since midnight at the moment of `ref` (noon UTC)
-  const localSecsFromMidnight = (get("hour") % 24) * 3600 + get("minute") * 60 + get("second");
-  // Subtract those seconds from ref to get back to local midnight in UTC
-  return new Date(ref.getTime() - localSecsFromMidnight * 1000);
 }
 
 async function getWaterSummary(

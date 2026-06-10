@@ -2,25 +2,9 @@ import { Router, type IRouter, type Request } from "express";
 import { eq, desc, gte, lt, and } from "drizzle-orm";
 import { db, coachReviewsTable, journalEntriesTable, plansTable, userProfilesTable } from "@workspace/db";
 import { openai } from "../lib/openai";
-import { getUserId, getUserToday, addDaysInUserTz } from "../middlewares/auth";
+import { getUserId, getUserToday, addDaysInUserTz, getLocalMidnightUtc } from "../middlewares/auth";
 
 const router: IRouter = Router();
-
-// Return the UTC timestamp of local midnight for the given date string + timezone.
-function getLocalMidnightUtc(dateStr: string, tz: string): Date {
-  const ref = new Date(`${dateStr}T12:00:00.000Z`);
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(ref);
-  const get = (type: string) =>
-    parseInt(parts.find((p) => p.type === type)?.value ?? "0", 10);
-  const localSecsFromMidnight = (get("hour") % 24) * 3600 + get("minute") * 60 + get("second");
-  return new Date(ref.getTime() - localSecsFromMidnight * 1000);
-}
 
 function getTodayUtcRange(req: Request): { dayStart: Date; dayEnd: Date } {
   const tz = (req.headers["x-timezone"] as string | undefined) || "UTC";

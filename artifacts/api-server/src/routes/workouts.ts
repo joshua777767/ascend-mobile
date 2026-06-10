@@ -33,8 +33,9 @@ router.get("/workouts/today", async (req, res): Promise<void> => {
 
   if (!profile || !plan) {
     // Return a default workout
+    const tz = req.headers["x-timezone"] as string | undefined;
     res.json({
-      day: new Date().toLocaleDateString("en-US", { weekday: "long" }),
+      day: new Date().toLocaleDateString("en-US", { timeZone: tz, weekday: "long" }),
       name: "Active Recovery",
       type: "cardio",
       exercises: [
@@ -51,7 +52,8 @@ router.get("/workouts/today", async (req, res): Promise<void> => {
     digestionConcerns: JSON.parse(profile.digestionConcerns || "[]"),
   };
 
-  const workout = getTodayWorkout(profileWithArrays as any, plan);
+  const tz = req.headers["x-timezone"] as string | undefined;
+  const workout = getTodayWorkout(profileWithArrays as any, plan, tz);
   res.json(workout);
 });
 

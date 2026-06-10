@@ -36,6 +36,7 @@ async function getScheduleItems(userId: number, req: Request): Promise<{ items: 
     goals: JSON.parse(profile.goals || "[]"),
     skinConcerns: JSON.parse(profile.skinConcerns || "[]"),
     digestionConcerns: JSON.parse(profile.digestionConcerns || "[]"),
+    _timeZone: req.headers["x-timezone"] as string | undefined,
   };
 
   const baseItems = generateDailySchedule(profileWithArrays as any, plan);
