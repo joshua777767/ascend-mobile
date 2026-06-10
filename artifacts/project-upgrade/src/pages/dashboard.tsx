@@ -10,6 +10,7 @@ import {
   useGetWaterToday,
   useLogWater,
   useGetStreak,
+  useRecordStreak,
   useGetProgressSummary,
   useListGoalCheckIns,
   getGetWaterTodayQueryKey,
@@ -588,6 +589,7 @@ export default function DashboardPage() {
   const { data: streakData } = useGetStreak({
     query: { queryKey: [...getGetStreakQueryKey(), localDate] },
   });
+  const { mutateAsync: recordStreakFn } = useRecordStreak();
 
   const { data: progress } = useGetProgressSummary({
     query: { queryKey: [...getGetProgressSummaryQueryKey(), localDate] },
@@ -799,6 +801,20 @@ export default function DashboardPage() {
 
   const displayScore = reviewScore !== null ? reviewScore : ascendScore;
   const hasAnyData = todayCalories > 0 || todayProtein > 0 || waterOz > 0 || checklistCompleted > 0;
+
+  // Streak: fires automatically when the Ascend Score ring hits 70+
+  useEffect(() => {
+    if (displayScore >= 70 && hasAnyData) {
+      const lastDate = streakData?.lastStreakDate ?? null;
+      if (lastDate !== localDate) {
+        recordStreakFn()
+          .then((updated) => {
+            queryClient.setQueryData([...getGetStreakQueryKey(), localDate], updated);
+          })
+          .catch(() => {});
+      }
+    }
+  }, [displayScore, hasAnyData, streakData?.lastStreakDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Personalized mission copy ---
   const calorieDeficit = plan ? plan.calorieTarget - todayCalories : 0;
