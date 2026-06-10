@@ -759,6 +759,33 @@ export default function DashboardPage() {
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric" });
 
+  const todayCalories = (todayMeals ?? []).reduce((s, m) => s + (m.calories ?? 0), 0);
+  const todayProtein = (todayMeals ?? []).reduce((s, m) => s + (m.protein ?? 0), 0);
+
+  // Auto-check the calorie habit when daily calorie target is met
+  useEffect(() => {
+    if (plan && todayCalories > 0 && todayCalories >= plan.calorieTarget) {
+      const calorieHabit = dailyHabits.find((h) =>
+        ["calorie", "caloric", "deficit", "surplus", "kcal"].some((k) => h.toLowerCase().includes(k))
+      );
+      if (calorieHabit && !done[calorieHabit]) {
+        setDone((prev) => ({ ...prev, [calorieHabit]: true }));
+      }
+    }
+  }, [todayCalories, plan?.calorieTarget, dailyHabits]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-check the protein habit when daily protein target is met
+  useEffect(() => {
+    if (plan && todayProtein > 0 && todayProtein >= plan.proteinTargetG) {
+      const proteinHabit = dailyHabits.find((h) =>
+        ["protein", "macro"].some((k) => h.toLowerCase().includes(k))
+      );
+      if (proteinHabit && !done[proteinHabit]) {
+        setDone((prev) => ({ ...prev, [proteinHabit]: true }));
+      }
+    }
+  }, [todayProtein, plan?.proteinTargetG, dailyHabits]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (loadingProfile || !profile) {
     return (
       <div className="h-full overflow-y-auto scroll-area">
@@ -779,9 +806,6 @@ export default function DashboardPage() {
   const goals: string[] = Array.isArray(profile.goals) ? profile.goals : [];
   const reviewScore = review && typeof review.dailyScore === "number" ? review.dailyScore : null;
   const firstName = profile.name?.split(" ")[0] ?? profile.name;
-
-  const todayCalories = (todayMeals ?? []).reduce((s, m) => s + (m.calories ?? 0), 0);
-  const todayProtein = (todayMeals ?? []).reduce((s, m) => s + (m.protein ?? 0), 0);
 
   // Blended Ascend Score — reflects real daily progress across 4 signals
   // Weights: calories 30 | protein 25 | water 20 | mission checklist 25 = 100 pts max
