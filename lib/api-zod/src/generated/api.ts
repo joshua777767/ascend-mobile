@@ -584,9 +584,9 @@ export const CreateJournalEntryBody = zod.object({
   "sleptOnTime": zod.boolean(),
   "energyRating": zod.number(),
   "skinBloatingRating": zod.number(),
-  "whatWentWrong": zod.string().optional(),
+  "whatWentWrong": zod.string().nullish(),
   "biggestWin": zod.string(),
-  "needHelpWith": zod.string().optional()
+  "needHelpWith": zod.string().nullish()
 })
 
 

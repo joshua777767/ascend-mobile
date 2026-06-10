@@ -20,6 +20,28 @@ import { getSportContextForCoach, parseCustomWorkoutSchedule } from "../lib/spor
 
 const router: IRouter = Router();
 
+// ---------------------------------------------------------------------------
+// In-memory rate limiting for chat messages
+// ---------------------------------------------------------------------------
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX = 10; // 10 messages per window
+
+const rateLimitMap = new Map<number, { count: number; resetAt: number }>();
+
+function isRateLimited(userId: number): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(userId);
+  if (!record || now > record.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  if (record.count >= RATE_LIMIT_MAX) {
+    return true;
+  }
+  record.count += 1;
+  return false;
+}
+
 const LBS = 2.2046226;
 
 function parseArr(json: string | null): string[] {
@@ -557,23 +579,29 @@ router.get("/chat/history", async (req, res): Promise<void> => {
 });
 
 router.post("/chat", async (req, res): Promise<void> => {
+  const userId = getUserId(req);
+  if (isRateLimited(userId)) {
+    res.status(429).json({ error: "Too many messages. Please wait a minute before sending another message." });
+    return;
+  }
+
   const parsed = SendChatMessageBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
 
-  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, getUserId(req)));
-  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, getUserId(req)));
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, userId));
+  const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, userId));
 
   const [recentMessages, recentMeals, recentWorkouts, recentJournals, recentWeighIns, recentReviews, recentCheckIns] = await Promise.all([
-    db.select().from(chatMessagesTable).where(eq(chatMessagesTable.userId, getUserId(req))).orderBy(desc(chatMessagesTable.createdAt)).limit(20),
-    db.select().from(mealsTable).where(eq(mealsTable.userId, getUserId(req))).orderBy(desc(mealsTable.loggedAt)).limit(3),
-    db.select().from(workoutsTable).where(eq(workoutsTable.userId, getUserId(req))).orderBy(desc(workoutsTable.completedAt)).limit(3),
-    db.select().from(journalEntriesTable).where(eq(journalEntriesTable.userId, getUserId(req))).orderBy(desc(journalEntriesTable.createdAt)).limit(2),
-    db.select().from(weighInsTable).where(eq(weighInsTable.userId, getUserId(req))).orderBy(desc(weighInsTable.loggedAt)).limit(1),
-    db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, getUserId(req))).orderBy(desc(coachReviewsTable.createdAt)).limit(1),
-    db.select().from(goalCheckInsTable).where(eq(goalCheckInsTable.userId, getUserId(req))).orderBy(desc(goalCheckInsTable.createdAt)).limit(8),
+    db.select().from(chatMessagesTable).where(eq(chatMessagesTable.userId, userId)).orderBy(desc(chatMessagesTable.createdAt)).limit(20),
+    db.select().from(mealsTable).where(eq(mealsTable.userId, userId)).orderBy(desc(mealsTable.loggedAt)).limit(3),
+    db.select().from(workoutsTable).where(eq(workoutsTable.userId, userId)).orderBy(desc(workoutsTable.completedAt)).limit(3),
+    db.select().from(journalEntriesTable).where(eq(journalEntriesTable.userId, userId)).orderBy(desc(journalEntriesTable.createdAt)).limit(2),
+    db.select().from(weighInsTable).where(eq(weighInsTable.userId, userId)).orderBy(desc(weighInsTable.loggedAt)).limit(1),
+    db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, userId)).orderBy(desc(coachReviewsTable.createdAt)).limit(1),
+    db.select().from(goalCheckInsTable).where(eq(goalCheckInsTable.userId, userId)).orderBy(desc(goalCheckInsTable.createdAt)).limit(8),
   ]);
 
   const ctx: ChatContext = {
@@ -657,7 +685,7 @@ Always reference weight in lbs. Never kg.`;
 
   // Save user message first
   await db.insert(chatMessagesTable).values({
-    userId: getUserId(req),
+    userId: userId,
     role: "user",
     content: parsed.data.message,
   });
@@ -681,7 +709,7 @@ Always reference weight in lbs. Never kg.`;
 
   // Save assistant reply
   await db.insert(chatMessagesTable).values({
-    userId: getUserId(req),
+    userId: userId,
     role: "assistant",
     content: reply,
   });

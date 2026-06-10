@@ -1479,11 +1479,11 @@ components:
         skinBloatingRating:
           type: integer
         whatWentWrong:
-          type: string
+          type: ["string", "null"]
         biggestWin:
           type: string
         needHelpWith:
-          type: string
+          type: ["string", "null"]
 
     CoachReview:
       type: object

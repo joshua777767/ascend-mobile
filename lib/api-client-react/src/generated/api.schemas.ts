@@ -352,9 +352,11 @@ export interface JournalEntryInput {
   sleptOnTime: boolean;
   energyRating: number;
   skinBloatingRating: number;
-  whatWentWrong?: string;
+  /** @nullable */
+  whatWentWrong?: string | null;
   biggestWin: string;
-  needHelpWith?: string;
+  /** @nullable */
+  needHelpWith?: string | null;
 }
 
 export interface CoachReview {
