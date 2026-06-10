@@ -29,3 +29,17 @@ so the mutation response is written directly into the cache, giving instant UI f
 - `.then(data => queryClient.setQueryData(key, data))` — preferred for instant update
 - `await queryClient.invalidateQueries(key)` — triggers a refetch (adds latency)
 Never silently `.catch(() => {})` a mutation whose result should update the UI.
+
+## Bug 3: Reviews submitted before streak logic deployed → lastStreakDate NULL
+
+If a user had qualifying reviews before the streak-from-review feature was deployed,
+`lastStreakDate` is NULL. The consecutive-day check (`last === yesterday`) would fail
+and streak restarts at 1 instead of continuing.
+
+**Fix:** When `lastStreakDate` is null or stale, look up yesterday's coach_review in the DB.
+If that review exists and `dailyScore >= 70`, treat today as consecutive (increment).
+Only fall back to `newStreak = 1` if yesterday had no qualifying review.
+
+**How to apply:** Any new "streak from event" feature that backfills existing users should
+either (a) run a DB migration to set lastStreakDate from historical records, or (b) do the
+fallback DB lookup in the update logic itself. (b) is safer — no migration risk.
