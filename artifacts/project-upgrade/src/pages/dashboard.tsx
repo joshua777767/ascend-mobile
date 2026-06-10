@@ -685,7 +685,13 @@ export default function DashboardPage() {
     if (checklistScore >= 70 && dailyHabits.length > 0) {
       const lastDate = streakData?.lastStreakDate ?? null;
       if (lastDate !== localDate) {
-        recordStreakFn().catch(() => {});
+        recordStreakFn()
+          .then((updated) => {
+            // Write the server response directly into the cache so the UI
+            // reflects the new streak count without waiting for a refetch.
+            queryClient.setQueryData([...getGetStreakQueryKey(), localDate], updated);
+          })
+          .catch(() => {});
       }
     }
   }, [checklistScore, dailyHabits.length, streakData?.lastStreakDate]); // eslint-disable-line react-hooks/exhaustive-deps
