@@ -6,6 +6,12 @@ uri = "file://artifacts/project-upgrade/public/icon-1024.png"
 type = "image"
 title = "ascend app icon metallic A arrow"
 
+[[generated]]
+id = "9Mu6d_iVtfrYI_3bWtBCf"
+uri = "file://artifacts/project-upgrade/public/icon-v2-1024.png"
+type = "image"
+title = "ascend v2 refined metallic A arrow"
+
 [[outputs]]
 id = "DFH_N7m8S5Hq5ghuko5WD"
 uri = "file://artifacts/project-upgrade/public/icon-1024.png"
@@ -17,3 +23,15 @@ id = "ZwwKP3epbdh7gVEVTZtuj"
 uri = "file://artifacts/project-upgrade/public/icon-32.png"
 type = "image"
 title = "Ascend Icon — 32×32 (browser tab size)"
+
+[[outputs]]
+id = "iJQg_BEcdxUZom0BqnNLZ"
+uri = "file://artifacts/project-upgrade/public/icon-v2-1024.png"
+type = "image"
+title = "Ascend Icon v2 — 1024×1024 (App Store master)"
+
+[[outputs]]
+id = "Dcdm2bbg38dpm_rKNSWj9"
+uri = "file://artifacts/project-upgrade/public/icon-v2-32.png"
+type = "image"
+title = "Ascend Icon v2 — 32×32 (browser tab / favicon)"
