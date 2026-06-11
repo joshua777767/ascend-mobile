@@ -133,6 +133,87 @@ const textareaClass = "bg-elevated border border-border rounded-xl p-3 text-base
 
 const ONBOARD_KEY = "ascend.onboarding";
 
+// ─── Timeline safety validation ──────────────────────────────────────────────
+
+/** Formats an ISO date string (YYYY-MM-DD) as "Jan 15, 2026" without TZ shift. */
+function fmtIso(iso: string): string {
+  const [yr, mo, dy] = iso.split("-").map(Number);
+  return new Date(yr, mo - 1, dy).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+/** Adds `weeks` weeks to today and returns an ISO date string. */
+function addWeeksFromToday(weeks: number): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + Math.ceil(weeks) * 7);
+  return d.toISOString().split("T")[0];
+}
+
+/**
+ * Returns `{ error }` if the selected date implies an unsafe weekly rate,
+ * or `{ recommended }` (ISO date) as a hint when no date is selected.
+ * Safety limits: fat loss ≤ 2 lbs/week, weight gain ≤ 1 lb/week.
+ */
+function validateTargetDate(
+  targetDate: string | undefined,
+  currentWeightLbs: number | undefined,
+  goalWeightLbs: number | undefined,
+): { error?: string; recommended?: string } {
+  const current = currentWeightLbs ?? 0;
+  const goal = goalWeightLbs ?? 0;
+  const diffLbs = current - goal; // positive = loss goal, negative = gain goal
+  const significant = Math.abs(diffLbs) > 2;
+
+  // No date set — show a recommended date when there is a weight gap
+  if (!targetDate) {
+    if (!significant) return {};
+    const weeksNeeded = diffLbs > 0
+      ? Math.ceil(diffLbs / 1)        // 1 lb/week standard loss pace
+      : Math.ceil(-diffLbs / 0.5);    // 0.5 lb/week lean gain pace
+    return { recommended: addWeeksFromToday(weeksNeeded) };
+  }
+
+  // Date set but no significant weight change — no rate to check
+  if (!significant) return {};
+
+  const parts = targetDate.split("-").map(Number);
+  if (parts.length !== 3) return {};
+  const [yr, mo, dy] = parts;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const targetObj = new Date(yr, mo - 1, dy);
+  const diffDays = Math.round((targetObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 7) {
+    return { error: "Target date is too soon — pick a date at least 1 week from today." };
+  }
+
+  const diffWeeks = diffDays / 7;
+
+  if (diffLbs > 2) {
+    // Fat loss check
+    const lbsPerWeek = diffLbs / diffWeeks;
+    if (lbsPerWeek > 2) {
+      const minWeeks = Math.ceil(diffLbs / 2);
+      return {
+        error: `Losing ${diffLbs.toFixed(0)} lbs by then needs ${lbsPerWeek.toFixed(1)} lbs/week — above the 2 lbs/week safe max. Try a date after ${fmtIso(addWeeksFromToday(minWeeks))}.`,
+      };
+    }
+  } else if (diffLbs < -2) {
+    // Weight gain check
+    const gainLbs = -diffLbs;
+    const lbsPerWeek = gainLbs / diffWeeks;
+    if (lbsPerWeek > 1) {
+      const minWeeks = Math.ceil(gainLbs / 1);
+      return {
+        error: `Gaining ${gainLbs.toFixed(0)} lbs by then needs ${lbsPerWeek.toFixed(1)} lbs/week — above the 1 lb/week safe lean gain max. Try a date after ${fmtIso(addWeeksFromToday(minWeeks))}.`,
+      };
+    }
+  }
+
+  return {};
+}
+
 type OnboardingState = {
   step: number;
   selectedGoals: string[];
@@ -237,6 +318,13 @@ export default function OnboardingPage() {
   const toggleDigestion = (d: string) => setDigestionConcerns(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
 
   const [goalError, setGoalError] = useState(false);
+  const [targetDateValidation, setTargetDateValidation] = useState<{ error?: string; recommended?: string }>({});
+  const watchedTargetDate = form2.watch("targetDate");
+
+  // Re-validate target date whenever date, current weight, or goal weight changes
+  useEffect(() => {
+    setTargetDateValidation(validateTargetDate(watchedTargetDate, formData.currentWeightLbs, formData.goalWeightLbs));
+  }, [watchedTargetDate, formData.currentWeightLbs, formData.goalWeightLbs]);
 
   const handleStep1 = form1.handleSubmit((data) => {
     if (selectedGoals.length === 0) {
@@ -248,6 +336,7 @@ export default function OnboardingPage() {
     setStep(2);
   });
   const handleStep2 = form2.handleSubmit((data) => {
+    if (targetDateValidation.error) return; // block unsafe timelines
     setFormData(prev => ({ ...prev, ...data }));
     setStep(3);
   });
@@ -673,7 +762,23 @@ export default function OnboardingPage() {
 
               <div>
                 <SectionLabel>Target date (optional)</SectionLabel>
-                <Input {...form2.register("targetDate")} type="date" className={inputClass} data-testid="input-target-date" />
+                <Input
+                  {...form2.register("targetDate")}
+                  type="date"
+                  className={cn(inputClass, targetDateValidation.error ? "border-destructive ring-1 ring-destructive" : "")}
+                  data-testid="input-target-date"
+                />
+                {targetDateValidation.error ? (
+                  <p className="text-xs text-destructive font-semibold mt-1.5" data-testid="target-date-error">
+                    ⚠ {targetDateValidation.error}
+                  </p>
+                ) : targetDateValidation.recommended && !watchedTargetDate ? (
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    💡 Recommended: <span className="text-foreground font-medium">{fmtIso(targetDateValidation.recommended)}</span> — at a safe, steady pace
+                  </p>
+                ) : watchedTargetDate && !targetDateValidation.error ? (
+                  <p className="text-xs text-primary font-medium mt-1.5">✓ Timeline looks safe</p>
+                ) : null}
               </div>
 
               <div className="flex gap-3">

@@ -208,6 +208,27 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   else if (isGain) goalType = "muscle_gain";
   else if (hasGlowGoals) goalType = "glow";
 
+  // Weight diff in lbs (used for timeline calculations)
+  const weightDiffLbs = Math.abs(weightDiff) * 2.2046;
+
+  // Parse targetDate → compute weeksToGoal for timeline-driven calorie targets
+  let weeksToGoal: number | null = null;
+  let targetDateLabel: string | null = null;
+  if (profile.targetDate) {
+    const parts = profile.targetDate.split("-").map(Number);
+    if (parts.length === 3) {
+      const [yr, mo, dy] = parts;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const targetDateObj = new Date(yr, mo - 1, dy);
+      const diffDays = Math.round((targetDateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays >= 7) {
+        weeksToGoal = diffDays / 7;
+        targetDateLabel = targetDateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      }
+    }
+  }
+
   const weightKg = profile.currentWeightKg;
   const heightCm = profile.heightCm;
   const age = profile.age;
@@ -236,35 +257,77 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   let warnings: string | null = null;
 
   if (goalType === "fat_loss") {
-    // Deficit scales with commitment — each tier meaningfully harder
-    // Casual: gentle, sustainable. Extreme: max safe 1000 cal/day deficit (~2 lb/week)
-    const deficit =
-      isExtreme ? 1000          // ~2 lb/week — near max safe
-      : isLocked ? 800          // ~1.6 lb/week — aggressive
-      : isSerious ? 650         // ~1.3 lb/week — real push
-      : isCasual ? 300          // ~0.6 lb/week — easy, sustainable
-      : 500;                    // ~1 lb/week — standard
+    // Timeline-driven deficit: if user set a target date, derive the needed pace.
+    // Otherwise fall back to commitment-level defaults.
+    // Hard cap: 1000 cal/day = ~2 lb/week (safe maximum).
+    let deficit: number;
+    let timelineCapHit = false;
+
+    if (weeksToGoal !== null && weightDiffLbs > 0.5) {
+      const neededLbsPerWeek = weightDiffLbs / weeksToGoal;
+      if (neededLbsPerWeek > 2) timelineCapHit = true;
+      const clampedRate = Math.min(neededLbsPerWeek, 2);
+      deficit = Math.round(clampedRate * 500); // 3500 cal/lb ÷ 7 days = 500
+      deficit = Math.max(250, Math.min(1000, deficit));
+    } else {
+      deficit =
+        isExtreme ? 1000
+        : isLocked ? 800
+        : isSerious ? 650
+        : isCasual ? 300
+        : 500;
+    }
+
     calorieTarget = Math.max(1200, tdee - deficit);
     // Higher deficit → higher protein to protect muscle
-    proteinTargetG = isExtreme || isLocked
+    proteinTargetG = deficit >= 900
       ? Math.round(weightKg * 2.6)
-      : isSerious
+      : deficit >= 650
         ? Math.round(weightKg * 2.4)
         : Math.round(weightKg * 2.2);
-    weeklyPace = deficit >= 900 ? "~2 lb / week"
-      : deficit >= 700 ? "~1.5 lb / week"
-      : deficit >= 500 ? "~1 lb / week"
+
+    const actualLbsPerWeek = deficit / 500;
+    const paceStr = actualLbsPerWeek >= 1.85 ? "~2 lb / week"
+      : actualLbsPerWeek >= 1.35 ? "~1.5 lb / week"
+      : actualLbsPerWeek >= 0.85 ? "~1 lb / week"
       : "~0.5 lb / week";
-    if (Math.abs(weightDiff) > 20 || isExtreme || isLocked) {
+    weeklyPace = targetDateLabel ? `${paceStr} → goal by ${targetDateLabel}` : paceStr;
+
+    if (timelineCapHit) {
+      warnings = `Your goal requires losing more than 2 lbs/week — the safe maximum. Your plan uses the max safe deficit of 1,000 cal/day. You'll need more time than your target date to reach your goal safely.`;
+    } else if (Math.abs(weightDiff) > 20 || isExtreme || isLocked) {
       warnings = isExtreme || isLocked
         ? `You're in a ${deficit}-calorie daily deficit. This requires strict daily execution — hit protein every day to protect muscle. If energy crashes or hunger becomes unmanageable, adjust.`
         : "Your goal is ambitious. Stay consistent — do not cut more than planned. Extreme deficits cause muscle loss and burnout.";
     }
   } else if (goalType === "muscle_gain") {
-    const surplus = isCasual ? 200 : isExtreme ? 400 : 300;
+    // Timeline-driven surplus: if user set a date, derive the needed pace.
+    // Hard cap: 500 cal/day = ~1 lb/week (safe lean bulk maximum).
+    let surplus: number;
+    let timelineCapHit = false;
+
+    if (weeksToGoal !== null && weightDiffLbs > 0.5) {
+      const neededLbsPerWeek = weightDiffLbs / weeksToGoal;
+      if (neededLbsPerWeek > 1) timelineCapHit = true;
+      const clampedRate = Math.min(neededLbsPerWeek, 1);
+      surplus = Math.round(clampedRate * 500);
+      surplus = Math.max(150, Math.min(500, surplus));
+    } else {
+      surplus = isCasual ? 200 : isExtreme ? 400 : 300;
+    }
+
     calorieTarget = tdee + surplus;
     proteinTargetG = Math.round(weightKg * 2.4);
-    weeklyPace = isCasual ? "~0.25 lb / week (easy gain)" : "~0.5 lb / week (lean bulk)";
+
+    const actualLbsPerWeek = surplus / 500;
+    const paceStr = actualLbsPerWeek >= 0.85 ? "~1 lb / week (lean bulk)"
+      : actualLbsPerWeek >= 0.45 ? "~0.5 lb / week (lean bulk)"
+      : "~0.25 lb / week (easy gain)";
+    weeklyPace = targetDateLabel ? `${paceStr} → goal by ${targetDateLabel}` : paceStr;
+
+    if (timelineCapHit) {
+      warnings = `Your goal requires gaining more than 1 lb/week — above the safe lean bulk rate. Your plan uses the max safe surplus of 500 cal/day. You'll need more time than your target date to reach your goal without excess fat gain.`;
+    }
   } else {
     calorieTarget = tdee;
     proteinTargetG = Math.round(weightKg * 2.0);
@@ -429,11 +492,15 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     nutritionExplanation = `Stay near ${calorieTarget} maintenance calories and hold your protein. Maintenance is discipline, not relaxation.`;
   }
 
+  const targetDateNote = targetDateLabel
+    ? ` Your goal date is ${targetDateLabel}.`
+    : "";
+
   let coachNotes: string;
   if (hasOwnSchedule === "yes" && ownSchedule) {
-    coachNotes = `You picked ${goalText}. The plan respects your own training schedule and builds nutrition and recovery around it. Today's mission: ${missionLine}. Hit ${proteinTargetG}g protein every day regardless of the gym.${commitmentNote}${sportNote}${skinNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
+    coachNotes = `You picked ${goalText}. The plan respects your own training schedule and builds nutrition and recovery around it. Today's mission: ${missionLine}. Hit ${proteinTargetG}g protein every day regardless of the gym.${commitmentNote}${sportNote}${skinNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
   } else {
-    coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${skinNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
+    coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${skinNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
   }
 
   return {
