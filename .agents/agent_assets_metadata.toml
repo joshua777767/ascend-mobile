@@ -48,6 +48,30 @@ uri = "file://attached_assets/icon_concepts/ascend-concept-5.png"
 type = "image"
 title = "ascend concept 5 abstract converging lines"
 
+[[generated]]
+id = "oaZWnospvu12ZTv9NFxxv"
+uri = "file://attached_assets/icon_concepts/ascend-c2-1.png"
+type = "image"
+title = "ascend c2 concept 1 blue chevron"
+
+[[generated]]
+id = "xfrhPxsuOVnTSNAsoK2ee"
+uri = "file://attached_assets/icon_concepts/ascend-c2-3.png"
+type = "image"
+title = "ascend c2 concept 3 upward trajectory"
+
+[[generated]]
+id = "Iuny2ogNUQBACMRYdnPOM"
+uri = "file://attached_assets/icon_concepts/ascend-c2-2.png"
+type = "image"
+title = "ascend c2 concept 2 fitness rings"
+
+[[generated]]
+id = "r6lequljL8bIEnGhnZkQ1"
+uri = "file://attached_assets/icon_concepts/ascend-c2-5.png"
+type = "image"
+title = "ascend c2 concept 5 summit peak"
+
 [[outputs]]
 id = "DFH_N7m8S5Hq5ghuko5WD"
 uri = "file://artifacts/project-upgrade/public/icon-1024.png"
@@ -137,3 +161,45 @@ id = "3kSlDMrx0TS8aGAf9Yth9"
 uri = "file://attached_assets/icon_concepts/ascend-concept-5.png"
 type = "image"
 title = "Concept 5: Double-Line Ascending A"
+
+[[outputs]]
+id = "6ZPUs6dv9bDI-Ijk7FnxT"
+uri = "file://attached_assets/icon_concepts/c2-comparison-grid.png"
+type = "image"
+title = "All 5 Concepts (Grid View)"
+
+[[outputs]]
+id = "vAwI5OvuO1bW_l0KRIKL6"
+uri = "file://attached_assets/icon_concepts/c2-comparison.png"
+type = "image"
+title = "All 5 Concepts (Horizontal)"
+
+[[outputs]]
+id = "fvYPM0qmy9_D1zykew3xD"
+uri = "file://attached_assets/icon_concepts/ascend-c2-1.png"
+type = "image"
+title = "Concept 1: Double Blue Chevron (Upward Progress)"
+
+[[outputs]]
+id = "JKn3lrcwJukmdheoIw3oE"
+uri = "file://attached_assets/icon_concepts/ascend-c2-2.png"
+type = "image"
+title = "Concept 2: Activity Rings (Blue/Gold/White)"
+
+[[outputs]]
+id = "mkrMotW9fXCja5FMfjQbk"
+uri = "file://attached_assets/icon_concepts/ascend-c2-3.png"
+type = "image"
+title = "Concept 3: Upward Trajectory (Growth Arrow)"
+
+[[outputs]]
+id = "lDb9oJeak_qpZSoNmUB_A"
+uri = "file://attached_assets/icon_concepts/ascend-c2-4.png"
+type = "image"
+title = "Concept 4: Energy Bolt (Lightning Power)"
+
+[[outputs]]
+id = "XD-zEEwh0xon6Ccfqe33D"
+uri = "file://attached_assets/icon_concepts/ascend-c2-5.png"
+type = "image"
+title = "Concept 5: Summit Peak (Achievement Peak)"
