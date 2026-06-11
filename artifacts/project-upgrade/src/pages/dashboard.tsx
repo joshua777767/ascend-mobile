@@ -601,27 +601,47 @@ export default function DashboardPage() {
   useEffect(() => { refetchMeals(); }, [refetchMeals]);
   useEffect(() => { refetchWater(); }, [refetchWater]);
 
-  const habits = prioritizeHabits(plan && Array.isArray(plan.keyHabits) ? plan.keyHabits : []);
+  const habits = React.useMemo(
+    () => prioritizeHabits(plan && Array.isArray(plan.keyHabits) ? plan.keyHabits : []),
+    [plan]
+  );
 
   // Split habits into daily (completable today) and weekly (tracked across the week)
   const weeklyKeywords = ["this week", "weekly"];
   const isWeeklyHabit = (h: string) => weeklyKeywords.some(kw => h.toLowerCase().includes(kw));
-  const dailyHabits = habits.filter(h => !isWeeklyHabit(h));
-  const weeklyHabits = habits.filter(h => isWeeklyHabit(h));
+  const dailyHabits = React.useMemo(() => habits.filter(h => !isWeeklyHabit(h)), [habits]);
+  const weeklyHabits = React.useMemo(() => habits.filter(h => isWeeklyHabit(h)), [habits]);
 
   // Weekly counter state — stored at top level with a key per habit
-  const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>(() => {
-    const initial: Record<string, number> = {};
+  const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
+
+  // Re-initialize weeklyCounts from localStorage whenever the plan (and thus
+  // weeklyHabits) changes. We merge in so existing counts for matching habits
+  // are preserved, and new habits start from localStorage or 0.
+  useEffect(() => {
     const weekPrefix = `ascend.weekly.${localDate.slice(0, 7)}`;
+    const next: Record<string, number> = {};
     for (const h of weeklyHabits) {
       const key = `${weekPrefix}.${h}`;
       try {
         const raw = localStorage.getItem(key);
-        initial[h] = raw ? parseInt(raw, 10) || 0 : 0;
-      } catch { initial[h] = 0; }
+        next[h] = raw ? parseInt(raw, 10) || 0 : 0;
+      } catch {
+        next[h] = 0;
+      }
     }
-    return initial;
-  });
+    setWeeklyCounts(prev => {
+      const merged = { ...prev };
+      for (const h of weeklyHabits) {
+        merged[h] = next[h];
+      }
+      // Remove stale habits that no longer exist in weeklyHabits
+      for (const k of Object.keys(merged)) {
+        if (!weeklyHabits.includes(k)) delete merged[k];
+      }
+      return merged;
+    });
+  }, [weeklyHabits, localDate]);
 
   const storageKey = `ascend.checklist.v2.${localDate}`;
 
