@@ -43,7 +43,7 @@ export default function SignupPage() {
       // sets isAuthed=true) fires before Wouter evaluates the route guard.
       // Without this, the router sees the old isAuthed=false on the first paint
       // and redirects to /login before the cache update propagates.
-      setTimeout(() => setLocation("/onboarding"), 0);
+      setTimeout(() => setLocation("/intro"), 0);
     } catch (err: any) {
       setError(err?.data?.error ?? "Could not create account");
     }

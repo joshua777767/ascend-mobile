@@ -26,6 +26,7 @@ import DeleteAccountPage from "@/pages/delete-account";
 import DataExportPage from "@/pages/data-export";
 import TrialReviewPage from "@/pages/trial-review";
 import AdminPage from "@/pages/admin";
+import IntroPage from "@/pages/intro";
 import { Layout } from "@/components/layout";
 import { WeeklyCheckInModal } from "@/components/WeeklyCheckInModal";
 import { useAuth } from "@/hooks/use-auth";
@@ -292,6 +293,7 @@ function AppRouter() {
       <Route path="/pricing" component={PricingPage} />
       <Route path="/privacy" component={PrivacyPolicyPage} />
       <Route path="/terms" component={TermsOfServicePage} />
+      <Route path="/intro">{isAuthed ? <IntroPage /> : <Redirect to="/login" />}</Route>
       <Route path="/onboarding">{isAuthed ? <OnboardingGuard /> : <Redirect to="/login" />}</Route>
       <Route path="/admin">{isAuthed ? <AdminPage /> : <Redirect to="/login" />}</Route>
       <Route path="/:rest*">{isAuthed ? <ProtectedApp /> : <Redirect to="/login" />}</Route>
