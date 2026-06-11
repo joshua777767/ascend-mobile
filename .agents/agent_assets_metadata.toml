@@ -1,8 +1,19 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "V2WE-53yuzt70In0y-IMi"
 uri = "file://artifacts/project-upgrade/public/icon-1024.png"
 type = "image"
 title = "ascend app icon metallic A arrow"
+
+[[outputs]]
+id = "DFH_N7m8S5Hq5ghuko5WD"
+uri = "file://artifacts/project-upgrade/public/icon-1024.png"
+type = "image"
+title = "Ascend App Icon — 1024×1024 (full size)"
+
+[[outputs]]
+id = "ZwwKP3epbdh7gVEVTZtuj"
+uri = "file://artifacts/project-upgrade/public/icon-32.png"
+type = "image"
+title = "Ascend Icon — 32×32 (browser tab size)"
