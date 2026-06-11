@@ -95,3 +95,45 @@ id = "TYqsBACWHhJHAQL38W3vD"
 uri = "file://artifacts/project-upgrade/public/icon-v3-32.png"
 type = "image"
 title = "Ascend v3 — 32×32 (Browser Tab)"
+
+[[outputs]]
+id = "kVl5IGfwlpTm_kfN91NQp"
+uri = "file://attached_assets/icon_concepts/icon-comparison.png"
+type = "image"
+title = "5 Concepts Side-by-Side (Horizontal)"
+
+[[outputs]]
+id = "wUbgte1ZXAmFTzvJD7ROc"
+uri = "file://attached_assets/icon_concepts/icon-comparison-grid.png"
+type = "image"
+title = "5 Concepts in Grid (3x2)"
+
+[[outputs]]
+id = "IWpEh5f7y7kg7loqEPU73"
+uri = "file://attached_assets/icon_concepts/ascend-concept-1.png"
+type = "image"
+title = "Concept 1: Bold Geometric A with Gold Dot"
+
+[[outputs]]
+id = "GLRT9f2gMDbmYkUUg-xMw"
+uri = "file://attached_assets/icon_concepts/ascend-concept-2.png"
+type = "image"
+title = "Concept 2: Single Stroke Line A"
+
+[[outputs]]
+id = "YV8YWvXJQMwFQ0tabjKOq"
+uri = "file://attached_assets/icon_concepts/ascend-concept-3.png"
+type = "image"
+title = "Concept 3: Nested Triangle A"
+
+[[outputs]]
+id = "hsG8wixwWfNCj_cIiAqBM"
+uri = "file://attached_assets/icon_concepts/ascend-concept-4.png"
+type = "image"
+title = "Concept 4: Growth Chart A"
+
+[[outputs]]
+id = "3kSlDMrx0TS8aGAf9Yth9"
+uri = "file://attached_assets/icon_concepts/ascend-concept-5.png"
+type = "image"
+title = "Concept 5: Double-Line Ascending A"
