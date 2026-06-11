@@ -939,10 +939,16 @@ export default function OnboardingPage() {
               </div>
 
               {/* Disclaimer */}
-              <div className="rounded-2xl bg-elevated border border-border p-4 flex gap-3">
-                <AlertTriangle className="w-[18px] h-[18px] text-warning shrink-0 mt-0.5" strokeWidth={2.2} />
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-[16px] h-[16px] text-amber-400 shrink-0" strokeWidth={2.2} />
+                  <p className="text-xs font-bold text-amber-400 uppercase tracking-wide">Health Notice</p>
+                </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Ascend is not medical advice. If you have a history of eating disorders, diabetes, pregnancy, or any serious health condition, consult a healthcare professional before starting.
+                  <strong className="text-foreground">Ascend is not medical advice.</strong> Consult a healthcare professional before starting any new diet or exercise program, especially if you have a history of eating disorders, heart disease, diabetes, pregnancy, hypertension, or any serious health condition.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Results are not guaranteed and vary by individual. You are responsible for your own health and safety decisions. By launching your plan, you confirm you have read and agreed to our <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Terms of Service</a>.
                 </p>
               </div>
 

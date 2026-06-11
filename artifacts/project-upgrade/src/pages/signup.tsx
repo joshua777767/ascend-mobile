@@ -16,6 +16,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -23,6 +24,10 @@ export default function SignupPage() {
     setError("");
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (!agreed) {
+      setError("You must agree to the Terms of Service and Privacy Policy.");
       return;
     }
     try {
@@ -112,6 +117,24 @@ export default function SignupPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Agreement checkbox */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded border-border accent-primary shrink-0"
+                  data-testid="checkbox-agree"
+                />
+                <span className="text-xs text-muted-foreground leading-relaxed">
+                  I am 18 or older and agree to the{" "}
+                  <Link href="/terms" className="text-primary font-semibold underline-offset-2 hover:underline" target="_blank">Terms of Service</Link>
+                  {" "}and{" "}
+                  <Link href="/privacy" className="text-primary font-semibold underline-offset-2 hover:underline" target="_blank">Privacy Policy</Link>
+                  . I understand that Ascend is not medical advice and I should consult a doctor before starting any diet or exercise program.
+                </span>
+              </label>
 
               {error && <p className="text-sm text-destructive">{error}</p>}
 
