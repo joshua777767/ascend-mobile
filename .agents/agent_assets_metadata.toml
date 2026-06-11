@@ -76,13 +76,13 @@ title = "ascend c2 concept 5 summit peak"
 id = "DFH_N7m8S5Hq5ghuko5WD"
 uri = "file://artifacts/project-upgrade/public/icon-1024.png"
 type = "image"
-title = "Ascend App Icon — 1024×1024 (full size)"
+title = "Ascend Final Icon — 1024×1024 (App Store Master)"
 
 [[outputs]]
 id = "ZwwKP3epbdh7gVEVTZtuj"
 uri = "file://artifacts/project-upgrade/public/icon-32.png"
 type = "image"
-title = "Ascend Icon — 32×32 (browser tab size)"
+title = "Ascend Final Icon — 32×32 (Browser Tab)"
 
 [[outputs]]
 id = "iJQg_BEcdxUZom0BqnNLZ"
