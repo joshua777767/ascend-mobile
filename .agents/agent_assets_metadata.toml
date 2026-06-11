@@ -12,6 +12,12 @@ uri = "file://artifacts/project-upgrade/public/icon-v2-1024.png"
 type = "image"
 title = "ascend v2 refined metallic A arrow"
 
+[[generated]]
+id = "NmEwDdi79TnkfAJZAZg5D"
+uri = "file://artifacts/project-upgrade/public/icon-v3-1024.png"
+type = "image"
+title = "ascend v3 bold metallic blue A gold arrow"
+
 [[outputs]]
 id = "DFH_N7m8S5Hq5ghuko5WD"
 uri = "file://artifacts/project-upgrade/public/icon-1024.png"
@@ -35,3 +41,27 @@ id = "Dcdm2bbg38dpm_rKNSWj9"
 uri = "file://artifacts/project-upgrade/public/icon-v2-32.png"
 type = "image"
 title = "Ascend Icon v2 — 32×32 (browser tab / favicon)"
+
+[[outputs]]
+id = "UmO4ZsdScx3T2AUKj8QGs"
+uri = "file://artifacts/project-upgrade/public/icon-v3-1024.png"
+type = "image"
+title = "Ascend v3 — 1024×1024 (App Store master)"
+
+[[outputs]]
+id = "HtH6agUlTZnjUa_GBB5W_"
+uri = "file://artifacts/project-upgrade/public/icon-v3-512.png"
+type = "image"
+title = "Ascend v3 — 512×512 (PWA / OG)"
+
+[[outputs]]
+id = "qdGfOsxxb8DJHI-4CZZvV"
+uri = "file://artifacts/project-upgrade/public/icon-v3-180.png"
+type = "image"
+title = "Ascend v3 — 180×180 (iOS Home Screen)"
+
+[[outputs]]
+id = "TYqsBACWHhJHAQL38W3vD"
+uri = "file://artifacts/project-upgrade/public/icon-v3-32.png"
+type = "image"
+title = "Ascend v3 — 32×32 (Browser Tab)"
