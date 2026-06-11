@@ -18,6 +18,36 @@ uri = "file://artifacts/project-upgrade/public/icon-v3-1024.png"
 type = "image"
 title = "ascend v3 bold metallic blue A gold arrow"
 
+[[generated]]
+id = "eyOvEDmAUcMV4lE4aIKU5"
+uri = "file://attached_assets/icon_concepts/ascend-concept-3.png"
+type = "image"
+title = "ascend concept 3 geometric triangle A"
+
+[[generated]]
+id = "pux4OCYnpykow_5jZEbHW"
+uri = "file://attached_assets/icon_concepts/ascend-concept-1.png"
+type = "image"
+title = "ascend concept 1 flat white A gold dot"
+
+[[generated]]
+id = "qU371qqOkc1WmxnFCzIxp"
+uri = "file://attached_assets/icon_concepts/ascend-concept-2.png"
+type = "image"
+title = "ascend concept 2 line art A single stroke"
+
+[[generated]]
+id = "ie9-HlwefYYu5z799blqi"
+uri = "file://attached_assets/icon_concepts/ascend-concept-4.png"
+type = "image"
+title = "ascend concept 4 growth chart A"
+
+[[generated]]
+id = "y2jIqX1L3ZVoGtWMOFfez"
+uri = "file://attached_assets/icon_concepts/ascend-concept-5.png"
+type = "image"
+title = "ascend concept 5 abstract converging lines"
+
 [[outputs]]
 id = "DFH_N7m8S5Hq5ghuko5WD"
 uri = "file://artifacts/project-upgrade/public/icon-1024.png"
