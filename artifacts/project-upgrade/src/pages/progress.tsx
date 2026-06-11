@@ -76,7 +76,10 @@ export default function ProgressPage() {
         description: "The scale doesn't lie. Your coach sees the work.",
         className: "ascend-toast-success",
       });
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Couldn't save weigh-in. Try again.", variant: "destructive" });
+    }
   };
 
   const handleSetNewGoal = async () => {
@@ -137,7 +140,10 @@ export default function ProgressPage() {
       setGoalTrend("");
       setGoalWhatHelped("");
       setGoalWhatHardened("");
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Couldn't save check-in. Try again.", variant: "destructive" });
+    }
   };
 
   const userGoals = (profile as any)?.goals ?? [];

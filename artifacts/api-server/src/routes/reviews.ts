@@ -26,8 +26,8 @@ async function generateCoachReview(entry: any, plan: any, profile: any): Promise
       entry.workedOut ? 20 : 0,
       entry.drankWater ? 10 : 0,
       entry.sleptOnTime ? 10 : 0,
-      Math.round((entry.energyRating / 10) * 5),
-      Math.round((entry.skinBloatingRating / 10) * 5),
+      Math.round(((entry.energyRating ?? 5) / 10) * 5),
+      Math.round(((entry.skinBloatingRating ?? 5) / 10) * 5),
     ];
     const score = checks.reduce((a, b) => a + b, 0);
     const onPace = score >= 60;

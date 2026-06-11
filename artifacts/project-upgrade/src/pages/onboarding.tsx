@@ -236,8 +236,14 @@ export default function OnboardingPage() {
   const toggleSkin = (s: string) => setSkinConcerns(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
   const toggleDigestion = (d: string) => setDigestionConcerns(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
 
+  const [goalError, setGoalError] = useState(false);
+
   const handleStep1 = form1.handleSubmit((data) => {
-    if (selectedGoals.length === 0) return;
+    if (selectedGoals.length === 0) {
+      setGoalError(true);
+      return;
+    }
+    setGoalError(false);
     setFormData(prev => ({ ...prev, ...data }));
     setStep(2);
   });
@@ -440,9 +446,11 @@ export default function OnboardingPage() {
                     <Chip key={g} label={g} selected={selectedGoals.includes(g)} onToggle={() => toggleGoal(g)} />
                   ))}
                 </div>
-                {selectedGoals.length === 0 && (
+                {goalError && selectedGoals.length === 0 ? (
+                  <p className="text-xs text-destructive font-semibold mt-2">Pick at least one goal to continue.</p>
+                ) : selectedGoals.length === 0 ? (
                   <p className="text-xs text-muted-foreground mt-2">Pick all that apply — at least one.</p>
-                )}
+                ) : null}
               </div>
 
               <Button type="submit" className="w-full h-14 rounded-2xl text-[15px] font-semibold gap-2" data-testid="button-next-step1">

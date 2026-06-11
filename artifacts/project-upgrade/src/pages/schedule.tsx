@@ -45,12 +45,17 @@ export default function SchedulePage() {
 
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editTime, setEditTime] = useState("");
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     if (profileError) setLocation("/onboarding");
   }, [profileError, setLocation]);
 
-  const now = new Date();
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
   const handleUpdate = async (
