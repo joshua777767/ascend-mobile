@@ -96,56 +96,45 @@ router.get("/progress/summary", async (req, res): Promise<void> => {
 });
 
 router.get("/progress/streak", async (req, res): Promise<void> => {
-  const journals = await db.select().from(journalEntriesTable)
-    .where(eq(journalEntriesTable.userId, getUserId(req)))
-    .orderBy(desc(journalEntriesTable.date));
+  const userId = getUserId(req);
 
-  let currentStreak = 0;
-  let longestStreak = 0;
-  let streak = 0;
-  let prevDate: Date | null = null;
+  const [profile, journals] = await Promise.all([
+    db.select({ currentStreak: userProfilesTable.currentStreak, lastStreakDate: userProfilesTable.lastStreakDate })
+      .from(userProfilesTable).where(eq(userProfilesTable.userId, userId)).then(r => r[0]),
+    db.select({ date: journalEntriesTable.date }).from(journalEntriesTable)
+      .where(eq(journalEntriesTable.userId, userId))
+      .orderBy(desc(journalEntriesTable.date)),
+  ]);
 
-  for (const entry of journals) {
-    const entryDate = new Date(entry.date);
-    if (prevDate === null) {
-      streak = 1;
-    } else {
-      const diff = (prevDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (diff === 1) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-    prevDate = entryDate;
-    if (streak > longestStreak) longestStreak = streak;
-  }
-  currentStreak = streak;
+  // currentStreak: always use the DB value so it matches what the dashboard shows
+  const currentStreak = profile?.currentStreak ?? 0;
 
-  // Recalculate longest
+  // longestStreak: scan journal history (longest consecutive run ever)
+  let longestStreak = currentStreak;
   let tempStreak = 0;
-  let tempPrev: Date | null = null;
+  let tempPrev: string | null = null;
   for (const entry of journals) {
-    const entryDate = new Date(entry.date);
     if (tempPrev === null) {
       tempStreak = 1;
     } else {
-      const diff = (tempPrev.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (diff === 1) {
+      // Compare date strings directly — both are YYYY-MM-DD UTC dates stored by the server
+      const prev = new Date(`${tempPrev}T00:00:00Z`);
+      const cur = new Date(`${entry.date}T00:00:00Z`);
+      const diffDays = Math.round((prev.getTime() - cur.getTime()) / 86_400_000);
+      if (diffDays === 1) {
         tempStreak++;
       } else {
-        if (tempStreak > longestStreak) longestStreak = tempStreak;
         tempStreak = 1;
       }
     }
-    tempPrev = entryDate;
+    if (tempStreak > longestStreak) longestStreak = tempStreak;
+    tempPrev = entry.date;
   }
-  if (tempStreak > longestStreak) longestStreak = tempStreak;
 
   res.json({
     currentStreak,
     longestStreak,
-    lastActiveDate: journals.length > 0 ? journals[0].date : getUserToday(req),
+    lastActiveDate: profile?.lastStreakDate ?? (journals.length > 0 ? journals[0].date : getUserToday(req)),
   });
 });
 
