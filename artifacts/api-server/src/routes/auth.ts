@@ -69,7 +69,7 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
     const passwordHash = await hashPassword(password);
     await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, existing.id));
 
-    req.session.regenerate(async (err) => {
+    req.session.regenerate((err) => {
       if (err) {
         req.log.error({ err, maskedEmail, userId: existing.id }, "signup: session failed on partial-account retry");
         res.status(500).json({ error: "Account creation failed. Please try again." });
@@ -85,11 +85,9 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   const passwordHash = await hashPassword(password);
   const [user] = await db.insert(usersTable).values({ email, passwordHash }).returning();
 
-  req.session.regenerate(async (err) => {
+  req.session.regenerate((err) => {
     if (err) {
-      // Roll back the user row so the email is free to retry.
-      req.log.error({ err, maskedEmail, userId: user.id }, "signup: session failed, rolling back user row");
-      try { await db.delete(usersTable).where(eq(usersTable.id, user.id)); } catch {}
+      req.log.error({ err, maskedEmail, userId: user.id }, "signup: session failed");
       res.status(500).json({ error: "Account creation failed. Please try again." });
       return;
     }
