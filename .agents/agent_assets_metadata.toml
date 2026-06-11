@@ -203,3 +203,45 @@ id = "XD-zEEwh0xon6Ccfqe33D"
 uri = "file://attached_assets/icon_concepts/ascend-c2-5.png"
 type = "image"
 title = "Concept 5: Summit Peak (Achievement Peak)"
+
+[[outputs]]
+id = "fq3vqYNpIoufa-lPajwAd"
+uri = "file://attached_assets/icon_concepts/all-programmatic.png"
+type = "image"
+title = "All 6 Programmatic Concepts (Grid)"
+
+[[outputs]]
+id = "q-BEKgYLALKAtQIwh0zyJ"
+uri = "file://attached_assets/icon_concepts/concept-p-A.png"
+type = "image"
+title = "A: Bold Upward Arrow (Geometric Peak)"
+
+[[outputs]]
+id = "xXFxRotdv2rIo06-4zFPY"
+uri = "file://attached_assets/icon_concepts/concept-p-B.png"
+type = "image"
+title = "B: Double Peak (Growth Rings)"
+
+[[outputs]]
+id = "v3fi-K0niWpOfV1vYHz2l"
+uri = "file://attached_assets/icon_concepts/concept-p-C.png"
+type = "image"
+title = "C: Rising Trajectory (Growth Curve)"
+
+[[outputs]]
+id = "m95l5Ezn3QshyyvHLJVOH"
+uri = "file://attached_assets/icon_concepts/concept-p-D.png"
+type = "image"
+title = "D: Geometric Diamond (Summit Peak)"
+
+[[outputs]]
+id = "zo-x8EMTaWdk0UyOVxspm"
+uri = "file://attached_assets/icon_concepts/concept-p-E.png"
+type = "image"
+title = "E: Progress Steps (Ascending Bars)"
+
+[[outputs]]
+id = "EylkYgzPmPUUqVOHn0R0d"
+uri = "file://attached_assets/icon_concepts/concept-p-F.png"
+type = "image"
+title = "F: Shield + Arrow (Strength & Growth)"

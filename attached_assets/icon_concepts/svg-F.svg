@@ -1,0 +1,10 @@
+<svg width="400" height="400" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1024" height="1024" fill="#020B1F"/>
+    <!-- Shield shape -->
+    <path d="M 512 180 L 200 340 L 200 560 Q 200 760 512 880 Q 824 760 824 560 L 824 340 Z" fill="#0B1A3A" stroke="#0EA5E9" stroke-width="40" stroke-linejoin="round"/>
+    <!-- Inner upward arrow -->
+    <polygon points="512,380 420,580 604,580" fill="#0EA5E9"/>
+    <rect x="472" y="580" width="80" height="160" rx="10" fill="#0EA5E9"/>
+    <!-- Gold tip -->
+    <polygon points="512,380 490,420 534,420" fill="#F59E0B"/>
+  </svg>
