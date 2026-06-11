@@ -74,16 +74,16 @@ export default function CoachPage() {
               >
                 <div
                   className={cn(
-                    "max-w-[85%] px-4 py-3 text-sm",
+                    "max-w-[85%] px-4 py-3 text-sm rounded-2xl",
                     msg.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card border border-border text-foreground"
+                      ? "rounded-br-sm bg-primary text-primary-foreground"
+                      : "rounded-bl-sm bg-card border border-border text-foreground"
                   )}
                 >
                   {msg.role === "assistant" && (
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1.5">Coach</p>
                   )}
-                  <p className="leading-relaxed">{msg.content}</p>
+                  <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                   <p className={cn("text-[10px] mt-1.5 opacity-60")}>
                     {new Date(msg.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                   </p>
@@ -92,7 +92,7 @@ export default function CoachPage() {
             ))}
             {sendMessage.isPending && (
               <div className="flex justify-start">
-                <div className="bg-card border border-border px-4 py-3 text-sm max-w-[85%]">
+                <div className="bg-card border border-border px-4 py-3 text-sm max-w-[85%] rounded-2xl rounded-bl-sm">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1.5">Coach</p>
                   <div className="flex gap-1">
                     <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />

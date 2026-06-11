@@ -18,6 +18,25 @@ import { getUserId } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
+function safeParseArr(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const v = JSON.parse(json);
+    return Array.isArray(v) ? v.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
+function parseProfileArrays(profile: typeof userProfilesTable.$inferSelect) {
+  return {
+    ...profile,
+    goals: safeParseArr(profile.goals),
+    skinConcerns: safeParseArr(profile.skinConcerns),
+    digestionConcerns: safeParseArr(profile.digestionConcerns),
+  };
+}
+
 router.get("/users/profile", async (req, res): Promise<void> => {
   const userId = getUserId(req);
   const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, userId));
@@ -25,13 +44,7 @@ router.get("/users/profile", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Profile not found" });
     return;
   }
-  const parsed = {
-    ...profile,
-    goals: JSON.parse(profile.goals || "[]"),
-    skinConcerns: JSON.parse(profile.skinConcerns || "[]"),
-    digestionConcerns: JSON.parse(profile.digestionConcerns || "[]"),
-  };
-  res.json(parsed);
+  res.json(parseProfileArrays(profile));
 });
 
 router.post("/users/profile", async (req, res): Promise<void> => {
@@ -61,12 +74,7 @@ router.post("/users/profile", async (req, res): Promise<void> => {
     [profile] = await db.insert(userProfilesTable).values(values).returning();
   }
 
-  res.status(201).json({
-    ...profile,
-    goals: JSON.parse(profile.goals || "[]"),
-    skinConcerns: JSON.parse(profile.skinConcerns || "[]"),
-    digestionConcerns: JSON.parse(profile.digestionConcerns || "[]"),
-  });
+  res.status(201).json(parseProfileArrays(profile));
 });
 
 router.patch("/users/profile", async (req, res): Promise<void> => {
@@ -93,12 +101,7 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json({
-    ...profile,
-    goals: JSON.parse(profile.goals || "[]"),
-    skinConcerns: JSON.parse(profile.skinConcerns || "[]"),
-    digestionConcerns: JSON.parse(profile.digestionConcerns || "[]"),
-  });
+  res.json(parseProfileArrays(profile));
 });
 
 // Update goal: set a new goal weight and reset goal tracking
@@ -131,12 +134,7 @@ router.patch("/users/profile/goal", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json({
-    ...profile,
-    goals: JSON.parse(profile.goals || "[]"),
-    skinConcerns: JSON.parse(profile.skinConcerns || "[]"),
-    digestionConcerns: JSON.parse(profile.digestionConcerns || "[]"),
-  });
+  res.json(parseProfileArrays(profile));
 });
 
 // Reset my profile: wipe all of this user's data so they can re-onboard.

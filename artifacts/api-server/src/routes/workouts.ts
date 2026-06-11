@@ -65,12 +65,18 @@ router.patch("/workouts/:id/complete", async (req, res): Promise<void> => {
     return;
   }
 
-  const [workout] = await db.select().from(workoutsTable)
+  const [existing] = await db.select().from(workoutsTable)
     .where(and(eq(workoutsTable.id, id), eq(workoutsTable.userId, getUserId(req))));
-  if (!workout) {
+  if (!existing) {
     res.status(404).json({ error: "Workout not found" });
     return;
   }
+
+  const [workout] = await db
+    .update(workoutsTable)
+    .set({ completedAt: new Date() })
+    .where(and(eq(workoutsTable.id, id), eq(workoutsTable.userId, getUserId(req))))
+    .returning();
 
   res.json(workout);
 });
