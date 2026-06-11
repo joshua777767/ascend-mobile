@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "V2WE-53yuzt70In0y-IMi"
+uri = "file://artifacts/project-upgrade/public/icon-1024.png"
+type = "image"
+title = "ascend app icon metallic A arrow"
