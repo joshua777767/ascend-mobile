@@ -17,6 +17,7 @@ import { openai } from "../lib/openai";
 import { logger } from "../lib/logger";
 import { getUserId } from "../middlewares/auth";
 import { getSportContextForCoach, parseCustomWorkoutSchedule } from "../lib/sportUtils";
+import { detectWorkoutRequest, buildBodyPartWorkout, buildGoalWorkout, getWorkoutKnowledgeText } from "../lib/coachWorkoutKnowledge";
 
 const router: IRouter = Router();
 
@@ -366,7 +367,27 @@ function heuristicReply(message: string, ctx: ChatContext): string {
     return `Staying fit is just refusing to drift. Keep training ${days}x/week, hold ${proStr}, walk daily, and sleep on schedule. Maintenance is a skill — protect your habits and you keep everything you built.`;
   }
 
-  // 12. Workouts / training
+  // 12a. Specific body-part workouts (use the elite workout knowledge module)
+  const workoutDetect = detectWorkoutRequest(message);
+  if (workoutDetect.bodyPart) {
+    return buildBodyPartWorkout(
+      workoutDetect.bodyPart,
+      workoutDetect.level,
+      workoutDetect.location,
+      workoutDetect.injury || undefined
+    );
+  }
+  if (workoutDetect.goal && (has(m, ["workout", "program", "split", "routine", "plan"]) || has(m, ["days", "week"]))) {
+    return buildGoalWorkout(
+      workoutDetect.goal,
+      workoutDetect.level,
+      workoutDetect.location,
+      ctx.profile?.workoutDaysPerWeek || 3,
+      workoutDetect.injury || undefined
+    );
+  }
+
+  // 12b. General workout / training
   if (has(m, ["workout", "work out", "exercise", "train", "training", "gym", "lift", "cardio", "routine"])) {
     return `Keep it simple and consistent: ${days}x/week, compound movements, progressive overload. A focused 40 minutes beats a random 90. Check your Workouts tab and execute today's session.`;
   }
@@ -618,6 +639,7 @@ router.post("/chat", async (req, res): Promise<void> => {
   // Build goal-specific meal options for the system prompt
   const goalType = plan?.goalType ?? "general";
   const mealOptionsText = goalType !== "general" ? formatMealOptions(goalType) : formatMealOptions("maintain");
+  const workoutKnowledgeText = getWorkoutKnowledgeText();
 
   const systemPrompt = `You are Ascend — the user's personal coach, texting them directly. You've been coaching them. You know their situation. You've seen their meals, workouts, and journal. You remember what they've told you.
 
@@ -660,6 +682,12 @@ GOAL MATH (one sentence max):
 MEAL QUESTIONS: Give 2–3 specific options with rough protein. Don't explain physiology. Just say what to eat.
 Goal-appropriate options (reference only — don't list all):
 ${mealOptionsText}
+
+---
+
+WORKOUT QUESTIONS — you have a full exercise database. When the user asks about workouts, exercises, body parts, or training, give SPECIFIC exercises with sets, reps, rest, form cues, and substitutions. Never give vague answers.
+
+${workoutKnowledgeText}
 
 ---
 

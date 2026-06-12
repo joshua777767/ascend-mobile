@@ -1,0 +1,70 @@
+Upgrade the Ascend Coach into an elite fitness coach with a structured workout knowledge system.
+
+Create a reusable coach knowledge module that the AI coach uses whenever users ask about workouts, exercises, body parts, gym routines, home workouts, muscle gain, fat loss, strength, or athletic performance.
+
+The coach must give specific workouts with:
+- Exercises
+- Sets
+- Reps
+- Rest times
+- Form cues
+- Progression advice
+- Beginner/intermediate/advanced options
+- Home/gym substitutions
+- Safety warnings when needed
+
+Add workout knowledge for:
+
+Chest:
+Bench press, incline dumbbell press, machine chest press, dips, pushups, cable flys, pec deck.
+
+Back:
+Pullups, lat pulldown, barbell rows, dumbbell rows, seated cable rows, deadlifts, back extensions.
+
+Shoulders:
+Overhead press, dumbbell shoulder press, lateral raises, rear delt flys, face pulls, front raises.
+
+Biceps:
+Barbell curls, dumbbell curls, hammer curls, preacher curls, incline curls, cable curls.
+
+Triceps:
+Rope pushdowns, skull crushers, overhead extensions, close-grip bench, dips.
+
+Legs:
+Squats, leg press, lunges, Bulgarian split squats, RDLs, hamstring curls, leg extensions, calf raises.
+
+Core:
+Planks, hanging knee raises, cable crunches, dead bugs, Russian twists, ab wheel.
+
+Glutes:
+Hip thrusts, glute bridges, RDLs, cable kickbacks, step-ups.
+
+Forearms:
+Wrist curls, reverse curls, farmer carries, dead hangs.
+
+Rules:
+- If user asks “chest workout,” give a full chest workout.
+- If user asks “workout for muscle gain,” give hypertrophy structure.
+- If user asks “home workout,” use bodyweight/bands.
+- If user asks “beginner,” make it simple and safe.
+- If user asks with an injury, avoid painful exercises and suggest safer alternatives.
+- Never give generic vague answers.
+- Keep responses short enough to be useful but detailed enough to feel like a real coach.
+
+Example response style:
+“Chest Workout — Gym
+1. Barbell Bench Press — 4x6-8, rest 2 min
+2. Incline Dumbbell Press — 3x8-10, rest 90 sec
+3. Chest Dips — 3x8-12
+4. Cable Flys — 3x12-15
+5. Pushups — 2 sets near failure
+
+Form cues: control the lowering, keep shoulder blades back, don’t bounce the bar.
+Progression: when you hit the top reps on all sets, increase weight next session.”
+
+Add this to the coach system prompt / backend coach instruction layer so every coach chat uses it.
+
+After implementation:
+- Run typecheck
+- Test coach prompts for chest, back, legs, arms, shoulders, abs, home workout, beginner workout, and injury-safe workout
+- Report results
