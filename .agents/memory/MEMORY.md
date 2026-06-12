@@ -6,3 +6,4 @@
 - [Orval naming conflict](orval-naming-conflict.md) — request body schema names must differ from operationId+"Body" to avoid TS2308 export ambiguity between generated types/ and api.ts.
 - [Goal check-in status detection](goal-checkin-status.md) — `determineStatus` receives `previousScores` in *newest-first* order (SQL DESC). `slice(0, 2)` for most recent, `slice(-2)` for oldest. Mixing these causes plateau/achieved detection to be inverted. Always test with fresh data. See `goalCheckins.ts`.
 - [Streak timezone + mutation cache](streak-timezone-mutation-cache.md) — noon-UTC anchor for date math; mutation results must be written into query cache.
+- [iOS Safari scroll on standalone pages](ios-safari-scroll.md) — standalone pages (no Layout) need their own scroll container: `height: 100dvh; overflow-y: auto; -webkit-overflow-scrolling: touch`. `min-h-full` or `min-h-screen` won't scroll because `#root` is `height: 100dvh`.
