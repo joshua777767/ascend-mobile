@@ -904,3 +904,77 @@ export const CreateGoalCheckInBody = zod.object({
 })
 
 
+/**
+ * @summary Get today's daily score breakdown
+ */
+export const GetDailyScoreResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "date": zod.string(),
+  "totalScore": zod.number(),
+  "caloriesScore": zod.number(),
+  "proteinScore": zod.number(),
+  "waterScore": zod.number(),
+  "workoutScore": zod.number(),
+  "sleepScore": zod.number(),
+  "todayCalories": zod.number().optional(),
+  "todayProtein": zod.number().optional(),
+  "todayWaterOz": zod.number().optional(),
+  "hasWorkout": zod.boolean().optional(),
+  "calorieTarget": zod.number().optional(),
+  "proteinTarget": zod.number().optional(),
+  "waterTarget": zod.number().optional(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get all daily scores for the user
+ */
+export const GetDailyScoreHistoryResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "date": zod.string(),
+  "totalScore": zod.number(),
+  "caloriesScore": zod.number(),
+  "proteinScore": zod.number(),
+  "waterScore": zod.number(),
+  "workoutScore": zod.number(),
+  "sleepScore": zod.number(),
+  "todayCalories": zod.number().optional(),
+  "todayProtein": zod.number().optional(),
+  "todayWaterOz": zod.number().optional(),
+  "hasWorkout": zod.boolean().optional(),
+  "calorieTarget": zod.number().optional(),
+  "proteinTarget": zod.number().optional(),
+  "waterTarget": zod.number().optional(),
+  "createdAt": zod.coerce.date()
+})
+export const GetDailyScoreHistoryResponse = zod.array(GetDailyScoreHistoryResponseItem)
+
+
+/**
+ * @summary Get the latest weekly review
+ */
+export const GetWeeklyReviewResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "weekNumber": zod.number(),
+  "startDate": zod.string(),
+  "endDate": zod.string(),
+  "weightChangeLbs": zod.number(),
+  "calorieConsistency": zod.number(),
+  "proteinConsistency": zod.number(),
+  "waterConsistency": zod.number(),
+  "workoutConsistency": zod.number(),
+  "streakSummary": zod.string(),
+  "whatToImprove": zod.string(),
+  "goalPace": zod.string(),
+  "estimatedGoalDate": zod.string().nullish(),
+  "currentPace": zod.number().nullish(),
+  "status": zod.string(),
+  "coachMessage": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+

@@ -31,6 +31,7 @@ import type {
   CreateCheckout200,
   CreatePortal200,
   DailySchedule,
+  DailyScore,
   ForgotPasswordInput,
   GetMilestones200,
   GetProducts200,
@@ -60,6 +61,7 @@ import type {
   UserProfileUpdate,
   WaterSummary,
   WeeklyRecap,
+  WeeklyReview,
   WeighIn,
   WeighInInput,
   Workout,
@@ -3621,5 +3623,306 @@ export const useCreateGoalCheckIn = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCreateGoalCheckInMutationOptions(options));
+    }
+
+export const getGetDailyScoreUrl = () => {
+
+
+
+
+  return `/api/daily-score`
+}
+
+/**
+ * @summary Get today's daily score breakdown
+ */
+export const getDailyScore = async ( options?: RequestInit): Promise<DailyScore> => {
+
+  return customFetch<DailyScore>(getGetDailyScoreUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDailyScoreQueryKey = () => {
+    return [
+    `/api/daily-score`
+    ] as const;
+    }
+
+
+export const getGetDailyScoreQueryOptions = <TData = Awaited<ReturnType<typeof getDailyScore>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDailyScore>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDailyScoreQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDailyScore>>> = ({ signal }) => getDailyScore({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDailyScore>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDailyScoreQueryResult = NonNullable<Awaited<ReturnType<typeof getDailyScore>>>
+export type GetDailyScoreQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get today's daily score breakdown
+ */
+
+export function useGetDailyScore<TData = Awaited<ReturnType<typeof getDailyScore>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDailyScore>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDailyScoreQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetDailyScoreHistoryUrl = () => {
+
+
+
+
+  return `/api/daily-score/history`
+}
+
+/**
+ * @summary Get all daily scores for the user
+ */
+export const getDailyScoreHistory = async ( options?: RequestInit): Promise<DailyScore[]> => {
+
+  return customFetch<DailyScore[]>(getGetDailyScoreHistoryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDailyScoreHistoryQueryKey = () => {
+    return [
+    `/api/daily-score/history`
+    ] as const;
+    }
+
+
+export const getGetDailyScoreHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getDailyScoreHistory>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDailyScoreHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDailyScoreHistoryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDailyScoreHistory>>> = ({ signal }) => getDailyScoreHistory({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDailyScoreHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDailyScoreHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getDailyScoreHistory>>>
+export type GetDailyScoreHistoryQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get all daily scores for the user
+ */
+
+export function useGetDailyScoreHistory<TData = Awaited<ReturnType<typeof getDailyScoreHistory>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDailyScoreHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDailyScoreHistoryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetWeeklyReviewUrl = () => {
+
+
+
+
+  return `/api/weekly-review`
+}
+
+/**
+ * @summary Get the latest weekly review
+ */
+export const getWeeklyReview = async ( options?: RequestInit): Promise<WeeklyReview> => {
+
+  return customFetch<WeeklyReview>(getGetWeeklyReviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWeeklyReviewQueryKey = () => {
+    return [
+    `/api/weekly-review`
+    ] as const;
+    }
+
+
+export const getGetWeeklyReviewQueryOptions = <TData = Awaited<ReturnType<typeof getWeeklyReview>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWeeklyReview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWeeklyReviewQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWeeklyReview>>> = ({ signal }) => getWeeklyReview({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWeeklyReview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWeeklyReviewQueryResult = NonNullable<Awaited<ReturnType<typeof getWeeklyReview>>>
+export type GetWeeklyReviewQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the latest weekly review
+ */
+
+export function useGetWeeklyReview<TData = Awaited<ReturnType<typeof getWeeklyReview>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWeeklyReview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWeeklyReviewQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateWeeklyReviewUrl = () => {
+
+
+
+
+  return `/api/weekly-review`
+}
+
+/**
+ * @summary Generate a new weekly review
+ */
+export const createWeeklyReview = async ( options?: RequestInit): Promise<WeeklyReview> => {
+
+  return customFetch<WeeklyReview>(getCreateWeeklyReviewUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCreateWeeklyReviewMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWeeklyReview>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createWeeklyReview>>, TError,void, TContext> => {
+
+const mutationKey = ['createWeeklyReview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWeeklyReview>>, void> = () => {
+
+
+          return  createWeeklyReview(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateWeeklyReviewMutationResult = NonNullable<Awaited<ReturnType<typeof createWeeklyReview>>>
+
+    export type CreateWeeklyReviewMutationError = ErrorType<void>
+
+    /**
+ * @summary Generate a new weekly review
+ */
+export const useCreateWeeklyReview = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWeeklyReview>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createWeeklyReview>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCreateWeeklyReviewMutationOptions(options));
     }
 

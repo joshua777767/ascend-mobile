@@ -13,6 +13,8 @@ import {
   useRecordStreak,
   useGetProgressSummary,
   useListGoalCheckIns,
+  useGetDailyScore,
+  useSendChatMessage,
   getGetWaterTodayQueryKey,
   getGetTodayMealsQueryKey,
   getGetTodayWorkoutQueryKey,
@@ -20,6 +22,7 @@ import {
   getGetStreakQueryKey,
   getGetProgressSummaryQueryKey,
   getListGoalCheckInsQueryKey,
+  getGetChatHistoryQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,6 +47,11 @@ import {
   Star,
   Zap,
   Medal,
+  AlertTriangle,
+  Cookie,
+  Dumbbell as DumbbellIcon,
+  Frown,
+  UtensilsCrossed,
 } from "lucide-react";
 
 // ─── image util ───────────────────────────────────────────────────────────────
@@ -633,6 +641,10 @@ export default function DashboardPage() {
   const { data: goalCheckIns } = useListGoalCheckIns({
     query: { queryKey: [...getListGoalCheckInsQueryKey(), localDate] },
   });
+  const { data: dailyScore } = useGetDailyScore({
+    query: { queryKey: ["dailyScore", localDate] },
+  });
+  const sendChatMessage = useSendChatMessage();
 
   useEffect(() => { refetchMeals(); }, [refetchMeals]);
   useEffect(() => { refetchWater(); }, [refetchWater]);
@@ -863,8 +875,10 @@ export default function DashboardPage() {
   const reviewScore = review && typeof review.dailyScore === "number" ? review.dailyScore : null;
   const firstName = profile.name?.split(" ")[0] ?? profile.name;
 
-  // Blended Ascend Score — reflects real daily progress across 4 signals
-  // Weights: calories 30 | protein 25 | water 20 | mission checklist 25 = 100 pts max
+  // New daily score from API: calories 25 | protein 25 | water 20 | workout 20 | sleep 10 = 100
+  const apiScore = dailyScore && typeof dailyScore.totalScore === "number" ? dailyScore.totalScore : null;
+
+  // Fallback blended score (old logic) for users before API score exists
   const calorieProgress = plan && plan.calorieTarget > 0
     ? Math.min(todayCalories / plan.calorieTarget, 1) : 0;
   const proteinProgress = plan && plan.proteinTargetG > 0
@@ -879,7 +893,7 @@ export default function DashboardPage() {
     missionProgress * 25,
   );
 
-  const displayScore = reviewScore !== null ? reviewScore : ascendScore;
+  const displayScore = apiScore !== null ? apiScore : (reviewScore !== null ? reviewScore : ascendScore);
   const hasAnyData = todayCalories > 0 || todayProtein > 0 || waterOz > 0 || checklistCompleted > 0;
 
   // Streak: fires automatically when the Ascend Score ring hits 70+
@@ -1386,6 +1400,86 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* ── Daily Score Breakdown ── */}
+        {dailyScore && typeof dailyScore.totalScore === "number" && (
+          <div
+            className="rounded-2xl p-4 space-y-3"
+            style={{
+              background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+              border: "1px solid hsl(217 32% 15%)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <p className="label-caps text-muted-foreground">Score Breakdown</p>
+              <span className="text-[10px] font-bold text-muted-foreground">{dailyScore.totalScore}/100</span>
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {[
+                { label: "Calories", score: dailyScore.caloriesScore, max: 25, color: "#3B82F6" },
+                { label: "Protein", score: dailyScore.proteinScore, max: 25, color: "#10B981" },
+                { label: "Water", score: dailyScore.waterScore, max: 20, color: "#06B6D4" },
+                { label: "Workout", score: dailyScore.workoutScore, max: 20, color: "#F59E0B" },
+                { label: "Sleep", score: dailyScore.sleepScore, max: 10, color: "#8B5CF6" },
+              ].map((item) => (
+                <div key={item.label} className="text-center space-y-1">
+                  <div className="relative h-16 rounded-lg overflow-hidden" style={{ background: "hsl(218 46% 12%)" }}>
+                    <div
+                      className="absolute bottom-0 left-0 right-0 rounded-lg transition-all duration-500"
+                      style={{
+                        height: `${item.max > 0 ? Math.round((item.score / item.max) * 100) : 0}%`,
+                        background: item.color,
+                        opacity: 0.8,
+                      }}
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
+                      {item.score}
+                    </span>
+                  </div>
+                  <p className="text-[8px] font-bold tracking-[0.12em] uppercase text-muted-foreground">{item.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Emergency Coach Buttons ── */}
+        <div>
+          <p className="label-caps text-muted-foreground mb-3">Emergency Coach</p>
+          <div className="grid grid-cols-3 gap-2.5">
+            {([
+              { icon: Cookie, label: "Craving junk", msg: "I'm craving junk food right now. Help me stay on track." },
+              { icon: DumbbellIcon, label: "Missed workout", msg: "I missed my workout today. What should I do now?" },
+              { icon: UtensilsCrossed, label: "Overate today", msg: "I overate today. How do I recover without spiraling?" },
+              { icon: Frown, label: "Unmotivated", msg: "I feel unmotivated right now. Give me a reason to keep going." },
+              { icon: AlertTriangle, label: "What to eat?", msg: "What should I eat right now that fits my plan?" },
+            ] as const).map(({ icon: Icon, label, msg }) => (
+              <button
+                key={label}
+                type="button"
+                onClick={async () => {
+                  try {
+                    await sendChatMessage.mutateAsync({ data: { message: msg } });
+                    queryClient.invalidateQueries({ queryKey: getGetChatHistoryQueryKey() });
+                    setLocation("/coach");
+                  } catch { /* ignore */ }
+                }}
+                className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-left text-[11px] font-semibold active:scale-[0.97] transition-all"
+                style={{
+                  background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+                  border: "1px solid hsl(217 32% 15%)",
+                  color: "hsl(215 22% 70%)",
+                }}
+              >
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(245,158,11,0.12)" }}>
+                  <Icon className="w-3.5 h-3.5" style={{ color: "#F59E0B" }} strokeWidth={2.2} />
+                </div>
+                <span className="leading-tight">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* ── Daily Mission Checklist ── */}
         {dailyHabits.length > 0 && (

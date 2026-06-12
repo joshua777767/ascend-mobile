@@ -6,6 +6,7 @@ import {
   useListReviews, useGetUserProfile, useUpdateGoal,
   useListGoalCheckIns, useCreateGoalCheckIn,
   useGetMilestones, useGetWeeklyRecap,
+  useGetDailyScoreHistory, useGetWeeklyReview,
   getListWeighInsQueryKey, getGetProgressSummaryQueryKey, getGetMissionStreakQueryKey,
   getGetUserProfileQueryKey, getListGoalCheckInsQueryKey
 } from "@workspace/api-client-react";
@@ -15,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { TrendingDown, TrendingUp, Minus, CheckCircle, XCircle, Trophy, ArrowRight, Target, Sparkles, Star, Medal, Lock, BarChart2, Weight } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus, CheckCircle, XCircle, Trophy, ArrowRight, Target, Sparkles, Star, Medal, Lock, BarChart2, Weight, Calendar, Flame, Zap, BarChart3 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export default function ProgressPage() {
@@ -29,6 +30,8 @@ export default function ProgressPage() {
   const { data: goalCheckIns } = useListGoalCheckIns();
   const { data: milestonesData } = useGetMilestones();
   const { data: weeklyRecap } = useGetWeeklyRecap();
+  const { data: dailyScoreHistory } = useGetDailyScoreHistory();
+  const { data: weeklyReview } = useGetWeeklyReview();
   const createWeighIn = useCreateWeighIn();
   const createGoalCheckIn = useCreateGoalCheckIn();
   const updateGoal = useUpdateGoal();
@@ -340,6 +343,124 @@ export default function ProgressPage() {
                 <p className="text-xs text-muted-foreground italic">"{weeklyRecap.topWin}"</p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── Daily Score Trend ── */}
+        {dailyScoreHistory && dailyScoreHistory.length > 1 && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Daily Score Trend</p>
+            </div>
+            <div className="bg-card border border-border p-4 h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={dailyScoreHistory.slice(-14).map((d) => ({
+                  day: d.date.slice(5),
+                  score: d.totalScore,
+                }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="day" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} domain={[0, 100]} />
+                  <Tooltip
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 0 }}
+                    labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600, fontSize: 11 }}
+                    itemStyle={{ color: "hsl(var(--primary))" }}
+                  />
+                  <Line type="monotone" dataKey="score" stroke="#F59E0B" strokeWidth={2} dot={{ fill: "#F59E0B", r: 2 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* ── Weekly Review Card ── */}
+        {weeklyReview && (
+          <div
+            className="rounded-2xl p-4 space-y-3"
+            style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", boxShadow: "0 0 24px rgba(245,158,11,0.06)" }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4" style={{ color: "#F59E0B" }} />
+                <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#F59E0B" }}>
+                  Week {weeklyReview.weekNumber} Review
+                </p>
+              </div>
+              <span className={cn(
+                "text-[9px] font-bold px-2 py-0.5 rounded-full",
+                weeklyReview.status === "ahead" ? "bg-green-500/15 text-green-400" :
+                weeklyReview.status === "on_track" ? "bg-blue-500/15 text-blue-400" :
+                "bg-amber-500/15 text-amber-400"
+              )}>
+                {weeklyReview.status === "ahead" ? "Ahead" : weeklyReview.status === "on_track" ? "On Track" : "Behind"}
+              </span>
+            </div>
+            <p className="text-sm font-medium leading-snug">{weeklyReview.coachMessage}</p>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: "Calories", value: weeklyReview.calorieConsistency, color: "#3B82F6" },
+                { label: "Protein", value: weeklyReview.proteinConsistency, color: "#10B981" },
+                { label: "Water", value: weeklyReview.waterConsistency, color: "#06B6D4" },
+                { label: "Train", value: weeklyReview.workoutConsistency, color: "#F59E0B" },
+              ].map((item) => (
+                <div key={item.label} className="text-center">
+                  <p className="text-lg font-black" style={{ color: item.color }}>{item.value}<span className="text-[10px] font-bold text-muted-foreground">/7</span></p>
+                  <p className="text-[8px] font-bold tracking-wider uppercase text-muted-foreground">{item.label}</p>
+                </div>
+              ))}
+            </div>
+            {weeklyReview.estimatedGoalDate && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Goal date: {weeklyReview.estimatedGoalDate}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Goal Date Predictor ── */}
+        {weeklyReview && weeklyReview.currentPace != null && (
+          <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-primary" />
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Goal Pace Predictor</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">Current pace</p>
+                <p className="text-lg font-bold">
+                  {weeklyReview.currentPace > 0 ? "+" : ""}{weeklyReview.currentPace.toFixed(2)} lbs/week
+                </p>
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">Target pace</p>
+                <p className="text-lg font-bold">
+                  {weeklyReview.goalPace?.includes("gain") ? "+0.4" : "-1.0"} lbs/week
+                </p>
+              </div>
+            </div>
+            {weeklyReview.estimatedGoalDate && (
+              <div className="flex items-center gap-2 text-sm text-foreground">
+                <Calendar className="w-4 h-4 text-primary" />
+                <span className="font-semibold">Estimated goal date: {weeklyReview.estimatedGoalDate}</span>
+              </div>
+            )}
+            <div className="h-2 rounded-full bg-elevated overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{
+                  width: `${Math.min(
+                    Math.abs(weeklyReview.currentPace || 0) / (weeklyReview.goalPace?.includes("gain") ? 0.4 : 1.0) * 100,
+                    100
+                  )}%`,
+                }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {weeklyReview.status === "ahead" ? "You're ahead of target. Keep the pressure on." :
+               weeklyReview.status === "on_track" ? "Right on pace. Stay consistent." :
+               "Behind target. Review this week's plan with your coach."}
+            </p>
           </div>
         )}
 

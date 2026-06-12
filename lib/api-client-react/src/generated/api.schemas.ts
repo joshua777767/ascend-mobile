@@ -742,6 +742,49 @@ export interface StripeProduct {
   prices?: StripeProductPricesItem[];
 }
 
+export interface DailyScore {
+  id: number;
+  userId: number;
+  date: string;
+  totalScore: number;
+  caloriesScore: number;
+  proteinScore: number;
+  waterScore: number;
+  workoutScore: number;
+  sleepScore: number;
+  todayCalories?: number;
+  todayProtein?: number;
+  todayWaterOz?: number;
+  hasWorkout?: boolean;
+  calorieTarget?: number;
+  proteinTarget?: number;
+  waterTarget?: number;
+  createdAt: string;
+}
+
+export interface WeeklyReview {
+  id: number;
+  userId: number;
+  weekNumber: number;
+  startDate: string;
+  endDate: string;
+  weightChangeLbs: number;
+  calorieConsistency: number;
+  proteinConsistency: number;
+  waterConsistency: number;
+  workoutConsistency: number;
+  streakSummary: string;
+  whatToImprove: string;
+  goalPace: string;
+  /** @nullable */
+  estimatedGoalDate?: string | null;
+  /** @nullable */
+  currentPace?: number | null;
+  status: string;
+  coachMessage: string;
+  createdAt: string;
+}
+
 export type CreateCheckout200 = {
   url?: string;
 };

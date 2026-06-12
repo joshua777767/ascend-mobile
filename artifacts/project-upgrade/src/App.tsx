@@ -29,6 +29,7 @@ import AdminPage from "@/pages/admin";
 import IntroPage from "@/pages/intro";
 import { Layout } from "@/components/layout";
 import { WeeklyCheckInModal } from "@/components/WeeklyCheckInModal";
+import { WeeklyReviewModal } from "@/components/WeeklyReviewModal";
 import { useAuth } from "@/hooks/use-auth";
 import { useGetUserProfile, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useTrialDay } from "@/hooks/use-trial";
@@ -175,6 +176,7 @@ function ProtectedApp() {
   const status = (error as { status?: number } | null | undefined)?.status;
 
   const [showWeeklyCheckIn, setShowWeeklyCheckIn] = useState(false);
+  const [showWeeklyReview, setShowWeeklyReview] = useState(false);
   const { trialDay, isFreePro } = useTrialDay();
 
   // Check if weekly check-in is due after profile has loaded.
@@ -198,6 +200,19 @@ function ProtectedApp() {
     const t = setTimeout(() => setShowWeeklyCheckIn(true), 1500);
     return () => clearTimeout(t);
   }, [profile, trialDay, isFreePro]);
+
+  // Weekly review: show after 7 days, then every 7 days after. Not on trial day.
+  useEffect(() => {
+    if (!profile || isFreePro) return;
+    const lastReview = localStorage.getItem("ascend.lastWeeklyReview");
+    const reviewDue = !lastReview || (Date.now() - new Date(lastReview).getTime()) / (1000 * 60 * 60 * 24) >= 7;
+    const reviewedToday = !!lastReview && new Date(lastReview).toDateString() === new Date().toDateString();
+    if (reviewDue && !reviewedToday) {
+      const t = setTimeout(() => setShowWeeklyReview(true), 2500);
+      return () => clearTimeout(t);
+    }
+    return;
+  }, [profile, isFreePro]);
 
   // Wait until we have a settled answer: either profile data, or a fetch that
   // has fully finished. While the initial load OR a refetch is in flight and we
@@ -248,6 +263,13 @@ function ProtectedApp() {
           setShowWeeklyCheckIn(false);
         }}
         goals={userGoals}
+      />
+      <WeeklyReviewModal
+        open={showWeeklyReview}
+        onClose={() => {
+          localStorage.setItem("ascend.lastWeeklyReview", new Date().toISOString());
+          setShowWeeklyReview(false);
+        }}
       />
     </>
   );

@@ -35,6 +35,10 @@ tags:
     description: Water intake tracking
   - name: goal-checkins
     description: Goal-specific weekly check-ins
+  - name: daily-scores
+    description: Daily score tracking
+  - name: weekly-reviews
+    description: Weekly coach reviews
   - name: stripe
     description: Stripe subscriptions and billing
 
@@ -833,6 +837,68 @@ paths:
                 $ref: "#/components/schemas/GoalCheckIn"
         "400":
           description: Invalid input
+        "401":
+          description: Unauthorized
+
+  /daily-score:
+    get:
+      operationId: getDailyScore
+      tags: [daily-scores]
+      summary: Get today's daily score breakdown
+      responses:
+        "200":
+          description: Daily score with breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyScore"
+        "401":
+          description: Unauthorized
+
+  /daily-score/history:
+    get:
+      operationId: getDailyScoreHistory
+      tags: [daily-scores]
+      summary: Get all daily scores for the user
+      responses:
+        "200":
+          description: List of daily scores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailyScore"
+        "401":
+          description: Unauthorized
+
+  /weekly-review:
+    get:
+      operationId: getWeeklyReview
+      tags: [weekly-reviews]
+      summary: Get the latest weekly review
+      responses:
+        "200":
+          description: Weekly review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyReview"
+        "404":
+          description: No weekly review yet
+        "401":
+          description: Unauthorized
+    post:
+      operationId: createWeeklyReview
+      tags: [weekly-reviews]
+      summary: Generate a new weekly review
+      responses:
+        "201":
+          description: Weekly review created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyReview"
         "401":
           description: Unauthorized
 
@@ -2035,3 +2101,111 @@ components:
                     type: string
               active:
                 type: boolean
+
+    DailyScore:
+      type: object
+      required:
+        - id
+        - userId
+        - date
+        - totalScore
+        - caloriesScore
+        - proteinScore
+        - waterScore
+        - workoutScore
+        - sleepScore
+        - createdAt
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        date:
+          type: string
+        totalScore:
+          type: integer
+        caloriesScore:
+          type: integer
+        proteinScore:
+          type: integer
+        waterScore:
+          type: integer
+        workoutScore:
+          type: integer
+        sleepScore:
+          type: integer
+        todayCalories:
+          type: integer
+        todayProtein:
+          type: integer
+        todayWaterOz:
+          type: integer
+        hasWorkout:
+          type: boolean
+        calorieTarget:
+          type: integer
+        proteinTarget:
+          type: integer
+        waterTarget:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    WeeklyReview:
+      type: object
+      required:
+        - id
+        - userId
+        - weekNumber
+        - startDate
+        - endDate
+        - weightChangeLbs
+        - calorieConsistency
+        - proteinConsistency
+        - waterConsistency
+        - workoutConsistency
+        - streakSummary
+        - whatToImprove
+        - goalPace
+        - status
+        - coachMessage
+        - createdAt
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        weekNumber:
+          type: integer
+        startDate:
+          type: string
+        endDate:
+          type: string
+        weightChangeLbs:
+          type: number
+        calorieConsistency:
+          type: integer
+        proteinConsistency:
+          type: integer
+        waterConsistency:
+          type: integer
+        workoutConsistency:
+          type: integer
+        streakSummary:
+          type: string
+        whatToImprove:
+          type: string
+        goalPace:
+          type: string
+        estimatedGoalDate:
+          type: ["string", "null"]
+        currentPace:
+          type: ["number", "null"]
+        status:
+          type: string
+        coachMessage:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
