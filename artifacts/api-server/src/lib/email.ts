@@ -24,6 +24,7 @@ export async function sendEmail(payload: EmailPayload): Promise<{ id: string } |
       },
       body: JSON.stringify({
         from: "Ascend Support <support@ascendfit.fitness>",
+        reply_to: "support@ascendfit.fitness",
         to: payload.to,
         subject: payload.subject,
         html: payload.html,
