@@ -4,6 +4,7 @@ import { and, eq, gt, isNull } from "drizzle-orm";
 import { db, usersTable, userProfilesTable, passwordResetTokensTable } from "@workspace/db";
 import { SignupBody, LoginBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword } from "../lib/password";
+import { sendEmail, buildPasswordResetEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -220,9 +221,22 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
     `[FORGOT PASSWORD] Reset link → ${resetLink}`
   );
 
-  // TODO: Send email via Resend when RESEND_API_KEY is configured
-  // For now, include the reset link in the response for development testing
+  // Send email via Resend when RESEND_API_KEY is configured
   const resendConfigured = !!process.env.RESEND_API_KEY;
+  if (resendConfigured) {
+    const baseUrl = process.env.APP_BASE_URL || "https://ascendfit.fitness";
+    const fullResetUrl = `${baseUrl}${resetLink}`;
+    const emailPayload = buildPasswordResetEmail({ resetUrl: fullResetUrl, email: user.email });
+    const sent = await sendEmail(emailPayload);
+    if (sent) {
+      req.log.info({ email: user.email }, "Password reset email sent via Resend");
+    } else {
+      req.log.error({ email: user.email }, "Failed to send password reset email");
+    }
+  } else {
+    req.log.info({ resetLink, token }, "Development mode: no RESEND_API_KEY configured");
+  }
+
   res.json({
     message: SAFE_RESET_MSG,
     resetLink: resendConfigured ? undefined : resetLink,
