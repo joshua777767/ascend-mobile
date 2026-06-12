@@ -94,8 +94,17 @@ export default function PricingPage() {
   const trialEndDate = getTrialEndDate();
 
   return (
-    <div className="min-h-full bg-background text-foreground">
-      <div className="max-w-2xl mx-auto px-4 py-12 pb-32 md:py-16">
+    <div
+      className="bg-background text-foreground"
+      style={{
+        height: "100dvh",
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
+    >
+      <div className="max-w-2xl mx-auto px-4 py-12 pb-16 md:py-16">
         {isExpired && (
           <div className="mb-8 bg-destructive/10 border border-destructive/30 rounded-xl p-4 flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
