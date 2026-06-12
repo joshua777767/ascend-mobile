@@ -30,7 +30,7 @@ export async function sendEmail(payload: EmailPayload): Promise<{ id: string } |
         Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: "Ascend <support@ascend.app>",
+        from: "Ascend <onboarding@resend.dev>",
         to: payload.to,
         subject: payload.subject,
         html: payload.html,
