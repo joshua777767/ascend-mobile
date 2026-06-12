@@ -177,7 +177,7 @@ function ProtectedApp() {
 
   const [showWeeklyCheckIn, setShowWeeklyCheckIn] = useState(false);
   const [showWeeklyReview, setShowWeeklyReview] = useState(false);
-  const { trialDay, isFreePro } = useTrialDay();
+  const { trialDay, isFreePro, trialExpired, hasAccess } = useTrialDay();
 
   // Check if weekly check-in is due after profile has loaded.
   // Fires on the normal 7-day cadence, OR on the last day of the free trial
@@ -236,7 +236,18 @@ function ProtectedApp() {
     );
   }
 
+  // Access lockout: trial expired and no active subscription → redirect to pricing
+  const expired = trialExpired && !hasAccess;
+
   const userGoals = Array.isArray((profile as any).goals) ? (profile as any).goals as string[] : [];
+
+  // Expired users can only access settings, privacy, terms, delete-account, data-export
+  const FREE_ROUTES = ["/settings", "/privacy", "/terms", "/delete-account", "/data-export"];
+  const isFreeRoute = typeof window !== "undefined" && FREE_ROUTES.some((r) => window.location.pathname.includes(r));
+
+  if (expired && !isFreeRoute) {
+    return <Redirect to="/pricing?expired=1" />;
+  }
 
   return (
     <>

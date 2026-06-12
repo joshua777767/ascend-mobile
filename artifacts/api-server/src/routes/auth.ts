@@ -9,11 +9,37 @@ const router: IRouter = Router();
 
 const SAFE_RESET_MSG = "If an account exists with that email, a reset link has been sent.";
 
-function publicUser(user: { id: number; email: string; freePro: boolean; freeProExpiresAt: Date | null }) {
+function publicUser(user: {
+  id: number;
+  email: string;
+  freePro: boolean;
+  freeProExpiresAt: Date | null;
+  trialUsed: boolean | null;
+  trialStartDate: Date | null;
+  trialEndDate: Date | null;
+  createdAt: Date;
+}) {
   const isFreePro = user.freePro && (
     !user.freeProExpiresAt || user.freeProExpiresAt > new Date()
   );
-  return { id: user.id, email: user.email, isFreePro: !!isFreePro };
+  const now = new Date();
+  // Backward compatibility: if no explicit trial dates, compute from createdAt
+  const trialStartDate = user.trialStartDate ?? user.createdAt;
+  const trialEndDate = user.trialEndDate ?? new Date(new Date(user.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000);
+  const trialExpired = now > trialEndDate;
+  const trialActive = !trialExpired && !isFreePro;
+  const hasAccess = isFreePro || trialActive;
+  return {
+    id: user.id,
+    email: user.email,
+    isFreePro: !!isFreePro,
+    trialUsed: !!user.trialUsed,
+    trialStartDate: trialStartDate.toISOString(),
+    trialEndDate: trialEndDate.toISOString(),
+    trialExpired,
+    trialActive,
+    hasAccess,
+  };
 }
 
 router.post("/auth/signup", async (req, res): Promise<void> => {
@@ -83,7 +109,15 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   }
 
   const passwordHash = await hashPassword(password);
-  const [user] = await db.insert(usersTable).values({ email, passwordHash }).returning();
+  const now = new Date();
+  const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const [user] = await db.insert(usersTable).values({
+    email,
+    passwordHash,
+    trialUsed: false,
+    trialStartDate: now,
+    trialEndDate: trialEnd,
+  }).returning();
 
   req.session.regenerate((err) => {
     if (err) {

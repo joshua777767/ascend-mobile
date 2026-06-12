@@ -8,6 +8,8 @@ export interface TrialInfo {
   isOnTrial: boolean;
   trialComplete: boolean;
   isFreePro: boolean;
+  hasAccess: boolean;
+  trialExpired: boolean;
 }
 
 export function useTrialDay(): TrialInfo {
@@ -15,6 +17,8 @@ export function useTrialDay(): TrialInfo {
   const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false } });
 
   const isFreePro = !!me?.isFreePro;
+  const hasAccess = !!me?.hasAccess;
+  const trialExpired = !!me?.trialExpired;
 
   // Check RevenueCat entitlement (for native iOS app)
   const { data: customerInfo } = useQuery({
@@ -32,9 +36,18 @@ export function useTrialDay(): TrialInfo {
 
   const isRevenueCatPro = customerInfo ? isSubscribed(customerInfo) : false;
   const isPro = isFreePro || isRevenueCatPro;
+  const effectiveHasAccess = isPro || (hasAccess && !trialExpired);
 
   if (!profile?.createdAt) {
-    return { trialDay: 1, daysLeft: 6, isOnTrial: true, trialComplete: false, isFreePro: isPro };
+    return {
+      trialDay: 1,
+      daysLeft: 6,
+      isOnTrial: !isPro,
+      trialComplete: false,
+      isFreePro: isPro,
+      hasAccess: effectiveHasAccess,
+      trialExpired: false,
+    };
   }
   const msPerDay = 1000 * 60 * 60 * 24;
   const daysSince = Math.floor(
@@ -45,8 +58,10 @@ export function useTrialDay(): TrialInfo {
   return {
     trialDay,
     daysLeft,
-    isOnTrial: !isPro,
+    isOnTrial: !isPro && daysLeft > 0,
     trialComplete: !isPro && trialDay >= 7,
     isFreePro: isPro,
+    hasAccess: effectiveHasAccess,
+    trialExpired: !isPro && trialDay >= 7,
   };
 }

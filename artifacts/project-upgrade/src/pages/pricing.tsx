@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2, AlertTriangle } from "lucide-react";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useGetMe } from "@workspace/api-client-react";
 import { purchasePackage, restorePurchases } from "@/lib/revenuecat";
 
 const PRO_FEATURES = [
@@ -28,6 +29,11 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { isPro, isNative, currentPackage } = useSubscription();
+  const [location] = useLocation();
+  const { data: me } = useGetMe();
+
+  const isExpired = location.includes("expired=1") || !!me?.trialExpired;
+  const hasTrial = me ? !me.trialUsed : true;
 
   useEffect(() => {
     if (isPro) {
@@ -40,7 +46,6 @@ export default function PricingPage() {
     setError("");
     try {
       if (isNative && currentPackage) {
-        // Native iOS: Use RevenueCat IAP
         const customerInfo = await purchasePackage(currentPackage);
         if (customerInfo && customerInfo.entitlements.active["pro"] !== undefined) {
           window.location.href = "/dashboard";
@@ -50,7 +55,6 @@ export default function PricingPage() {
         return;
       }
 
-      // Web: Use Stripe checkout
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -90,8 +94,18 @@ export default function PricingPage() {
   const trialEndDate = getTrialEndDate();
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-2xl mx-auto px-4 py-16 pb-24">
+    <div className="min-h-screen bg-background text-foreground overflow-y-auto overscroll-y-auto">
+      <div className="max-w-2xl mx-auto px-4 py-12 pb-32 md:py-16">
+        {isExpired && (
+          <div className="mb-8 bg-destructive/10 border border-destructive/30 rounded-xl p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Your free trial has ended</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Subscribe to continue using Ascend Pro.</p>
+            </div>
+          </div>
+        )}
+
         <div className="text-center mb-12">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">Pricing</p>
           <h1 className="text-4xl font-bold uppercase tracking-tighter mb-4">One Price. Everything Included.</h1>
@@ -129,7 +143,7 @@ export default function PricingPage() {
             )}
             <Button
               className="w-full"
-              disabled={loading}
+              disabled={loading || !hasTrial}
               onClick={() => handleSubscribe("price_monthly", true)}
               data-testid="button-start-trial"
             >
@@ -138,6 +152,8 @@ export default function PricingPage() {
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   Redirecting...
                 </>
+              ) : !hasTrial ? (
+                "Trial already used"
               ) : (
                 `Start Free Trial — $0 for ${TRIAL_DAYS} days`
               )}
@@ -229,13 +245,15 @@ export default function PricingPage() {
           </div>
         )}
 
-        <div className="mt-8 text-center">
-          <Link href="/dashboard">
-            <Button variant="ghost" className="text-muted-foreground text-sm" data-testid="link-back-to-dashboard">
-              Back to Dashboard
-            </Button>
-          </Link>
-        </div>
+        {!isExpired && (
+          <div className="mt-8 text-center">
+            <Link href="/dashboard">
+              <Button variant="ghost" className="text-muted-foreground text-sm" data-testid="link-back-to-dashboard">
+                Back to Dashboard
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

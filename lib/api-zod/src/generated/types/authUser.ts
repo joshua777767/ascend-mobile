@@ -10,4 +10,10 @@ export interface AuthUser {
   id: number;
   email: string;
   isFreePro: boolean;
+  trialUsed: boolean;
+  trialStartDate?: Date | null;
+  trialEndDate?: Date | null;
+  trialExpired: boolean;
+  trialActive: boolean;
+  hasAccess: boolean;
 }

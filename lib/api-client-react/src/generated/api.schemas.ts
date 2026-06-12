@@ -13,6 +13,12 @@ export interface AuthUser {
   id: number;
   email: string;
   isFreePro: boolean;
+  trialUsed: boolean;
+  trialStartDate?: string | null;
+  trialEndDate?: string | null;
+  trialExpired: boolean;
+  trialActive: boolean;
+  hasAccess: boolean;
 }
 
 export interface SignupInput {

@@ -344,7 +344,13 @@ export const LoginBody = zod.object({
 export const LoginResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
-  "isFreePro": zod.boolean()
+  "isFreePro": zod.boolean(),
+  "trialUsed": zod.boolean(),
+  "trialStartDate": zod.coerce.date().nullish(),
+  "trialEndDate": zod.coerce.date().nullish(),
+  "trialExpired": zod.boolean(),
+  "trialActive": zod.boolean(),
+  "hasAccess": zod.boolean()
 })
 
 
@@ -383,7 +389,13 @@ export const ResetPasswordResponse = zod.object({
 export const GetMeResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
-  "isFreePro": zod.boolean()
+  "isFreePro": zod.boolean(),
+  "trialUsed": zod.boolean(),
+  "trialStartDate": zod.coerce.date().nullish(),
+  "trialEndDate": zod.coerce.date().nullish(),
+  "trialExpired": zod.boolean(),
+  "trialActive": zod.boolean(),
+  "hasAccess": zod.boolean()
 })
 
 

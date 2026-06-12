@@ -921,10 +921,30 @@ components:
           type: string
         isFreePro:
           type: boolean
+        trialUsed:
+          type: boolean
+        trialStartDate:
+          type: string
+          format: date-time
+          nullable: true
+        trialEndDate:
+          type: string
+          format: date-time
+          nullable: true
+        trialExpired:
+          type: boolean
+        trialActive:
+          type: boolean
+        hasAccess:
+          type: boolean
       required:
         - id
         - email
         - isFreePro
+        - trialUsed
+        - trialExpired
+        - trialActive
+        - hasAccess
 
     SignupInput:
       type: object
