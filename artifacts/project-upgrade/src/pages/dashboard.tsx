@@ -14,7 +14,6 @@ import {
   useGetProgressSummary,
   useListGoalCheckIns,
   useGetDailyScore,
-  useSendChatMessage,
   getGetWaterTodayQueryKey,
   getGetTodayMealsQueryKey,
   getGetTodayWorkoutQueryKey,
@@ -22,7 +21,6 @@ import {
   getGetStreakQueryKey,
   getGetProgressSummaryQueryKey,
   getListGoalCheckInsQueryKey,
-  getGetChatHistoryQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -644,7 +642,7 @@ export default function DashboardPage() {
   const { data: dailyScore } = useGetDailyScore({
     query: { queryKey: ["dailyScore", localDate] },
   });
-  const sendChatMessage = useSendChatMessage();
+  const [navigatingToCoach, setNavigatingToCoach] = useState(false);
 
   useEffect(() => { refetchMeals(); }, [refetchMeals]);
   useEffect(() => { refetchWater(); }, [refetchWater]);
@@ -1458,14 +1456,13 @@ export default function DashboardPage() {
               <button
                 key={label}
                 type="button"
-                onClick={async () => {
-                  try {
-                    await sendChatMessage.mutateAsync({ data: { message: msg } });
-                    queryClient.invalidateQueries({ queryKey: getGetChatHistoryQueryKey() });
-                    setLocation("/coach");
-                  } catch { /* ignore */ }
+                disabled={navigatingToCoach}
+                onClick={() => {
+                  if (navigatingToCoach) return;
+                  setNavigatingToCoach(true);
+                  setLocation(`/coach?emergency=${encodeURIComponent(msg)}`);
                 }}
-                className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-left text-[11px] font-semibold active:scale-[0.97] transition-all"
+                className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-left text-[11px] font-semibold active:scale-[0.97] transition-all disabled:opacity-50"
                 style={{
                   background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
                   border: "1px solid hsl(217 32% 15%)",
