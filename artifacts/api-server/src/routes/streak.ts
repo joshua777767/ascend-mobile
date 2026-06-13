@@ -77,4 +77,50 @@ router.post("/streak", async (req, res): Promise<void> => {
   res.json({ currentStreak, lastStreakDate: today });
 });
 
+/**
+ * POST /streak/qualify
+ * Evaluates the streak once per day based on the user's score.
+ * Score >= 70 → extends streak (or starts at 1). Score < 70 → streak breaks.
+ * Idempotent: if already evaluated today, returns the existing state unchanged.
+ */
+router.post("/streak/qualify", async (req, res): Promise<void> => {
+  const userId = getUserId(req);
+  const score = Number(req.body.score);
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, userId));
+  if (!profile) {
+    res.status(404).json({ error: "Profile not found" });
+    return;
+  }
+
+  const today = getUserToday(req);
+  const last = profile.lastStreakDate;
+  let currentStreak = profile.currentStreak ?? 0;
+
+  // Already evaluated today — idempotent, return existing state
+  if (last === today) {
+    res.json({ currentStreak, lastStreakDate: today });
+    return;
+  }
+
+  if (score >= 70) {
+    if (last === addDaysInUserTz(req, today, -1)) {
+      // Consecutive qualifying day — extend streak
+      currentStreak += 1;
+    } else {
+      // Missed at least one day or first qualifying day — start at 1
+      currentStreak = 1;
+    }
+  } else {
+    // Score below 70 — streak breaks, reset to 0
+    currentStreak = 0;
+  }
+
+  await db
+    .update(userProfilesTable)
+    .set({ currentStreak, lastStreakDate: today })
+    .where(eq(userProfilesTable.userId, userId));
+
+  res.json({ currentStreak, lastStreakDate: today });
+});
+
 export default router;

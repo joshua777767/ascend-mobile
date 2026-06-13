@@ -10,7 +10,6 @@ import {
   useGetWaterToday,
   useLogWater,
   useGetStreak,
-  useRecordStreak,
   useGetProgressSummary,
   useListGoalCheckIns,
   useGetDailyScore,
@@ -632,7 +631,6 @@ export default function DashboardPage() {
   const { data: streakData } = useGetStreak({
     query: { queryKey: [...getGetStreakQueryKey(), localDate] },
   });
-  const { mutateAsync: recordStreakFn } = useRecordStreak();
 
   const { data: progress } = useGetProgressSummary({
     query: { queryKey: [...getGetProgressSummaryQueryKey(), localDate] },
@@ -907,37 +905,30 @@ export default function DashboardPage() {
   const displayScore = apiScore !== null ? apiScore : (reviewScore !== null ? reviewScore : ascendScore);
   const hasAnyData = todayCalories > 0 || todayProtein > 0 || waterOz > 0 || checklistCompleted > 0;
 
-  // Streak: fires automatically when the Ascend Score ring hits 70+
+  // Streak evaluation: once per day, score >= 70 extends streak; score < 70 breaks it.
+  // The /streak/qualify endpoint is idempotent — if already evaluated today, it returns
+  // the existing state unchanged, so we can fire whenever the user has any data.
   useEffect(() => {
-    if (displayScore >= 70 && hasAnyData) {
-      const lastDate = streakData?.lastStreakDate ?? null;
-      const currentStreak = streakData?.currentStreak ?? 0;
-      const reclaimKey = `streak_reclaimed_${localDate}`;
+    if (!hasAnyData) return;
+    const alreadyKey = `streak_evaluated_${localDate}`;
+    if (localStorage.getItem(alreadyKey)) return;
+    localStorage.setItem(alreadyKey, "1");
 
-      if (lastDate !== localDate) {
-        // Normal path: new day, record streak
-        recordStreakFn()
-          .then((updated) => {
-            queryClient.setQueryData([...getGetStreakQueryKey(), localDate], updated);
-          })
-          .catch(() => {});
-      } else if (lastDate === localDate && currentStreak === 1 && !localStorage.getItem(reclaimKey)) {
-        // Today already recorded as Day 1, but user also scored 70+ yesterday (deployment gap).
-        // Reclaim yesterday, then immediately record today as Day 2.
-        localStorage.setItem(reclaimKey, "1");
-        fetch("/api/streak/reclaim", {
-          method: "POST",
-          credentials: "include",
-          headers: { "X-Timezone": Intl.DateTimeFormat().resolvedOptions().timeZone },
-        })
-          .then(() => recordStreakFn())
-          .then((updated) => {
-            queryClient.setQueryData([...getGetStreakQueryKey(), localDate], updated);
-          })
-          .catch(() => {});
-      }
-    }
-  }, [displayScore, hasAnyData, streakData?.lastStreakDate, streakData?.currentStreak]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetch("/api/streak/qualify", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Timezone": Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+      body: JSON.stringify({ score: displayScore }),
+    })
+      .then((r) => r.json())
+      .then((updated) => {
+        queryClient.setQueryData([...getGetStreakQueryKey(), localDate], updated);
+      })
+      .catch(() => {});
+  }, [displayScore, hasAnyData, streakData?.lastStreakDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Personalized mission copy ---
   const calorieDeficit = plan ? plan.calorieTarget - todayCalories : 0;
