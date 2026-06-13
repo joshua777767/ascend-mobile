@@ -905,6 +905,31 @@ export default function DashboardPage() {
   const displayScore = apiScore !== null ? apiScore : (reviewScore !== null ? reviewScore : ascendScore);
   const hasAnyData = todayCalories > 0 || todayProtein > 0 || waterOz > 0 || checklistCompleted > 0;
 
+  // Streak sync: on every dashboard load, check if the stored streak is stale.
+  // If lastStreakDate is before yesterday, reset the streak to 0.  This ensures
+  // a user who missed yesterday sees a 0 streak immediately, not a stale value.
+  // Runs once per mount and whenever the localDate changes.
+  useEffect(() => {
+    const syncKey = `streak_synced_${localDate}`;
+    if (localStorage.getItem(syncKey)) return;
+    localStorage.setItem(syncKey, "1");
+
+    fetch("/api/streak/sync", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Timezone": Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+    })
+      .then((r) => r.json())
+      .then((updated) => {
+        queryClient.setQueryData([...getGetStreakQueryKey(), localDate], updated);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localDate, queryClient]);
+
   // Streak evaluation: once per day, score >= 70 extends streak; score < 70 breaks it.
   // The /streak/qualify endpoint is idempotent — if already evaluated today, it returns
   // the existing state unchanged, so we can fire whenever the user has any data.
@@ -1038,10 +1063,19 @@ export default function DashboardPage() {
               <h1 className="text-[2.3rem] font-black tracking-tight leading-tight mt-0.5">
                 {firstName}
               </h1>
-              {/* Phase label */}
+              {/* Phase label — for Pro users show program day; for free-trial users show trial day */}
               <p className="text-[11px] font-semibold text-muted-foreground mt-0.5">
-                {trialDay > 0 ? `Day ${trialDay}` : "Day 1"}
-                {plan && isCutting ? " — Cut Phase" : plan && isBulking ? " — Build Phase" : " — Maintenance"}
+                {isFreePro ? (
+                  <>
+                    Day {Math.max(1, Math.floor((Date.now() - new Date(profile?.createdAt ?? Date.now()).getTime()) / (86400000)) + 1)}
+                    {plan && isCutting ? " — Cut Phase" : plan && isBulking ? " — Build Phase" : " — Maintenance"}
+                  </>
+                ) : (
+                  <>
+                    Day {trialDay > 0 ? trialDay : 1}
+                    {plan && isCutting ? " — Cut Phase" : plan && isBulking ? " — Build Phase" : " — Maintenance"}
+                  </>
+                )}
               </p>
               {/* Status badge */}
               {(() => {

@@ -78,6 +78,49 @@ router.post("/streak", async (req, res): Promise<void> => {
 });
 
 /**
+ * POST /streak/sync
+ * Checks whether the stored streak is stale (lastStreakDate is before yesterday)
+ * and resets it.  This is called on every dashboard load before any data entry
+ * so the user always sees a correct streak.
+ *
+ * Idempotent: if lastStreakDate === today, returns the current state unchanged.
+ */
+router.post("/streak/sync", async (req, res): Promise<void> => {
+  const userId = getUserId(req);
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, userId));
+  if (!profile) {
+    res.status(404).json({ error: "Profile not found" });
+    return;
+  }
+
+  const today = getUserToday(req);
+  const last = profile.lastStreakDate;
+  let currentStreak = profile.currentStreak ?? 0;
+
+  // Already evaluated today — idempotent
+  if (last === today) {
+    res.json({ currentStreak, lastStreakDate: today });
+    return;
+  }
+
+  const yesterday = addDaysInUserTz(req, today, -1);
+
+  // If the streak was last recorded before yesterday, the user missed at least
+  // one full calendar day.  Reset the streak to 0 and mark yesterday as the last
+  // checked date so tomorrow's qualify call sees a clean gap.
+  if (last && last !== yesterday && last !== today) {
+    currentStreak = 0;
+  }
+
+  await db
+    .update(userProfilesTable)
+    .set({ currentStreak, lastStreakDate: yesterday })
+    .where(eq(userProfilesTable.userId, userId));
+
+  res.json({ currentStreak, lastStreakDate: yesterday });
+});
+
+/**
  * POST /streak/qualify
  * Evaluates the streak once per day based on the user's score.
  * Score >= 70 → extends streak (or starts at 1). Score < 70 → streak breaks.
