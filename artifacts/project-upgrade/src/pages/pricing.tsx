@@ -103,12 +103,11 @@ export default function PricingPage() {
   }, [isPro]);
 
   const handleSubscribe = async (priceId: string | null, trial = false) => {
-    // Surface config error immediately — never leave user guessing
+    // If banner already shows the config error, don't duplicate it as a red box
     if (!priceId) {
-      setError(
-        stripeConfigError ??
-        "Stripe is not configured. Please contact support."
-      );
+      if (!stripeConfigError) {
+        setError("Checkout is not available. Please contact support.");
+      }
       return;
     }
     setLoading(true);
