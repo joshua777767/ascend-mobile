@@ -177,7 +177,7 @@ function ProtectedApp() {
 
   const [showWeeklyCheckIn, setShowWeeklyCheckIn] = useState(false);
   const [showWeeklyReview, setShowWeeklyReview] = useState(false);
-  const { trialDay, isFreePro, trialExpired, hasAccess } = useTrialDay();
+  const { trialDay, isPro, trialExpired, hasAccess } = useTrialDay();
 
   // Check if weekly check-in is due after profile has loaded.
   // Fires on the normal 7-day cadence, OR on the last day of the free trial
@@ -193,17 +193,17 @@ function ProtectedApp() {
     const sevenDaysDue = !last || (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24) >= 7;
     // Last trial day override: force check-in on day 7 if they haven't done one today
     const checkedInToday = !!last && new Date(last).toDateString() === new Date().toDateString();
-    const isLastTrialDay = !isFreePro && trialDay >= 7;
+    const isLastTrialDay = !isPro && trialDay >= 7;
     const isDue = sevenDaysDue || (isLastTrialDay && !checkedInToday);
     if (!isDue) return;
     // Small delay so the app shell renders first before the modal appears
     const t = setTimeout(() => setShowWeeklyCheckIn(true), 1500);
     return () => clearTimeout(t);
-  }, [profile, trialDay, isFreePro]);
+  }, [profile, trialDay, isPro]);
 
   // Weekly review: show after 7 days, then every 7 days after. Not on trial day.
   useEffect(() => {
-    if (!profile || isFreePro) return;
+    if (!profile || isPro) return;
     const lastReview = localStorage.getItem("ascend.lastWeeklyReview");
     const reviewDue = !lastReview || (Date.now() - new Date(lastReview).getTime()) / (1000 * 60 * 60 * 24) >= 7;
     const reviewedToday = !!lastReview && new Date(lastReview).toDateString() === new Date().toDateString();
@@ -212,7 +212,7 @@ function ProtectedApp() {
       return () => clearTimeout(t);
     }
     return;
-  }, [profile, isFreePro]);
+  }, [profile, isPro]);
 
   // Wait until we have a settled answer: either profile data, or a fetch that
   // has fully finished. While the initial load OR a refetch is in flight and we

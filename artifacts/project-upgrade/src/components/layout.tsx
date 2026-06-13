@@ -44,7 +44,7 @@ const PAGE_TITLES: Record<string, string> = {
 
 
 function TrialPill() {
-  const { trialDay, daysLeft, trialComplete, isFreePro: isPro, isLoading } = useTrialDay();
+  const { trialDay, daysLeft, trialComplete, isPro, isLoading } = useTrialDay();
 
   if (isLoading) {
     return (
@@ -116,7 +116,7 @@ function TrialPill() {
 }
 
 function MobileTrialBadge() {
-  const { trialDay, trialComplete, isFreePro: isPro, isLoading } = useTrialDay();
+  const { trialDay, trialComplete, isPro, isLoading } = useTrialDay();
 
   if (isLoading) {
     return (

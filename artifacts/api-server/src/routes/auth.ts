@@ -96,15 +96,22 @@ async function checkStripeSubscription(
     const liveStatus = activeSub?.status ?? (subs.data[0]?.status ?? "canceled");
 
     // Write back to DB if status changed — keeps the row in sync without
-    // depending solely on webhooks
+    // depending solely on webhooks.  Wrapped in a silent try-catch so a DB
+    // write failure never blocks the auth response.
     if (liveStatus !== subscriptionStatus) {
-      await db
-        .update(usersTable)
-        .set({
-          subscriptionStatus: liveStatus,
-          ...(activeSub ? { stripeSubscriptionId: activeSub.id } : {}),
-        })
-        .where(eq(usersTable.id, userId));
+      try {
+        await db
+          .update(usersTable)
+          .set({
+            subscriptionStatus: liveStatus,
+            ...(activeSub ? { stripeSubscriptionId: activeSub.id } : {}),
+          })
+          .where(eq(usersTable.id, userId));
+      } catch {
+        // DB write failure is non-fatal; the auth response already has the
+        // correct value from the live Stripe check.  The DB will sync next
+        // time the user hits auth/me or logs in.
+      }
     }
 
     return !!activeSub;
@@ -121,6 +128,20 @@ async function checkStripeSubscription(
       errType === "rate_limit_error";
     if (isTransient) {
       return subscriptionStatus === "active" || subscriptionStatus === "trialing";
+    }
+
+    // Definitive error (e.g., invalid_request_error "no such customer") →
+    // customer is not active.  Also write "canceled" back to the DB so the
+    // next auth/me call fast-paths to false without needing another Stripe call.
+    if (subscriptionStatus !== "canceled") {
+      try {
+        await db
+          .update(usersTable)
+          .set({ subscriptionStatus: "canceled" })
+          .where(eq(usersTable.id, userId));
+      } catch {
+        // Non-fatal — the DB write-back is just a cache sync.
+      }
     }
     return false;
   }

@@ -7,6 +7,15 @@ export interface TrialInfo {
   daysLeft: number;
   isOnTrial: boolean;
   trialComplete: boolean;
+  /**
+   * True for any paid/upgraded user: server freePro, Stripe paid subscriber,
+   * or RevenueCat native subscriber.
+   */
+  isPro: boolean;
+  /**
+   * True only for the legacy freePro flag from the server. Does not include
+   * paid subscribers.
+   */
   isFreePro: boolean;
   hasAccess: boolean;
   trialExpired: boolean;
@@ -51,7 +60,8 @@ export function useTrialDay(): TrialInfo {
       daysLeft: 6,
       isOnTrial: !isPro,
       trialComplete: false,
-      isFreePro: isPro,
+      isPro,
+      isFreePro: !!me?.isFreePro,
       // While me is still loading, assume access to prevent flicker lockout
       hasAccess: me !== undefined ? hasAccess : true,
       trialExpired: false,
@@ -74,7 +84,8 @@ export function useTrialDay(): TrialInfo {
     daysLeft,
     isOnTrial: !isPro && daysLeft > 0,
     trialComplete: trialExpired,
-    isFreePro: isPro,
+    isPro,
+    isFreePro: !!me?.isFreePro,
     hasAccess,
     trialExpired,
     isPaidSubscriber,

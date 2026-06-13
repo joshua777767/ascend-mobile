@@ -830,8 +830,8 @@ export default function DashboardPage() {
     }
   }
 
-  const { trialDay, daysLeft, trialComplete, isFreePro } = useTrialDay();
-  const showTrialNudge = !isFreePro && trialDay >= 5;
+  const { trialDay, daysLeft, trialComplete, isPro } = useTrialDay();
+  const showTrialNudge = !isPro && trialDay >= 5;
 
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric" });
@@ -913,6 +913,19 @@ export default function DashboardPage() {
     const syncKey = `streak_synced_${localDate}`;
     if (localStorage.getItem(syncKey)) return;
     localStorage.setItem(syncKey, "1");
+
+    // Clean up old localStorage entries (older than 30 days) to prevent
+    // unbounded growth from daily streak sync/evaluate keys.
+    const now = Date.now();
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith("streak_synced_") || key?.startsWith("streak_evaluated_")) {
+        const dateStr = key.split("_").pop();
+        if (dateStr && !Number.isNaN(Date.parse(dateStr)) && (now - new Date(dateStr).getTime()) > 30 * 86400000) {
+          localStorage.removeItem(key);
+        }
+      }
+    }
 
     fetch("/api/streak/sync", {
       method: "POST",
@@ -1065,7 +1078,7 @@ export default function DashboardPage() {
               </h1>
               {/* Phase label — for Pro users show program day; for free-trial users show trial day */}
               <p className="text-[11px] font-semibold text-muted-foreground mt-0.5">
-                {isFreePro ? (
+                {isPro ? (
                   <>
                     Day {Math.max(1, Math.floor((Date.now() - new Date(profile?.createdAt ?? Date.now()).getTime()) / (86400000)) + 1)}
                     {plan && isCutting ? " — Cut Phase" : plan && isBulking ? " — Build Phase" : " — Maintenance"}
