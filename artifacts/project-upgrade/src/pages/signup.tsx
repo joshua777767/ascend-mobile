@@ -128,11 +128,11 @@ export default function SignupPage() {
                   data-testid="checkbox-agree"
                 />
                 <span className="text-xs text-muted-foreground leading-relaxed">
-                  I am 18 or older and agree to the{" "}
+                  I am 13 or older. If I am under 18, I have permission from my parent or legal guardian. I agree to the{" "}
                   <Link href="/terms" className="text-primary font-semibold underline-offset-2 hover:underline" target="_blank">Terms of Service</Link>
                   {" "}and{" "}
                   <Link href="/privacy" className="text-primary font-semibold underline-offset-2 hover:underline" target="_blank">Privacy Policy</Link>
-                  . I understand that Ascend is not medical advice and I should consult a doctor before starting any diet or exercise program.
+                  . I understand Ascend is not medical advice and I should consult a doctor before starting any diet or exercise program.
                 </span>
               </label>
 
