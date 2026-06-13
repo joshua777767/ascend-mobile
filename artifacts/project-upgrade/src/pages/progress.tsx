@@ -164,21 +164,31 @@ export default function ProgressPage() {
     ? Math.round(kgToLbs(summary.startWeightKg) * 10) / 10
     : (profile?.currentWeightKg ? Math.round(kgToLbs(profile.currentWeightKg) * 10) / 10 : null);
   const chartData = (() => {
-    const logged = (weighIns ?? []).slice(-12).map((w) => ({
-      week: `W${w.weekNumber}`,
+    // API returns DESC (newest first) — sort ascending by weekNumber for chronological display
+    const sorted = [...(weighIns ?? [])].sort((a, b) => a.weekNumber - b.weekNumber).slice(-12);
+    const logged = sorted.map((w) => ({
+      week: w.weekNumber,
       weight: Math.round(kgToLbs(w.weightKg) * 10) / 10,
     }));
     if (startWeightLbs && logged.length > 0) {
-      return [{ week: "Start", weight: startWeightLbs }, ...logged];
+      return [{ week: 0, weight: startWeightLbs }, ...logged];
     }
     if (startWeightLbs && logged.length === 0) {
-      return [{ week: "Start", weight: startWeightLbs }];
+      return [{ week: 0, weight: startWeightLbs }];
     }
     return logged;
   })();
 
+  // Total data points including the "Start" anchor
+  const chartPointCount = chartData.length;
+  const weekLabel = (weekNum: number) => {
+    if (weekNum === 0) return "Start";
+    return chartPointCount <= 6 ? `Week ${weekNum}` : `W${weekNum}`;
+  };
+
+  // API returns DESC — index 0 is the newest weigh-in, index 1 is the previous
   const trend = weighIns && weighIns.length >= 2
-    ? kgToLbs(weighIns[weighIns.length - 1].weightKg - weighIns[weighIns.length - 2].weightKg)
+    ? kgToLbs(weighIns[0].weightKg - weighIns[1].weightKg)
     : null;
 
   // Avg Score from real reviews (not summary fallback)
@@ -492,7 +502,7 @@ export default function ProgressPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="week" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                  <XAxis dataKey="week" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v: number) => weekLabel(v)} />
                   <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} domain={["auto","auto"]} />
                   <Tooltip
                     contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 0 }}
