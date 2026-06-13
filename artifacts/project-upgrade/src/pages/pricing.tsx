@@ -25,12 +25,59 @@ function getTrialEndDate() {
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
 }
 
+interface StripePrice {
+  id: string;
+  unitAmount: number | null;
+  currency: string;
+  recurring: { interval: string; interval_count: number } | null;
+  active: boolean;
+}
+
+interface StripeProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  active: boolean;
+  prices: StripePrice[];
+}
+
+function usePriceIds() {
+  const [monthlyPriceId, setMonthlyPriceId] = useState<string | null>(null);
+  const [annualPriceId, setAnnualPriceId] = useState<string | null>(null);
+  const [loadingPrices, setLoadingPrices] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/stripe/products")
+      .then((r) => r.json())
+      .then((data: { data: StripeProduct[] }) => {
+        const products: StripeProduct[] = data.data ?? [];
+        // Find the first active product's prices
+        for (const product of products) {
+          for (const price of product.prices) {
+            if (!price.active || !price.recurring) continue;
+            if (price.recurring.interval === "month" && price.recurring.interval_count === 1) {
+              setMonthlyPriceId(price.id);
+            }
+            if (price.recurring.interval === "year") {
+              setAnnualPriceId(price.id);
+            }
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingPrices(false));
+  }, []);
+
+  return { monthlyPriceId, annualPriceId, loadingPrices };
+}
+
 export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { isPro, isNative, currentPackage } = useSubscription();
   const [location] = useLocation();
   const { data: me } = useGetMe();
+  const { monthlyPriceId, annualPriceId, loadingPrices } = usePriceIds();
 
   const isExpired = location.includes("expired=1") || !!me?.trialExpired;
   const hasTrial = me ? !me.trialUsed : true;
@@ -41,7 +88,11 @@ export default function PricingPage() {
     }
   }, [isPro]);
 
-  const handleSubscribe = async (priceId: string, trial = false) => {
+  const handleSubscribe = async (priceId: string | null, trial = false) => {
+    if (!priceId) {
+      setError("Payment not configured yet. Please contact support.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -92,6 +143,7 @@ export default function PricingPage() {
   };
 
   const trialEndDate = getTrialEndDate();
+  const pricesReady = !loadingPrices && !!monthlyPriceId;
 
   return (
     <div
@@ -122,6 +174,7 @@ export default function PricingPage() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
+          {/* Free Trial Card */}
           <div className="bg-card border border-primary/40 p-6 space-y-4 relative overflow-hidden">
             <div className="absolute top-4 right-4">
               <span className="text-xs font-semibold uppercase tracking-wider bg-primary text-primary-foreground px-2 py-1">Best Value</span>
@@ -152,15 +205,14 @@ export default function PricingPage() {
             )}
             <Button
               className="w-full"
-              disabled={loading || !hasTrial}
-              onClick={() => handleSubscribe("price_monthly", true)}
+              disabled={loading || !hasTrial || !pricesReady}
+              onClick={() => handleSubscribe(monthlyPriceId, true)}
               data-testid="button-start-trial"
             >
               {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Redirecting...
-                </>
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Redirecting...</>
+              ) : loadingPrices ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Loading...</>
               ) : !hasTrial ? (
                 "Trial already used"
               ) : (
@@ -172,6 +224,7 @@ export default function PricingPage() {
             </p>
           </div>
 
+          {/* Pro Card */}
           <div className="bg-card border border-border p-6 space-y-4 relative overflow-hidden">
             <div className="absolute top-4 right-4">
               <span className="text-xs font-semibold uppercase tracking-wider bg-primary text-primary-foreground px-2 py-1">Most Popular</span>
@@ -184,15 +237,17 @@ export default function PricingPage() {
                 <p className="text-muted-foreground mb-1">/month</p>
               </div>
               <p className="text-xs text-muted-foreground mt-1">Cancel anytime</p>
-              <div className="border-t border-border pt-3 flex items-center gap-2">
-                <button
-                  className="text-xs text-primary font-semibold hover:underline disabled:opacity-50"
-                  onClick={() => handleSubscribe("price_annual")}
-                  disabled={loading}
-                >
-                  Or save 17% with $199.99/year
-                </button>
-              </div>
+              {annualPriceId && (
+                <div className="border-t border-border pt-3 flex items-center gap-2">
+                  <button
+                    className="text-xs text-primary font-semibold hover:underline disabled:opacity-50"
+                    onClick={() => handleSubscribe(annualPriceId)}
+                    disabled={loading}
+                  >
+                    Or save 17% with $199.99/year
+                  </button>
+                </div>
+              )}
             </div>
             <div className="border-t border-border pt-4 space-y-2">
               {PRO_FEATURES.map((f, i) => (
@@ -207,15 +262,14 @@ export default function PricingPage() {
             )}
             <Button
               className="w-full"
-              disabled={loading}
-              onClick={() => handleSubscribe("price_monthly")}
+              disabled={loading || !pricesReady}
+              onClick={() => handleSubscribe(monthlyPriceId)}
               data-testid="button-subscribe-pro"
             >
               {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Redirecting...
-                </>
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Redirecting...</>
+              ) : loadingPrices ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Loading...</>
               ) : (
                 "Start Pro — $19.99/month"
               )}

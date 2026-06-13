@@ -19,6 +19,7 @@ import weeklyReviewRouter from "./weeklyReview";
 import adminRouter from "./admin";
 import exportRouter from "./export";
 import stripeRouter from "./stripe";
+import stripePublicRouter from "./stripePublic";
 import revenuecatRouter from "./revenuecat";
 import { requireAuth } from "./../middlewares/auth";
 
@@ -30,6 +31,9 @@ router.use(authRouter);
 
 // RevenueCat webhook must be public (no auth)
 router.use(revenuecatRouter);
+
+// Stripe public routes (products list — shown on pricing page before login)
+router.use(stripePublicRouter);
 
 // All data routes require an authenticated session
 router.use(requireAuth);
