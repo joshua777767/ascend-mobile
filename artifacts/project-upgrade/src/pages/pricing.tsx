@@ -41,17 +41,29 @@ interface StripeProduct {
   prices: StripePrice[];
 }
 
-function usePriceIds() {
+interface PriceIds {
+  monthlyPriceId: string | null;
+  annualPriceId: string | null;
+  loadingPrices: boolean;
+  keyMode: string;
+  stripeConfigError: string | null;
+}
+
+function usePriceIds(): PriceIds {
   const [monthlyPriceId, setMonthlyPriceId] = useState<string | null>(null);
   const [annualPriceId, setAnnualPriceId] = useState<string | null>(null);
   const [loadingPrices, setLoadingPrices] = useState(true);
+  const [keyMode, setKeyMode] = useState<string>("unknown");
+  const [stripeConfigError, setStripeConfigError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/stripe/products")
       .then((r) => r.json())
-      .then((data: { data: StripeProduct[] }) => {
+      .then((data: { data: StripeProduct[]; keyMode?: string; error?: string }) => {
+        setKeyMode(data.keyMode ?? "unknown");
+        if (data.error) setStripeConfigError(data.error);
+
         const products: StripeProduct[] = data.data ?? [];
-        // Find the first active product's prices
         for (const product of products) {
           for (const price of product.prices) {
             if (!price.active || !price.recurring) continue;
@@ -64,11 +76,13 @@ function usePriceIds() {
           }
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        setStripeConfigError("Could not reach the server. Please try again.");
+      })
       .finally(() => setLoadingPrices(false));
   }, []);
 
-  return { monthlyPriceId, annualPriceId, loadingPrices };
+  return { monthlyPriceId, annualPriceId, loadingPrices, keyMode, stripeConfigError };
 }
 
 export default function PricingPage() {
@@ -77,7 +91,7 @@ export default function PricingPage() {
   const { isPro, isNative, currentPackage } = useSubscription();
   const [location] = useLocation();
   const { data: me } = useGetMe();
-  const { monthlyPriceId, annualPriceId, loadingPrices } = usePriceIds();
+  const { monthlyPriceId, annualPriceId, loadingPrices, stripeConfigError } = usePriceIds();
 
   const isExpired = location.includes("expired=1") || !!me?.trialExpired;
   const hasTrial = me ? !me.trialUsed : true;
@@ -89,8 +103,12 @@ export default function PricingPage() {
   }, [isPro]);
 
   const handleSubscribe = async (priceId: string | null, trial = false) => {
+    // Surface config error immediately — never leave user guessing
     if (!priceId) {
-      setError("Payment not configured yet. Please contact support.");
+      setError(
+        stripeConfigError ??
+        "Stripe is not configured. Please contact support."
+      );
       return;
     }
     setLoading(true);
@@ -143,7 +161,6 @@ export default function PricingPage() {
   };
 
   const trialEndDate = getTrialEndDate();
-  const pricesReady = !loadingPrices && !!monthlyPriceId;
 
   return (
     <div
@@ -167,11 +184,26 @@ export default function PricingPage() {
           </div>
         )}
 
+        {/* Stripe config warning — visible to admin, not end-user-scary */}
+        {!loadingPrices && stripeConfigError && (
+          <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-200 leading-relaxed">{stripeConfigError}</p>
+          </div>
+        )}
+
         <div className="text-center mb-12">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">Pricing</p>
           <h1 className="text-4xl font-bold uppercase tracking-tighter mb-4">One Price. Everything Included.</h1>
           <p className="text-muted-foreground">No upsells. No add-ons. The full AI coaching system.</p>
         </div>
+
+        {/* Shared error display */}
+        {error && (
+          <div className="mb-6 bg-destructive/10 border border-destructive/30 rounded-xl p-4">
+            <p className="text-sm text-destructive leading-relaxed">{error}</p>
+          </div>
+        )}
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Free Trial Card */}
@@ -200,12 +232,9 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            {error && (
-              <p className="text-xs text-destructive bg-destructive/10 rounded-lg p-2 text-center">{error}</p>
-            )}
             <Button
               className="w-full"
-              disabled={loading || !hasTrial || !pricesReady}
+              disabled={loading || loadingPrices || !hasTrial}
               onClick={() => handleSubscribe(monthlyPriceId, true)}
               data-testid="button-start-trial"
             >
@@ -237,8 +266,8 @@ export default function PricingPage() {
                 <p className="text-muted-foreground mb-1">/month</p>
               </div>
               <p className="text-xs text-muted-foreground mt-1">Cancel anytime</p>
-              {annualPriceId && (
-                <div className="border-t border-border pt-3 flex items-center gap-2">
+              {!loadingPrices && annualPriceId && (
+                <div className="border-t border-border pt-3">
                   <button
                     className="text-xs text-primary font-semibold hover:underline disabled:opacity-50"
                     onClick={() => handleSubscribe(annualPriceId)}
@@ -257,12 +286,9 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            {error && (
-              <p className="text-xs text-destructive bg-destructive/10 rounded-lg p-2 text-center">{error}</p>
-            )}
             <Button
               className="w-full"
-              disabled={loading || !pricesReady}
+              disabled={loading || loadingPrices}
               onClick={() => handleSubscribe(monthlyPriceId)}
               data-testid="button-subscribe-pro"
             >

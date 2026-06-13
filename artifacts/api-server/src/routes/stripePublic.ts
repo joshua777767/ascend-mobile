@@ -4,11 +4,16 @@ import { getUncachableStripeClient } from "../stripeClient";
 
 const router: IRouter = Router();
 
-let productCache: { data: any[]; timestamp: number } | null = null;
+let productCache: { data: any[]; timestamp: number; keyMode: string } | null = null;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
-async function fetchProductsFromStripe() {
+async function fetchProductsFromStripe(): Promise<{ data: any[]; keyMode: string }> {
   const stripe = await getUncachableStripeClient();
+  // Detect key mode from the API key the client was constructed with
+  const keyMode = (stripe as any)._api?.auth?.startsWith?.("sk_live") ? "live"
+    : (stripe as any)._api?.auth?.startsWith?.("sk_test") ? "test"
+    : "unknown";
+
   const [products, prices] = await Promise.all([
     stripe.products.list({ active: true, limit: 20 }),
     stripe.prices.list({ active: true, limit: 50 }),
@@ -30,15 +35,16 @@ async function fetchProductsFromStripe() {
       });
     }
   }
-  return Array.from(productsMap.values());
+  return { data: Array.from(productsMap.values()), keyMode };
 }
 
 router.get("/stripe/products", async (_req, res): Promise<void> => {
   if (productCache && Date.now() - productCache.timestamp < CACHE_TTL_MS) {
-    res.json({ data: productCache.data });
+    res.json({ data: productCache.data, keyMode: productCache.keyMode });
     return;
   }
 
+  // Try DB-synced products first
   try {
     const rows = await stripeStorage.listProductsWithPrices();
     const productsMap = new Map<string, any>();
@@ -58,19 +64,35 @@ router.get("/stripe/products", async (_req, res): Promise<void> => {
     }
     const data = Array.from(productsMap.values());
     if (data.length > 0) {
-      productCache = { data, timestamp: Date.now() };
-      res.json({ data });
+      productCache = { data, timestamp: Date.now(), keyMode: "live" };
+      res.json({ data, keyMode: "live" });
       return;
     }
-    throw new Error("no db rows");
+    // DB empty — fall through to Stripe API
   } catch {
-    try {
-      const data = await fetchProductsFromStripe();
-      productCache = { data, timestamp: Date.now() };
-      res.json({ data });
-    } catch {
-      res.json({ data: [], error: "Stripe is not configured." });
-    }
+    // DB unavailable — fall through to Stripe API
+  }
+
+  // Fallback: hit Stripe API directly
+  try {
+    const { data, keyMode } = await fetchProductsFromStripe();
+    productCache = { data, timestamp: Date.now(), keyMode };
+    const errorMsg = data.length === 0
+      ? keyMode === "test"
+        ? "Stripe is in test mode — no live products found. Add your live Stripe secret key (sk_live_...) as STRIPE_SECRET_KEY in the Publish → Secrets pane."
+        : "No active Stripe products found. Create a product with a recurring price in your Stripe Dashboard."
+      : undefined;
+    res.json({ data, keyMode, ...(errorMsg ? { error: errorMsg } : {}) });
+  } catch (err: any) {
+    const msg = err?.message ?? "Unknown error";
+    const isMissingKey = msg.includes("Missing") || msg.includes("not connected") || msg.includes("missing secret key");
+    res.json({
+      data: [],
+      keyMode: "none",
+      error: isMissingKey
+        ? "Stripe secret key not configured. Add STRIPE_SECRET_KEY (sk_live_...) to the Publish → Secrets pane."
+        : `Stripe error: ${msg}`,
+    });
   }
 });
 
