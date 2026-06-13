@@ -21,6 +21,7 @@ function publicUser(
     trialStartDate: Date | null;
     trialEndDate: Date | null;
     createdAt: Date;
+    subscriptionStatus?: string | null;
   },
   isPaidSubscriber = false
 ) {
@@ -47,7 +48,27 @@ function publicUser(
   };
 }
 
-async function checkStripeSubscription(stripeCustomerId: string | null): Promise<boolean> {
+/**
+ * Returns true if the user has an active paid subscription.
+ *
+ * Fast path: if `subscriptionStatus` is already stored in the DB, use it
+ * without hitting the Stripe API.  Only falls back to a live Stripe API call
+ * when the DB status is null/unknown (e.g. legacy rows created before the
+ * webhook started writing to usersTable).
+ */
+async function checkStripeSubscription(
+  stripeCustomerId: string | null,
+  subscriptionStatus: string | null | undefined = null
+): Promise<boolean> {
+  // Fast path — use the DB-cached status written by the webhook handler
+  if (subscriptionStatus === "active" || subscriptionStatus === "trialing") {
+    return true;
+  }
+  if (subscriptionStatus === "canceled" || subscriptionStatus === "past_due") {
+    return false;
+  }
+
+  // Fallback — live Stripe API call for rows that predate the webhook writes
   if (!stripeCustomerId) return false;
   try {
     const stripe = await getUncachableStripeClient();
@@ -180,7 +201,8 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   // Check Stripe subscription so the login response is immediately accurate —
   // avoids the "need to refresh after payment" problem on the frontend.
-  const isPaidSubscriber = await checkStripeSubscription(user.stripeCustomerId);
+  // Uses DB-cached subscriptionStatus as fast path; falls back to Stripe API.
+  const isPaidSubscriber = await checkStripeSubscription(user.stripeCustomerId, user.subscriptionStatus);
 
   req.session.regenerate((err) => {
     if (err) {
@@ -216,9 +238,9 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  // Always check Stripe when the user has a customer ID — this covers:
-  // (a) paid users whose trial hasn't expired yet, (b) users returning after checkout
-  const isPaidSubscriber = await checkStripeSubscription(user.stripeCustomerId);
+  // DB fast path: use stored subscriptionStatus. Falls back to live Stripe API
+  // for users whose rows predate the webhook writes (subscriptionStatus = null).
+  const isPaidSubscriber = await checkStripeSubscription(user.stripeCustomerId, user.subscriptionStatus);
   res.json(publicUser(user, isPaidSubscriber));
 });
 

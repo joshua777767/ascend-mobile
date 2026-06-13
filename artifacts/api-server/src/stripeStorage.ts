@@ -80,6 +80,14 @@ export class StripeStorage {
     return user;
   }
 
+  async getUserByStripeCustomerId(stripeCustomerId: string) {
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.stripeCustomerId, stripeCustomerId));
+    return user ?? null;
+  }
+
   async updateUserStripeInfo(userId: number, stripeInfo: { stripeCustomerId?: string }) {
     const [user] = await db
       .update(usersTable)
@@ -87,6 +95,21 @@ export class StripeStorage {
       .where(eq(usersTable.id, userId))
       .returning();
     return user;
+  }
+
+  async updateUserSubscription(
+    stripeCustomerId: string,
+    update: {
+      stripeSubscriptionId?: string | null;
+      subscriptionStatus?: string | null;
+    }
+  ) {
+    const [user] = await db
+      .update(usersTable)
+      .set(update)
+      .where(eq(usersTable.stripeCustomerId, stripeCustomerId))
+      .returning();
+    return user ?? null;
   }
 }
 

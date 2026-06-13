@@ -5,6 +5,8 @@ export const usersTable = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  subscriptionStatus: text("subscription_status"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   freePro: boolean("free_pro").notNull().default(false),
   freeProExpiresAt: timestamp("free_pro_expires_at", { withTimezone: true }),

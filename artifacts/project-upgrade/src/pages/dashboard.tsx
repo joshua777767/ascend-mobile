@@ -21,6 +21,7 @@ import {
   getGetStreakQueryKey,
   getGetProgressSummaryQueryKey,
   getListGoalCheckInsQueryKey,
+  getGetMeQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -646,6 +647,18 @@ export default function DashboardPage() {
 
   useEffect(() => { refetchMeals(); }, [refetchMeals]);
   useEffect(() => { refetchWater(); }, [refetchWater]);
+
+  // After Stripe checkout success: force a fresh auth/me fetch so the app
+  // immediately reflects the new subscription status without requiring a reload.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "success") {
+      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      // Clean the URL so a refresh doesn't re-trigger
+      const clean = window.location.pathname;
+      window.history.replaceState({}, "", clean);
+    }
+  }, [queryClient]);
 
   const habits = React.useMemo(
     () => prioritizeHabits(plan && Array.isArray(plan.keyHabits) ? plan.keyHabits : []),
