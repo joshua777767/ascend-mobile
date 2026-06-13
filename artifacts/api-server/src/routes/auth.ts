@@ -64,7 +64,14 @@ async function checkStripeSubscription(
   if (subscriptionStatus === "active" || subscriptionStatus === "trialing") {
     return true;
   }
-  if (subscriptionStatus === "canceled" || subscriptionStatus === "past_due") {
+  if (
+    subscriptionStatus === "canceled" ||
+    subscriptionStatus === "past_due" ||
+    subscriptionStatus === "incomplete" ||
+    subscriptionStatus === "incomplete_expired" ||
+    subscriptionStatus === "unpaid" ||
+    subscriptionStatus === "paused"
+  ) {
     return false;
   }
 

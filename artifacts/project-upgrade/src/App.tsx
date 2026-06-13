@@ -241,8 +241,9 @@ function ProtectedApp() {
 
   const userGoals = Array.isArray((profile as any).goals) ? (profile as any).goals as string[] : [];
 
-  // Expired users can only access settings, privacy, terms, delete-account, data-export
-  const FREE_ROUTES = ["/settings", "/privacy", "/terms", "/delete-account", "/data-export"];
+  // Expired users can only access account-utility pages (GDPR-style).
+  // All app feature pages — including settings — require active access.
+  const FREE_ROUTES = ["/privacy", "/terms", "/delete-account", "/data-export"];
   const isFreeRoute = typeof window !== "undefined" && FREE_ROUTES.some((r) => window.location.pathname.includes(r));
 
   if (expired && !isFreeRoute) {
