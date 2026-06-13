@@ -431,11 +431,10 @@ export default function OnboardingPage() {
       {/* Sticky header */}
       <div className="shrink-0 px-5 pt-5 pb-4 bg-background">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-extrabold text-xs">A</span>
-            </div>
-            <span className="text-sm font-bold tracking-tight">Ascend</span>
+          <div className="flex items-center">
+            <span className="text-[15px] font-black tracking-tighter leading-none">
+              ASCEND<span style={{ color: "#F59E0B" }}>FIT</span>
+            </span>
           </div>
           <p className="text-sm font-medium text-muted-foreground">
             Step {step} of {TOTAL_STEPS}
@@ -444,8 +443,8 @@ export default function OnboardingPage() {
         {/* Progress bar */}
         <div className="h-1.5 rounded-full bg-elevated overflow-hidden">
           <div
-            className="h-full rounded-full bg-primary transition-all duration-300"
-            style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+            className="h-full rounded-full transition-all duration-300"
+            style={{ background: "#F59E0B", width: `${(step / TOTAL_STEPS) * 100}%` }}
           />
         </div>
       </div>
