@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.chromium
     pkgs.xorg.libXrender
     pkgs.xorg.libxcb
     pkgs.xorg.libXrandr
