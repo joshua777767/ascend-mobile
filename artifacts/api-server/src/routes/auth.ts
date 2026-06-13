@@ -51,19 +51,24 @@ function publicUser(
 /**
  * Returns true if the user has an active paid subscription.
  *
- * Fast path: if `subscriptionStatus` is already stored in the DB, use it
- * without hitting the Stripe API.  Only falls back to a live Stripe API call
- * when the DB status is null/unknown (e.g. legacy rows created before the
- * webhook started writing to usersTable).
+ * Always performs a live Stripe API call when stripeCustomerId is present so
+ * that cancellations (and any other status changes) are caught immediately —
+ * even if the webhook missed or was delayed.  The fresh status is written back
+ * to the DB so the local row stays in sync independently of webhooks.
+ *
+ * Known-false statuses (canceled, past_due, etc.) short-circuit to false
+ * without a Stripe call because they can only become false, never true again
+ * without the user actively resubscribing (which triggers the webhook).
+ *
+ * If the Stripe call fails (network error, rate limit) we fall back to the
+ * DB-cached status so a Stripe outage never locks out a paying user.
  */
 async function checkStripeSubscription(
+  userId: number,
   stripeCustomerId: string | null,
   subscriptionStatus: string | null | undefined = null
 ): Promise<boolean> {
-  // Fast path — use the DB-cached status written by the webhook handler
-  if (subscriptionStatus === "active" || subscriptionStatus === "trialing") {
-    return true;
-  }
+  // Known-false fast path — no need to call Stripe to confirm these
   if (
     subscriptionStatus === "canceled" ||
     subscriptionStatus === "past_due" ||
@@ -75,18 +80,48 @@ async function checkStripeSubscription(
     return false;
   }
 
-  // Fallback — live Stripe API call for rows that predate the webhook writes
+  // No Stripe customer → never subscribed
   if (!stripeCustomerId) return false;
+
+  // Live Stripe check — catches cancellations the webhook may have missed
   try {
     const stripe = await getUncachableStripeClient();
     const subs = await stripe.subscriptions.list({
       customer: stripeCustomerId,
       limit: 5,
     });
-    return subs.data.some(
+    const activeSub = subs.data.find(
       (s) => s.status === "active" || s.status === "trialing"
     );
-  } catch {
+    const liveStatus = activeSub?.status ?? (subs.data[0]?.status ?? "canceled");
+
+    // Write back to DB if status changed — keeps the row in sync without
+    // depending solely on webhooks
+    if (liveStatus !== subscriptionStatus) {
+      await db
+        .update(usersTable)
+        .set({
+          subscriptionStatus: liveStatus,
+          ...(activeSub ? { stripeSubscriptionId: activeSub.id } : {}),
+        })
+        .where(eq(usersTable.id, userId));
+    }
+
+    return !!activeSub;
+  } catch (err: unknown) {
+    // Distinguish between transient Stripe issues and definitive errors.
+    // Transient (api_connection_error, api_error, rate_limit_error) → fall back
+    // to the DB-cached status so a Stripe outage never locks out a paying user.
+    // All other errors (invalid_request_error: "no such customer", auth errors,
+    // etc.) → the customer/subscription is definitively not active.
+    const errType = (err as { type?: string })?.type;
+    const isTransient =
+      errType === "api_connection_error" ||
+      errType === "api_error" ||
+      errType === "rate_limit_error";
+    if (isTransient) {
+      return subscriptionStatus === "active" || subscriptionStatus === "trialing";
+    }
     return false;
   }
 }
@@ -209,7 +244,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   // Check Stripe subscription so the login response is immediately accurate —
   // avoids the "need to refresh after payment" problem on the frontend.
   // Uses DB-cached subscriptionStatus as fast path; falls back to Stripe API.
-  const isPaidSubscriber = await checkStripeSubscription(user.stripeCustomerId, user.subscriptionStatus);
+  const isPaidSubscriber = await checkStripeSubscription(user.id, user.stripeCustomerId, user.subscriptionStatus);
 
   req.session.regenerate((err) => {
     if (err) {
@@ -245,9 +280,9 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  // DB fast path: use stored subscriptionStatus. Falls back to live Stripe API
-  // for users whose rows predate the webhook writes (subscriptionStatus = null).
-  const isPaidSubscriber = await checkStripeSubscription(user.stripeCustomerId, user.subscriptionStatus);
+  // Always do a live Stripe check when stripeCustomerId exists so cancellations
+  // are caught immediately — even if the webhook missed.  Writes back to DB.
+  const isPaidSubscriber = await checkStripeSubscription(user.id, user.stripeCustomerId, user.subscriptionStatus);
   res.json(publicUser(user, isPaidSubscriber));
 });
 
