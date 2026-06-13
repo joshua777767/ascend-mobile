@@ -5,35 +5,39 @@ import { db, usersTable, userProfilesTable, passwordResetTokensTable } from "@wo
 import { SignupBody, LoginBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { sendEmail, buildPasswordResetEmail } from "../lib/email";
+import { getUncachableStripeClient } from "../stripeClient";
 
 const router: IRouter = Router();
 
 const SAFE_RESET_MSG = "If an account exists with that email, a reset link has been sent.";
 
-function publicUser(user: {
-  id: number;
-  email: string;
-  freePro: boolean;
-  freeProExpiresAt: Date | null;
-  trialUsed: boolean | null;
-  trialStartDate: Date | null;
-  trialEndDate: Date | null;
-  createdAt: Date;
-}) {
+function publicUser(
+  user: {
+    id: number;
+    email: string;
+    freePro: boolean;
+    freeProExpiresAt: Date | null;
+    trialUsed: boolean | null;
+    trialStartDate: Date | null;
+    trialEndDate: Date | null;
+    createdAt: Date;
+  },
+  isPaidSubscriber = false
+) {
   const isFreePro = user.freePro && (
     !user.freeProExpiresAt || user.freeProExpiresAt > new Date()
   );
   const now = new Date();
-  // Backward compatibility: if no explicit trial dates, compute from createdAt
   const trialStartDate = user.trialStartDate ?? user.createdAt;
   const trialEndDate = user.trialEndDate ?? new Date(new Date(user.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000);
   const trialExpired = now > trialEndDate;
   const trialActive = !trialExpired && !isFreePro;
-  const hasAccess = isFreePro || trialActive;
+  const hasAccess = !!isFreePro || trialActive || isPaidSubscriber;
   return {
     id: user.id,
     email: user.email,
     isFreePro: !!isFreePro,
+    isPaidSubscriber,
     trialUsed: !!user.trialUsed,
     trialStartDate: trialStartDate.toISOString(),
     trialEndDate: trialEndDate.toISOString(),
@@ -41,6 +45,22 @@ function publicUser(user: {
     trialActive,
     hasAccess,
   };
+}
+
+async function checkStripeSubscription(stripeCustomerId: string | null): Promise<boolean> {
+  if (!stripeCustomerId) return false;
+  try {
+    const stripe = await getUncachableStripeClient();
+    const subs = await stripe.subscriptions.list({
+      customer: stripeCustomerId,
+      limit: 5,
+    });
+    return subs.data.some(
+      (s) => s.status === "active" || s.status === "trialing"
+    );
+  } catch {
+    return false;
+  }
 }
 
 router.post("/auth/signup", async (req, res): Promise<void> => {
@@ -192,7 +212,14 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  res.json(publicUser(user));
+  // Only hit Stripe when trial has expired — active trial users skip the call
+  const now = new Date();
+  const trialEnd = user.trialEndDate ?? new Date(user.createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const trialExpired = now > trialEnd;
+  const isPaidSubscriber = (trialExpired || user.freePro)
+    ? await checkStripeSubscription(user.stripeCustomerId)
+    : false;
+  res.json(publicUser(user, isPaidSubscriber));
 });
 
 router.post("/auth/forgot-password", async (req, res): Promise<void> => {

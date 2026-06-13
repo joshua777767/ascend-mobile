@@ -134,6 +134,53 @@ function SaveBtn({
 
 // ─── main component ───────────────────────────────────────────────────────────
 
+function SubscriptionSection() {
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState("");
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    setPortalError("");
+    try {
+      const res = await fetch("/api/portal", { method: "POST", credentials: "include" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setPortalError(data.error || "Could not open subscription portal. Please try again.");
+      }
+    } catch {
+      setPortalError("Network error. Please check your connection and try again.");
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  return (
+    <section className="rounded-2xl bg-card border border-border p-5 space-y-3">
+      <p className="text-sm font-semibold text-foreground">Subscription</p>
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <CreditCard className="w-4 h-4 text-primary" strokeWidth={2} />
+        <span>Cancel, update payment method, or view invoices</span>
+      </div>
+      {portalError && (
+        <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">{portalError}</p>
+      )}
+      <button
+        onClick={handleManageSubscription}
+        disabled={portalLoading}
+        className="flex items-center justify-center gap-2 w-full bg-primary/10 border border-primary/30 text-primary h-12 rounded-xl text-sm font-semibold active:scale-[0.99] transition-transform disabled:opacity-60"
+      >
+        {portalLoading ? (
+          <><div className="w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />Opening portal...</>
+        ) : (
+          <><ExternalLink className="w-[18px] h-[18px]" strokeWidth={2} />Manage subscription</>
+        )}
+      </button>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -413,28 +460,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Subscription */}
-        <section className="rounded-2xl bg-card border border-border p-5 space-y-3">
-          <p className="text-sm font-semibold text-foreground">Subscription</p>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CreditCard className="w-4 h-4 text-primary" strokeWidth={2} />
-            <span>Manage your plan, billing, and payment methods</span>
-          </div>
-          <button
-            onClick={async () => {
-              try {
-                const res = await fetch("/api/portal", { method: "POST", credentials: "include" });
-                const data = await res.json();
-                if (data.url) window.location.href = data.url;
-              } catch {
-                /* ignore */
-              }
-            }}
-            className="flex items-center justify-center gap-2 w-full bg-primary/10 border border-primary/30 text-primary h-12 rounded-xl text-sm font-semibold active:scale-[0.99] transition-transform"
-          >
-            <ExternalLink className="w-[18px] h-[18px]" strokeWidth={2} />
-            Manage Subscription
-          </button>
-        </section>
+        <SubscriptionSection />
 
         {/* Data & Privacy */}
         <section className="rounded-2xl bg-card border border-border p-5 space-y-3">

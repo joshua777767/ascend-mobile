@@ -35,8 +35,9 @@ export function useSubscription() {
     staleTime: 300 * 1000,
   });
 
+  const isPaidSubscriber = !!me?.isPaidSubscriber;
   const isRevenueCatPro = customerInfo ? isSubscribed(customerInfo) : false;
-  const isPro = isFreePro || isRevenueCatPro;
+  const isPro = isFreePro || isRevenueCatPro || isPaidSubscriber;
   const isLoading = isLoadingCustomerInfo || isLoadingOfferings;
 
   const currentPackage = offerings?.current?.availablePackages?.[0] ?? null;
