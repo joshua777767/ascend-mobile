@@ -7,7 +7,7 @@ import {
   getGetUserProfileQueryKey,
 } from "@workspace/api-client-react";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
-import { AscendMark } from "@/components/ascend-mark";
+import { AuthHeader } from "@/components/ascend-mark";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
@@ -48,21 +48,15 @@ export default function LoginPage() {
     >
       {/* Ambient orbs */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute w-80 h-80 rounded-full blur-3xl opacity-15" style={{ top: "-10%", right: "-15%", background: "radial-gradient(circle, rgba(59,130,246,0.5) 0%, transparent 70%)" }} />
-        <div className="absolute w-72 h-72 rounded-full blur-3xl opacity-10" style={{ bottom: "10%", left: "-10%", background: "radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)" }} />
+        <div className="absolute w-80 h-80 rounded-full blur-3xl opacity-15" style={{ top: "-10%", right: "-15%", background: "radial-gradient(circle, rgba(245,158,11,0.35) 0%, transparent 70%)" }} />
+        <div className="absolute w-72 h-72 rounded-full blur-3xl opacity-10" style={{ bottom: "10%", left: "-10%", background: "radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)" }} />
       </div>
 
       <div className="relative z-10 flex flex-col h-full">
-        <div className="px-6 pt-8 flex items-center gap-2.5">
-          <AscendMark size="lg" />
-          <div>
-            <span className="text-[15px] font-black tracking-tight leading-none">Ascend</span>
-            <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Your Daily Coach</p>
-          </div>
-        </div>
+        <AuthHeader />
 
         <div className="flex-1 flex flex-col justify-center px-6 py-10 max-w-md w-full mx-auto">
-          <div className="rounded-2xl p-6 space-y-6" style={{ background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 6%) 100%)", border: "1px solid hsl(217 32% 16%)", boxShadow: "0 0 32px rgba(59,130,246,0.06), inset 0 1px 0 rgba(255,255,255,0.03)" }}>
+          <div className="rounded-2xl p-6 space-y-6" style={{ background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 6%) 100%)", border: "1px solid hsl(217 32% 16%)", boxShadow: "0 0 32px rgba(245,158,11,0.06), inset 0 1px 0 rgba(255,255,255,0.03)" }}>
             <div>
               <h1 className="text-[1.9rem] leading-tight font-extrabold tracking-tight">Welcome back</h1>
               <p className="mt-2 text-[15px] text-muted-foreground">Log in to continue your transformation.</p>

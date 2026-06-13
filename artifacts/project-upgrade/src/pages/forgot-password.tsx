@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useForgotPassword } from "@workspace/api-client-react";
-import { AscendMark } from "@/components/ascend-mark";
+import { AuthHeader } from "@/components/ascend-mark";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -35,19 +35,12 @@ export default function ForgotPasswordPage() {
     >
       {/* Ambient orbs */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute w-80 h-80 rounded-full blur-3xl opacity-20" style={{ top: "-10%", right: "-15%", background: "radial-gradient(circle, rgba(59,130,246,0.5) 0%, transparent 70%)" }} />
-        <div className="absolute w-72 h-72 rounded-full blur-3xl opacity-10" style={{ bottom: "10%", left: "-10%", background: "radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)" }} />
+        <div className="absolute w-80 h-80 rounded-full blur-3xl opacity-20" style={{ top: "-10%", right: "-15%", background: "radial-gradient(circle, rgba(245,158,11,0.35) 0%, transparent 70%)" }} />
+        <div className="absolute w-72 h-72 rounded-full blur-3xl opacity-10" style={{ bottom: "10%", left: "-10%", background: "radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)" }} />
       </div>
 
       <div className="relative z-10 flex flex-col h-full">
-        {/* Header */}
-        <div className="px-6 pt-8 flex items-center gap-2.5">
-          <AscendMark size="lg" />
-          <div>
-            <span className="text-[15px] font-black tracking-tight leading-none">Ascend</span>
-            <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Your Daily Coach</p>
-          </div>
-        </div>
+        <AuthHeader />
 
         {/* Content */}
         <div className="flex-1 flex flex-col justify-center px-6 py-10 max-w-md w-full mx-auto">

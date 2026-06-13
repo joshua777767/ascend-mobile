@@ -93,7 +93,8 @@ export default function PricingPage() {
   const { data: me } = useGetMe();
   const { monthlyPriceId, annualPriceId, loadingPrices, stripeConfigError } = usePriceIds();
 
-  const isExpired = location.includes("expired=1") || !!me?.trialExpired;
+  // Only show "expired" lockout when trial truly ended AND no active access (not a paid subscriber)
+  const isExpired = location.includes("expired=1") || (!!me?.trialExpired && !me?.hasAccess);
   const hasTrial = me ? !me.trialUsed : true;
 
   useEffect(() => {

@@ -6,6 +6,7 @@ export function useSubscription() {
   const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false } });
 
   const isFreePro = !!me?.isFreePro;
+  const isPaidSubscriber = !!me?.isPaidSubscriber;
 
   const isNative = typeof window !== "undefined" && (window as any).Capacitor !== undefined;
 
@@ -35,9 +36,10 @@ export function useSubscription() {
     staleTime: 300 * 1000,
   });
 
-  const isPaidSubscriber = !!me?.isPaidSubscriber;
   const isRevenueCatPro = customerInfo ? isSubscribed(customerInfo) : false;
   const isPro = isFreePro || isRevenueCatPro || isPaidSubscriber;
+  // Backend hasAccess: trialActive OR freePro OR paidSubscriber
+  const hasAccess = !!me?.hasAccess || isRevenueCatPro;
   const isLoading = isLoadingCustomerInfo || isLoadingOfferings;
 
   const currentPackage = offerings?.current?.availablePackages?.[0] ?? null;
@@ -46,6 +48,8 @@ export function useSubscription() {
     isPro,
     isFreePro,
     isRevenueCatPro,
+    isPaidSubscriber,
+    hasAccess,
     isLoading,
     customerInfo,
     currentPackage,

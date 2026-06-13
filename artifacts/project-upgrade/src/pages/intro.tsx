@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation, Redirect } from "wouter";
 import { useGetUserProfile } from "@workspace/api-client-react";
 import { ArrowRight } from "lucide-react";
-import { AscendMark } from "@/components/ascend-mark";
+import { AuthHeader } from "@/components/ascend-mark";
 
 const SLIDES = [
   {
@@ -75,17 +75,13 @@ function IntroSlides() {
         />
         <div
           className="absolute w-80 h-80 rounded-full blur-3xl opacity-8"
-          style={{ bottom: "5%", left: "-15%", background: "radial-gradient(circle, rgba(59,130,246,0.4) 0%, transparent 70%)" }}
+          style={{ bottom: "5%", left: "-15%", background: "radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)" }}
         />
       </div>
 
       {/* Logo */}
-      <div className="relative z-10 px-6 pt-8 flex items-center gap-2.5">
-        <AscendMark size="lg" />
-        <div>
-          <span className="text-[15px] font-black tracking-tight leading-none">Ascend</span>
-          <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Fitness Coach</p>
-        </div>
+      <div className="relative z-10">
+        <AuthHeader />
       </div>
 
       {/* Slide content */}

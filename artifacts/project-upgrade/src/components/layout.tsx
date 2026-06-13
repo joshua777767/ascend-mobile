@@ -1,6 +1,5 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { AscendMark } from "@/components/ascend-mark";
 import {
   Home,
   Calendar,
@@ -43,9 +42,6 @@ const PAGE_TITLES: Record<string, string> = {
   "/progress": "Progress",
 };
 
-function AscendLogo({ size = "md" }: { size?: "sm" | "md" }) {
-  return <AscendMark size={size} />;
-}
 
 function TrialPill() {
   const { trialDay, daysLeft, trialComplete } = useTrialDay();
@@ -130,12 +126,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
           background: "linear-gradient(180deg, hsl(220 55% 7%) 0%, hsl(220 52% 8%) 100%)",
         }}
       >
-        <div className="px-5 py-5 flex items-center gap-2.5 border-b" style={{ borderColor: "hsl(217 32% 13%)" }}>
-          <AscendLogo />
-          <div>
-            <h1 className="text-[15px] font-black tracking-tight text-foreground leading-none">Ascend</h1>
-            <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Your Daily Coach</p>
+        <div className="px-5 py-5 border-b" style={{ borderColor: "hsl(217 32% 13%)" }}>
+          <div className="text-[17px] font-black tracking-tighter leading-none">
+            ASCEND<span style={{ color: "#F59E0B" }}>FIT</span>
           </div>
+          <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-1">Your Daily Coach</p>
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
           {ALL_NAV_ITEMS.map((item) => {
@@ -150,14 +145,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     : "text-muted-foreground hover:text-foreground hover:bg-elevated"
                 }`}
                 style={isActive ? {
-                  background: "rgba(59,130,246,0.1)",
-                  boxShadow: "inset 0 1px 0 rgba(59,130,246,0.08)",
+                  background: "rgba(245,158,11,0.1)",
+                  boxShadow: "inset 0 1px 0 rgba(245,158,11,0.08)",
                 } : {}}
               >
                 {isActive && (
                   <span
                     className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full"
-                    style={{ background: "linear-gradient(180deg, #3B82F6 0%, #2DD4BF 100%)" }}
+                    style={{ background: "linear-gradient(180deg, #F59E0B 0%, #FCD34D 100%)" }}
                   />
                 )}
                 <item.icon className="w-[18px] h-[18px] shrink-0" strokeWidth={isActive ? 2.4 : 2} />
@@ -175,11 +170,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground hover:bg-elevated"
             }`}
-            style={location === "/settings" ? { background: "rgba(59,130,246,0.1)" } : {}}
+            style={location === "/settings" ? { background: "rgba(245,158,11,0.1)" } : {}}
           >
             {location === "/settings" && (
               <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full"
-                style={{ background: "linear-gradient(180deg, #3B82F6 0%, #2DD4BF 100%)" }} />
+                style={{ background: "linear-gradient(180deg, #F59E0B 0%, #FCD34D 100%)" }} />
             )}
             <Settings className="w-[18px] h-[18px] shrink-0" strokeWidth={2} />
             Settings
@@ -204,13 +199,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         }}
       >
         <div className="h-14 flex items-center justify-between px-4">
-          <div className="flex items-center gap-2.5">
-            <AscendLogo size="sm" />
-            <div>
-              <span className="text-[15px] font-black tracking-tight text-foreground leading-none">
-                {pageTitle ?? "Ascend"}
-              </span>
-            </div>
+          <div className="flex items-center">
+            <span className="text-[15px] font-black tracking-tighter text-foreground leading-none">
+              {pageTitle ? pageTitle : <><span>ASCEND</span><span style={{ color: "#F59E0B" }}>FIT</span></>}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <MobileTrialBadge />

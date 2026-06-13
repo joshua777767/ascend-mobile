@@ -17,10 +17,8 @@ export function useTrialDay(): TrialInfo {
   const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false } });
 
   const isFreePro = !!me?.isFreePro;
-  const hasAccess = !!me?.hasAccess;
-  const trialExpired = !!me?.trialExpired;
+  const isPaidSubscriber = !!me?.isPaidSubscriber;
 
-  // Check RevenueCat entitlement (for native iOS app)
   const { data: customerInfo } = useQuery({
     queryKey: ["revenuecat", "trial-check"],
     queryFn: async () => {
@@ -35,8 +33,15 @@ export function useTrialDay(): TrialInfo {
   });
 
   const isRevenueCatPro = customerInfo ? isSubscribed(customerInfo) : false;
-  const isPro = isFreePro || isRevenueCatPro;
-  const effectiveHasAccess = isPro || (hasAccess && !trialExpired);
+  // Full Pro: server freePro, Stripe paid subscription, or RevenueCat native
+  const isPro = isFreePro || isPaidSubscriber || isRevenueCatPro;
+  // Backend computes hasAccess correctly (trialActive OR freePro OR paidSubscriber)
+  // Supplement with RevenueCat for native iOS
+  const backendHasAccess = !!me?.hasAccess;
+  const hasAccess = backendHasAccess || isRevenueCatPro;
+  // Trial is only "expired with no access" if backend says expired AND no access at all
+  const backendTrialExpired = !!me?.trialExpired;
+  const trialExpired = backendTrialExpired && !hasAccess;
 
   if (!profile?.createdAt) {
     return {
@@ -45,23 +50,28 @@ export function useTrialDay(): TrialInfo {
       isOnTrial: !isPro,
       trialComplete: false,
       isFreePro: isPro,
-      hasAccess: effectiveHasAccess,
+      // While me is still loading, assume access to prevent flicker lockout
+      hasAccess: me !== undefined ? hasAccess : true,
       trialExpired: false,
     };
   }
+
   const msPerDay = 1000 * 60 * 60 * 24;
-  const daysSince = Math.floor(
-    (Date.now() - new Date(profile.createdAt).getTime()) / msPerDay
-  );
+  // Prefer backend trial start date for accuracy; fall back to profile createdAt
+  const trialStart = me?.trialStartDate
+    ? new Date(me.trialStartDate)
+    : new Date(profile.createdAt);
+  const daysSince = Math.floor((Date.now() - trialStart.getTime()) / msPerDay);
   const trialDay = Math.min(7, daysSince + 1);
   const daysLeft = Math.max(0, 7 - trialDay);
+
   return {
     trialDay,
     daysLeft,
     isOnTrial: !isPro && daysLeft > 0,
-    trialComplete: !isPro && trialDay >= 7,
+    trialComplete: trialExpired,
     isFreePro: isPro,
-    hasAccess: effectiveHasAccess,
-    trialExpired: !isPro && trialDay >= 7,
+    hasAccess,
+    trialExpired,
   };
 }

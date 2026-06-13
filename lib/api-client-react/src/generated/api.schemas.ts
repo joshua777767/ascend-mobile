@@ -13,6 +13,7 @@ export interface AuthUser {
   id: number;
   email: string;
   isFreePro: boolean;
+  isPaidSubscriber: boolean;
   trialUsed: boolean;
   trialStartDate?: string | null;
   trialEndDate?: string | null;

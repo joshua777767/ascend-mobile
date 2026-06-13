@@ -921,6 +921,8 @@ components:
           type: string
         isFreePro:
           type: boolean
+        isPaidSubscriber:
+          type: boolean
         trialUsed:
           type: boolean
         trialStartDate:
@@ -941,6 +943,7 @@ components:
         - id
         - email
         - isFreePro
+        - isPaidSubscriber
         - trialUsed
         - trialExpired
         - trialActive
