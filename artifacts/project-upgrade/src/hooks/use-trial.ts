@@ -10,11 +10,13 @@ export interface TrialInfo {
   isFreePro: boolean;
   hasAccess: boolean;
   trialExpired: boolean;
+  isPaidSubscriber: boolean;
+  isLoading: boolean;
 }
 
 export function useTrialDay(): TrialInfo {
   const { data: profile } = useGetUserProfile();
-  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false } });
+  const { data: me, isLoading: isMeLoading } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false } });
 
   const isFreePro = !!me?.isFreePro;
   const isPaidSubscriber = !!me?.isPaidSubscriber;
@@ -53,6 +55,8 @@ export function useTrialDay(): TrialInfo {
       // While me is still loading, assume access to prevent flicker lockout
       hasAccess: me !== undefined ? hasAccess : true,
       trialExpired: false,
+      isPaidSubscriber,
+      isLoading: isMeLoading,
     };
   }
 
@@ -73,5 +77,7 @@ export function useTrialDay(): TrialInfo {
     isFreePro: isPro,
     hasAccess,
     trialExpired,
+    isPaidSubscriber,
+    isLoading: isMeLoading,
   };
 }

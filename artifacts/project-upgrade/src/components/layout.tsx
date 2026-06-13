@@ -44,7 +44,34 @@ const PAGE_TITLES: Record<string, string> = {
 
 
 function TrialPill() {
-  const { trialDay, daysLeft, trialComplete } = useTrialDay();
+  const { trialDay, daysLeft, trialComplete, isFreePro: isPro, isLoading } = useTrialDay();
+
+  if (isLoading) {
+    return (
+      <div
+        className="mx-3 mb-3 rounded-xl px-3 py-2.5 h-10 animate-pulse"
+        style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.12)" }}
+      />
+    );
+  }
+
+  if (isPro) {
+    return (
+      <Link href="/settings">
+        <div
+          className="mx-3 mb-3 rounded-xl px-3 py-2.5 flex items-center gap-2.5 cursor-pointer transition-opacity hover:opacity-80"
+          style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.20)" }}
+        >
+          <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={2.5} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-bold text-foreground leading-none truncate">Pro Subscription</p>
+            <p className="text-[9px] font-bold tracking-[0.12em] uppercase mt-0.5" style={{ color: "#F59E0B" }}>Active</p>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
   const href = trialComplete ? "/trial-review" : "/pricing";
   const label = trialComplete
     ? "Trial complete — see your review"
@@ -89,7 +116,31 @@ function TrialPill() {
 }
 
 function MobileTrialBadge() {
-  const { trialDay, trialComplete } = useTrialDay();
+  const { trialDay, trialComplete, isFreePro: isPro, isLoading } = useTrialDay();
+
+  if (isLoading) {
+    return (
+      <span
+        className="inline-flex items-center rounded-full px-2.5 py-1 w-16 h-6 animate-pulse"
+        style={{ background: "rgba(245,158,11,0.08)" }}
+      />
+    );
+  }
+
+  if (isPro) {
+    return (
+      <Link href="/settings">
+        <span
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black cursor-pointer"
+          style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B" }}
+        >
+          <Zap className="w-3 h-3" strokeWidth={2.5} />
+          Pro
+        </span>
+      </Link>
+    );
+  }
+
   const href = trialComplete ? "/trial-review" : "/pricing";
   const label = trialComplete ? "Review" : `Day ${trialDay}/7`;
   return (

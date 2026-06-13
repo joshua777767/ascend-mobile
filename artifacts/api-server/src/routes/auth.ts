@@ -178,6 +178,10 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
+  // Check Stripe subscription so the login response is immediately accurate —
+  // avoids the "need to refresh after payment" problem on the frontend.
+  const isPaidSubscriber = await checkStripeSubscription(user.stripeCustomerId);
+
   req.session.regenerate((err) => {
     if (err) {
       req.log.error({ err }, "Failed to regenerate session on login");
@@ -185,7 +189,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       return;
     }
     req.session.userId = user.id;
-    res.json(publicUser(user));
+    res.json(publicUser(user, isPaidSubscriber));
   });
 });
 
@@ -212,13 +216,9 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  // Only hit Stripe when trial has expired — active trial users skip the call
-  const now = new Date();
-  const trialEnd = user.trialEndDate ?? new Date(user.createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
-  const trialExpired = now > trialEnd;
-  const isPaidSubscriber = (trialExpired || user.freePro)
-    ? await checkStripeSubscription(user.stripeCustomerId)
-    : false;
+  // Always check Stripe when the user has a customer ID — this covers:
+  // (a) paid users whose trial hasn't expired yet, (b) users returning after checkout
+  const isPaidSubscriber = await checkStripeSubscription(user.stripeCustomerId);
   res.json(publicUser(user, isPaidSubscriber));
 });
 
