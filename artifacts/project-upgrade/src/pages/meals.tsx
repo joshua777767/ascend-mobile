@@ -98,7 +98,7 @@ export default function MealsPage() {
   const [submitted, setSubmitted] = useState(false);
   const [waterLog, setWaterLog] = useState<{ oz: number } | null>(null);
   const [waterConfirm, setWaterConfirm] = useState<{ oz: number } | null>(null);
-  const [waterAlsoDetected, setWaterAlsoDetected] = useState<{ oz: number } | null>(null);
+  const [waterAlsoDetected, setWaterAlsoDetected] = useState<{ oz: number; autoLogged?: boolean; needsConfirm?: boolean } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Meal generator state
@@ -130,6 +130,7 @@ export default function MealsPage() {
 
   const handleConfirmWater = async (oz: number) => {
     setWaterConfirm(null);
+    setWaterAlsoDetected(null);
     try {
       await logWater.mutateAsync({ data: { amountOz: oz } });
       setWaterLog({ oz });
@@ -172,15 +173,26 @@ export default function MealsPage() {
       queryClient.invalidateQueries({ queryKey: getGetTodayMealsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getListMealsQueryKey() });
       setSubmitted(true);
-      toast({
-        title: "Proof logged.",
-        description: "Every meal is a vote for who you're becoming.",
-        className: "ascend-toast-success",
-      });
       setTimeout(() => setSubmitted(false), 3000);
-      // Mixed: food was logged AND water was also detected — offer to log water too
-      if ((result as any)?.waterAlsoDetected) {
-        setWaterAlsoDetected({ oz: (result as any).waterAlsoDetected.oz ?? 12 });
+      // Mixed: food was logged AND water was also detected alongside it
+      const wd = (result as any)?.waterAlsoDetected;
+      if (wd) {
+        const oz: number = wd.oz ?? 12;
+        if (wd.autoLogged) {
+          // Already logged server-side (high confidence) — just show confirmation
+          setWaterAlsoDetected({ oz, autoLogged: true });
+          queryClient.invalidateQueries({ queryKey: getGetWaterTodayQueryKey() });
+          setTimeout(() => setWaterAlsoDetected(null), 6000);
+        } else {
+          // Unclear drink — ask the user to confirm
+          setWaterAlsoDetected({ oz, needsConfirm: true });
+        }
+      } else {
+        toast({
+          title: "Proof logged.",
+          description: "Every meal is a vote for who you're becoming.",
+          className: "ascend-toast-success",
+        });
       }
     } catch (e) {
       console.error(e);
@@ -495,11 +507,17 @@ export default function MealsPage() {
                   </div>
                 </div>
               )}
-              {waterAlsoDetected && (
+              {waterAlsoDetected && waterAlsoDetected.autoLogged && (
+                <div className="bg-blue-500/10 border border-blue-500/30 p-3 flex items-center gap-2" data-testid="water-also-detected-banner">
+                  <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
+                  <p className="text-xs font-semibold text-blue-300">+ {waterAlsoDetected.oz} oz water tracked.</p>
+                </div>
+              )}
+              {waterAlsoDetected && waterAlsoDetected.needsConfirm && (
                 <div className="bg-blue-500/10 border border-blue-500/30 p-4 space-y-3" data-testid="water-also-detected-banner">
                   <div className="flex items-center gap-2">
                     <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
-                    <p className="text-xs font-semibold text-blue-300">Also log {waterAlsoDetected.oz} oz of water?</p>
+                    <p className="text-xs font-semibold text-blue-300">Detected a drink — is this water? Add {waterAlsoDetected.oz} oz?</p>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -508,7 +526,7 @@ export default function MealsPage() {
                       onClick={() => handleConfirmWater(waterAlsoDetected.oz)}
                       disabled={logWater.isPending}
                     >
-                      Yes, add it
+                      Yes, it's water
                     </Button>
                     <Button
                       size="sm"
@@ -516,7 +534,7 @@ export default function MealsPage() {
                       className="flex-1 h-8 text-xs border-white/10"
                       onClick={() => setWaterAlsoDetected(null)}
                     >
-                      No thanks
+                      No, skip
                     </Button>
                   </div>
                 </div>

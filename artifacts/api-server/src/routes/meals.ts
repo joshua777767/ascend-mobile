@@ -315,6 +315,87 @@ Respond ONLY with valid JSON: {"isWater": true|false, "oz": <number>, "confidenc
   }
 }
 
+// ─── Side-beverage detection (food + water in the same image) ────────────────
+// Unlike detectPlainWater(), which intercepts *water-only* submissions, this
+// function runs AFTER the meal has been identified and logged.  It looks for a
+// water glass / bottle that appears alongside the food in the photo.
+
+interface SideBeverageDetection {
+  detected: boolean;
+  drinkType: "water" | "other" | "unclear";
+  oz: number;
+  confidence: "high" | "low";
+}
+
+async function detectSideBeverageInPhoto(
+  imageUrl: string,
+  description: string,
+): Promise<SideBeverageDetection> {
+  try {
+    const userContent: Array<
+      { type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail: "low" } }
+    > = [{ type: "image_url", image_url: { url: imageUrl, detail: "low" } }];
+    if (description.trim()) {
+      userContent.unshift({ type: "text", text: `User description: ${description.trim()}` });
+    }
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      max_tokens: 120,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `You are analyzing a meal photo that contains food. Your ONLY task is to detect whether a beverage container (glass, cup, bottle, tumbler) is ALSO visible alongside the food.
+
+Do NOT describe the food — only look for a drink container.
+
+drinkType values:
+- "water"  : clear/colorless liquid in a glass, bottle, or cup. Sparkling/carbonated water is OK.
+- "other"  : any colored liquid — soda, juice, milk, coffee, tea, beer, smoothie, shake, sports drink. Do NOT call these water.
+- "unclear": a container is visible but the liquid type cannot be determined (opaque cup, dark thermos, no liquid visible).
+- "none"   : no beverage container is visible in the image.
+
+Container oz estimates: small cup/glass = 8, standard glass = 12, large glass/tumbler = 16, water bottle = 20, large Nalgene/bottle = 32. Default to 12 if unsure.
+
+confidence:
+- "high": liquid color is unambiguous (clearly water OR clearly not water)
+- "low" : container visible but contents ambiguous
+
+If drinkType is "none" or "other", set detected=false and oz=0.
+
+Respond ONLY with valid JSON: {"detected": true|false, "drinkType": "water"|"other"|"unclear"|"none", "oz": <number>, "confidence": "high"|"low"}`,
+        },
+        { role: "user", content: userContent },
+      ],
+    });
+
+    const content = response.choices[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    const rawType = String(parsed.drinkType ?? "none");
+    const drinkType = (["water", "other", "unclear", "none"].includes(rawType) ? rawType : "none") as
+      | "water"
+      | "other"
+      | "unclear"
+      | "none";
+
+    if (drinkType === "none" || drinkType === "other") {
+      return { detected: false, drinkType: "other", oz: 0, confidence: "high" };
+    }
+
+    const oz =
+      typeof parsed.oz === "number" && parsed.oz >= 1 && parsed.oz <= 256
+        ? Math.round(parsed.oz)
+        : 12;
+    const confidence: "high" | "low" = parsed.confidence === "low" ? "low" : "high";
+    logger.info({ drinkType, oz, confidence }, "Side beverage detection");
+    return { detected: true, drinkType: drinkType as "water" | "unclear", oz, confidence };
+  } catch (err) {
+    logger.warn({ err }, "Side beverage detection failed, skipping");
+    return { detected: false, drinkType: "other", oz: 0, confidence: "high" };
+  }
+}
+
 async function getMealFeedback(
   description: string,
   imageUrl: string | null,
@@ -642,13 +723,47 @@ router.post("/meals", async (req, res): Promise<void> => {
       : null,
   }).returning();
 
-  // Mixed content: food was logged, but water was also mentioned in the description.
-  // Tell the frontend so it can offer "also log water?" without blocking the meal.
+  // ── Side-water detection: check description text then photo ─────────────────
+  // Priority 1: description explicitly says "water" / "h2o" (not another drink).
+  // Priority 2: photo analysis detects a water glass/bottle alongside the food.
   const lower2 = description.toLowerCase();
-  const waterMentioned = ["water", "h2o"].some(k => lower2.includes(k))
-    && !NOT_PLAIN_WATER_KEYWORDS.some(k => lower2.includes(k));
-  if (waterMentioned) {
-    res.status(201).json({ ...meal, waterAlsoDetected: { oz: descriptionOzEstimate(lower2) } });
+  const textWaterMentioned =
+    ["water", "h2o"].some(k => lower2.includes(k)) &&
+    !NOT_PLAIN_WATER_KEYWORDS.some(k => lower2.includes(k));
+
+  let waterAlsoDetected: { oz: number; autoLogged?: boolean; needsConfirm?: boolean } | null = null;
+  const userId = getUserId(req);
+
+  if (textWaterMentioned) {
+    // High-confidence from text — auto-log and tell frontend it's done.
+    const oz = descriptionOzEstimate(lower2);
+    try {
+      await db.insert(waterLogsTable).values({ userId, date: getUserToday(req), amountOz: oz });
+    } catch {
+      // Non-fatal: meal is already saved, water log failure shouldn't error.
+    }
+    waterAlsoDetected = { oz, autoLogged: true };
+  } else if (imageUrl) {
+    // Photo path — run AI beverage detection (separate from food analysis).
+    const bev = await detectSideBeverageInPhoto(imageUrl, description);
+    if (bev.detected) {
+      if (bev.drinkType === "water" && bev.confidence === "high") {
+        // Clear water visible → auto-log silently.
+        try {
+          await db.insert(waterLogsTable).values({ userId, date: getUserToday(req), amountOz: bev.oz });
+        } catch {
+          // Non-fatal.
+        }
+        waterAlsoDetected = { oz: bev.oz, autoLogged: true };
+      } else {
+        // Unclear drink type or low confidence → ask user to confirm.
+        waterAlsoDetected = { oz: bev.oz, needsConfirm: true };
+      }
+    }
+  }
+
+  if (waterAlsoDetected) {
+    res.status(201).json({ ...meal, waterAlsoDetected });
     return;
   }
 
