@@ -17,9 +17,9 @@ export function AuthHeader() {
   return (
     <div className="px-6 pt-8">
       <div className="text-2xl font-black tracking-tighter leading-none">
-        ASCEND<span style={{ color: "#F59E0B" }}>FIT</span>
+        Ascend<span style={{ color: "#C89A3E" }}>Fit</span>
       </div>
-      <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-1">Your Daily Coach</p>
+      <p className="text-[9px] font-medium tracking-wide text-muted-foreground mt-1">Your Daily Coach</p>
     </div>
   );
 }

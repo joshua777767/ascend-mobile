@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetChatHistory, useSendChatMessage, useGetUserProfile, getGetChatHistoryQueryKey } from "@workspace/api-client-react";
+import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -95,17 +96,23 @@ export default function CoachPage() {
               >
                 <div
                   className={cn(
-                    "max-w-[85%] px-4 py-3 text-sm rounded-2xl",
+                    "max-w-[85%] px-4 py-3 rounded-2xl",
                     msg.role === "user"
-                      ? "rounded-br-sm bg-primary text-primary-foreground"
-                      : "rounded-bl-sm bg-card border border-border text-foreground"
+                      ? "rounded-br-sm bg-primary text-primary-foreground text-sm"
+                      : "rounded-bl-sm bg-slate-900/40 border border-slate-800/50 text-foreground"
                   )}
                 >
                   {msg.role === "assistant" && (
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1.5">Coach</p>
+                    <p className="text-[10px] font-semibold tracking-wide text-slate-400 mb-2">Coach</p>
                   )}
-                  <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                  <p className={cn("text-[10px] mt-1.5 opacity-60")}>
+                  {msg.role === "assistant" ? (
+                    <div className="prose prose-sm prose-invert max-w-none text-sm [&>p]:leading-relaxed [&>p]:m-0 [&>ul]:my-1 [&>ol]:my-1 [&>li]:my-0.5 [&>strong]:text-slate-100 [&>em]:text-slate-200">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="leading-relaxed whitespace-pre-wrap text-sm">{msg.content}</p>
+                  )}
+                  <p className={cn("text-[10px] mt-2 opacity-50", msg.role === "user" ? "" : "text-slate-400")}>
                     {new Date(msg.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
@@ -119,13 +126,13 @@ export default function CoachPage() {
             </div>
             {/* Typing indicator */}
             <div className="flex justify-start">
-              <div className="bg-card border border-border px-4 py-3 text-sm max-w-[85%] rounded-2xl rounded-bl-sm">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1.5">Coach</p>
+              <div className="bg-slate-900/40 border border-slate-800/50 px-4 py-3 text-sm max-w-[85%] rounded-2xl rounded-bl-sm">
+                <p className="text-[10px] font-semibold tracking-wide text-slate-400 mb-2">Coach</p>
                 <div className="flex gap-1 items-center">
-                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                  <span className="text-[10px] text-muted-foreground ml-1.5">Coach is thinking…</span>
+                  <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  <span className="text-[10px] text-slate-400 ml-1.5">Coach is thinking…</span>
                 </div>
               </div>
             </div>
@@ -148,17 +155,23 @@ export default function CoachPage() {
               >
                 <div
                   className={cn(
-                    "max-w-[85%] px-4 py-3 text-sm rounded-2xl",
+                    "max-w-[85%] px-4 py-3 rounded-2xl",
                     msg.role === "user"
-                      ? "rounded-br-sm bg-primary text-primary-foreground"
-                      : "rounded-bl-sm bg-card border border-border text-foreground"
+                      ? "rounded-br-sm bg-primary text-primary-foreground text-sm"
+                      : "rounded-bl-sm bg-slate-900/40 border border-slate-800/50 text-foreground"
                   )}
                 >
                   {msg.role === "assistant" && (
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1.5">Coach</p>
+                    <p className="text-[10px] font-semibold tracking-wide text-slate-400 mb-2">Coach</p>
                   )}
-                  <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                  <p className={cn("text-[10px] mt-1.5 opacity-60")}>
+                  {msg.role === "assistant" ? (
+                    <div className="prose prose-sm prose-invert max-w-none text-sm [&>p]:leading-relaxed [&>p]:m-0 [&>ul]:my-1 [&>ol]:my-1 [&>li]:my-0.5 [&>strong]:text-slate-100 [&>em]:text-slate-200">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="leading-relaxed whitespace-pre-wrap text-sm">{msg.content}</p>
+                  )}
+                  <p className={cn("text-[10px] mt-2 opacity-50", msg.role === "user" ? "" : "text-slate-400")}>
                     {new Date(msg.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
@@ -166,12 +179,12 @@ export default function CoachPage() {
             ))}
             {sendMessage.isPending && (
               <div className="flex justify-start">
-                <div className="bg-card border border-border px-4 py-3 text-sm max-w-[85%] rounded-2xl rounded-bl-sm">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1.5">Coach</p>
+                <div className="bg-slate-900/40 border border-slate-800/50 px-4 py-3 text-sm max-w-[85%] rounded-2xl rounded-bl-sm">
+                  <p className="text-[10px] font-semibold tracking-wide text-slate-400 mb-2">Coach</p>
                   <div className="flex gap-1">
-                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                   </div>
                 </div>
               </div>
@@ -180,17 +193,17 @@ export default function CoachPage() {
         ) : (
           <div className="space-y-4">
             <div className="text-center py-8">
-              <MessageSquare className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-30" />
-              <p className="text-sm text-muted-foreground uppercase tracking-wider">Ask your coach anything.</p>
+              <MessageSquare className="w-10 h-10 mx-auto mb-3 text-slate-500 opacity-40" />
+              <p className="text-sm text-slate-400">Ask your coach anything.</p>
             </div>
             <div className="space-y-2">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest text-center mb-3">Common Questions</p>
+              <p className="text-[10px] text-slate-500 tracking-wide text-center mb-3">Common Questions</p>
               <div className="grid grid-cols-1 gap-2">
                 {SUGGESTED_QUESTIONS.map((q, i) => (
                   <button
                     key={i}
                     onClick={() => handleSend(q)}
-                    className="text-left text-sm px-3 py-2.5 border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40 active:bg-muted/50 transition-colors"
+                    className="text-left text-sm px-3 py-2.5 border border-slate-800/50 bg-slate-900/20 text-slate-400 hover:text-slate-200 hover:border-slate-700/50 active:bg-slate-800/30 transition-colors"
                     data-testid={`suggested-question-${i}`}
                   >
                     {q}
@@ -204,7 +217,7 @@ export default function CoachPage() {
       </div>
 
       {/* Input area */}
-      <div className="shrink-0 border-t border-border bg-card">
+      <div className="shrink-0 border-t border-slate-800/50 bg-slate-950/30">
         {history && history.length > 0 && (
           <div className="flex gap-2 overflow-x-auto scroll-area px-3 pt-3 pb-1">
             {SUGGESTED_QUESTIONS.map((q, i) => (
@@ -212,7 +225,7 @@ export default function CoachPage() {
                 key={i}
                 onClick={() => handleSend(q)}
                 disabled={sendMessage.isPending}
-                className="shrink-0 whitespace-nowrap text-xs px-3 py-1.5 rounded-full border border-border bg-background text-muted-foreground hover:text-foreground hover:border-primary/40 active:bg-muted/50 transition-colors disabled:opacity-50"
+                className="shrink-0 whitespace-nowrap text-xs px-3 py-1.5 rounded-full border border-slate-800/50 bg-slate-900/30 text-slate-400 hover:text-slate-200 hover:border-slate-700/50 active:bg-slate-800/40 transition-colors disabled:opacity-50"
                 data-testid={`quick-question-${i}`}
               >
                 {q}
@@ -227,7 +240,7 @@ export default function CoachPage() {
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask your coach..."
-            className="bg-background border-border resize-none text-sm flex-1"
+            className="bg-slate-900/30 border-slate-800/50 resize-none text-sm flex-1"
             style={{ minHeight: "44px", maxHeight: "120px" }}
             rows={1}
             data-testid="input-chat-message"

@@ -7,15 +7,15 @@ import { cn } from "@/lib/utils";
 import { Clock, Zap, Check, X, Pencil } from "lucide-react";
 
 const TYPE_COLORS: Record<string, { card: string; badge: string; dot: string }> = {
-  meal:       { card: "border-l-green-500/40 bg-green-500/5",     badge: "bg-green-500/10 text-green-400 border border-green-500/20",   dot: "bg-green-500" },
-  workout:    { card: "border-l-blue-500/40 bg-blue-500/5",       badge: "bg-blue-500/10 text-blue-400 border border-blue-500/20",     dot: "bg-blue-500" },
-  sleep:      { card: "border-l-indigo-400/40 bg-indigo-400/5",   badge: "bg-indigo-400/10 text-indigo-300 border border-indigo-400/20", dot: "bg-indigo-400" },
-  hydration:  { card: "border-l-cyan-400/40 bg-cyan-400/5",       badge: "bg-cyan-400/10 text-cyan-400 border border-cyan-400/20",     dot: "bg-cyan-400" },
-  health:     { card: "border-l-purple-400/40 bg-purple-400/5",   badge: "bg-purple-400/10 text-purple-400 border border-purple-400/20", dot: "bg-purple-400" },
-  work:       { card: "border-l-yellow-400/40 bg-yellow-400/5",   badge: "bg-yellow-400/10 text-yellow-400 border border-yellow-400/20", dot: "bg-yellow-400" },
-  habit:      { card: "border-l-orange-400/40 bg-orange-400/5",   badge: "bg-orange-400/10 text-orange-400 border border-orange-400/20", dot: "bg-orange-400" },
-  journal:    { card: "border-l-pink-400/40 bg-pink-400/5",       badge: "bg-pink-400/10 text-pink-400 border border-pink-400/20",     dot: "bg-pink-400" },
-  sport:      { card: "border-l-amber-400/40 bg-amber-400/5",     badge: "bg-amber-400/10 text-amber-400 border border-amber-400/20",  dot: "bg-amber-400" },
+  meal:       { card: "border-l-success/30 bg-success/5",     badge: "bg-success/10 text-success border border-success/20",   dot: "bg-success" },
+  workout:    { card: "border-l-primary/30 bg-primary/5",       badge: "bg-primary/10 text-primary border border-primary/20",     dot: "bg-primary" },
+  sleep:      { card: "border-l-primary/30 bg-primary/5",   badge: "bg-primary/10 text-primary border border-primary/20", dot: "bg-primary" },
+  hydration:  { card: "border-l-primary/30 bg-primary/5",       badge: "bg-primary/10 text-primary border border-primary/20",     dot: "bg-primary" },
+  health:     { card: "border-l-success/30 bg-success/5",   badge: "bg-success/10 text-success border border-success/20", dot: "bg-success" },
+  work:       { card: "border-l-warning/30 bg-warning/5",   badge: "bg-warning/10 text-warning border border-warning/20", dot: "bg-warning" },
+  habit:      { card: "border-l-warning/30 bg-warning/5",   badge: "bg-warning/10 text-warning border border-warning/20", dot: "bg-warning" },
+  journal:    { card: "border-l-primary/30 bg-primary/5",       badge: "bg-primary/10 text-primary border border-primary/20",     dot: "bg-primary" },
+  sport:      { card: "border-l-success/30 bg-success/5",     badge: "bg-success/10 text-success border border-success/20",  dot: "bg-success" },
 };
 
 const FALLBACK_COLORS = { card: "border-l-border bg-muted/10", badge: "bg-muted/20 text-muted-foreground border border-border", dot: "bg-muted-foreground" };
@@ -72,21 +72,21 @@ export default function SchedulePage() {
 
         {/* ── Header ── */}
         <div className="pt-5 pb-4">
-          <p className="label-caps text-muted-foreground" style={{ fontSize: "9px" }}>
+          <p className="text-xs text-muted-foreground">
             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
           </p>
-          <h1 className="text-[1.6rem] font-black tracking-tight mt-0.5">Daily Schedule</h1>
+          <h1 className="text-[1.6rem] font-bold tracking-tight mt-0.5">Daily schedule</h1>
         </div>
 
         {/* ── Mission banner ── */}
         {schedule?.todaysMission && (
           <div
             className="mb-4 rounded-2xl p-3.5 flex gap-2.5"
-            style={{ background: "rgba(59,130,246,0.07)", border: "1px solid rgba(59,130,246,0.20)" }}
+            style={{ background: "rgba(107,139,174,0.08)", border: "1px solid rgba(107,139,174,0.20)" }}
           >
             <Zap className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <div>
-              <p className="label-caps text-primary mb-0.5" style={{ fontSize: "9px" }}>Daily Mission</p>
+              <p className="text-xs text-primary font-semibold mb-0.5">Daily mission</p>
               <p className="text-sm text-foreground leading-relaxed">{schedule.todaysMission}</p>
             </div>
           </div>
@@ -96,17 +96,17 @@ export default function SchedulePage() {
         {plan && (
           <div className="mb-5 flex gap-2">
             {[
-              { val: plan.calorieTarget.toLocaleString(), label: "Calories" },
-              { val: `${plan.proteinTargetG}g`, label: "Protein" },
-              { val: `${plan.waterTargetL}L`, label: "Water" },
+              { val: plan.calorieTarget.toLocaleString(), label: "calories" },
+              { val: `${plan.proteinTargetG}g`, label: "protein" },
+              { val: `${plan.waterTargetL}L`, label: "water" },
             ].map((s, i) => (
               <div
                 key={i}
                 className="flex-1 rounded-xl p-3 text-center"
                 style={{ background: "hsl(220 52% 8%)", border: "1px solid hsl(217 32% 14%)" }}
               >
-                <p className="text-base font-black text-primary leading-none">{s.val}</p>
-                <p className="label-caps text-muted-foreground mt-1" style={{ fontSize: "9px" }}>{s.label}</p>
+                <p className="text-base font-bold text-primary leading-none">{s.val}</p>
+                <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
               </div>
             ))}
           </div>
@@ -170,7 +170,7 @@ export default function SchedulePage() {
                   >
                     {/* Row 1: badge + title + NOW */}
                     <div className="flex items-start gap-2 mb-1.5 flex-wrap">
-                      <span className={cn("rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider shrink-0 mt-0.5", colors.badge)}>
+                      <span className={cn("rounded-md px-1.5 py-0.5 text-xs font-semibold shrink-0 mt-0.5", colors.badge)}>
                         {item.type}
                       </span>
                       <p className={cn(
@@ -182,8 +182,8 @@ export default function SchedulePage() {
                       </p>
                       {isCurrent && !isSkipped && !isCompleted && (
                         <span
-                          className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider"
-                          style={{ background: "rgba(59,130,246,0.12)", color: "#3B82F6" }}
+                          className="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold"
+                          style={{ background: "rgba(107,139,174,0.12)", color: "#6B8BAE" }}
                         >
                           Now
                         </span>
@@ -271,7 +271,7 @@ export default function SchedulePage() {
         {!isLoading && !schedule && (
           <div className="text-center py-16 text-muted-foreground">
             <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="text-sm uppercase tracking-wider font-bold">No schedule generated yet.</p>
+            <p className="text-sm font-semibold">No schedule generated yet.</p>
             <p className="text-xs mt-1">Complete onboarding to generate your plan.</p>
           </div>
         )}

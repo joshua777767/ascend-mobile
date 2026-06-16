@@ -101,7 +101,7 @@ function ScoreSlider({
 }) {
   return (
     <div className="space-y-2">
-      <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+      <Label className="text-[10px] tracking-wide text-muted-foreground">
         {label}
       </Label>
       <div className="flex items-center gap-3">
@@ -136,7 +136,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1">
-      <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+      <Label className="text-[10px] tracking-wide text-muted-foreground">
         {label}
       </Label>
       <Input
@@ -170,7 +170,7 @@ function LoseFatGoalForm({
         placeholder="e.g. 185"
       />
       <div className="space-y-1.5">
-        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <Label className="text-[10px] tracking-wide text-muted-foreground">
           Did this week feel easier, same, or harder?
         </Label>
         <TrendButtons value={ans.trend} onChange={(v) => update("trend", v)} />
@@ -215,7 +215,7 @@ function BuildMuscleGoalForm({
         placeholder="e.g. 185"
       />
       <div className="space-y-1.5">
-        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <Label className="text-[10px] tracking-wide text-muted-foreground">
           Is your progress better, same, or worse than last week?
         </Label>
         <TrendButtons value={ans.trend} onChange={(v) => update("trend", v)} />
@@ -264,7 +264,7 @@ function SkinGoalForm({
         onChange={(v) => update("score", v)}
       />
       <div className="space-y-1.5">
-        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <Label className="text-[10px] tracking-wide text-muted-foreground">
           Is your skin better, same, or worse than last week?
         </Label>
         <TrendButtons value={ans.trend} onChange={(v) => update("trend", v)} />
@@ -300,7 +300,7 @@ function EnergyGoalForm({
         onChange={(v) => update("score", v)}
       />
       <div className="space-y-1.5">
-        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <Label className="text-[10px] tracking-wide text-muted-foreground">
           Is your energy better, same, or worse than last week?
         </Label>
         <TrendButtons value={ans.trend} onChange={(v) => update("trend", v)} />
@@ -343,7 +343,7 @@ function SleepGoalForm({
         placeholder="e.g. 7.5"
       />
       <div className="space-y-1.5">
-        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <Label className="text-[10px] tracking-wide text-muted-foreground">
           How was your bedtime consistency?
         </Label>
         <TrendButtons
@@ -373,7 +373,7 @@ function DisciplineGoalForm({
   return (
     <>
       <div className="space-y-2">
-        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <Label className="text-[10px] tracking-wide text-muted-foreground">
           Mission completion this week
         </Label>
         <div className="flex items-center gap-3">
@@ -392,7 +392,7 @@ function DisciplineGoalForm({
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <Label className="text-[10px] tracking-wide text-muted-foreground">
           Were you more or less consistent than last week?
         </Label>
         <TrendButtons value={ans.trend} onChange={(v) => update("trend", v)} />
@@ -430,7 +430,7 @@ function GenericGoalForm({
         onChange={(v) => update("score", v)}
       />
       <div className="space-y-1.5">
-        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <Label className="text-[10px] tracking-wide text-muted-foreground">
           Is your progress better, same, or worse than last week?
         </Label>
         <TrendButtons value={ans.trend} onChange={(v) => update("trend", v)} />
@@ -673,7 +673,7 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col">
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Ascend</p>
+          <p className="text-[10px] tracking-wide text-muted-foreground">Ascend</p>
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center text-muted-foreground"
@@ -692,7 +692,7 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
             </p>
           </div>
           <div className="w-full text-left space-y-2.5">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+            <p className="text-[10px] tracking-wide text-muted-foreground font-semibold">
               Upgrade to continue:
             </p>
             {[
@@ -751,7 +751,7 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
       <div className="fixed inset-0 z-50 bg-background flex flex-col">
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border">
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="text-[10px] tracking-wide text-muted-foreground">
               Week {trialDay}
             </p>
             <p className="text-sm font-semibold mt-0.5">Check-In Summary</p>
@@ -797,7 +797,7 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
                   </p>
                 )}
                 <div className="pt-2 border-t border-border/40">
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                  <p className="text-[9px] tracking-wide text-muted-foreground font-semibold mb-1">
                     Next Mission
                   </p>
                   <p className="text-xs leading-relaxed text-foreground/80">{focus}</p>
@@ -824,7 +824,7 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col">
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          <p className="text-[10px] tracking-wide text-muted-foreground">
             Week {trialDay} Check-In
           </p>
           <button
@@ -853,7 +853,7 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
           </div>
           {activeGoals.length > 0 && (
             <div className="space-y-2">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              <p className="text-[10px] tracking-wide text-muted-foreground font-semibold">
                 Objectives
               </p>
               {activeGoals.map((g) => (
@@ -905,7 +905,7 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
       <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          <p className="text-[10px] tracking-wide text-muted-foreground">
             Goal {step} of {totalSteps}
           </p>
           <p className="text-sm font-semibold capitalize mt-0.5">{currentGoal}</p>

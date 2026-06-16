@@ -236,10 +236,10 @@ export default function MealsPage() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Meal Generator</p>
-                <h1 className="text-xl font-bold uppercase tracking-tighter mt-0.5 flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">Meal Generator</p>
+                <h1 className="text-xl font-bold mt-0.5 flex items-center gap-2">
                   <ChefHat className="w-5 h-5 text-primary" />
-                  Build Your Meals
+                  Build your meals
                 </h1>
               </div>
             </div>
@@ -248,7 +248,7 @@ export default function MealsPage() {
               <div className="space-y-4">
                 {/* Goal */}
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Goal</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">Goal</p>
                   <div className="flex flex-wrap gap-2">
                     {GOAL_OPTIONS.map((g) => (
                       <button
@@ -256,7 +256,7 @@ export default function MealsPage() {
                         type="button"
                         onClick={() => setGenGoal(g.value)}
                         className={cn(
-                          "px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-md border transition-colors",
+                          "px-3 py-2 text-xs font-semibold rounded-md border transition-colors",
                           genGoal === g.value
                             ? "bg-primary text-black border-primary"
                             : "bg-card border-border text-muted-foreground hover:text-foreground"
@@ -270,7 +270,7 @@ export default function MealsPage() {
 
                 {/* Meal type */}
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Meal Type</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">Meal Type</p>
                   <div className="flex flex-wrap gap-2">
                     {MEAL_TYPE_OPTIONS.map((m) => (
                       <button
@@ -278,7 +278,7 @@ export default function MealsPage() {
                         type="button"
                         onClick={() => setGenMealType(m.value)}
                         className={cn(
-                          "px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-md border transition-colors",
+                          "px-3 py-2 text-xs font-semibold rounded-md border transition-colors",
                           genMealType === m.value
                             ? "bg-primary text-black border-primary"
                             : "bg-card border-border text-muted-foreground hover:text-foreground"
@@ -292,7 +292,7 @@ export default function MealsPage() {
 
                 {/* Preference */}
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Preference (optional)</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">Preference (optional)</p>
                   <div className="flex flex-wrap gap-2">
                     {PREFERENCE_OPTIONS.map((p) => (
                       <button
@@ -300,7 +300,7 @@ export default function MealsPage() {
                         type="button"
                         onClick={() => setGenPreference(p.value)}
                         className={cn(
-                          "px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-md border transition-colors",
+                          "px-3 py-2 text-xs font-semibold rounded-md border transition-colors",
                           genPreference === p.value
                             ? "bg-primary text-black border-primary"
                             : "bg-card border-border text-muted-foreground hover:text-foreground"
@@ -314,7 +314,7 @@ export default function MealsPage() {
 
                 {/* Available foods */}
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Foods you have (optional)</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">Foods you have (optional)</p>
                   <Textarea
                     value={genAvailable}
                     onChange={(e) => setGenAvailable(e.target.value)}
@@ -334,11 +334,11 @@ export default function MealsPage() {
                 {/* Result header */}
                 <div className="border border-border p-4 bg-card">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                    <p className="text-xs text-muted-foreground">
                       {GOAL_OPTIONS.find((g) => g.value === genResult.goal)?.label} • {MEAL_TYPE_OPTIONS.find((m) => m.value === genResult.mealType)?.label}
                     </p>
                     {genResult.preference && (
-                      <p className="text-[10px] text-primary font-semibold uppercase tracking-wider">
+                      <p className="text-xs text-primary font-semibold">
                         {PREFERENCE_OPTIONS.find((p) => p.value === genResult.preference)?.label}
                       </p>
                     )}
@@ -362,16 +362,16 @@ export default function MealsPage() {
                       </div>
                     </div>
                     <div className="pt-2 border-t border-border/50">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Ingredients</p>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Ingredients</p>
                       <p className="text-xs text-muted-foreground">{opt.ingredients?.join(", ")}</p>
                     </div>
                     <div className="pt-2 border-t border-border/50">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">How to make</p>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">How to make</p>
                       <p className="text-xs">{opt.instructions}</p>
                     </div>
                     {opt.substitutions && (
                       <div className="pt-2 border-t border-border/50">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1">Substitutions</p>
+                        <p className="text-xs font-semibold text-primary mb-1">Substitutions</p>
                         <p className="text-xs text-muted-foreground">{opt.substitutions}</p>
                       </div>
                     )}
@@ -394,15 +394,15 @@ export default function MealsPage() {
           <>
             {/* Normal meals page */}
             <div className="mb-5">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Log & Track</p>
-              <h1 className="text-2xl font-bold uppercase tracking-tighter mt-0.5">Meal Check-In</h1>
+              <p className="text-xs text-muted-foreground">Log & Track</p>
+              <h1 className="text-2xl font-bold mt-0.5">Meal Check-In</h1>
             </div>
 
             {/* Meal Generator CTA */}
             <div className="mb-5 border border-primary/30 bg-primary/5 p-4 rounded-lg">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-2">
+                  <p className="text-xs font-semibold text-primary flex items-center gap-2">
                     <ChefHat className="w-4 h-4" />
                     Meal Generator
                   </p>
@@ -441,7 +441,7 @@ export default function MealsPage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-semibold uppercase tracking-wider rounded-full px-3 py-1.5 hover:bg-black/90"
+                    className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-medium tracking-wide rounded-full px-3 py-1.5 hover:bg-black/90"
                     data-testid="button-change-photo"
                   >
                     Change
@@ -456,7 +456,7 @@ export default function MealsPage() {
                   data-testid="button-upload-photo"
                 >
                   <Camera className="w-7 h-7" />
-                  <span className="text-sm font-semibold uppercase tracking-wider">
+                  <span className="text-sm font-medium tracking-wide">
                     {processing ? "Processing..." : "Upload Meal Photo"}
                   </span>
                   <span className="text-[11px] text-muted-foreground normal-case tracking-normal">Take a photo or choose from your device</span>
@@ -482,15 +482,15 @@ export default function MealsPage() {
                 <p className="text-xs text-red-400 text-center" data-testid="text-meal-error">{error}</p>
               )}
               {waterConfirm && (
-                <div className="bg-blue-500/10 border border-blue-500/30 p-4 space-y-3" data-testid="water-confirm-banner">
+                <div className="bg-primary/10 border border-primary/30 p-4 space-y-3" data-testid="water-confirm-banner">
                   <div className="flex items-center gap-2">
-                    <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
-                    <p className="text-xs font-semibold text-blue-300">Looks like water — add {waterConfirm.oz} oz to your water tracker?</p>
+                    <Droplets className="w-4 h-4 text-primary shrink-0" />
+                    <p className="text-xs font-semibold text-primary">Looks like water — add {waterConfirm.oz} oz to your water tracker?</p>
                   </div>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      className="flex-1 h-8 text-xs bg-blue-500 hover:bg-blue-600 text-white"
+                      className="flex-1 h-8 text-xs bg-success hover:bg-success/90 text-white"
                       onClick={() => handleConfirmWater(waterConfirm.oz)}
                       disabled={logWater.isPending}
                     >
@@ -508,21 +508,21 @@ export default function MealsPage() {
                 </div>
               )}
               {waterAlsoDetected && waterAlsoDetected.autoLogged && (
-                <div className="bg-blue-500/10 border border-blue-500/30 p-3 flex items-center gap-2" data-testid="water-also-detected-banner">
-                  <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
-                  <p className="text-xs font-semibold text-blue-300">+ {waterAlsoDetected.oz} oz water tracked.</p>
+                <div className="bg-primary/10 border border-primary/30 p-3 flex items-center gap-2" data-testid="water-also-detected-banner">
+                  <Droplets className="w-4 h-4 text-primary shrink-0" />
+                  <p className="text-xs font-semibold text-primary">+ {waterAlsoDetected.oz} oz water tracked.</p>
                 </div>
               )}
               {waterAlsoDetected && waterAlsoDetected.needsConfirm && (
-                <div className="bg-blue-500/10 border border-blue-500/30 p-4 space-y-3" data-testid="water-also-detected-banner">
+                <div className="bg-primary/10 border border-primary/30 p-4 space-y-3" data-testid="water-also-detected-banner">
                   <div className="flex items-center gap-2">
-                    <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
-                    <p className="text-xs font-semibold text-blue-300">Detected a drink — is this water? Add {waterAlsoDetected.oz} oz?</p>
+                    <Droplets className="w-4 h-4 text-primary shrink-0" />
+                    <p className="text-xs font-semibold text-primary">Detected a drink — is this water? Add {waterAlsoDetected.oz} oz?</p>
                   </div>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      className="flex-1 h-8 text-xs bg-blue-500 hover:bg-blue-600 text-white"
+                      className="flex-1 h-8 text-xs bg-success hover:bg-success/90 text-white"
                       onClick={() => handleConfirmWater(waterAlsoDetected.oz)}
                       disabled={logWater.isPending}
                     >
@@ -540,16 +540,16 @@ export default function MealsPage() {
                 </div>
               )}
               {waterLog && (
-                <div className="bg-blue-500/10 border border-blue-500/30 p-3 flex items-center justify-center gap-2" data-testid="water-logged-banner">
-                  <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
-                  <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Detected water — added {waterLog.oz} oz to your water tracker.</p>
+                <div className="bg-primary/10 border border-primary/30 p-3 flex items-center justify-center gap-2" data-testid="water-logged-banner">
+                  <Droplets className="w-4 h-4 text-primary shrink-0" />
+                  <p className="text-xs font-semibold text-primary">Detected water — added {waterLog.oz} oz to your water tracker.</p>
                 </div>
               )}
               {submitted && (
                 <div className="ascend-success-banner p-4 text-center space-y-2">
                   <div className="flex items-center justify-center gap-2">
-                    <Flame className="w-4 h-4 text-green-400" />
-                    <p className="text-xs font-bold text-green-400 uppercase tracking-wider">Proof logged.</p>
+                    <Flame className="w-4 h-4 text-success" />
+                    <p className="text-xs font-bold text-success">Proof logged.</p>
                   </div>
                   <p className="text-[11px] text-muted-foreground">Every meal is a vote for who you're becoming.</p>
                 </div>
@@ -557,7 +557,7 @@ export default function MealsPage() {
             </div>
 
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Today's Meals</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-3">Today's meals</p>
               {loadingToday ? (
                 <div className="space-y-3">
                   {Array.from({length:2}).map((_,i) => <Skeleton key={i} className="h-32 w-full" />)}
@@ -575,7 +575,7 @@ export default function MealsPage() {
                         )}
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1">
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+                            <p className="text-[10px] text-muted-foreground tracking-wide mb-1">
                               {new Date(meal.loggedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                             </p>
                             {meal.description && <p className="text-sm font-medium">{meal.description}</p>}
@@ -587,7 +587,7 @@ export default function MealsPage() {
                             </div>
                             <div className="flex items-center gap-1">
                               <Icon className="w-3.5 h-3.5" />
-                              <span className="text-[10px] font-semibold uppercase tracking-wider">{quality}</span>
+                              <span className="text-[10px] font-medium tracking-wide">{quality}</span>
                             </div>
                           </div>
                         </div>
@@ -599,7 +599,7 @@ export default function MealsPage() {
                           const totalPro = foods.reduce((s, f) => s + f.protein, 0);
                           return (
                             <div className="pt-3 border-t border-current/20">
-                              <p className="text-[10px] font-semibold uppercase tracking-wider mb-2">Detected Foods</p>
+                              <p className="text-[10px] font-medium tracking-wide mb-2">Detected foods</p>
                               <div className="space-y-1.5">
                                 {foods.map((f, fi) => (
                                   <div key={fi} className="flex items-start justify-between gap-2 text-xs">
@@ -627,19 +627,19 @@ export default function MealsPage() {
                           <div className="pt-3 border-t border-current/20 space-y-2">
                             {meal.whatWasGood && (
                               <div>
-                                <p className="text-[10px] font-semibold text-green-400 uppercase tracking-wider mb-0.5">Good</p>
+                                <p className="text-[10px] font-medium text-green-400 tracking-wide mb-0.5">Good</p>
                                 <p className="text-xs">{meal.whatWasGood}</p>
                               </div>
                             )}
                             {meal.whatWasBad && (
                               <div>
-                                <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider mb-0.5">Watch</p>
+                                <p className="text-[10px] font-medium text-amber-400 tracking-wide mb-0.5">Watch</p>
                                 <p className="text-xs">{meal.whatWasBad}</p>
                               </div>
                             )}
                             {meal.whatToFixNext && (
                               <div>
-                                <p className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-0.5">Next</p>
+                                <p className="text-[10px] font-medium text-primary tracking-wide mb-0.5">Next</p>
                                 <p className="text-xs">{meal.whatToFixNext}</p>
                               </div>
                             )}
@@ -652,7 +652,7 @@ export default function MealsPage() {
               ) : (
                 <div className="text-center py-12 text-muted-foreground border border-border">
                   <Utensils className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm uppercase tracking-wider">No meals logged today.</p>
+                  <p className="text-sm tracking-wide">No meals logged today.</p>
                   <p className="text-xs mt-1">Upload a photo or describe your first meal above.</p>
                 </div>
               )}

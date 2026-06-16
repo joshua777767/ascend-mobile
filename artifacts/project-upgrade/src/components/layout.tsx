@@ -50,7 +50,7 @@ function TrialPill() {
     return (
       <div
         className="mx-3 mb-3 rounded-xl px-3 py-2.5 h-10 animate-pulse"
-        style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.12)" }}
+        style={{ background: "rgba(200,154,62,0.04)", border: "1px solid rgba(200,154,62,0.08)" }}
       />
     );
   }
@@ -60,12 +60,12 @@ function TrialPill() {
       <Link href="/settings">
         <div
           className="mx-3 mb-3 rounded-xl px-3 py-2.5 flex items-center gap-2.5 cursor-pointer transition-opacity hover:opacity-80"
-          style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.20)" }}
+          style={{ background: "rgba(200,154,62,0.05)", border: "1px solid rgba(200,154,62,0.12)" }}
         >
-          <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={2.5} />
+          <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: "#C89A3E" }} strokeWidth={2.5} />
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-bold text-foreground leading-none truncate">Pro Subscription</p>
-            <p className="text-[9px] font-bold tracking-[0.12em] uppercase mt-0.5" style={{ color: "#F59E0B" }}>Active</p>
+            <p className="text-[9px] font-medium mt-0.5" style={{ color: "#C89A3E" }}>Active</p>
           </div>
         </div>
       </Link>
@@ -91,14 +91,14 @@ function TrialPill() {
       <div
         className="mx-3 mb-3 rounded-xl px-3 py-2.5 flex items-center gap-2.5 cursor-pointer transition-opacity hover:opacity-80"
         style={{
-          background: "rgba(245,158,11,0.08)",
-          border: "1px solid rgba(245,158,11,0.20)",
+          background: "rgba(200,154,62,0.05)",
+          border: "1px solid rgba(200,154,62,0.12)",
         }}
       >
-        <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={2.5} />
+        <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: "#C89A3E" }} strokeWidth={2.5} />
         <div className="flex-1 min-w-0">
           <p className="text-[11px] font-bold text-foreground leading-none truncate">{label}</p>
-          {sub && <p className="text-[9px] font-bold tracking-[0.12em] uppercase mt-0.5" style={{ color: "#F59E0B" }}>{sub}</p>}
+          {sub && <p className="text-[9px] font-medium mt-0.5" style={{ color: "#C89A3E" }}>{sub}</p>}
         </div>
         {/* mini progress bar */}
         <div className="w-12 h-1.5 rounded-full bg-elevated shrink-0 overflow-hidden">
@@ -106,7 +106,7 @@ function TrialPill() {
             className="h-full rounded-full"
             style={{
               width: `${Math.min(100, (trialDay / 7) * 100)}%`,
-              background: "linear-gradient(90deg, #F59E0B 0%, #F97316 100%)",
+              background: "#C89A3E",
             }}
           />
         </div>
@@ -122,7 +122,7 @@ function MobileTrialBadge() {
     return (
       <span
         className="inline-flex items-center rounded-full px-2.5 py-1 w-16 h-6 animate-pulse"
-        style={{ background: "rgba(245,158,11,0.08)" }}
+        style={{ background: "rgba(200,154,62,0.05)" }}
       />
     );
   }
@@ -131,8 +131,8 @@ function MobileTrialBadge() {
     return (
       <Link href="/settings">
         <span
-          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black cursor-pointer"
-          style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B" }}
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold cursor-pointer"
+          style={{ background: "rgba(200,154,62,0.08)", border: "1px solid rgba(200,154,62,0.15)", color: "#C89A3E" }}
         >
           <Zap className="w-3 h-3" strokeWidth={2.5} />
           Pro
@@ -146,11 +146,11 @@ function MobileTrialBadge() {
   return (
     <Link href={href}>
       <span
-        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black cursor-pointer"
+        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold cursor-pointer"
         style={{
-          background: "rgba(245,158,11,0.12)",
-          border: "1px solid rgba(245,158,11,0.25)",
-          color: "#F59E0B",
+          background: "rgba(200,154,62,0.08)",
+          border: "1px solid rgba(200,154,62,0.15)",
+          color: "#C89A3E",
         }}
       >
         <Zap className="w-3 h-3" strokeWidth={2.5} />
@@ -174,14 +174,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
         className="hidden md:flex w-64 shrink-0 flex-col border-r"
         style={{
           borderColor: "hsl(217 32% 14%)",
-          background: "linear-gradient(180deg, hsl(220 55% 7%) 0%, hsl(220 52% 8%) 100%)",
+          background: "hsl(220 14% 6%)",
         }}
       >
         <div className="px-5 py-5 border-b" style={{ borderColor: "hsl(217 32% 13%)" }}>
           <div className="text-[17px] font-black tracking-tighter leading-none">
-            ASCEND<span style={{ color: "#F59E0B" }}>FIT</span>
+            Ascend<span style={{ color: "#C89A3E" }}>Fit</span>
           </div>
-          <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-1">Your Daily Coach</p>
+          <p className="text-[9px] font-medium text-muted-foreground mt-1">Your Daily Coach</p>
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
           {ALL_NAV_ITEMS.map((item) => {
@@ -190,22 +190,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   isActive
-                    ? "text-primary"
+                    ? "text-primary bg-elevated"
                     : "text-muted-foreground hover:text-foreground hover:bg-elevated"
                 }`}
-                style={isActive ? {
-                  background: "rgba(245,158,11,0.1)",
-                  boxShadow: "inset 0 1px 0 rgba(245,158,11,0.08)",
-                } : {}}
               >
-                {isActive && (
-                  <span
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full"
-                    style={{ background: "linear-gradient(180deg, #F59E0B 0%, #FCD34D 100%)" }}
-                  />
-                )}
                 <item.icon className="w-[18px] h-[18px] shrink-0" strokeWidth={isActive ? 2.4 : 2} />
                 {item.label}
               </Link>
@@ -216,23 +206,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="p-3 space-y-0.5 border-t" style={{ borderColor: "hsl(217 32% 13%)" }}>
           <Link
             href="/settings"
-            className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+            className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
               location === "/settings"
-                ? "text-primary"
+                ? "text-primary bg-elevated"
                 : "text-muted-foreground hover:text-foreground hover:bg-elevated"
             }`}
-            style={location === "/settings" ? { background: "rgba(245,158,11,0.1)" } : {}}
           >
-            {location === "/settings" && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full"
-                style={{ background: "linear-gradient(180deg, #F59E0B 0%, #FCD34D 100%)" }} />
-            )}
             <Settings className="w-[18px] h-[18px] shrink-0" strokeWidth={2} />
             Settings
           </Link>
           <Link
             href="/pricing"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-elevated transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-elevated transition-colors"
           >
             <CreditCard className="w-[18px] h-[18px] shrink-0" strokeWidth={2} />
             Pricing
@@ -252,22 +237,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="h-14 flex items-center justify-between px-4">
           <div className="flex items-center">
             <span className="text-[15px] font-black tracking-tighter text-foreground leading-none">
-              {pageTitle ? pageTitle : <><span>ASCEND</span><span style={{ color: "#F59E0B" }}>FIT</span></>}
+              {pageTitle ? pageTitle : <><span>Ascend</span><span style={{ color: "#C89A3E" }}>Fit</span></>}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <MobileTrialBadge />
             <Link
               href="/settings"
-            aria-label="Settings"
-            className={`flex items-center justify-center w-9 h-9 rounded-full transition-all ${
-              location === "/settings"
-                ? "text-primary"
-                : "text-muted-foreground"
-            }`}
-            style={location === "/settings" ? { background: "rgba(59,130,246,0.12)" } : {}}
-          >
-            <Settings className="w-[20px] h-[20px]" strokeWidth={2} />
+              aria-label="Settings"
+              className={`flex items-center justify-center w-9 h-9 rounded-full transition-all ${
+                location === "/settings"
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              style={location === "/settings" ? { background: "rgba(107,139,174,0.08)" } : {}}
+            >
+              <Settings className="w-[20px] h-[20px]" strokeWidth={2} />
             </Link>
           </div>
         </div>
@@ -286,7 +271,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         className="md:hidden shrink-0 backdrop-blur-xl"
         style={{
           paddingBottom: "env(safe-area-inset-bottom)",
-          background: "linear-gradient(0deg, hsl(220 55% 6% / 0.97) 0%, hsl(220 52% 7% / 0.95) 100%)",
+          background: "hsl(220 14% 6%)",
           borderTop: "1px solid hsl(217 32% 13%)",
         }}
       >
@@ -301,8 +286,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               >
                 {isActive && (
                   <span
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full"
-                    style={{ background: "linear-gradient(90deg, #3B82F6 0%, #2DD4BF 100%)" }}
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px]"
+                    style={{ background: "#C89A3E" }}
                   />
                 )}
                 <item.icon
@@ -312,7 +297,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   strokeWidth={isActive ? 2.5 : 2}
                 />
                 <span
-                  className={`text-[10px] font-bold transition-colors leading-none tracking-wide ${
+                  className={`text-[10px] font-medium transition-colors leading-none ${
                     isActive ? "text-primary" : "text-muted-foreground"
                   }`}
                 >

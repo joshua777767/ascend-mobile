@@ -55,7 +55,7 @@ export function WeeklyReviewModal({
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Weekly Review</p>
+            <p className="text-[10px] font-medium tracking-wide text-muted-foreground">Weekly Review</p>
             <h2 className="text-lg font-bold mt-0.5">
               {isLoading ? "Loading..." : review ? `Week ${review.weekNumber}` : "No review yet"}
             </h2>
@@ -128,14 +128,14 @@ export function WeeklyReviewModal({
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <BarChart3 className="w-4 h-4 text-primary" />
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Consistency</p>
+                <p className="text-[10px] font-medium tracking-wide text-muted-foreground">Consistency</p>
               </div>
               <div className="grid grid-cols-2 gap-2.5">
                 {[
-                  { label: "Calories", value: review.calorieConsistency, color: "#3B82F6" },
-                  { label: "Protein", value: review.proteinConsistency, color: "#10B981" },
-                  { label: "Water", value: review.waterConsistency, color: "#06B6D4" },
-                  { label: "Workouts", value: review.workoutConsistency, color: "#F59E0B" },
+                  { label: "Calories", value: review.calorieConsistency, color: "#6B8BAE" },
+                  { label: "Protein", value: review.proteinConsistency, color: "#4A9B78" },
+                  { label: "Water", value: review.waterConsistency, color: "#6B8BAE" },
+                  { label: "Workouts", value: review.workoutConsistency, color: "#C89A3E" },
                 ].map((item) => (
                   <div key={item.label} className="bg-elevated rounded-xl p-3 space-y-1.5">
                     <div className="flex items-center justify-between">
@@ -163,7 +163,7 @@ export function WeeklyReviewModal({
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Target className="w-4 h-4 text-primary" />
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Goal Pace</p>
+                <p className="text-[10px] font-medium tracking-wide text-muted-foreground">Goal Pace</p>
               </div>
               <div className="bg-elevated rounded-xl p-4 space-y-2">
                 <p className="text-sm font-medium">{review.goalPace}</p>
@@ -195,7 +195,7 @@ export function WeeklyReviewModal({
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Focus This Week</p>
+                <p className="text-[10px] font-medium tracking-wide text-muted-foreground">Focus This Week</p>
               </div>
               <div className="bg-elevated rounded-xl p-4">
                 <p className="text-sm font-medium">{review.whatToImprove}</p>
@@ -204,7 +204,7 @@ export function WeeklyReviewModal({
 
             {/* Coach message */}
             <div className="border border-primary/20 bg-primary/5 rounded-xl p-4 space-y-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Coach Message</p>
+              <p className="text-[10px] font-medium tracking-wide text-primary">Coach Message</p>
               <p className="text-sm leading-relaxed">{review.coachMessage}</p>
             </div>
 

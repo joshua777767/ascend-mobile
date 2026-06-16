@@ -433,7 +433,7 @@ export default function OnboardingPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <span className="text-[15px] font-black tracking-tighter leading-none">
-              ASCEND<span style={{ color: "#F59E0B" }}>FIT</span>
+              Ascend<span style={{ color: "#C89A3E" }}>Fit</span>
             </span>
           </div>
           <p className="text-sm font-medium text-muted-foreground">
@@ -444,7 +444,7 @@ export default function OnboardingPage() {
         <div className="h-1.5 rounded-full bg-elevated overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-300"
-            style={{ background: "#F59E0B", width: `${(step / TOTAL_STEPS) * 100}%` }}
+            style={{ background: "#C89A3E", width: `${(step / TOTAL_STEPS) * 100}%` }}
           />
         </div>
       </div>
@@ -1046,7 +1046,7 @@ export default function OnboardingPage() {
               <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-[16px] h-[16px] text-amber-400 shrink-0" strokeWidth={2.2} />
-                  <p className="text-xs font-bold text-amber-400 uppercase tracking-wide">Health Notice</p>
+                  <p className="text-xs font-semibold text-amber-400 tracking-wide">Health Notice</p>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   <strong className="text-foreground">Ascend is not medical advice.</strong> Consult a healthcare professional before starting any new diet or exercise program, especially if you have a history of eating disorders, heart disease, diabetes, pregnancy, hypertension, or any serious health condition.

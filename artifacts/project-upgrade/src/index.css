@@ -76,54 +76,54 @@
   --elevate-2: rgba(255,255,255, .06);
 
   /* ── Ascend Dark Theme ── */
-  --background: 222 65% 5%;        /* #050D1A — near-black navy */
-  --foreground: 210 40% 97%;       /* #F1F5F9 */
-  --border: 217 32% 14%;           /* subtle blue-tinted border */
-  --input: 217 32% 14%;
-  --ring: 217 91% 60%;             /* #3B82F6 */
+  --background: 220 14% 6%;        /* #0C0D10 — warm near-black */
+  --foreground: 210 20% 97%;      /* #F8FAFC */
+  --border: 220 10% 18%;          /* warm subtle border */
+  --input: 220 10% 18%;
+  --ring: 210 20% 50%;             /* muted slate */
 
-  --card: 220 52% 8%;              /* #08121F — dark card surface */
-  --card-foreground: 210 40% 97%;
-  --card-border: 217 32% 14%;
+  --card: 220 12% 9%;             /* #131418 — dark card surface */
+  --card-foreground: 210 20% 97%;
+  --card-border: 220 10% 18%;
 
-  --elevated: 218 46% 12%;         /* #0F1D2E */
+  --elevated: 220 10% 13%;         /* #1B1C21 */
 
-  --popover: 220 52% 8%;
-  --popover-foreground: 210 40% 97%;
-  --popover-border: 217 32% 14%;
+  --popover: 220 12% 9%;
+  --popover-foreground: 210 20% 97%;
+  --popover-border: 220 10% 18%;
 
-  --primary: 217 91% 60%;          /* #3B82F6 — electric blue */
+  --primary: 210 40% 55%;         /* #6B8BAE — muted slate blue */
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 218 46% 12%;
-  --secondary-foreground: 210 40% 97%;
+  --secondary: 220 10% 13%;
+  --secondary-foreground: 210 20% 97%;
 
-  --muted: 218 46% 12%;
-  --muted-foreground: 215 22% 58%; /* slightly brighter muted */
+  --muted: 220 10% 13%;
+  --muted-foreground: 220 10% 52%; /* softer muted */
 
-  --accent: 218 46% 12%;
-  --accent-foreground: 210 40% 97%;
+  --accent: 220 10% 13%;
+  --accent-foreground: 210 20% 97%;
 
-  --success: 160 84% 39%;          /* #10B981 — electric green */
+  --success: 155 50% 42%;          /* #4A9B78 — muted teal */
   --success-foreground: 0 0% 100%;
 
-  --warning: 38 92% 50%;           /* #F59E0B — amber */
-  --warning-foreground: 222 47% 11%;
+  --warning: 35 70% 52%;           /* #C89A3E — muted amber */
+  --warning-foreground: 220 12% 8%;
 
-  --destructive: 0 72% 51%;
+  --destructive: 0 55% 48%;
   --destructive-foreground: 0 0% 100%;
 
-  --sidebar: 220 52% 8%;
-  --sidebar-foreground: 210 40% 97%;
-  --sidebar-border: 217 32% 14%;
-  --sidebar-primary: 217 91% 60%;
+  --sidebar: 220 12% 9%;
+  --sidebar-foreground: 210 20% 97%;
+  --sidebar-border: 220 10% 18%;
+  --sidebar-primary: 210 40% 55%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 218 46% 12%;
-  --sidebar-accent-foreground: 210 40% 97%;
-  --sidebar-ring: 217 91% 60%;
+  --sidebar-accent: 220 10% 13%;
+  --sidebar-accent-foreground: 210 20% 97%;
+  --sidebar-ring: 210 40% 55%;
 
   --app-font-sans: 'Inter', system-ui, sans-serif;
-  --radius: 1rem;
+  --radius: 0.75rem;
 
   /* App layout heights */
   --mobile-header-height: 56px;
@@ -131,30 +131,30 @@
 }
 
 .dark {
-  --background: 222 65% 5%;
-  --foreground: 210 40% 97%;
-  --card: 220 52% 8%;
-  --card-foreground: 210 40% 97%;
-  --elevated: 218 46% 12%;
-  --popover: 220 52% 8%;
-  --popover-foreground: 210 40% 97%;
-  --primary: 217 91% 60%;
+  --background: 220 14% 6%;
+  --foreground: 210 20% 97%;
+  --card: 220 12% 9%;
+  --card-foreground: 210 20% 97%;
+  --elevated: 220 10% 13%;
+  --popover: 220 12% 9%;
+  --popover-foreground: 210 20% 97%;
+  --primary: 210 40% 55%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 218 46% 12%;
-  --secondary-foreground: 210 40% 97%;
-  --muted: 218 46% 12%;
-  --muted-foreground: 215 22% 58%;
-  --accent: 218 46% 12%;
-  --accent-foreground: 210 40% 97%;
-  --success: 160 84% 39%;
+  --secondary: 220 10% 13%;
+  --secondary-foreground: 210 20% 97%;
+  --muted: 220 10% 13%;
+  --muted-foreground: 220 10% 52%;
+  --accent: 220 10% 13%;
+  --accent-foreground: 210 20% 97%;
+  --success: 155 50% 42%;
   --success-foreground: 0 0% 100%;
-  --warning: 38 92% 50%;
-  --warning-foreground: 222 47% 11%;
-  --destructive: 0 72% 51%;
+  --warning: 35 70% 52%;
+  --warning-foreground: 220 12% 8%;
+  --destructive: 0 55% 48%;
   --destructive-foreground: 0 0% 100%;
-  --border: 217 32% 14%;
-  --input: 217 32% 14%;
-  --ring: 217 91% 60%;
+  --border: 220 10% 18%;
+  --input: 220 10% 18%;
+  --ring: 210 20% 50%;
 }
 
 @layer base {
@@ -176,11 +176,9 @@
     overflow: hidden;
     font-feature-settings: "cv11", "ss01";
     letter-spacing: -0.015em;
-    /* Ambient soft glow at top */
+    /* Subtle ambient glow at top — very muted, non-intrusive */
     background-image:
-      radial-gradient(ellipse 70% 35% at 50% -5%, rgba(59,130,246,0.09) 0%, transparent 70%),
-      radial-gradient(ellipse 50% 20% at 90% 10%, rgba(245,158,11,0.04) 0%, transparent 60%);
-    /* Background floating orbs via CSS */
+      radial-gradient(ellipse 80% 40% at 50% -8%, rgba(107,139,174,0.04) 0%, transparent 70%);
     position: relative;
   }
 
@@ -195,82 +193,76 @@
 /* ── Ascend brand utilities ── */
 @layer utilities {
   .ascend-panel {
-    background: linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%);
-    border-color: hsl(217 32% 16%);
+    background: hsl(220 12% 9%);
+    border-color: hsl(220 10% 18%);
   }
   .ascend-mission-card {
-    background: linear-gradient(135deg, rgba(59,130,246,0.08) 0%, rgba(16,185,129,0.04) 100%);
-    border: 1px solid rgba(59,130,246,0.28);
-    box-shadow: 0 0 28px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+    background: hsl(220 12% 9%);
+    border: 1px solid hsl(220 10% 22%);
   }
   .ascend-mission-card--complete {
-    background: linear-gradient(135deg, rgba(16,185,129,0.10) 0%, rgba(59,130,246,0.04) 100%);
-    border: 1px solid rgba(16,185,129,0.32);
-    box-shadow: 0 0 32px rgba(16,185,129,0.10), inset 0 1px 0 rgba(255,255,255,0.05);
+    background: hsl(220 12% 9%);
+    border: 1px solid rgba(74,155,120,0.35);
   }
   .ascend-glow-blue {
-    box-shadow: 0 0 18px rgba(59,130,246,0.25);
+    box-shadow: none;
   }
   .ascend-glow-green {
-    box-shadow: 0 0 18px rgba(16,185,129,0.25);
+    box-shadow: none;
   }
   .ascend-glow-amber {
-    box-shadow: 0 0 18px rgba(245,158,11,0.20);
+    box-shadow: none;
   }
   .label-caps {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: none;
+    color: hsl(220 10% 52%);
   }
   .label-caps-strong {
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.22em;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
   /* Reward/achievement toast */
   .ascend-toast-success {
-    background: linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 100%) !important;
-    border: 1px solid rgba(16,185,129,0.25) !important;
-    box-shadow: 0 0 20px rgba(16,185,129,0.08) !important;
+    background: rgba(74,155,120,0.10) !important;
+    border: 1px solid rgba(74,155,120,0.25) !important;
   }
   .ascend-toast-amber {
-    background: linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.05) 100%) !important;
-    border: 1px solid rgba(245,158,11,0.25) !important;
-    box-shadow: 0 0 20px rgba(245,158,11,0.08) !important;
+    background: rgba(200,154,62,0.10) !important;
+    border: 1px solid rgba(200,154,62,0.25) !important;
   }
   .ascend-next-action {
-    background: rgba(59,130,246,0.08);
-    border: 1px solid rgba(59,130,246,0.18);
+    background: rgba(107,139,174,0.10);
+    border: 1px solid rgba(107,139,174,0.20);
     border-radius: 999px;
     padding: 4px 12px;
     font-size: 11px;
-    font-weight: 600;
-    color: #93c5fd;
-    letter-spacing: 0.02em;
+    font-weight: 500;
+    color: hsl(210 30% 70%);
+    letter-spacing: 0.01em;
   }
   .ascend-success-banner {
-    background: linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%);
-    border: 1px solid rgba(16,185,129,0.20);
-    box-shadow: 0 0 24px rgba(16,185,129,0.06);
-    border-radius: 16px;
+    background: rgba(74,155,120,0.06);
+    border: 1px solid rgba(74,155,120,0.20);
+    border-radius: 12px;
   }
   .ascend-mission-complete-glow {
-    background: linear-gradient(135deg, rgba(16,185,129,0.10) 0%, rgba(59,130,246,0.04) 100%);
-    border: 1px solid rgba(16,185,129,0.30);
-    box-shadow: 0 0 40px rgba(16,185,129,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
-    border-radius: 16px;
+    background: rgba(74,155,120,0.06);
+    border: 1px solid rgba(74,155,120,0.25);
+    border-radius: 12px;
   }
   .ascend-mission-complete-badge {
-    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-    box-shadow: 0 0 12px rgba(16,185,129,0.5);
+    background: linear-gradient(135deg, #4A9B78 0%, #3D8B6A 100%);
   }
   .ascend-pulse-green {
     animation: pulse-green 2s ease-in-out infinite;
   }
   @keyframes pulse-green {
-    0%, 100% { box-shadow: 0 0 8px rgba(16,185,129,0.4); }
-    50% { box-shadow: 0 0 20px rgba(16,185,129,0.7); }
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 1; }
   }
 }

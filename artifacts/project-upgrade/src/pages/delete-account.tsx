@@ -46,14 +46,14 @@ export default function DeleteAccountPage() {
           <AscendMark size="lg" />
           <div>
             <span className="text-[15px] font-black tracking-tight leading-none">Ascend</span>
-            <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Delete Account</p>
+            <p className="text-[9px] font-medium tracking-wide text-muted-foreground mt-0.5">Delete Account</p>
           </div>
         </div>
 
         {deleted ? (
           <div className="text-center space-y-4 py-12">
             <div className="w-16 h-16 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4A9B78" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>

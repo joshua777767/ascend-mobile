@@ -64,8 +64,8 @@ export default function ForgotPasswordPage() {
                     href={resetLink}
                     className="inline-flex items-center justify-center w-full h-14 rounded-2xl text-[15px] font-semibold text-white mt-2"
                     style={{
-                      background: "linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)",
-                      boxShadow: "0 4px 24px rgba(59,130,246,0.35)",
+                      background: "linear-gradient(135deg, #6B8BAE 0%, #5A7A9E 100%)",
+                      boxShadow: "0 4px 24px rgba(107,139,174,0.25)",
                     }}
                   >
                     Set new password →
@@ -119,8 +119,8 @@ export default function ForgotPasswordPage() {
                   disabled={forgotPassword.isPending}
                   className="flex items-center justify-center gap-2 w-full h-14 rounded-2xl text-[15px] font-semibold active:scale-[0.99] transition-transform disabled:opacity-60"
                   style={{
-                    background: "linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)",
-                    boxShadow: "0 4px 24px rgba(59,130,246,0.35), 0 0 0 1px rgba(255,255,255,0.08) inset",
+                    background: "linear-gradient(135deg, #6B8BAE 0%, #5A7A9E 100%)",
+                    boxShadow: "0 4px 24px rgba(107,139,174,0.25), 0 0 0 1px rgba(255,255,255,0.08) inset",
                   }}
                 >
                   <span className="text-white">{forgotPassword.isPending ? "Sending..." : "Send reset link"}</span>

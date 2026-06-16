@@ -10,7 +10,7 @@ const OWNER_EMAIL = "joshquag2010@icloud.com";
 
 const CARD = "rounded-2xl bg-card border border-border p-4";
 const VAL = "text-2xl font-black text-primary leading-none";
-const LABEL = "text-[9px] font-black uppercase tracking-wider text-muted-foreground mt-1";
+const LABEL = "text-[9px] font-medium tracking-wide text-muted-foreground mt-1";
 
 function formatDate(d: string | null): string {
   if (!d) return "Never";
@@ -34,7 +34,7 @@ function timeAgo(d: string | null): string {
 function AccessBadge({ status }: { status: string }) {
   if (status === "Free Pro") {
     return (
-      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B" }}>
+      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "rgba(200,154,62,0.15)", color: "#C89A3E" }}>
         Free Pro
       </span>
     );
@@ -138,7 +138,7 @@ export default function AdminPage() {
     return (
       <div className="h-dvh bg-background flex flex-col items-center justify-center gap-4">
         <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Loading admin</p>
+        <p className="text-xs text-muted-foreground font-medium tracking-wide">Loading admin</p>
       </div>
     );
   }
@@ -173,11 +173,11 @@ export default function AdminPage() {
         {/* Header */}
         <div className="pt-5 pb-4 flex items-center justify-between">
           <div>
-            <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">Admin</p>
+            <p className="text-[9px] font-medium tracking-wide text-muted-foreground">Admin</p>
             <h1 className="text-[1.6rem] font-black tracking-tight mt-0.5">Ascend Stats</h1>
           </div>
           <div className="shrink-0 rounded-xl bg-primary/10 border border-primary/20 px-3 py-1.5">
-            <p className="text-[9px] font-black uppercase tracking-wider text-primary">Owner</p>
+            <p className="text-[9px] font-medium tracking-wide text-primary">Owner</p>
           </div>
         </div>
 

@@ -202,8 +202,8 @@ export default function ProgressPage() {
     <div className="h-full overflow-y-auto scroll-area">
       <div className="p-4 max-w-2xl mx-auto space-y-6">
         <div>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Your Transformation</p>
-          <h1 className="text-2xl font-bold uppercase tracking-tighter mt-0.5">Progress</h1>
+          <p className="text-[10px] text-muted-foreground tracking-wide">Your Transformation</p>
+          <h1 className="text-2xl font-bold tracking-tight mt-0.5">Progress</h1>
         </div>
 
         {completedGoals.map(cGoal => (
@@ -296,7 +296,7 @@ export default function ProgressPage() {
             ].map((stat, i) => (
               <div key={i} className="bg-card border border-border p-4 text-center" data-testid={`stat-${i}`}>
                 <p className={`text-2xl font-bold ${stat.label === "Total Change" && (summary.totalLbsChange ?? 0) < 0 ? "text-green-400" : stat.label === "Total Change" && (summary.totalLbsChange ?? 0) > 0 ? "text-red-400" : "text-primary"}`}>{stat.value}</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{stat.label}</p>
+                <p className="text-[10px] text-muted-foreground tracking-wide mt-0.5">{stat.label}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">{stat.sub}</p>
               </div>
             ))}
@@ -306,12 +306,12 @@ export default function ProgressPage() {
         {weeklyRecap && (weeklyRecap.mealsLogged > 0 || weeklyRecap.journalDays > 0) && (
           <div
             className="rounded-2xl p-4 space-y-3"
-            style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)", boxShadow: "0 0 24px rgba(59,130,246,0.06)" }}
+            style={{ background: "rgba(107,139,174,0.05)", border: "1px solid rgba(107,139,174,0.18)" }}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BarChart2 className="w-4 h-4 text-primary" />
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Weekly Recap</p>
+                <p className="text-[10px] font-medium tracking-wide text-primary">Weekly Recap</p>
               </div>
               <p className="text-[10px] text-muted-foreground">{weeklyRecap.weekStart} – {weeklyRecap.weekEnd}</p>
             </div>
@@ -319,17 +319,17 @@ export default function ProgressPage() {
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-card/60 rounded-xl p-2.5 text-center">
                 <p className="text-lg font-black text-foreground">{weeklyRecap.mealsLogged}</p>
-                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Meals</p>
+                <p className="text-[9px] tracking-wide text-muted-foreground mt-0.5">Meals</p>
               </div>
               <div className="bg-card/60 rounded-xl p-2.5 text-center">
                 <p className="text-lg font-black text-foreground">{weeklyRecap.journalDays}</p>
-                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Journals</p>
+                <p className="text-[9px] tracking-wide text-muted-foreground mt-0.5">Journals</p>
               </div>
               <div className="bg-card/60 rounded-xl p-2.5 text-center">
                 <p className={`text-lg font-black ${weeklyRecap.avgDailyScore >= 70 ? "text-green-400" : weeklyRecap.avgDailyScore >= 50 ? "text-amber-400" : "text-muted-foreground"}`}>
                   {weeklyRecap.avgDailyScore > 0 ? weeklyRecap.avgDailyScore : "—"}
                 </p>
-                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Avg Score</p>
+                <p className="text-[9px] tracking-wide text-muted-foreground mt-0.5">Avg Score</p>
               </div>
             </div>
             <div className="space-y-1.5">
@@ -360,7 +360,7 @@ export default function ProgressPage() {
         {dailyScoreHistory && dailyScoreHistory.length > 1 && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Daily Score Trend</p>
+              <p className="text-[10px] font-medium tracking-wide text-muted-foreground">Daily Score Trend</p>
             </div>
             <div className="bg-card border border-border p-4 h-40">
               <ResponsiveContainer width="100%" height="100%">
@@ -376,7 +376,7 @@ export default function ProgressPage() {
                     labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600, fontSize: 11 }}
                     itemStyle={{ color: "hsl(var(--primary))" }}
                   />
-                  <Line type="monotone" dataKey="score" stroke="#F59E0B" strokeWidth={2} dot={{ fill: "#F59E0B", r: 2 }} />
+                  <Line type="monotone" dataKey="score" stroke="#C89A3E" strokeWidth={2} dot={{ fill: "#C89A3E", r: 2 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -387,12 +387,12 @@ export default function ProgressPage() {
         {weeklyReview && (
           <div
             className="rounded-2xl p-4 space-y-3"
-            style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", boxShadow: "0 0 24px rgba(245,158,11,0.06)" }}
+            style={{ background: "rgba(200,154,62,0.04)", border: "1px solid rgba(200,154,62,0.18)" }}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4" style={{ color: "#F59E0B" }} />
-                <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#F59E0B" }}>
+                <Zap className="w-4 h-4" style={{ color: "#C89A3E" }} />
+                <p className="text-[10px] font-medium tracking-wide" style={{ color: "#C89A3E" }}>
                   Week {weeklyReview.weekNumber} Review
                 </p>
               </div>
@@ -408,14 +408,14 @@ export default function ProgressPage() {
             <p className="text-sm font-medium leading-snug">{weeklyReview.coachMessage}</p>
             <div className="grid grid-cols-4 gap-2">
               {[
-                { label: "Calories", value: weeklyReview.calorieConsistency, color: "#3B82F6" },
-                { label: "Protein", value: weeklyReview.proteinConsistency, color: "#10B981" },
-                { label: "Water", value: weeklyReview.waterConsistency, color: "#06B6D4" },
-                { label: "Train", value: weeklyReview.workoutConsistency, color: "#F59E0B" },
+                { label: "Calories", value: weeklyReview.calorieConsistency, color: "#6B8BAE" },
+                { label: "Protein", value: weeklyReview.proteinConsistency, color: "#4A9B78" },
+                { label: "Water", value: weeklyReview.waterConsistency, color: "#6B8BAE" },
+                { label: "Train", value: weeklyReview.workoutConsistency, color: "#C89A3E" },
               ].map((item) => (
                 <div key={item.label} className="text-center">
                   <p className="text-lg font-black" style={{ color: item.color }}>{item.value}<span className="text-[10px] font-bold text-muted-foreground">/7</span></p>
-                  <p className="text-[8px] font-bold tracking-wider uppercase text-muted-foreground">{item.label}</p>
+                  <p className="text-[8px] font-medium tracking-wide text-muted-foreground">{item.label}</p>
                 </div>
               ))}
             </div>
@@ -433,7 +433,7 @@ export default function ProgressPage() {
           <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
             <div className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-primary" />
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Goal Pace Predictor</p>
+              <p className="text-[10px] font-medium tracking-wide text-muted-foreground">Goal Pace Predictor</p>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex-1">
@@ -477,11 +477,11 @@ export default function ProgressPage() {
         {streak && (
           <div className="bg-card border border-primary/30 p-4 flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Mission Streak</p>
+              <p className="text-[10px] text-muted-foreground tracking-wide">Mission Streak</p>
               <p className="text-3xl font-bold text-primary mt-1">{streak.currentStreak} <span className="text-sm font-normal text-muted-foreground">days</span></p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Longest</p>
+              <p className="text-[10px] text-muted-foreground tracking-wide">Longest</p>
               <p className="text-xl font-bold mt-1">{streak.longestStreak} <span className="text-xs font-normal text-muted-foreground">days</span></p>
             </div>
           </div>
@@ -490,7 +490,7 @@ export default function ProgressPage() {
         {chartData.length > 1 && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Weight History</p>
+              <p className="text-[10px] font-medium tracking-wide text-muted-foreground">Weight History</p>
               {trend !== null && (
                 <div className={cn("flex items-center gap-1 text-xs font-semibold", trend < 0 ? "text-green-400" : trend > 0 ? "text-red-400" : "text-muted-foreground")}>
                   {trend < 0 ? <TrendingDown className="w-3 h-3" /> : trend > 0 ? <TrendingUp className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
@@ -517,11 +517,11 @@ export default function ProgressPage() {
         )}
 
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Weekly Weigh-In</p>
+          <p className="text-[10px] font-medium tracking-wide text-muted-foreground mb-3">Weekly Weigh-In</p>
           <div className="bg-card border border-border p-4 space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Current Weight (lbs)</Label>
+                <Label className="text-[10px] tracking-wide text-muted-foreground">Current Weight (lbs)</Label>
                 <Input
                   type="number"
                   step="0.1"
@@ -533,7 +533,7 @@ export default function ProgressPage() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Notes (optional)</Label>
+                <Label className="text-[10px] tracking-wide text-muted-foreground">Notes (optional)</Label>
                 <Input
                   value={weighNotes}
                   onChange={e => setWeighNotes(e.target.value)}
@@ -544,7 +544,7 @@ export default function ProgressPage() {
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Did this week feel easier, same, or harder?</Label>
+              <Label className="text-[10px] tracking-wide text-muted-foreground">Did this week feel easier, same, or harder?</Label>
               <div className="flex gap-2">
                 {(["easier", "same", "harder"] as const).map((e) => (
                   <button
@@ -574,7 +574,7 @@ export default function ProgressPage() {
 
             {latestAdjustment && (
               <div className="border border-primary/20 bg-primary/5 p-4 space-y-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Coach Adjustment</p>
+                <p className="text-[10px] font-medium tracking-wide text-primary">Coach Adjustment</p>
                 <p className="text-sm font-medium">{latestAdjustment.adjustment}</p>
                 <p className="text-sm text-muted-foreground">{latestAdjustment.coachMessage}</p>
               </div>
@@ -585,7 +585,7 @@ export default function ProgressPage() {
         {/* Goal Check-Ins */}
         {userGoals.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Goal Check-Ins</p>
+            <p className="text-[10px] font-medium tracking-wide text-muted-foreground mb-3">Goal Check-Ins</p>
             <div className="space-y-3">
               {userGoals.map((goal: string) => {
                 const latest = latestByGoal[goal];
@@ -640,7 +640,7 @@ export default function ProgressPage() {
                     ) : (
                       <div className="space-y-3">
                         <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">{getTrendQuestion(goal)}</Label>
+                          <Label className="text-[10px] tracking-wide text-muted-foreground">{getTrendQuestion(goal)}</Label>
                           <div className="flex gap-2">
                             {(["better", "same", "worse"] as const).map((t) => (
                               <button
@@ -660,7 +660,7 @@ export default function ProgressPage() {
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Rate this week (1–10)</Label>
+                          <Label className="text-[10px] tracking-wide text-muted-foreground">Rate this week (1–10)</Label>
                           <div className="flex items-center gap-2">
                             <input
                               type="range"
@@ -674,7 +674,7 @@ export default function ProgressPage() {
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">What helped?</Label>
+                          <Label className="text-[10px] tracking-wide text-muted-foreground">What helped?</Label>
                           <Input
                             value={goalWhatHelped}
                             onChange={e => setGoalWhatHelped(e.target.value)}
@@ -683,7 +683,7 @@ export default function ProgressPage() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">What made it harder?</Label>
+                          <Label className="text-[10px] tracking-wide text-muted-foreground">What made it harder?</Label>
                           <Input
                             value={goalWhatHardened}
                             onChange={e => setGoalWhatHardened(e.target.value)}
@@ -760,7 +760,7 @@ export default function ProgressPage() {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Medal className="w-4 h-4 text-primary" />
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Milestones</p>
+                <p className="text-[10px] font-medium tracking-wide text-muted-foreground">Milestones</p>
                 <span className="ml-auto text-[10px] font-bold text-primary">{unlocked.length} unlocked</span>
               </div>
               <div className="flex flex-wrap gap-2 mb-3">
@@ -777,7 +777,7 @@ export default function ProgressPage() {
               </div>
               {locked.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Next up</p>
+                  <p className="text-[9px] tracking-wide text-muted-foreground font-medium">Next up</p>
                   <div className="flex flex-wrap gap-2">
                     {locked.map(m => (
                       <div
@@ -798,12 +798,12 @@ export default function ProgressPage() {
 
         {reviews && reviews.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Recent Reviews</p>
+            <p className="text-[10px] font-medium tracking-wide text-muted-foreground mb-3">Recent Reviews</p>
             <div className="space-y-3">
               {reviews.slice(-5).reverse().map((r, i) => (
                 <div key={i} className="bg-card border border-border p-4 space-y-2" data-testid={`review-card-${i}`}>
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{r.date}</p>
+                    <p className="text-[10px] text-muted-foreground tracking-wide">{r.date}</p>
                     <div className="flex items-center gap-2">
                       <span className="text-xl font-bold text-primary">{r.dailyScore}</span>
                       <span className="text-xs text-muted-foreground">/100</span>

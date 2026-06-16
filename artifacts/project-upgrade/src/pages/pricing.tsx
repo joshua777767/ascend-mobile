@@ -193,8 +193,8 @@ export default function PricingPage() {
         )}
 
         <div className="text-center mb-12">
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">Pricing</p>
-          <h1 className="text-4xl font-bold uppercase tracking-tighter mb-4">One Price. Everything Included.</h1>
+          <p className="text-xs font-medium tracking-wide text-primary mb-3">Pricing</p>
+          <h1 className="text-4xl font-bold tracking-tight mb-4">One Price. Everything Included.</h1>
           <p className="text-muted-foreground">No upsells. No add-ons. The full AI coaching system.</p>
         </div>
 
@@ -209,10 +209,10 @@ export default function PricingPage() {
           {/* Free Trial Card */}
           <div className="bg-card border border-primary/40 p-6 space-y-4 relative overflow-hidden">
             <div className="absolute top-4 right-4">
-              <span className="text-xs font-semibold uppercase tracking-wider bg-primary text-primary-foreground px-2 py-1">Best Value</span>
+              <span className="text-xs font-medium tracking-wide bg-primary text-primary-foreground px-2 py-1">Best Value</span>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Free Trial</p>
+              <p className="text-xs font-medium tracking-wide text-primary mb-1">Free Trial</p>
               <div className="flex items-end gap-1">
                 <p className="text-3xl font-bold">$0</p>
                 <p className="text-muted-foreground mb-1">today</p>
@@ -256,10 +256,10 @@ export default function PricingPage() {
           {/* Pro Card */}
           <div className="bg-card border border-border p-6 space-y-4 relative overflow-hidden">
             <div className="absolute top-4 right-4">
-              <span className="text-xs font-semibold uppercase tracking-wider bg-primary text-primary-foreground px-2 py-1">Most Popular</span>
+              <span className="text-xs font-medium tracking-wide bg-primary text-primary-foreground px-2 py-1">Most Popular</span>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Ascend Pro</p>
+              <p className="text-xs font-medium tracking-wide text-primary mb-1">Ascend Pro</p>
               <p className="text-sm font-bold text-foreground mb-2 leading-snug">Your Week 2 plan is ready.<br />Upgrade to keep your progress going.</p>
               <div className="flex items-end gap-1">
                 <p className="text-3xl font-bold">$19.99</p>
@@ -305,7 +305,7 @@ export default function PricingPage() {
         </div>
 
         <div className="mt-12 bg-card border border-border p-6">
-          <h2 className="text-sm font-bold uppercase tracking-tight mb-4">Frequently Asked</h2>
+          <h2 className="text-sm font-semibold tracking-tight mb-4">Frequently Asked</h2>
           <div className="space-y-4">
             {[
               { q: "Is my card charged during the trial?", a: `No. You won't be charged until the ${TRIAL_DAYS}-day trial ends on ${trialEndDate}. Cancel before then and you pay nothing.` },

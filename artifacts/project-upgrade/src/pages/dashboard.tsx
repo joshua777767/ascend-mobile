@@ -106,25 +106,21 @@ function MetricCard({
   tint: "blue" | "green";
 }) {
   const iconBg = tint === "blue"
-    ? "rgba(59,130,246,0.18)"
-    : "rgba(16,185,129,0.18)";
-  const iconColor = tint === "blue" ? "#3B82F6" : "#10B981";
-  const glow = tint === "blue"
-    ? "0 0 14px rgba(59,130,246,0.18)"
-    : "0 0 14px rgba(16,185,129,0.18)";
+    ? "rgba(107,139,174,0.12)"
+    : "rgba(74,155,120,0.12)";
+  const iconColor = tint === "blue" ? "#6B8BAE" : "#4A9B78";
 
   return (
     <div
       className="rounded-2xl border p-3.5"
       style={{
-        background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
-        borderColor: "hsl(217 32% 15%)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+        background: "hsl(220 12% 9%)",
+        borderColor: "hsl(220 10% 18%)",
       }}
     >
       <div
         className="w-8 h-8 rounded-xl flex items-center justify-center"
-        style={{ background: iconBg, boxShadow: glow }}
+        style={{ background: iconBg }}
       >
         <Icon className="w-4 h-4" style={{ color: iconColor }} strokeWidth={2.2} />
       </div>
@@ -132,7 +128,7 @@ function MetricCard({
         {value}
         {unit && <span className="text-xs font-medium text-muted-foreground ml-0.5">{unit}</span>}
       </p>
-      <p className="label-caps text-muted-foreground mt-1.5" style={{ fontSize: "9px" }}>{label}</p>
+      <p className="text-muted-foreground mt-1.5" style={{ fontSize: "10px", fontWeight: "500" }}>{label}</p>
     </div>
   );
 }
@@ -143,31 +139,24 @@ function QuickAction({ href, icon: Icon, label }: { href: string; icon: React.El
       href={href}
       className="flex flex-col items-center justify-center gap-2 rounded-2xl py-4 active:scale-[0.97] transition-all"
       style={{
-        background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+        background: "hsl(220 12% 9%)",
         border: "1px solid hsl(217 32% 15%)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
       }}
     >
       <Icon className="w-5 h-5 text-muted-foreground" strokeWidth={2} />
-      <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-muted-foreground">{label}</span>
+      <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
     </Link>
   );
 }
 
 function ScoreRing({ score }: { score: number }) {
   const pct = Math.max(0, Math.min(100, score));
-  const color = pct >= 80 ? "#10B981" : pct >= 50 ? "#3B82F6" : "#F59E0B";
-  const glow = pct >= 80
-    ? "0 0 20px rgba(16,185,129,0.4), 0 0 40px rgba(16,185,129,0.15)"
-    : pct >= 50
-    ? "0 0 20px rgba(59,130,246,0.4), 0 0 40px rgba(59,130,246,0.15)"
-    : "0 0 20px rgba(245,158,11,0.4), 0 0 40px rgba(245,158,11,0.15)";
+  const color = pct >= 80 ? "#4A9B78" : pct >= 50 ? "#6B8BAE" : "#C89A3E";
   return (
     <div
       className="relative w-20 h-20 rounded-full shrink-0"
       style={{
         background: `conic-gradient(${color} ${pct * 3.6}deg, hsl(218 46% 12%) 0deg)`,
-        boxShadow: pct > 0 ? glow : "none",
       }}
     >
       <div
@@ -175,7 +164,7 @@ function ScoreRing({ score }: { score: number }) {
         style={{ background: "hsl(220 52% 8%)" }}
       >
         <span className="text-xl font-black tracking-tight leading-none">{pct}</span>
-        <span className="text-[7px] font-bold tracking-[0.2em] uppercase text-muted-foreground mt-0.5">Score</span>
+        <span className="text-[7px] font-medium text-muted-foreground mt-0.5">Score</span>
       </div>
     </div>
   );
@@ -198,17 +187,16 @@ function IntakeBar({
 }) {
   const pct = target > 0 ? Math.min(100, Math.round((eaten / target) * 100)) : 0;
   const barColor = tint === "blue"
-    ? "linear-gradient(90deg, #3B82F6, #2DD4BF)"
-    : "linear-gradient(90deg, #10B981, #34D399)";
-  const iconBg = tint === "blue" ? "rgba(59,130,246,0.18)" : "rgba(16,185,129,0.18)";
-  const iconColor = tint === "blue" ? "#3B82F6" : "#10B981";
+    ? "#6B8BAE"
+    : "#4A9B78";
+  const iconBg = tint === "blue" ? "rgba(107,139,174,0.12)" : "rgba(74,155,120,0.12)";
+  const iconColor = tint === "blue" ? "#6B8BAE" : "#4A9B78";
   return (
     <div
       className="rounded-2xl border p-3.5"
       style={{
-        background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
-        borderColor: "hsl(217 32% 15%)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+        background: "hsl(220 12% 9%)",
+        borderColor: "hsl(220 10% 18%)",
       }}
     >
       <div className="flex items-center justify-between mb-2">
@@ -219,7 +207,7 @@ function IntakeBar({
           >
             <Icon className="w-3.5 h-3.5" style={{ color: iconColor }} strokeWidth={2.2} />
           </div>
-          <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground">{label}</span>
+          <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
         </div>
         <span className="text-[10px] text-muted-foreground font-mono">{pct}%</span>
       </div>
@@ -303,10 +291,10 @@ function DailyChecklist({
           <p className="label-caps text-muted-foreground">Daily Mission</p>
           {allDone && (
             <span
-              className="text-[8px] font-black tracking-[0.2em] uppercase px-2 py-0.5 rounded-full"
-              style={{ background: "rgba(16,185,129,0.15)", color: "#10B981" }}
+              className="text-[8px] font-medium px-2 py-0.5 rounded-full"
+              style={{ background: "rgba(74,155,120,0.15)", color: "#4A9B78" }}
             >
-              COMPLETE
+              Complete
             </span>
           )}
         </div>
@@ -317,9 +305,8 @@ function DailyChecklist({
       <div
         className="rounded-2xl overflow-hidden divide-y"
         style={{
-          background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+          background: "hsl(220 12% 9%)",
           border: "1px solid hsl(217 32% 15%)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
         }}
       >
         {habits.map((habit) => {
@@ -330,13 +317,13 @@ function DailyChecklist({
               type="button"
               onClick={() => setDone((d) => ({ ...d, [habit]: !d[habit] }))}
               className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-elevated transition-colors"
-              style={{ borderColor: "hsl(217 32% 13%)" }}
+              style={{ borderColor: "hsl(220 10% 18%)" }}
             >
               <div
                 className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center border-2 transition-all"
                 style={isDone
-                  ? { background: "#10B981", borderColor: "#10B981", boxShadow: "0 0 8px rgba(16,185,129,0.4)" }
-                  : { borderColor: "hsl(217 32% 22%)" }}
+                  ? { background: "#4A9B78", borderColor: "#4A9B78" }
+                  : { borderColor: "hsl(220 10% 22%)" }}
               >
                 {isDone && <CheckCircle2 className="w-3 h-3 text-white" strokeWidth={3} />}
               </div>
@@ -344,7 +331,7 @@ function DailyChecklist({
                 {habit}
               </span>
               {isDone && (
-                <span className="text-[8px] font-black tracking-[0.15em] uppercase" style={{ color: "#10B981" }}>
+                <span className="text-[8px] font-medium" style={{ color: "#4A9B78" }}>
                   Done
                 </span>
               )}
@@ -353,7 +340,7 @@ function DailyChecklist({
         })}
       </div>
       {allDone && (
-        <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mt-2 text-center">
+        <p className="text-[10px] font-medium text-muted-foreground mt-2 text-center">
           All done. You're building the habit. Keep the streak going.
         </p>
       )}
@@ -415,25 +402,24 @@ function WaterTracker({
     <div
       className="rounded-2xl border p-4"
       style={{
-        background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
-        borderColor: "hsl(217 32% 15%)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+        background: "hsl(220 12% 9%)",
+        borderColor: "hsl(220 10% 18%)",
       }}
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: "rgba(59,130,246,0.18)" }}
+            style={{ background: "rgba(107,139,174,0.12)" }}
           >
-            <Droplets className="w-3.5 h-3.5 text-primary" strokeWidth={2.2} />
+            <Droplets className="w-3.5 h-3.5" style={{ color: "#6B8BAE" }} strokeWidth={2.2} />
           </div>
-          <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground">Hydration</span>
+          <span className="text-[10px] font-medium text-muted-foreground">Hydration</span>
         </div>
         {met && !isAnalyzing && (
           <span
-            className="text-[8px] font-black tracking-[0.2em] uppercase px-2 py-0.5 rounded-full"
-            style={{ background: "rgba(16,185,129,0.15)", color: "#10B981" }}
+            className="text-[8px] font-medium px-2 py-0.5 rounded-full"
+            style={{ background: "rgba(74,155,120,0.15)", color: "#4A9B78" }}
           >
             Target Met ✓
           </span>
@@ -457,22 +443,22 @@ function WaterTracker({
           style={{
             width: `${pct}%`,
             background: met
-              ? "linear-gradient(90deg, #10B981, #34D399)"
-              : "linear-gradient(90deg, #3B82F6, #2DD4BF)",
+              ? "#4A9B78"
+              : "#6B8BAE",
           }}
         />
       </div>
 
       {photoFeedback && (
-        <p className="text-xs font-semibold mb-3" style={{ color: "#10B981" }}>{photoFeedback}</p>
+        <p className="text-xs font-semibold mb-3" style={{ color: "#4A9B78" }}>{photoFeedback}</p>
       )}
 
       {confirmOz !== null && (
         <div
           className="mb-3 rounded-xl p-3 space-y-2"
-          style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.22)" }}
+          style={{ background: "rgba(107,139,174,0.08)", border: "1px solid rgba(107,139,174,0.22)" }}
         >
-          <p className="text-xs font-semibold leading-snug" style={{ color: "#93C5FD" }}>
+          <p className="text-xs font-medium leading-snug" style={{ color: "hsl(210 30% 70%)" }}>
             Couldn't clearly detect water. How much to add?
           </p>
           <div className="flex gap-2">
@@ -481,11 +467,11 @@ function WaterTracker({
                 key={oz}
                 type="button"
                 onClick={() => onConfirmOz(oz)}
-                className="flex-1 py-1.5 rounded-lg text-xs font-bold active:scale-[0.97] transition-transform"
+                className="flex-1 py-1.5 rounded-lg text-xs font-medium active:scale-[0.97] transition-transform"
                 style={{
-                  background: "rgba(59,130,246,0.15)",
-                  border: "1px solid rgba(59,130,246,0.3)",
-                  color: "#3B82F6",
+                  background: "rgba(107,139,174,0.15)",
+                  border: "1px solid rgba(107,139,174,0.3)",
+                  color: "#6B8BAE",
                 }}
               >
                 Add {oz} oz
@@ -509,11 +495,11 @@ function WaterTracker({
             type="button"
             disabled={busy}
             onClick={() => onLog(oz)}
-            className="flex-1 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.97] disabled:opacity-50"
+            className="flex-1 py-2 rounded-xl text-xs font-medium transition-all active:scale-[0.97] disabled:opacity-50"
             style={{
-              background: "rgba(59,130,246,0.1)",
-              border: "1px solid rgba(59,130,246,0.2)",
-              color: "#3B82F6",
+              background: "rgba(107,139,174,0.1)",
+              border: "1px solid rgba(107,139,174,0.2)",
+              color: "#6B8BAE",
             }}
           >
             +{oz} oz
@@ -523,7 +509,7 @@ function WaterTracker({
           type="button"
           disabled={busy}
           onClick={() => fileInputRef.current?.click()}
-          className="py-2 px-3 rounded-xl text-xs font-semibold text-muted-foreground active:bg-card transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          className="py-2 px-3 rounded-xl text-xs font-medium text-muted-foreground active:bg-card transition-colors disabled:opacity-50 flex items-center gap-1.5"
           style={{
             background: "hsl(218 46% 12%)",
             border: "1px solid hsl(217 32% 15%)",
@@ -1017,8 +1003,8 @@ export default function DashboardPage() {
           <div
             className="rounded-2xl p-4 flex flex-col gap-3 animate-in slide-in-from-top-2 duration-300"
             style={{
-              background: "linear-gradient(135deg, hsl(220 52% 9%) 0%, hsl(220 48% 11%) 100%)",
-              border: "1px solid hsl(38 95% 54% / 0.35)",
+              background: "hsl(220 12% 9%)",
+              border: "1px solid hsl(35 70% 50% / 0.35)",
             }}
           >
             <div className="flex items-start gap-3">
@@ -1060,17 +1046,14 @@ export default function DashboardPage() {
         <div
           className="rounded-2xl p-5 relative overflow-hidden"
           style={{
-            background: "linear-gradient(145deg, hsl(220 60% 7%) 0%, hsl(220 52% 10%) 60%, hsl(220 48% 8%) 100%)",
-            border: "1px solid hsl(217 32% 16%)",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 0 40px rgba(59,130,246,0.07)",
+            background: "hsl(220 12% 9%)",
+            border: "1px solid hsl(220 10% 18%)",
           }}
         >
-          {/* ambient glow orb */}
-          <div className="pointer-events-none absolute -top-8 -right-8 w-40 h-40 rounded-full" style={{ background: "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)" }} />
 
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-muted-foreground">
+              <p className="text-[9px] font-bold tracking-[0.02em] text-muted-foreground">
                 {dayName} · {dateStr}
               </p>
               <h1 className="text-[2.3rem] font-black tracking-tight leading-tight mt-0.5">
@@ -1093,16 +1076,16 @@ export default function DashboardPage() {
               {/* Status badge */}
               {(() => {
                 const statusLabel = displayScore >= 90
-                  ? { text: "Perfect Day", color: "#10B981", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.3)" }
+                  ? { text: "Perfect Day", color: "#4A9B78", bg: "rgba(74,155,120,0.12)", border: "rgba(74,155,120,0.3)" }
                   : displayScore >= 65
-                  ? { text: "Locked In", color: "#3B82F6", bg: "rgba(59,130,246,0.12)", border: "rgba(59,130,246,0.3)" }
+                  ? { text: "Locked In", color: "#6B8BAE", bg: "rgba(107,139,174,0.12)", border: "rgba(107,139,174,0.3)" }
                   : displayScore >= 30
-                  ? { text: "Building Momentum", color: "#F59E0B", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.3)" }
-                  : { text: "Comeback Day", color: "#F59E0B", bg: "rgba(245,158,11,0.10)", border: "rgba(245,158,11,0.25)" };
+                  ? { text: "Building Momentum", color: "#C89A3E", bg: "rgba(200,154,62,0.12)", border: "rgba(200,154,62,0.3)" }
+                  : { text: "Comeback Day", color: "#C89A3E", bg: "rgba(200,154,62,0.10)", border: "rgba(200,154,62,0.25)" };
                 if (!hasAnyData) return null;
                 return (
                   <span
-                    className="inline-block mt-2 text-[9px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 rounded-full"
+                    className="inline-block mt-2 text-[9px] font-medium px-2.5 py-1 rounded-full"
                     style={{ color: statusLabel.color, background: statusLabel.bg, border: `1px solid ${statusLabel.border}` }}
                   >
                     {statusLabel.text}
@@ -1111,9 +1094,9 @@ export default function DashboardPage() {
               })()}
               {streakData && (streakData.currentStreak ?? 0) > 0 && (
                 <div className="flex items-center gap-1.5 mt-2.5">
-                  <Flame className="w-3.5 h-3.5" style={{ color: "#F59E0B" }} strokeWidth={2.4} />
-                <p className="text-[11px] font-black tracking-[0.1em]" style={{ color: "#F59E0B" }}>
-                  {streakData.currentStreak}-DAY STREAK
+                  <Flame className="w-3.5 h-3.5" style={{ color: "#C89A3E" }} strokeWidth={2.4} />
+                <p className="text-[11px] font-bold" style={{ color: "#C89A3E" }}>
+                  {streakData.currentStreak}-day streak
                 </p>
               </div>
             )}
@@ -1130,20 +1113,19 @@ export default function DashboardPage() {
           <div
             className="rounded-2xl p-4 flex items-center justify-between"
             style={{
-              background: "linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(59,130,246,0.05) 100%)",
-              border: "1px solid rgba(59,130,246,0.28)",
-              boxShadow: "0 0 24px rgba(59,130,246,0.08)",
+              background: "rgba(107,139,174,0.08)",
+              border: "1px solid rgba(107,139,174,0.22)",
             }}
           >
             <div className="flex items-center gap-3 min-w-0">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "rgba(59,130,246,0.18)", boxShadow: "0 0 14px rgba(59,130,246,0.25)" }}
+                style={{ background: "rgba(107,139,174,0.12)" }}
               >
                 <Target className="w-5 h-5 text-primary" strokeWidth={2.2} />
               </div>
               <div className="min-w-0">
-                <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-primary mb-0.5">Today's Mission</p>
+                <p className="text-[9px] font-medium text-primary mb-0.5">Today's Mission</p>
                 <p className="text-sm font-bold leading-tight">Hit the plan. Keep the streak alive.</p>
               </div>
             </div>
@@ -1166,7 +1148,7 @@ export default function DashboardPage() {
           const totalChange = Math.round((currentKg - startKg) * 2.2046226 * 10) / 10;
           const hasChange = Math.abs(totalChange) > 0;
           const isLoss = totalChange < 0;
-          const changeColor = isLoss ? "#10B981" : totalChange > 0 ? "#F59E0B" : "#3B82F6";
+          const changeColor = isLoss ? "#4A9B78" : totalChange > 0 ? "#C89A3E" : "#6B8BAE";
           // Progress bar: start→goal, clamped
           const progressPct = goalLbs > 0 && startLbs !== goalLbs
             ? Math.max(0, Math.min(100, Math.round(Math.abs(startLbs - currentLbs) / Math.abs(startLbs - goalLbs) * 100)))
@@ -1175,14 +1157,13 @@ export default function DashboardPage() {
             <div
               className="rounded-2xl p-4 space-y-3"
               style={{
-                background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
-                border: "1px solid hsl(217 32% 15%)",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03), 0 0 18px rgba(16,185,129,0.04)",
+                background: "hsl(220 12% 9%)",
+                border: "1px solid hsl(220 10% 18%)",
               }}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mb-1">Proof of Change</p>
+                  <p className="text-[9px] font-bold tracking-[0.02em] text-muted-foreground mb-1">Proof of Change</p>
                   {hasChange ? (
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-2xl font-black" style={{ color: changeColor }}>
@@ -1226,9 +1207,8 @@ export default function DashboardPage() {
           <div
             className="rounded-2xl p-4 text-center space-y-2"
             style={{
-              background: "rgba(59,130,246,0.08)",
-              border: "1px solid rgba(59,130,246,0.25)",
-              boxShadow: "0 0 24px rgba(59,130,246,0.08)",
+              background: "rgba(107,139,174,0.08)",
+              border: "1px solid rgba(107,139,174,0.25)",
             }}
           >
             <div className="flex items-center justify-center gap-2">
@@ -1265,8 +1245,8 @@ export default function DashboardPage() {
                 <div
                   className="rounded-2xl p-4 space-y-3"
                   style={{
-                    background: "rgba(59,130,246,0.07)",
-                    border: "1px solid rgba(59,130,246,0.2)",
+                    background: "rgba(107,139,174,0.07)",
+                    border: "1px solid rgba(107,139,174,0.2)",
                   }}
                 >
                   <div className="flex items-center gap-2">
@@ -1285,9 +1265,9 @@ export default function DashboardPage() {
                         <Link
                           key={g}
                           href="/progress"
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold capitalize"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium capitalize"
                           style={{
-                            background: "hsl(220 52% 8%)",
+                            background: "hsl(220 12% 9%)",
                             border: "1px solid hsl(217 32% 15%)",
                           }}
                         >
@@ -1338,7 +1318,7 @@ export default function DashboardPage() {
               return (
                 <div
                   className="rounded-2xl p-4 space-y-2"
-                  style={{ background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.15)" }}
+                  style={{ background: "rgba(107,139,174,0.05)", border: "1px solid rgba(107,139,174,0.15)" }}
                 >
                   <div className="flex items-center gap-2">
                     <Moon className="w-4 h-4 text-primary" />
@@ -1361,7 +1341,7 @@ export default function DashboardPage() {
           return (
             <div
               className="rounded-2xl p-4 space-y-3"
-              style={{ background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.15)", boxShadow: "0 0 20px rgba(59,130,246,0.06)" }}
+              style={{ background: "rgba(107,139,174,0.05)", border: "1px solid rgba(107,139,174,0.15)" }}
             >
               <div className="flex items-center gap-2">
                 <Target className="w-4 h-4 text-primary" />
@@ -1371,14 +1351,14 @@ export default function DashboardPage() {
                 {items.map((item, i) => (
                   <div key={i} className="flex items-start gap-2.5">
                     <span
-                      className="mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0"
+                      className="mt-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-md shrink-0"
                       style={
                         item.type === "fix"
-                          ? { background: "rgba(245,158,11,0.15)", color: "#F59E0B" }
-                          : { background: "rgba(52,211,153,0.15)", color: "#34D399" }
+                          ? { background: "rgba(200,154,62,0.15)", color: "#C89A3E" }
+                          : { background: "rgba(74,155,120,0.15)", color: "#4A9B78" }
                       }
                     >
-                      {item.type === "fix" ? "REDUCE" : "KEEP"}
+                      {item.type === "fix" ? "Reduce" : "Keep"}
                     </span>
                     <div className="min-w-0">
                       <p className="text-xs leading-snug text-foreground capitalize">{item.text}</p>
@@ -1398,25 +1378,23 @@ export default function DashboardPage() {
         {missionComplete ? (
           /* ── Reward / Mission Complete state ── */
           <div
-            className="rounded-2xl p-5 space-y-3 relative overflow-hidden"
+            className="rounded-2xl p-5 space-y-3"
             style={{
-              background: "linear-gradient(145deg, rgba(16,185,129,0.10) 0%, rgba(16,185,129,0.04) 100%)",
-              border: "1px solid rgba(16,185,129,0.30)",
-              boxShadow: "0 0 32px rgba(16,185,129,0.12), inset 0 1px 0 rgba(16,185,129,0.08)",
+              background: "rgba(74,155,120,0.10)",
+              border: "1px solid rgba(74,155,120,0.25)",
             }}
           >
-            <div className="pointer-events-none absolute -top-6 -right-6 w-32 h-32 rounded-full" style={{ background: "radial-gradient(circle, rgba(16,185,129,0.14) 0%, transparent 70%)" }} />
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(16,185,129,0.18)", boxShadow: "0 0 14px rgba(16,185,129,0.3)" }}>
-                <CheckCircle2 className="w-4 h-4" style={{ color: "#10B981" }} strokeWidth={2.2} />
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(74,155,120,0.12)" }}>
+                <CheckCircle2 className="w-4 h-4" style={{ color: "#4A9B78" }} strokeWidth={2.2} />
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-[9px] font-bold tracking-[0.18em] uppercase" style={{ color: "#10B981" }}>Mission Complete</p>
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.3)" }}>DAY STACKED</span>
+                <p className="text-[9px] font-medium" style={{ color: "#4A9B78" }}>Mission Complete</p>
+                <span className="text-[9px] font-medium px-2 py-0.5 rounded-full" style={{ background: "rgba(200,154,62,0.15)", color: "#C89A3E", border: "1px solid rgba(200,154,62,0.3)" }}>Day stacked</span>
               </div>
             </div>
             <p className="text-sm font-bold leading-snug text-foreground">You kept the promise today.</p>
-            <p className="text-[11px] leading-relaxed" style={{ color: "#10B981" }}>
+            <p className="text-[11px] leading-relaxed" style={{ color: "#4A9B78" }}>
               Proof logged. Stack another win tomorrow. Don't break the chain.
             </p>
           </div>
@@ -1428,9 +1406,9 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 mb-2.5">
                   <span
                     className="w-1.5 h-1.5 rounded-full"
-                    style={{ background: "#3B82F6", boxShadow: "0 0 8px rgba(59,130,246,0.9)", animation: "pulse 2s infinite" }}
+                    style={{ background: "#6B8BAE", animation: "pulse 2s infinite" }}
                   />
-                  <p className="label-caps" style={{ color: "#3B82F6", fontSize: "9px" }}>Mission Active</p>
+                  <p className="label-caps" style={{ color: "#6B8BAE", fontSize: "9px" }}>Mission Active</p>
                 </div>
                 <p className="text-[13px] leading-relaxed text-foreground font-medium">{coachMessage}</p>
                 <div className="mt-2.5">
@@ -1455,9 +1433,8 @@ export default function DashboardPage() {
           <div
             className="rounded-2xl p-4 space-y-3"
             style={{
-              background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
-              border: "1px solid hsl(217 32% 15%)",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+              background: "hsl(220 12% 9%)",
+              border: "1px solid hsl(220 10% 18%)",
             }}
           >
             <div className="flex items-center justify-between">
@@ -1466,11 +1443,11 @@ export default function DashboardPage() {
             </div>
             <div className="grid grid-cols-5 gap-2">
               {[
-                { label: "Calories", score: dailyScore.caloriesScore, max: 25, color: "#3B82F6" },
-                { label: "Protein", score: dailyScore.proteinScore, max: 25, color: "#10B981" },
-                { label: "Water", score: dailyScore.waterScore, max: 20, color: "#06B6D4" },
-                { label: "Workout", score: dailyScore.workoutScore, max: 20, color: "#F59E0B" },
-                { label: "Sleep", score: dailyScore.sleepScore, max: 10, color: "#8B5CF6" },
+                { label: "Calories", score: dailyScore.caloriesScore, max: 25, color: "#6B8BAE" },
+                { label: "Protein", score: dailyScore.proteinScore, max: 25, color: "#4A9B78" },
+                { label: "Water", score: dailyScore.waterScore, max: 20, color: "#6B8BAE" },
+                { label: "Workout", score: dailyScore.workoutScore, max: 20, color: "#C89A3E" },
+                { label: "Sleep", score: dailyScore.sleepScore, max: 10, color: "#6B8BAE" },
               ].map((item) => (
                 <div key={item.label} className="text-center space-y-1">
                   <div className="relative h-16 rounded-lg overflow-hidden" style={{ background: "hsl(218 46% 12%)" }}>
@@ -1486,7 +1463,7 @@ export default function DashboardPage() {
                       {item.score}
                     </span>
                   </div>
-                  <p className="text-[8px] font-bold tracking-[0.12em] uppercase text-muted-foreground">{item.label}</p>
+                  <p className="text-[8px] font-medium text-muted-foreground">{item.label}</p>
                 </div>
               ))}
             </div>
@@ -1513,15 +1490,15 @@ export default function DashboardPage() {
                   setNavigatingToCoach(true);
                   setLocation(`/coach?emergency=${encodeURIComponent(msg)}`);
                 }}
-                className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-left text-[11px] font-semibold active:scale-[0.97] transition-all disabled:opacity-50"
+                className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-left text-[11px] font-medium active:scale-[0.97] transition-all disabled:opacity-50"
                 style={{
-                  background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
-                  border: "1px solid hsl(217 32% 15%)",
+                  background: "hsl(220 12% 9%)",
+                  border: "1px solid hsl(220 10% 18%)",
                   color: "hsl(215 22% 70%)",
                 }}
               >
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(245,158,11,0.12)" }}>
-                  <Icon className="w-3.5 h-3.5" style={{ color: "#F59E0B" }} strokeWidth={2.2} />
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(200,154,62,0.12)" }}>
+                  <Icon className="w-3.5 h-3.5" style={{ color: "#C89A3E" }} strokeWidth={2.2} />
                 </div>
                 <span className="leading-tight">{label}</span>
               </button>
@@ -1543,9 +1520,8 @@ export default function DashboardPage() {
             <div
               className="rounded-2xl overflow-hidden divide-y"
               style={{
-                background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+                background: "hsl(220 12% 9%)",
                 border: "1px solid hsl(217 32% 15%)",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
               }}
             >
               {weeklyHabits.map((habit) => {
@@ -1574,8 +1550,8 @@ export default function DashboardPage() {
                         onClick={() => updateWeeklyCount(weeklyDone ? -1 : 1)}
                         className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center border-2 transition-all active:scale-90"
                         style={weeklyDone
-                          ? { background: "#10B981", borderColor: "#10B981", boxShadow: "0 0 8px rgba(16,185,129,0.4)" }
-                          : { borderColor: "hsl(217 32% 22%)" }}
+                          ? { background: "#4A9B78", borderColor: "#4A9B78" }
+                          : { borderColor: "hsl(220 10% 22%)" }}
                       >
                         {weeklyDone ? (
                           <CheckCircle2 className="w-3 h-3 text-white" strokeWidth={3} />
@@ -1666,15 +1642,14 @@ export default function DashboardPage() {
           <div
             className="rounded-2xl p-4 flex items-center justify-between"
             style={{
-              background: "linear-gradient(145deg, hsl(220 52% 8%) 0%, hsl(220 48% 7%) 100%)",
+              background: "hsl(220 12% 9%)",
               border: "1px solid hsl(217 32% 15%)",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
             }}
           >
             <div className="flex items-center gap-3 min-w-0">
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "rgba(59,130,246,0.18)", boxShadow: "0 0 14px rgba(59,130,246,0.18)" }}
+                style={{ background: "rgba(107,139,174,0.12)" }}
               >
                 <Dumbbell className="w-5 h-5 text-primary" strokeWidth={2.2} />
               </div>
@@ -1699,9 +1674,9 @@ export default function DashboardPage() {
           <Link href={trialComplete ? "/trial-review" : "/pricing"}>
             <div
               className="rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer transition-opacity hover:opacity-80"
-              style={{ background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.22)" }}
+              style={{ background: "rgba(200,154,62,0.07)", border: "1px solid rgba(200,154,62,0.22)" }}
             >
-              <Zap className="w-4 h-4 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={2.5} />
+              <Zap className="w-4 h-4 shrink-0" style={{ color: "#C89A3E" }} strokeWidth={2.5} />
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-bold text-foreground leading-tight">
                   {trialComplete
@@ -1724,7 +1699,7 @@ export default function DashboardPage() {
               {goals.map((g) => (
                 <span
                   key={g}
-                  className="text-[10px] font-bold px-3 py-1.5 rounded-full capitalize tracking-wide"
+                  className="text-[10px] font-medium px-3 py-1.5 rounded-full capitalize"
                   style={{
                     background: "hsl(218 46% 12%)",
                     border: "1px solid hsl(217 32% 16%)",

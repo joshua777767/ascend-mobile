@@ -78,7 +78,7 @@ export default function TrialReviewPage() {
   const keyHabits: string[] = Array.isArray(plan?.keyHabits) ? plan.keyHabits : [];
 
   const scoreColor =
-    avgScore >= 80 ? "#10B981" : avgScore >= 60 ? "#F59E0B" : "#EF4444";
+    avgScore >= 80 ? "#4A9B78" : avgScore >= 60 ? "#C89A3E" : "#EF4444";
 
   return (
     <div className="h-full overflow-y-auto scroll-area">
@@ -88,15 +88,15 @@ export default function TrialReviewPage() {
         <div
           className="rounded-2xl p-5 text-center space-y-2"
           style={{
-            background: "linear-gradient(145deg, rgba(16,185,129,0.10) 0%, rgba(59,130,246,0.07) 100%)",
-            border: "1px solid rgba(16,185,129,0.25)",
+            background: "linear-gradient(145deg, rgba(74,155,120,0.08) 0%, rgba(107,139,174,0.04) 100%)",
+            border: "1px solid rgba(74,155,120,0.20)",
           }}
         >
           <div className="flex items-center justify-center gap-2 mb-1">
-            <CheckCircle2 className="w-5 h-5" style={{ color: "#10B981" }} strokeWidth={2.5} />
+            <CheckCircle2 className="w-5 h-5" style={{ color: "#4A9B78" }} strokeWidth={2.5} />
             <span
               className="label-caps"
-              style={{ fontSize: "9px", color: "#10B981" }}
+              style={{ fontSize: "9px", color: "#4A9B78" }}
             >
               Day {trialDay} of 7 — Trial Complete
             </span>
@@ -126,7 +126,7 @@ export default function TrialReviewPage() {
               sub="sessions tracked"
             />
             <StatCard
-              icon={<Flame className="w-4 h-4" style={{ color: "#F59E0B" }} />}
+              icon={<Flame className="w-4 h-4" style={{ color: "#C89A3E" }} />}
               label="Day Streak"
               value={streak > 0 ? `${streak}🔥` : "—"}
               sub={streak > 0 ? "days in a row" : "start one today"}

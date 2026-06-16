@@ -17,19 +17,19 @@ import { toast } from "@/hooks/use-toast";
 
 function BooleanToggle({ label, value, onChange, testId }: { label: string; value: boolean; onChange: (v: boolean) => void; testId: string }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-slate-800/50 last:border-0">
       <p className="text-sm">{label}</p>
       <div className="flex gap-2">
         <button
           type="button"
           onClick={() => onChange(true)}
-          className={cn("px-3 py-1.5 text-xs uppercase tracking-wider border transition-colors", value === true ? "bg-green-500/20 text-green-400 border-green-500/30" : "text-muted-foreground border-border hover:border-green-500/30")}
+          className={cn("px-3 py-1.5 text-xs border transition-colors rounded", value === true ? "bg-teal-500/15 text-teal-400 border-teal-500/30" : "text-slate-500 border-slate-800/50 hover:text-slate-400 hover:border-slate-700/50")}
           data-testid={`${testId}-yes`}
         >Yes</button>
         <button
           type="button"
           onClick={() => onChange(false)}
-          className={cn("px-3 py-1.5 text-xs uppercase tracking-wider border transition-colors", value === false ? "bg-red-500/20 text-red-400 border-red-500/30" : "text-muted-foreground border-border hover:border-red-500/30")}
+          className={cn("px-3 py-1.5 text-xs border transition-colors rounded", value === false ? "bg-amber-500/15 text-amber-400 border-amber-500/30" : "text-slate-500 border-slate-800/50 hover:text-slate-400 hover:border-slate-700/50")}
           data-testid={`${testId}-no`}
         >No</button>
       </div>
@@ -100,54 +100,54 @@ export default function JournalPage() {
     <div className="h-full overflow-y-auto scroll-area">
       <div className="p-4 max-w-2xl mx-auto">
         <div className="mb-5">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+          <p className="text-[10px] text-slate-500 tracking-wide">
             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
           </p>
-          <h1 className="text-2xl font-bold uppercase tracking-tighter mt-0.5">Nightly Journal</h1>
+          <h1 className="text-2xl font-bold tracking-tight mt-0.5">Nightly Journal</h1>
         </div>
 
         {alreadySubmitted ? (
           <div className="space-y-6">
-            <div className="ascend-success-banner p-4 text-center space-y-2">
+            <div className="p-4 text-center space-y-2 rounded-lg border border-teal-500/20 bg-teal-500/5">
               <div className="flex items-center justify-center gap-2">
-                <Star className="w-4 h-4 text-green-400" />
-                <p className="font-bold uppercase tracking-wider text-green-400 text-sm">You kept the promise.</p>
+                <Star className="w-4 h-4 text-teal-400" />
+                <p className="font-semibold tracking-wide text-teal-400 text-sm">You kept the promise.</p>
               </div>
-              <p className="text-[11px] text-muted-foreground">Your coach is reviewing today's work. See you tomorrow.</p>
+              <p className="text-[11px] text-slate-400">Your coach is reviewing today's work. See you tomorrow.</p>
               {review && review.dailyScore >= 80 && (
-                <span className="inline-block text-[10px] font-bold px-2 py-1 rounded-md bg-primary/15 text-primary mt-1">Perfect Day — {review.dailyScore}/100</span>
+                <span className="inline-block text-[10px] font-semibold px-2 py-1 rounded-md bg-teal-500/10 text-teal-400 mt-1">Perfect Day — {review.dailyScore}/100</span>
               )}
             </div>
 
             {review && (
               <div className="space-y-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Daily Coach Review</p>
-                <div className="bg-card border border-border p-4 space-y-4">
+                <p className="text-[10px] font-semibold tracking-wide text-slate-500">Daily Coach Review</p>
+                <div className="bg-slate-900/40 border border-slate-800/50 p-4 space-y-4 rounded-lg">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground">Daily Score</span>
-                    <span className="text-3xl font-bold text-primary">{review.dailyScore}<span className="text-base text-muted-foreground">/100</span></span>
+                    <span className="text-xs tracking-wide text-slate-500">Daily Score</span>
+                    <span className="text-3xl font-bold text-slate-100">{review.dailyScore}<span className="text-base text-slate-500">/100</span></span>
                   </div>
-                  <div className={cn("inline-flex items-center gap-1.5 px-3 py-1 border text-xs uppercase tracking-wider font-semibold", review.onPace ? "border-green-500/30 text-green-400 bg-green-500/5" : "border-red-500/30 text-red-400 bg-red-500/5")}>
+                  <div className={cn("inline-flex items-center gap-1.5 px-3 py-1 border text-xs tracking-wide font-semibold rounded", review.onPace ? "border-teal-500/30 text-teal-400 bg-teal-500/5" : "border-amber-500/30 text-amber-400 bg-amber-500/5")}>
                     {review.onPace ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
                     {review.onPace ? "On Pace" : "Off Pace"}
                   </div>
-                  <div className="space-y-3 pt-2 border-t border-border">
+                  <div className="space-y-3 pt-2 border-t border-slate-800/50">
                     <div>
-                      <p className="text-[10px] text-green-400 font-semibold uppercase tracking-wider mb-1">Biggest Win</p>
+                      <p className="text-[10px] text-teal-400 font-semibold tracking-wide mb-1">Biggest Win</p>
                       <p className="text-sm">{review.biggestWin}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-red-400 font-semibold uppercase tracking-wider mb-1">Biggest Mistake</p>
+                      <p className="text-[10px] text-amber-400 font-semibold tracking-wide mb-1">Biggest Mistake</p>
                       <p className="text-sm">{review.biggestMistake}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-primary font-semibold uppercase tracking-wider mb-1">Fix for Tomorrow</p>
+                      <p className="text-[10px] text-slate-300 font-semibold tracking-wide mb-1">Fix for Tomorrow</p>
                       <p className="text-sm">{review.exactFixForTomorrow}</p>
                     </div>
                   </div>
-                  <div className="pt-3 border-t border-border bg-primary/5 p-3 -mx-1">
-                    <p className="text-[10px] text-primary font-semibold uppercase tracking-wider mb-1">Coach Says</p>
-                    <p className="text-sm italic">{review.strictCoachMessage}</p>
+                  <div className="pt-3 border-t border-slate-800/50 bg-slate-800/20 p-3 rounded -mx-1">
+                    <p className="text-[10px] text-slate-300 font-semibold tracking-wide mb-1">Coach Says</p>
+                    <p className="text-sm italic text-slate-300">{review.strictCoachMessage}</p>
                   </div>
                 </div>
               </div>
@@ -155,9 +155,9 @@ export default function JournalPage() {
           </div>
         ) : (
           <div className="space-y-5">
-            <div className="bg-card border border-border">
-              <div className="p-3 border-b border-border">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Today's Check</p>
+            <div className="bg-slate-900/40 border border-slate-800/50 rounded-lg">
+              <div className="p-3 border-b border-slate-800/50">
+                <p className="text-[10px] font-semibold tracking-wide text-slate-500">Today's Check</p>
               </div>
               <div className="px-4">
                 <BooleanToggle label="Did you follow your schedule?" value={form.followedSchedule} onChange={v => setForm(f => ({...f, followedSchedule: v}))} testId="journal-schedule" />
@@ -171,26 +171,26 @@ export default function JournalPage() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Energy Today: {form.energyRating}/10</p>
+                <p className="text-[10px] font-semibold tracking-wide text-slate-500">Energy Today: {form.energyRating}/10</p>
                 <Slider min={1} max={10} step={1} value={[form.energyRating]} onValueChange={v => setForm(f => ({...f, energyRating: v[0]}))} data-testid="slider-energy" />
               </div>
               <div className="space-y-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Skin / Bloating Today: {form.skinBloatingRating}/10</p>
+                <p className="text-[10px] font-semibold tracking-wide text-slate-500">Skin / Bloating Today: {form.skinBloatingRating}/10</p>
                 <Slider min={1} max={10} step={1} value={[form.skinBloatingRating]} onValueChange={v => setForm(f => ({...f, skinBloatingRating: v[0]}))} data-testid="slider-skin" />
               </div>
             </div>
 
             <div className="space-y-1">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Biggest Win Today</p>
-              <Textarea value={form.biggestWin} onChange={e => setForm(f => ({...f, biggestWin: e.target.value}))} placeholder="What went right?" className="bg-card border-border resize-none text-sm" rows={2} data-testid="textarea-biggest-win" />
+              <p className="text-[10px] font-semibold tracking-wide text-slate-500">Biggest Win Today</p>
+              <Textarea value={form.biggestWin} onChange={e => setForm(f => ({...f, biggestWin: e.target.value}))} placeholder="What went right?" className="bg-slate-900/30 border-slate-800/50 resize-none text-sm rounded" rows={2} data-testid="textarea-biggest-win" />
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">What Went Wrong?</p>
-              <Textarea value={form.whatWentWrong} onChange={e => setForm(f => ({...f, whatWentWrong: e.target.value}))} placeholder="Honest answer only." className="bg-card border-border resize-none text-sm" rows={2} data-testid="textarea-what-went-wrong" />
+              <p className="text-[10px] font-semibold tracking-wide text-slate-500">What Went Wrong?</p>
+              <Textarea value={form.whatWentWrong} onChange={e => setForm(f => ({...f, whatWentWrong: e.target.value}))} placeholder="Honest answer only." className="bg-slate-900/30 border-slate-800/50 resize-none text-sm rounded" rows={2} data-testid="textarea-what-went-wrong" />
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">What Do You Need Help With Tomorrow?</p>
-              <Textarea value={form.needHelpWith} onChange={e => setForm(f => ({...f, needHelpWith: e.target.value}))} placeholder="Be specific." className="bg-card border-border resize-none text-sm" rows={2} data-testid="textarea-need-help" />
+              <p className="text-[10px] font-semibold tracking-wide text-slate-500">What Do You Need Help With Tomorrow?</p>
+              <Textarea value={form.needHelpWith} onChange={e => setForm(f => ({...f, needHelpWith: e.target.value}))} placeholder="Be specific." className="bg-slate-900/30 border-slate-800/50 resize-none text-sm rounded" rows={2} data-testid="textarea-need-help" />
             </div>
 
             <Button

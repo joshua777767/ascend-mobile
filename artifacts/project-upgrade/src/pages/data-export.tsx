@@ -50,7 +50,7 @@ export default function DataExportPage() {
           <AscendMark size="lg" />
           <div>
             <span className="text-[15px] font-black tracking-tight leading-none">Ascend</span>
-            <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground mt-0.5">Data Export</p>
+            <p className="text-[9px] font-medium tracking-wide text-muted-foreground mt-0.5">Data Export</p>
           </div>
         </div>
 

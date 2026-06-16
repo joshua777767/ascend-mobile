@@ -57,14 +57,14 @@ export default function WorkoutsPage() {
     <div className="h-full overflow-y-auto scroll-area">
       <div className="p-4 max-w-2xl mx-auto">
         <div className="mb-5">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+          <p className="text-xs text-muted-foreground">
             {new Date().toLocaleDateString("en-US", { weekday: "long" })}
           </p>
-          <h1 className="text-2xl font-bold uppercase tracking-tighter mt-0.5">Workout Planner</h1>
+          <h1 className="text-2xl font-bold mt-0.5">Workout Planner</h1>
         </div>
 
         <div className="mb-8">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Today's Workout</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-3">Today's workout</p>
           {loadingToday ? (
             <div className="space-y-3">
               <Skeleton className="h-12 w-full" />
@@ -74,10 +74,10 @@ export default function WorkoutsPage() {
             <div className="space-y-3">
               <div className="bg-card border border-border p-4 flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold uppercase tracking-tight">{todayWorkout.name}</h3>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mt-0.5">{todayWorkout.day} — {todayWorkout.type}</p>
+                  <h3 className="font-bold">{todayWorkout.name}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">{todayWorkout.day} — {todayWorkout.type}</p>
                 </div>
-                <Badge variant="outline" className="text-xs uppercase tracking-wider border-primary/30 text-primary">
+                <Badge variant="outline" className="text-xs border-primary/30 text-primary">
                   {completedExercises.size}/{todayWorkout.exercises.length}
                 </Badge>
               </div>
@@ -97,7 +97,7 @@ export default function WorkoutsPage() {
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
-                          <p className={cn("font-semibold text-sm uppercase tracking-tight", done && "line-through text-muted-foreground")}>
+                          <p className={cn("font-semibold text-sm", done && "line-through text-muted-foreground")}>
                             {ex.name}
                           </p>
                           <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
@@ -124,7 +124,7 @@ export default function WorkoutsPage() {
                       </div>
                       {isExpanded && (
                         <div className="mt-3 pt-3 border-t border-border">
-                          <p className="text-xs text-primary font-medium uppercase tracking-wider mb-1">Coach Tip</p>
+                          <p className="text-xs text-primary font-medium mb-1">Coach Tip</p>
                           <p className="text-xs text-muted-foreground">{ex.coachTip}</p>
                         </div>
                       )}
@@ -143,8 +143,8 @@ export default function WorkoutsPage() {
                   {createWorkout.isPending ? "Logging..." : allDone ? "Log Completed Workout" : `Log Workout (${completedExercises.size} done)`}
                 </Button>
               ) : (
-                <div className="bg-primary/10 border border-primary/20 p-4 text-center">
-                  <p className="text-sm font-semibold text-primary uppercase tracking-wider">Workout Logged</p>
+                <div className="bg-success/10 border border-success/20 p-4 text-center">
+                  <p className="text-sm font-semibold text-success">Workout Logged</p>
                   <p className="text-xs text-muted-foreground mt-1">Good work. Rest and recover.</p>
                 </div>
               )}
@@ -152,13 +152,13 @@ export default function WorkoutsPage() {
           ) : (
             <div className="text-center py-12 text-muted-foreground border border-border">
               <Dumbbell className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm uppercase tracking-wider">Rest day or no plan yet.</p>
+              <p className="text-sm">Rest day or no plan yet.</p>
             </div>
           )}
         </div>
 
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Recent Workouts</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-3">Recent Workouts</p>
           {loadingHistory ? (
             <div className="space-y-2">
               {Array.from({length:3}).map((_,i) => <Skeleton key={i} className="h-14 w-full" />)}
@@ -168,17 +168,17 @@ export default function WorkoutsPage() {
               {workouts.slice(-10).reverse().map((w, i) => (
                 <div key={i} className="bg-card border border-border p-3 flex items-center justify-between" data-testid={`workout-history-${i}`}>
                   <div>
-                    <p className="text-sm font-medium uppercase tracking-tight">{w.name}</p>
+                    <p className="text-sm font-medium">{w.name}</p>
                     <p className="text-xs text-muted-foreground">{new Date(w.completedAt).toLocaleDateString()} — {w.durationMinutes} min</p>
                   </div>
-                  <Badge variant="outline" className="text-xs uppercase tracking-wider">{w.type}</Badge>
+                  <Badge variant="outline" className="text-xs">{w.type}</Badge>
                 </div>
               ))}
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground border border-border">
               <Clock className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p className="text-xs uppercase tracking-wider">No workouts logged yet.</p>
+              <p className="text-xs">No workouts logged yet.</p>
             </div>
           )}
         </div>

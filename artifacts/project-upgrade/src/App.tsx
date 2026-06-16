@@ -85,11 +85,11 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
               width: "48px",
               height: "48px",
               borderRadius: "16px",
-              background: "rgba(59,130,246,0.15)",
+              background: "rgba(107,139,174,0.12)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#3B82F6",
+              color: "#6B8BAE",
               fontSize: "24px",
               fontWeight: 800,
             }}
@@ -106,7 +106,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
             onClick={() => { this.setState({ hasError: false, message: "" }); window.location.href = "/"; }}
             style={{
               marginTop: "8px",
-              background: "#3B82F6",
+              background: "#6B8BAE",
               color: "#FFFFFF",
               border: "none",
               padding: "14px 32px",

@@ -84,7 +84,7 @@ function Chip({ label, selected, onToggle }: { label: string; selected: boolean;
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
+      <p className="text-xs font-medium text-muted-foreground tracking-wide">{label}</p>
       {children}
     </div>
   );
@@ -673,7 +673,7 @@ export default function SettingsPage() {
 
           {/* Sport */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2.5">Sport</p>
+            <p className="text-xs font-medium text-muted-foreground tracking-wide mb-2.5">Sport</p>
             <div className="flex flex-wrap gap-2">
               {SPORTS.map(s => (
                 <Chip
@@ -696,7 +696,7 @@ export default function SettingsPage() {
 
             {selectedSport && selectedSport.toLowerCase() !== "no sport" && selectedSport.toLowerCase() !== "none" && (
               <div className="mt-4 space-y-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Practice schedule</p>
+                <p className="text-xs font-medium text-muted-foreground tracking-wide mb-1">Practice schedule</p>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1.5">Practice days</p>
                   <div className="flex flex-wrap gap-2">
@@ -749,7 +749,7 @@ export default function SettingsPage() {
 
           {/* Workout schedule */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2.5">Workout schedule</p>
+            <p className="text-xs font-medium text-muted-foreground tracking-wide mb-2.5">Workout schedule</p>
             <div className="flex gap-2 flex-wrap">
               <Chip label="I have my own schedule" selected={scheduleChoice === "yes"} onToggle={() => setScheduleChoice(prev => prev === "yes" ? "" : "yes")} />
               <Chip label="Generate one for me" selected={scheduleChoice === "no"} onToggle={() => setScheduleChoice(prev => prev === "no" ? "" : "no")} />
@@ -814,7 +814,7 @@ export default function SettingsPage() {
           {/* Wake time */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Wake time</p>
+              <p className="text-xs font-medium text-muted-foreground tracking-wide">Wake time</p>
               <div className="flex rounded-lg overflow-hidden border border-border text-xs">
                 {(["exact","range"] as const).map(m => (
                   <button key={m} onClick={() => setWakeMode(m)}
@@ -843,7 +843,7 @@ export default function SettingsPage() {
           {/* Sleep time */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sleep time</p>
+              <p className="text-xs font-medium text-muted-foreground tracking-wide">Sleep time</p>
               <div className="flex rounded-lg overflow-hidden border border-border text-xs">
                 {(["exact","range"] as const).map(m => (
                   <button key={m} onClick={() => setSleepMode(m)}
