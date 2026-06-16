@@ -213,6 +213,15 @@
   .ascend-glow-amber {
     box-shadow: none;
   }
+
+  /* Unlocks global scroll lock for pages that need it (e.g. /app-store-preview) */
+  .no-scroll-lock body,
+  .no-scroll-lock html,
+  .no-scroll-lock #root {
+    overflow: auto !important;
+    height: auto !important;
+    overscroll-behavior: auto !important;
+  }
   .label-caps {
     font-size: 11px;
     font-weight: 600;

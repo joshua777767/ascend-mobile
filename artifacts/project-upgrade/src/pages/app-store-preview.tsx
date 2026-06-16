@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import { toPng } from "html-to-image";
 import {
   Flame,
@@ -613,6 +613,13 @@ export default function AppStorePreviewPage() {
     useRef<HTMLDivElement>(null),
   ];
 
+  useEffect(() => {
+    document.documentElement.classList.add("no-scroll-lock");
+    return () => {
+      document.documentElement.classList.remove("no-scroll-lock");
+    };
+  }, []);
+
   const panels = [
     {
       id: "dashboard",
@@ -679,7 +686,7 @@ export default function AppStorePreviewPage() {
   }, [exportPanel]);
 
   return (
-    <div style={{ background: "#05070A", minHeight: "100dvh", padding: "40px 24px", fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ background: "#05070A", padding: "40px 24px", minHeight: "100dvh", fontFamily: "'Inter', system-ui, sans-serif" }}>
       {/* Header */}
       <div style={{ maxWidth: 1200, margin: "0 auto 40px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
         <div>
