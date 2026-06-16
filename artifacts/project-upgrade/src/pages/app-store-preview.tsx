@@ -482,7 +482,7 @@ function CoachScreen() {
   const messages = [
     { from: "coach", text: "Morning Alex. Your protein was 42g short yesterday. That'll tank your recovery and energy. Today we fix it." },
     { from: "user", text: "Is losing 3 lbs a week safe?" },
-    { from: "coach", text: "No. That's medically unsafe. At 3 lbs/week, your body loses muscle, slows your metabolism, and rebounds. The safe limit is 1-2 lbs/week. Your target is 2,340 cal — that's where fat loss happens without damage." },
+    { from: "coach", text: "No — that's medically unsafe. At 3 lbs/week you lose muscle and rebound. Your target is 2,340 cal. That's where fat loss happens safely." },
   ];
 
   return (
