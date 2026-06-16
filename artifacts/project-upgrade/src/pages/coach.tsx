@@ -10,12 +10,12 @@ import { cn } from "@/lib/utils";
 import { Send, MessageSquare } from "lucide-react";
 
 const SUGGESTED_QUESTIONS = [
-  "What should I eat next?",
-  "I missed my workout, what now?",
-  "How do I get more energy?",
-  "How do I stop snacking at night?",
-  "How do I gain weight faster?",
-  "How do I stay disciplined?",
+  "Why am I not losing weight?",
+  "Is losing 3 lbs a week safe?",
+  "What's the science behind my calorie target?",
+  "How does sleep affect my metabolism?",
+  "Why am I so tired after workouts?",
+  "Should I bulk or cut first?",
 ];
 
 // Read the ?emergency= param once at module-call time (before any re-renders)

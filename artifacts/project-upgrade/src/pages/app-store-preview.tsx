@@ -480,9 +480,9 @@ function GoalsScreen() {
 /* ── Screen 5: Coach Chat ── */
 function CoachScreen() {
   const messages = [
-    { from: "coach", text: "Morning Alex. You crushed your protein yesterday. Let's keep that streak going today." },
-    { from: "user", text: "Thanks coach. Feeling a bit low energy today." },
-    { from: "coach", text: "I see that. Let's add a 10 min walk before lunch. Small win, big energy shift." },
+    { from: "coach", text: "Morning Alex. Your protein was 42g short yesterday. That'll tank your recovery and energy. Today we fix it." },
+    { from: "user", text: "Is losing 3 lbs a week safe?" },
+    { from: "coach", text: "No. That's medically unsafe. At 3 lbs/week, your body loses muscle, slows your metabolism, and rebounds. The safe limit is 1-2 lbs/week. Your target is 2,340 cal — that's where fat loss happens without damage." },
   ];
 
   return (
@@ -647,8 +647,8 @@ export default function AppStorePreviewPage() {
     },
     {
       id: "coach",
-      headline: "Ask Your Coach\nAnything",
-      subtext: "Get guidance when motivation drops.",
+      headline: "Science-Backed Coach\nIn Your Pocket",
+      subtext: "Evidence-based guidance, real safety boundaries, zero fluff.",
       phone: <CoachScreen />,
     },
     {
