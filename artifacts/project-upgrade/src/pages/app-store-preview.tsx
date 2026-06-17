@@ -63,7 +63,7 @@ function Phone({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       width: 300,
-      height: 600,
+      height: 520,
       background: "#0A0C12",
       borderRadius: 46,
       border: "1.5px solid rgba(255,255,255,0.10)",
@@ -128,58 +128,58 @@ function Caption({ line1, line2 }: { line1: string; line2: string }) {
 
 function DashboardScreen() {
   return (
-    <div style={{ flex: 1, background: BG, overflowY: "hidden", padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ flex: 1, background: BG, overflowY: "hidden", padding: "10px 14px 10px", display: "flex", flexDirection: "column", gap: 7 }}>
       {/* Top greeting */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <div style={{ fontSize: 10, color: GRAY, fontWeight: 500, fontFamily: "inherit" }}>Today</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, fontFamily: "inherit", marginTop: 1 }}>Your plan for today.</div>
+          <div style={{ fontSize: 9, color: GRAY, fontWeight: 500, fontFamily: "inherit", lineHeight: 1.3 }}>Today</div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: WHITE, fontFamily: "inherit", lineHeight: 1.3 }}>Your plan for today.</div>
         </div>
-        <div style={{ width: 30, height: 30, borderRadius: 8, background: BLUE, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" fill={WHITE}/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={WHITE} strokeWidth="2" strokeLinecap="round"/></svg>
+        <div style={{ width: 28, height: 28, borderRadius: 8, background: BLUE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" fill={WHITE}/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={WHITE} strokeWidth="2" strokeLinecap="round"/></svg>
         </div>
       </div>
 
       {/* Stats row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5 }}>
         {[
           { label: "CALORIES", value: "2,198", sub: "of 2,198", color: BLUE },
           { label: "PROTEIN", value: "165g", sub: "of 165g", color: GREEN },
           { label: "WATER", value: "2.5L", sub: "of 2.5L", color: "#60A5FA" },
         ].map((s) => (
-          <div key={s.label} style={{ background: CARD, borderRadius: 10, padding: "8px 6px", textAlign: "center" }}>
-            <div style={{ fontSize: 7, color: GRAY, fontWeight: 600, letterSpacing: "0.05em", fontFamily: "inherit" }}>{s.label}</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: s.color, fontFamily: "inherit", marginTop: 2 }}>{s.value}</div>
-            <div style={{ fontSize: 7, color: GRAY_DIM, fontFamily: "inherit" }}>{s.sub}</div>
+          <div key={s.label} style={{ background: CARD, borderRadius: 8, padding: "7px 4px", textAlign: "center" }}>
+            <div style={{ fontSize: 6.5, color: GRAY, fontWeight: 600, letterSpacing: "0.04em", fontFamily: "inherit", lineHeight: 1.4 }}>{s.label}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: s.color, fontFamily: "inherit", lineHeight: 1.2, marginTop: 1 }}>{s.value}</div>
+            <div style={{ fontSize: 6.5, color: GRAY_DIM, fontFamily: "inherit", lineHeight: 1.4 }}>{s.sub}</div>
           </div>
         ))}
       </div>
 
       {/* Next up */}
-      <div style={{ fontSize: 10, fontWeight: 700, color: WHITE, fontFamily: "inherit" }}>Next up</div>
+      <div style={{ fontSize: 9, fontWeight: 700, color: WHITE, fontFamily: "inherit" }}>Next up</div>
       {[
         { icon: "💧", text: "Drink 16 oz water", sub: "Before coffee or food", time: "09:35" },
         { icon: "⚖️", text: "Wake up + weigh in", sub: "Weigh yourself and log it", time: "09:30" },
       ].map((item) => (
-        <div key={item.text} style={{ background: CARD, borderRadius: 10, padding: "8px 10px", display: "flex", gap: 8, alignItems: "center" }}>
-          <div style={{ fontSize: 16, flexShrink: 0 }}>{item.icon}</div>
+        <div key={item.text} style={{ background: CARD, borderRadius: 8, padding: "7px 9px", display: "flex", gap: 7, alignItems: "center", minHeight: 38 }}>
+          <div style={{ fontSize: 15, flexShrink: 0, lineHeight: 1 }}>{item.icon}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: WHITE, fontFamily: "inherit" }}>{item.text}</div>
-            <div style={{ fontSize: 8, color: GRAY, fontFamily: "inherit" }}>{item.sub}</div>
+            <div style={{ fontSize: 9.5, fontWeight: 700, color: WHITE, fontFamily: "inherit", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.text}</div>
+            <div style={{ fontSize: 8, color: GRAY, fontFamily: "inherit", lineHeight: 1.3 }}>{item.sub}</div>
           </div>
-          <div style={{ fontSize: 8, color: GRAY, fontFamily: "inherit", flexShrink: 0 }}>{item.time}</div>
+          <div style={{ fontSize: 7.5, color: GRAY, fontFamily: "inherit", flexShrink: 0 }}>{item.time}</div>
         </div>
       ))}
 
       {/* Progress */}
-      <div style={{ background: CARD, borderRadius: 10, padding: "10px 12px" }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: WHITE, fontFamily: "inherit", marginBottom: 6 }}>Progress</div>
-        <div style={{ fontSize: 18, fontWeight: 800, color: GREEN, fontFamily: "inherit" }}>-1.9 lbs</div>
-        <div style={{ fontSize: 8, color: GRAY, fontFamily: "inherit", marginBottom: 6 }}>since starting · 165 → 163 → 165 goal</div>
+      <div style={{ background: CARD, borderRadius: 8, padding: "9px 11px" }}>
+        <div style={{ fontSize: 9, fontWeight: 700, color: WHITE, fontFamily: "inherit", marginBottom: 4, lineHeight: 1.3 }}>Progress</div>
+        <div style={{ fontSize: 17, fontWeight: 800, color: GREEN, fontFamily: "inherit", lineHeight: 1.2 }}>-1.9 lbs</div>
+        <div style={{ fontSize: 7.5, color: GRAY, fontFamily: "inherit", marginBottom: 5, lineHeight: 1.3 }}>since starting · 165 → 163 → 165 goal</div>
         <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
           <div style={{ width: "20%", height: "100%", background: GREEN, borderRadius: 4 }} />
         </div>
-        <div style={{ fontSize: 7, color: GRAY_DIM, fontFamily: "inherit", marginTop: 3 }}>20% to goal</div>
+        <div style={{ fontSize: 7, color: GRAY_DIM, fontFamily: "inherit", marginTop: 3, lineHeight: 1.3 }}>20% to goal</div>
       </div>
     </div>
   );
@@ -187,49 +187,50 @@ function DashboardScreen() {
 
 function ScheduleScreen() {
   const items = [
-    { time: "09:30", icon: "⚖️", title: "Wake up + weigh in", sub: "Weigh yourself before eating.", done: true },
-    { time: "09:35", icon: "💧", title: "Drink 16 oz water", sub: "Before coffee or food.", done: true },
+    { time: "09:30", icon: "⚖️", title: "Wake up + weigh in", sub: "Weigh before eating", done: true },
+    { time: "09:35", icon: "💧", title: "Drink 16 oz water", sub: "Before coffee or food", done: true },
     { time: "12:00", icon: "🍽️", title: "Lunch", sub: "Log your meal", done: false },
     { time: "17:00", icon: "🏋️", title: "Upper Body Workout", sub: "Push · Pull · 45 min", done: false },
     { time: "19:00", icon: "🥗", title: "Dinner", sub: "Log your meal", done: false },
     { time: "21:30", icon: "📓", title: "Journal & Review", sub: "Rate your day", done: false },
   ];
   return (
-    <div style={{ flex: 1, background: BG, overflowY: "hidden", padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-      <div>
-        <div style={{ fontSize: 16, fontWeight: 800, color: WHITE, fontFamily: "inherit" }}>Schedule</div>
-        <div style={{ fontSize: 9, color: GRAY, fontFamily: "inherit" }}>Tuesday, June 16</div>
+    <div style={{ flex: 1, background: BG, overflowY: "hidden", padding: "10px 13px", display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ marginBottom: 1 }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: WHITE, fontFamily: "inherit", lineHeight: 1.2 }}>Schedule</div>
+        <div style={{ fontSize: 8.5, color: GRAY, fontFamily: "inherit", lineHeight: 1.3 }}>Tuesday, June 16</div>
       </div>
 
       {/* Daily mission */}
-      <div style={{ background: BLUE_DIM, border: `1px solid ${BLUE_BORDER}`, borderRadius: 10, padding: "8px 10px" }}>
-        <div style={{ fontSize: 8, fontWeight: 700, color: BLUE, fontFamily: "inherit", marginBottom: 4 }}>Daily mission ⚡</div>
-        <div style={{ fontSize: 8, color: GRAY, fontFamily: "inherit", marginBottom: 6 }}>Hit your 2198 calorie target</div>
-        <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ background: BLUE_DIM, border: `1px solid ${BLUE_BORDER}`, borderRadius: 9, padding: "7px 10px" }}>
+        <div style={{ fontSize: 8, fontWeight: 700, color: BLUE, fontFamily: "inherit", marginBottom: 3, lineHeight: 1.3 }}>Daily mission ⚡</div>
+        <div style={{ display: "flex", gap: 12 }}>
           {[{ v: "2,198", l: "calories" }, { v: "165g", l: "protein" }, { v: "2.5L", l: "water" }].map(s => (
             <div key={s.l}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: WHITE, fontFamily: "inherit" }}>{s.v}</div>
-              <div style={{ fontSize: 7, color: GRAY, fontFamily: "inherit" }}>{s.l}</div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: WHITE, fontFamily: "inherit", lineHeight: 1.2 }}>{s.v}</div>
+              <div style={{ fontSize: 7, color: GRAY, fontFamily: "inherit", lineHeight: 1.3 }}>{s.l}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Timeline */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 5, flex: 1 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {items.map((item) => (
-          <div key={item.time} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <div style={{ width: 34, fontSize: 8, color: GRAY_DIM, fontFamily: "inherit", flexShrink: 0, textAlign: "right" }}>{item.time}</div>
-            <div style={{ flex: 1, background: CARD, borderRadius: 8, padding: "6px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: WHITE, fontFamily: "inherit" }}>{item.icon} {item.title}</div>
-                <div style={{ fontSize: 7, color: GRAY, fontFamily: "inherit" }}>{item.sub}</div>
+          <div key={item.time} style={{ display: "flex", gap: 7, alignItems: "center", minHeight: 34 }}>
+            <div style={{ width: 32, fontSize: 7.5, color: GRAY_DIM, fontFamily: "inherit", flexShrink: 0, textAlign: "right", lineHeight: 1.3 }}>{item.time}</div>
+            <div style={{ flex: 1, background: CARD, borderRadius: 7, padding: "5px 8px", display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 32 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: WHITE, fontFamily: "inherit", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.icon} {item.title}</div>
+                <div style={{ fontSize: 7.5, color: GRAY, fontFamily: "inherit", lineHeight: 1.3 }}>{item.sub}</div>
               </div>
-              {item.done ? (
-                <div style={{ fontSize: 8, color: GREEN, fontWeight: 700, fontFamily: "inherit" }}>Done</div>
-              ) : (
-                <div style={{ width: 16, height: 16, borderRadius: "50%", border: `1.5px solid ${GRAY_DIM}` }} />
-              )}
+              <div style={{ flexShrink: 0, marginLeft: 6 }}>
+                {item.done ? (
+                  <div style={{ fontSize: 7.5, color: GREEN, fontWeight: 700, fontFamily: "inherit" }}>Done</div>
+                ) : (
+                  <div style={{ width: 14, height: 14, borderRadius: "50%", border: `1.5px solid ${GRAY_DIM}` }} />
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -240,37 +241,35 @@ function ScheduleScreen() {
 
 function MealsScreen() {
   return (
-    <div style={{ flex: 1, background: BG, overflowY: "hidden", padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ flex: 1, background: BG, overflowY: "hidden", padding: "10px 13px", display: "flex", flexDirection: "column", gap: 7 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: WHITE, fontFamily: "inherit" }}>Meals</div>
-        <div style={{ background: BLUE, borderRadius: 8, padding: "4px 10px" }}>
-          <span style={{ fontSize: 9, fontWeight: 700, color: WHITE, fontFamily: "inherit" }}>Log Meal</span>
+        <div style={{ fontSize: 14, fontWeight: 800, color: WHITE, fontFamily: "inherit", lineHeight: 1.2 }}>Meals</div>
+        <div style={{ background: BLUE, borderRadius: 7, padding: "4px 9px" }}>
+          <span style={{ fontSize: 8.5, fontWeight: 700, color: WHITE, fontFamily: "inherit" }}>Log Meal</span>
         </div>
       </div>
 
       {/* Meal photo card */}
-      <div style={{ background: CARD, borderRadius: 12, overflow: "hidden" }}>
-        {/* Food image placeholder */}
-        <div style={{ height: 120, background: "linear-gradient(135deg, #1A2A1A 0%, #0F1F0F 50%, #1A2A1A 100%)", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {/* Food illustration */}
-          <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(139,101,50,0.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>🥗</div>
-          <div style={{ position: "absolute", bottom: 8, left: 10, right: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: WHITE, fontFamily: "inherit" }}>Chicken, Rice, Avocado, Vegetables</div>
-            <div style={{ fontSize: 8, color: GRAY, fontFamily: "inherit" }}>560 cal · 48g protein · 46g carbs · 18g fat</div>
+      <div style={{ background: CARD, borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ height: 100, background: "linear-gradient(135deg, #1A2A1A 0%, #0F1F0F 50%, #1A2A1A 100%)", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ fontSize: 34 }}>🥗</div>
+          <div style={{ position: "absolute", bottom: 6, left: 10, right: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: WHITE, fontFamily: "inherit", lineHeight: 1.3 }}>Chicken, Rice, Avocado, Veg</div>
+            <div style={{ fontSize: 7.5, color: GRAY, fontFamily: "inherit", lineHeight: 1.3 }}>560 cal · 48g protein · 46g carbs</div>
           </div>
         </div>
-        <div style={{ padding: "10px 12px" }}>
-          <div style={{ fontSize: 9, fontWeight: 700, color: BLUE, fontFamily: "inherit", marginBottom: 4 }}>AI Coach Feedback</div>
-          <div style={{ fontSize: 8, color: GRAY, fontFamily: "inherit", lineHeight: 1.4 }}>Great choice! High protein meal with balanced macros. Try adding more veggies.</div>
-          <div style={{ marginTop: 8, background: BLUE, borderRadius: 8, padding: "6px 0", textAlign: "center" }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: WHITE, fontFamily: "inherit" }}>Log This Meal</span>
+        <div style={{ padding: "8px 11px" }}>
+          <div style={{ fontSize: 8.5, fontWeight: 700, color: BLUE, fontFamily: "inherit", marginBottom: 3, lineHeight: 1.3 }}>AI Coach Feedback</div>
+          <div style={{ fontSize: 7.5, color: GRAY, fontFamily: "inherit", lineHeight: 1.4 }}>Great choice! High protein meal with balanced macros. Try adding more veggies.</div>
+          <div style={{ marginTop: 7, background: BLUE, borderRadius: 7, padding: "5px 0", textAlign: "center" }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: WHITE, fontFamily: "inherit" }}>Log This Meal</span>
           </div>
         </div>
       </div>
 
       {/* Macro breakdown */}
-      <div style={{ background: CARD, borderRadius: 10, padding: "10px 12px" }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: WHITE, fontFamily: "inherit", marginBottom: 8 }}>Today's Macros</div>
+      <div style={{ background: CARD, borderRadius: 9, padding: "8px 11px" }}>
+        <div style={{ fontSize: 8.5, fontWeight: 700, color: WHITE, fontFamily: "inherit", marginBottom: 7, lineHeight: 1.3 }}>Today's Macros</div>
         <div style={{ display: "flex", gap: 8 }}>
           {[
             { label: "Protein", val: "142g", pct: 86, color: GREEN },
@@ -278,8 +277,8 @@ function MealsScreen() {
             { label: "Fat", val: "58g", pct: 90, color: "#F59E0B" },
           ].map(m => (
             <div key={m.label} style={{ flex: 1 }}>
-              <div style={{ fontSize: 7, color: GRAY, fontFamily: "inherit" }}>{m.label}</div>
-              <div style={{ fontSize: 12, fontWeight: 800, color: m.color, fontFamily: "inherit" }}>{m.val}</div>
+              <div style={{ fontSize: 7, color: GRAY, fontFamily: "inherit", lineHeight: 1.4 }}>{m.label}</div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: m.color, fontFamily: "inherit", lineHeight: 1.2 }}>{m.val}</div>
               <div style={{ height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, marginTop: 3, overflow: "hidden" }}>
                 <div style={{ width: `${m.pct}%`, height: "100%", background: m.color, borderRadius: 2 }} />
               </div>
@@ -289,13 +288,13 @@ function MealsScreen() {
       </div>
 
       {/* Water */}
-      <div style={{ background: CARD, borderRadius: 10, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ background: CARD, borderRadius: 9, padding: "8px 11px", display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 36 }}>
         <div>
-          <div style={{ fontSize: 9, fontWeight: 700, color: WHITE, fontFamily: "inherit" }}>💧 Water</div>
-          <div style={{ fontSize: 7, color: GRAY, fontFamily: "inherit" }}>1.0L / 2.5L</div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: WHITE, fontFamily: "inherit", lineHeight: 1.3 }}>💧 Water</div>
+          <div style={{ fontSize: 7.5, color: GRAY, fontFamily: "inherit", lineHeight: 1.3 }}>1.0L of 2.5L today</div>
         </div>
-        <div style={{ width: 70, height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
-          <div style={{ width: "40%", height: "100%", background: "#60A5FA", borderRadius: 2 }} />
+        <div style={{ width: 65, height: 5, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
+          <div style={{ width: "40%", height: "100%", background: "#60A5FA", borderRadius: 3 }} />
         </div>
       </div>
     </div>
@@ -424,8 +423,8 @@ function ProgressScreen() {
 
 function GoalsScreen() {
   return (
-    <div style={{ flex: 1, background: BG, overflowY: "hidden", padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ fontSize: 16, fontWeight: 800, color: WHITE, fontFamily: "inherit" }}>Your Goals</div>
+    <div style={{ flex: 1, background: BG, overflowY: "hidden", padding: "10px 13px", display: "flex", flexDirection: "column", gap: 7 }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: WHITE, fontFamily: "inherit", lineHeight: 1.2 }}>Your Goals</div>
 
       {/* Goal cards */}
       {[
@@ -433,37 +432,39 @@ function GoalsScreen() {
         { icon: "💪", name: "Build Muscle", sub: "Progressive overload · high protein", active: false, progress: 45 },
         { icon: "⚡", name: "More Energy", sub: "Sleep · hydration · consistency", active: false, progress: 71 },
       ].map((g) => (
-        <div key={g.name} style={{ background: g.active ? `${BLUE_DIM}` : CARD, border: `1px solid ${g.active ? BLUE_BORDER : "rgba(255,255,255,0.05)"}`, borderRadius: 12, padding: "10px 12px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ fontSize: 18 }}>{g.icon}</span>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: WHITE, fontFamily: "inherit" }}>{g.name}</div>
-                <div style={{ fontSize: 8, color: GRAY, fontFamily: "inherit" }}>{g.sub}</div>
+        <div key={g.name} style={{ background: g.active ? BLUE_DIM : CARD, border: `1px solid ${g.active ? BLUE_BORDER : "rgba(255,255,255,0.05)"}`, borderRadius: 10, padding: "8px 10px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+            <div style={{ display: "flex", gap: 7, alignItems: "center", flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: 16, flexShrink: 0, lineHeight: 1 }}>{g.icon}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: WHITE, fontFamily: "inherit", lineHeight: 1.3 }}>{g.name}</div>
+                <div style={{ fontSize: 7.5, color: GRAY, fontFamily: "inherit", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.sub}</div>
               </div>
             </div>
-            {g.active && <div style={{ width: 18, height: 18, borderRadius: "50%", background: BLUE, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg width="8" height="8" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke={WHITE} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>}
+            {g.active && (
+              <div style={{ width: 16, height: 16, borderRadius: "50%", background: BLUE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginLeft: 6 }}>
+                <svg width="7" height="7" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke={WHITE} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+            )}
           </div>
           <div style={{ height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
             <div style={{ width: `${g.progress}%`, height: "100%", background: g.active ? BLUE : GRAY_DIM, borderRadius: 2 }} />
           </div>
-          <div style={{ fontSize: 7, color: GRAY_DIM, fontFamily: "inherit", marginTop: 3 }}>{g.progress}% on track</div>
+          <div style={{ fontSize: 7, color: GRAY_DIM, fontFamily: "inherit", marginTop: 3, lineHeight: 1.3 }}>{g.progress}% on track</div>
         </div>
       ))}
 
       {/* Plan summary */}
-      <div style={{ background: CARD, borderRadius: 10, padding: "10px 12px" }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: WHITE, fontFamily: "inherit", marginBottom: 6 }}>Your Personalized Plan</div>
+      <div style={{ background: CARD, borderRadius: 9, padding: "8px 11px" }}>
+        <div style={{ fontSize: 8.5, fontWeight: 700, color: WHITE, fontFamily: "inherit", marginBottom: 6, lineHeight: 1.3 }}>Your Personalized Plan</div>
         {[
           { icon: "🔥", label: "Calories", val: "2,340 / day" },
           { icon: "🥩", label: "Protein", val: "156g / day" },
           { icon: "🏋️", label: "Workouts", val: "5x / week" },
         ].map(r => (
-          <div key={r.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <div style={{ fontSize: 8, color: GRAY, fontFamily: "inherit" }}>{r.icon} {r.label}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: WHITE, fontFamily: "inherit" }}>{r.val}</div>
+          <div key={r.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+            <div style={{ fontSize: 8, color: GRAY, fontFamily: "inherit", lineHeight: 1.3 }}>{r.icon} {r.label}</div>
+            <div style={{ fontSize: 8, fontWeight: 700, color: WHITE, fontFamily: "inherit", lineHeight: 1.3 }}>{r.val}</div>
           </div>
         ))}
       </div>
@@ -545,7 +546,7 @@ function PreviewPanel({ panel, panelRef, hideBadge }: { panel: PanelDef; panelRe
         background: BG,
         display: "flex",
         flexDirection: "column",
-        padding: "28px 24px 22px",
+        padding: "28px 24px 80px",
         gap: 0,
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
         overflow: "hidden",
