@@ -1,0 +1,77 @@
+Redesign /app-store-preview to look like premium App Store marketing screenshots, closer to a polished fitness app ad mockup.
+
+Important:
+Do NOT change the real app, auth, payments, Stripe, database, user data, onboarding, dashboard logic, or subscription logic. Only change the /app-store-preview page and export system.
+
+Goal:
+Make the screenshots feel premium, emotional, and App Store-ready — not like plain fake app screens. Think MyFitnessPal, Lose It, MacroFactor, and high-end fitness app preview images.
+
+Global design direction:
+
+* Dark navy / black premium background
+* Blue glow gradients behind the phone
+* Large bold white headlines
+* Clean gray subtext
+* Bigger iPhone mockups
+* More visual depth, shadows, glow, and layering
+* Less empty blank space inside the phone
+* Each screenshot should feel different, not the same repeated layout
+* Make it look like a real App Store preview/ad, not a webpage
+* Exported PNGs must be clean 1290x2796 vertical App Store images
+* Exported PNGs must not include browser UI, scrollbars, address bars, Export buttons, Replit UI, or page controls
+
+Make the screenshots like this:
+
+1. HERO SCREEN
+    Headline: “Make Your Goal Feel Possible”
+    Subtext: “AI plans your meals, workouts, and habits around you.”
+    Design:
+    Big premium phone mockup in the center. Dashboard should look rich and realistic with daily score, calories, protein, water, next workout, progress card, and a glowing “Today’s Plan” card. Add subtle floating mini-cards around the phone like “156g Protein”, “84 Daily Score”, “-2.1 lbs this week” to make it feel more premium.
+2. DAILY PLAN SCREEN
+    Headline: “Know Exactly What To Do Today”
+    Subtext: “Meals, workouts, water, and habits — planned for you.”
+    Design:
+    Phone shows a detailed daily checklist/timeline with completed and upcoming tasks. Add a progress bar, checkmarks, times, meal card, workout card, water goal, and journal reminder. Make it feel like a real guided daily plan, not a simple list.
+3. MEAL AI SCREEN
+    Headline: “Snap Meals. Get Honest Feedback.”
+    Subtext: “Log food, water, and macros with AI.”
+    Design:
+    This one needs a real visual punch. Add a realistic food photo/card inside the phone, camera upload area, macro breakdown, protein/calorie estimate, water tracker, and AI coach feedback. This should be one of the strongest screenshots.
+4. GOAL SCREEN
+    Headline: “Built For Your Starting Point”
+    Subtext: “Lose fat, build muscle, or stay lean.”
+    Design:
+    Make this more visual than just three buttons. Show goal cards with small realistic body/fitness icons or silhouettes, personalized calories/protein/workout plan, and a “Your Plan” summary. Make it feel personalized and premium.
+5. COACH SCREEN
+    Headline: “Ask Your Coach Anything”
+    Subtext: “Guidance when motivation drops.”
+    Design:
+    Phone shows a realistic chat with the AI coach. Make the messages helpful and believable. Include safety and honesty:
+    User: “Is losing 3 lbs a week safe?”
+    Coach: “That’s too aggressive for most people. Let’s keep the plan realistic so you lose fat without burning out.”
+    Make the chat UI modern, with bubbles, online status, and input bar.
+6. PROGRESS SCREEN
+    Headline: “Track Progress. Stay Consistent.”
+    Subtext: “See weight, habits, streaks, and real results.”
+    Design:
+    Phone shows a better progress dashboard with a line graph, habit score, streak, weight trend, milestones, weekly consistency, and progress cards. Make it more visual than simple bars.
+
+Layout rules:
+
+* Phone mockups should be large and centered.
+* Headline should have safe top padding and never be cut off.
+* Subtext should be readable.
+* Avoid huge empty black spaces inside phones.
+* Use premium glow, shadows, gradients, and floating cards.
+* Make the first 3 screenshots the strongest.
+* Keep text large enough to read on the App Store.
+* Remove all small number circles.
+* Make each preview image feel like a finished marketing asset.
+
+Export rules:
+
+* Add individual “Export PNG” buttons.
+* Add “Export All” button if possible.
+* Buttons must not appear inside exported files.
+* Exported PNGs must be exactly 1290x2796 or App Store compatible vertical size.
+* Test exports on mobile Safari.
