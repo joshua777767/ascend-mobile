@@ -15,10 +15,16 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.ascendfit.app"
+      "bundleIdentifier": "com.ascendfit.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSUserTrackingUsageDescription": "We use this to measure how our app is performing and to improve your experience."
+      }
     },
     "android": {
-      "package": "com.ascendfit.app"
+      "package": "com.ascendfit.app",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -43,6 +49,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_AFTER_EAS_INIT"
+      }
     }
   }
 }
