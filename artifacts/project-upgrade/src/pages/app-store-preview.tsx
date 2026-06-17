@@ -1,5 +1,5 @@
-import { useRef, useCallback, useEffect } from "react";
-import { toPng } from "html-to-image";
+import { useRef, useCallback, useEffect, useState } from "react";
+import { toBlob } from "html-to-image";
 import {
   Flame,
   Beef,
@@ -623,13 +623,20 @@ export default function AppStorePreviewPage() {
     },
   ];
 
+  const [exporting, setExporting] = useState<number | null>(null);
+
   const exportPanel = useCallback(async (index: number) => {
     const ref = panelRefs[index];
     if (!ref.current) return;
     const node = ref.current;
+    setExporting(index);
+    // Yield to the browser so the "Exporting..." state actually renders
+    // before the heavy toBlob call blocks the UI thread
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
     try {
-      const dataUrl = await toPng(node, {
-        pixelRatio: 3,
+      const blob = await toBlob(node, {
+        pixelRatio: 1,
         cacheBust: true,
         backgroundColor: BG_DARK,
         style: {
@@ -639,44 +646,32 @@ export default function AppStorePreviewPage() {
         },
       });
 
-      const filename = `ascend-fit-preview-${index + 1}.png`;
-
-      // Mobile Safari: use navigator.share if available, otherwise open in new tab
-      if (typeof navigator.share === "function" && navigator.canShare && navigator.canShare({ files: [] })) {
-        const byteString = atob(dataUrl.split(",")[1]);
-        const mimeString = dataUrl.split(",")[0].split(":")[1].split(";")[0];
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let i = 0; i < byteString.length; i++) {
-          ia[i] = byteString.charCodeAt(i);
-        }
-        const blob = new Blob([ab], { type: mimeString });
-        const file = new File([blob], filename, { type: mimeString });
-        navigator.share({ files: [file], title: filename }).catch(() => {
-          // User cancelled or share failed — fallback
-          window.open(dataUrl, "_blank");
-        });
+      if (!blob) {
+        alert("Export failed. Please try again on a desktop browser.");
         return;
       }
 
-      // Desktop / other browsers
+      const filename = `ascend-fit-preview-${index + 1}.png`;
+
+      // Mobile: use native share sheet if available
+      if (typeof navigator.share === "function" && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: "image/png" })] })) {
+        const file = new File([blob], filename, { type: "image/png" });
+        await navigator.share({ files: [file], title: filename });
+        return;
+      }
+
+      // Desktop: trigger download
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.download = filename;
-      link.href = dataUrl;
+      link.href = url;
       link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (err) {
       console.error("Export failed:", err);
-      // Fallback: open in new tab on any failure
-      try {
-        const dataUrl = await toPng(node, {
-          pixelRatio: 3,
-          cacheBust: true,
-          backgroundColor: BG_DARK,
-        });
-        window.open(dataUrl, "_blank");
-      } catch {
-        // Nothing more we can do
-      }
+      alert("Export failed. Try again on a desktop browser if the issue persists.");
+    } finally {
+      setExporting(null);
     }
   }, []);
 
@@ -722,7 +717,7 @@ export default function AppStorePreviewPage() {
       </div>
 
       {/* Panels grid */}
-      <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(430px, 1fr))", gap: 24, justifyContent: "center" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 24, justifyContent: "center" }}>
         {panels.map((p, i) => (
           <div key={p.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
             <PreviewPanel
@@ -734,21 +729,24 @@ export default function AppStorePreviewPage() {
             />
             <button
               onClick={() => exportPanel(i)}
+              disabled={exporting === i}
               style={{
-                background: "rgba(255,255,255,0.04)",
+                background: exporting === i ? "rgba(107,139,174,0.20)" : "rgba(255,255,255,0.04)",
                 border: "1px solid rgba(255,255,255,0.08)",
-                color: TEXT_WHITE,
+                color: exporting === i ? ACCENT_BLUE : TEXT_WHITE,
                 padding: "14px 24px",
                 borderRadius: 10,
                 fontSize: 14,
                 fontWeight: 600,
-                cursor: "pointer",
+                cursor: exporting === i ? "wait" : "pointer",
                 fontFamily: "inherit",
                 minHeight: 44,
                 touchAction: "manipulation",
+                opacity: exporting === i ? 0.8 : 1,
+                transition: "opacity 0.2s",
               }}
             >
-              Export PNG
+              {exporting === i ? "Exporting..." : "Export PNG"}
             </button>
           </div>
         ))}
