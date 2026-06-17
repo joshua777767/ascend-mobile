@@ -28,14 +28,16 @@ async function getRevenueCatCredentials(): Promise<{ apiKey: string }> {
   const data = (await resp.json()) as any;
   const settings = data.items?.[0]?.settings;
 
-  if (!settings?.api_key) {
+  const apiKey = settings?.access_token ?? settings?.api_key ?? settings?.oauth?.credentials?.access_token;
+
+  if (!apiKey) {
     throw new Error(
       "RevenueCat integration not connected or missing API key. " +
       "Connect RevenueCat via the Integrations tab first."
     );
   }
 
-  return { apiKey: settings.api_key };
+  return { apiKey };
 }
 
 export async function getUncachableRevenueCatClient() {

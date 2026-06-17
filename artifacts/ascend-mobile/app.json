@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Ascend Fit",
+    "slug": "ascend-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "ascend-mobile",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#080D12"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ascendfit.app"
+    },
+    "android": {
+      "package": "com.ascendfit.app"
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Ascend to access your photos to log meals.",
+          "cameraPermission": "Allow Ascend to use your camera to take meal photos."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

@@ -72,6 +72,12 @@ uri = "file://attached_assets/icon_concepts/ascend-c2-5.png"
 type = "image"
 title = "ascend c2 concept 5 summit peak"
 
+[[generated]]
+id = "SLqadwio8dzfH0SDas_0Y"
+uri = "file://artifacts/ascend-mobile/assets/images/icon.png"
+type = "image"
+title = "ascend fit app icon"
+
 [[outputs]]
 id = "DFH_N7m8S5Hq5ghuko5WD"
 uri = "file://artifacts/project-upgrade/public/icon-1024.png"
