@@ -1,5 +1,6 @@
 import { useRef, useCallback, useEffect, useState } from "react";
 import { toPng } from "html-to-image";
+import JSZip from "jszip";
 import {
   Flame,
   Beef,
@@ -800,7 +801,10 @@ export default function AppStorePreviewPage() {
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     try {
-      const files: File[] = [];
+      const zip = new JSZip();
+      const folder = zip.folder("ascend-fit-previews");
+      if (!folder) throw new Error("Failed to create ZIP folder");
+
       for (let i = 0; i < panels.length; i++) {
         const ref = panelRefs[i];
         if (!ref.current) continue;
@@ -808,30 +812,27 @@ export default function AppStorePreviewPage() {
           pixelRatio: 1,
           backgroundColor: BG_DARK,
         });
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
-        files.push(new File([blob], `ascend-fit-preview-${i + 1}.png`, { type: "image/png" }));
+        const base64 = dataUrl.split(",")[1];
+        folder.file(`preview-${i + 1}.png`, base64, { base64: true });
       }
 
-      if (files.length === 0) {
-        alert("Export failed: no images generated.");
+      const blob = await zip.generateAsync({ type: "blob" });
+      const filename = "ascend-fit-previews.zip";
+
+      // Mobile: share the ZIP
+      if (typeof navigator.share === "function" && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: "application/zip" })] })) {
+        const file = new File([blob], filename, { type: "application/zip" });
+        await navigator.share({ files: [file], title: "Ascend Fit App Store Previews" });
         return;
       }
 
-      if (typeof navigator.share === "function" && navigator.canShare && navigator.canShare({ files })) {
-        await navigator.share({ files, title: "Ascend Fit App Store Previews" });
-        return;
-      }
-
-      // Desktop: download each one
-      files.forEach((file, i) => {
-        const url = URL.createObjectURL(file);
-        const link = document.createElement("a");
-        link.download = file.name;
-        link.href = url;
-        setTimeout(() => link.click(), i * 300);
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
-      });
+      // Desktop: download ZIP
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = filename;
+      link.href = url;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
     } catch (err) {
       console.error("Export All failed:", err);
       alert("Export All failed: " + (err instanceof Error ? err.message : "Unknown error") + ". Try desktop.");

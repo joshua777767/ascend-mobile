@@ -80,6 +80,7 @@
     "@capacitor/core": "8.4.0",
     "@capacitor/ios": "8.4.0",
     "@revenuecat/purchases-capacitor": "13.1.5",
-    "html-to-image": "^1.11.13"
+    "html-to-image": "^1.11.13",
+    "jszip": "^3.10.1"
   }
 }
