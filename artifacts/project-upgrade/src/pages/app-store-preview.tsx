@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import { toPng } from "html-to-image";
 import JSZip from "jszip";
 
@@ -618,6 +618,11 @@ export default function AppStorePreview() {
 
   const [exporting, setExporting] = useState<number | null>(null);
   const [hideBadges, setHideBadges] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.classList.add("no-scroll-lock");
+    return () => document.documentElement.classList.remove("no-scroll-lock");
+  }, []);
 
   const panels: PanelDef[] = [
     {
