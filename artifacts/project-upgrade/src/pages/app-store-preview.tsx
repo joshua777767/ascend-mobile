@@ -30,14 +30,17 @@ import {
 
 const PANEL_ASPECT = 1290 / 2796;
 const PANEL_WIDTH = 430; // scaled for browser
-const PANEL_HEIGHT = Math.round(PANEL_WIDTH / PANEL_ASPECT);
+const PANEL_HEIGHT = Math.round(PANEL_WIDTH / PANEL_ASPECT); // 932
 
-const PHONE_W = 300;
-const PHONE_H = 650;
+const PHONE_W = 366;
+const PHONE_H = 829;
 const PHONE_RADIUS = 42;
-const PHONE_BEZEL = 10;
+const PHONE_BEZEL = 8;
 const SCREEN_W = PHONE_W - PHONE_BEZEL * 2;
 const SCREEN_H = PHONE_H - PHONE_BEZEL * 2;
+const CONTENT_SCALE = 1.25;
+const CONTENT_W = 280;
+const CONTENT_H = 650;
 
 const SCREEN_RADIUS = 30;
 const NOTCH_W = 140;
