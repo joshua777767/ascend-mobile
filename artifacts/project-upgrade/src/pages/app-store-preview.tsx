@@ -796,11 +796,49 @@ export default function AppStorePreviewPage() {
   }, []);
 
   const exportAll = useCallback(async () => {
-    for (let i = 0; i < panels.length; i++) {
-      await exportPanel(i);
-      await new Promise((r) => setTimeout(r, 200));
+    setExporting(-1);
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    try {
+      const files: File[] = [];
+      for (let i = 0; i < panels.length; i++) {
+        const ref = panelRefs[i];
+        if (!ref.current) continue;
+        const dataUrl = await toPng(ref.current, {
+          pixelRatio: 1,
+          backgroundColor: BG_DARK,
+        });
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        files.push(new File([blob], `ascend-fit-preview-${i + 1}.png`, { type: "image/png" }));
+      }
+
+      if (files.length === 0) {
+        alert("Export failed: no images generated.");
+        return;
+      }
+
+      if (typeof navigator.share === "function" && navigator.canShare && navigator.canShare({ files })) {
+        await navigator.share({ files, title: "Ascend Fit App Store Previews" });
+        return;
+      }
+
+      // Desktop: download each one
+      files.forEach((file, i) => {
+        const url = URL.createObjectURL(file);
+        const link = document.createElement("a");
+        link.download = file.name;
+        link.href = url;
+        setTimeout(() => link.click(), i * 300);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      });
+    } catch (err) {
+      console.error("Export All failed:", err);
+      alert("Export All failed: " + (err instanceof Error ? err.message : "Unknown error") + ". Try desktop.");
+    } finally {
+      setExporting(null);
     }
-  }, [exportPanel]);
+  }, []);
 
   return (
     <div style={{ background: "#05070A", padding: "40px 24px", minHeight: "100dvh", fontFamily: "'Inter', system-ui, sans-serif", WebkitTapHighlightColor: "transparent" }}>
@@ -817,21 +855,24 @@ export default function AppStorePreviewPage() {
         <div style={{ display: "flex", gap: 10 }}>
           <button
             onClick={exportAll}
+            disabled={exporting === -1}
             style={{
-              background: "rgba(107,139,174,0.12)",
+              background: exporting === -1 ? "rgba(107,139,174,0.20)" : "rgba(107,139,174,0.12)",
               border: "1px solid rgba(107,139,174,0.25)",
               color: ACCENT_BLUE,
               padding: "14px 24px",
               borderRadius: 10,
               fontSize: 14,
               fontWeight: 700,
-              cursor: "pointer",
+              cursor: exporting === -1 ? "wait" : "pointer",
               fontFamily: "inherit",
               minHeight: 44,
               touchAction: "manipulation",
+              opacity: exporting === -1 ? 0.8 : 1,
+              transition: "opacity 0.2s",
             }}
           >
-            Export All
+            {exporting === -1 ? "Exporting all 6..." : "Export All"}
           </button>
         </div>
       </div>
