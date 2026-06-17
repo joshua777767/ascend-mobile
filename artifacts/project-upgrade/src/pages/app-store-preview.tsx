@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect, useState } from "react";
-import { toBlob } from "html-to-image";
+import { toPng } from "html-to-image";
 import {
   Flame,
   Beef,
@@ -144,9 +144,8 @@ function FloatBadge({
         left,
         right,
         zIndex: 2,
-        background: "rgba(12,15,26,0.85)",
-        backdropFilter: "blur(12px)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: "rgba(12,15,26,0.92)",
+        border: "1px solid rgba(255,255,255,0.10)",
         borderRadius: 14,
         padding: "8px 12px",
         display: "flex",
@@ -625,22 +624,14 @@ function ProgressScreen() {
           <div style={{ fontSize: 11, fontWeight: 700, color: TEXT_WHITE, fontFamily: "'Inter', sans-serif" }}>Weight Trend</div>
           <div style={{ fontSize: 10, color: ACCENT_GREEN, fontWeight: 700, fontFamily: "'Inter', sans-serif" }}>-2.1 lbs</div>
         </div>
-        {/* SVG line chart */}
-        <svg viewBox="0 0 100 50" style={{ width: "100%", height: 50, overflow: "visible" }}>
-          <defs>
-            <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={ACCENT_GOLD} stopOpacity="0.3" />
-              <stop offset="100%" stopColor={ACCENT_GOLD} stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <polygon points={`0,50 ${linePoints} 100,50`} fill="url(#lineGrad)" />
-          <polyline points={linePoints} fill="none" stroke={ACCENT_GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          {chartData.map((d, i) => {
-            const x = (i / (chartData.length - 1)) * 100;
-            const y = 100 - (d.w / 24) * 80;
-            return <circle key={i} cx={x} cy={y} r={i === 4 ? 3 : 2} fill={i === 4 ? ACCENT_GOLD : "rgba(255,255,255,0.2)"} />;
-          })}
-        </svg>
+        {/* Bar chart */}
+        <div style={{ height: 40, display: "flex", alignItems: "flex-end", gap: 6, padding: "0 4px" }}>
+          {chartData.map((d, i) => (
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+              <div style={{ width: "100%", height: d.w, borderRadius: 3, background: i === 4 ? ACCENT_GOLD : "rgba(255,255,255,0.08)", minHeight: 4 }} />
+            </div>
+          ))}
+        </div>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           {chartData.map((d, i) => (
             <div key={i} style={{ fontSize: 7, color: TEXT_MUTED, fontFamily: "'Inter', sans-serif" }}>{d.day}</div>
@@ -769,23 +760,21 @@ export default function AppStorePreviewPage() {
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     try {
-      const blob = await toBlob(node, {
+      const dataUrl = await toPng(node, {
         pixelRatio: 1,
-        cacheBust: true,
         backgroundColor: BG_DARK,
-        style: {
-          margin: "0",
-          padding: "0",
-          overflow: "hidden",
-        },
       });
 
-      if (!blob) {
-        alert("Export failed. Please try again on a desktop browser.");
+      if (!dataUrl) {
+        alert("Export failed: empty result.");
         return;
       }
 
       const filename = `ascend-fit-preview-${index + 1}.png`;
+
+      // Convert dataUrl to Blob for sharing
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
 
       if (typeof navigator.share === "function" && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: "image/png" })] })) {
         const file = new File([blob], filename, { type: "image/png" });
@@ -793,15 +782,14 @@ export default function AppStorePreviewPage() {
         return;
       }
 
-      const url = URL.createObjectURL(blob);
+      // Desktop: trigger download
       const link = document.createElement("a");
       link.download = filename;
-      link.href = url;
+      link.href = dataUrl;
       link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (err) {
       console.error("Export failed:", err);
-      alert("Export failed. Try again on a desktop browser if the issue persists.");
+      alert("Export failed: " + (err instanceof Error ? err.message : "Unknown error") + ". Try desktop.");
     } finally {
       setExporting(null);
     }
