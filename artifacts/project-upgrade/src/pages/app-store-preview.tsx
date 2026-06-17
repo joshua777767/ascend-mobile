@@ -103,20 +103,18 @@ function PhoneShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ── Panel Wrapper ── */
+/* ── Panel Wrapper (clean — no decorations inside export node) ── */
 function PreviewPanel({
   id,
   headline,
   subtext,
   phone,
-  index,
   refProp,
 }: {
   id: string;
   headline: string;
   subtext: string;
   phone: React.ReactNode;
-  index: number;
   refProp: React.Ref<HTMLDivElement>;
 }) {
   return (
@@ -132,7 +130,7 @@ function PreviewPanel({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "48px 28px 32px",
+        padding: "36px 20px 24px",
         boxSizing: "border-box",
       }}
     >
@@ -150,37 +148,14 @@ function PreviewPanel({
         }}
       />
 
-      {/* Index badge */}
-      <div
-        style={{
-          position: "absolute",
-          top: 20,
-          left: 20,
-          width: 28,
-          height: 28,
-          borderRadius: 14,
-          background: "rgba(255,255,255,0.06)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 12,
-          fontWeight: 700,
-          color: TEXT_WHITE,
-          fontFamily: "'Inter', system-ui, sans-serif",
-        }}
-      >
-        {index}
-      </div>
-
       {/* Text */}
-      <div style={{ textAlign: "center", marginBottom: 28, zIndex: 1 }}>
+      <div style={{ textAlign: "center", zIndex: 1, flexShrink: 0 }}>
         <h1
           style={{
-            fontSize: 28,
+            fontSize: 26,
             fontWeight: 800,
             letterSpacing: "-0.02em",
-            lineHeight: 1.15,
+            lineHeight: 1.2,
             color: TEXT_WHITE,
             fontFamily: "'Inter', system-ui, sans-serif",
             margin: 0,
@@ -190,12 +165,12 @@ function PreviewPanel({
         </h1>
         <p
           style={{
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: 500,
             lineHeight: 1.5,
             color: TEXT_MUTED,
             fontFamily: "'Inter', system-ui, sans-serif",
-            marginTop: 10,
+            marginTop: 8,
             maxWidth: 320,
             marginLeft: "auto",
             marginRight: "auto",
@@ -205,24 +180,10 @@ function PreviewPanel({
         </p>
       </div>
 
-      {/* Phone */}
-      <div style={{ zIndex: 1, marginTop: "auto" }}>
+      {/* Phone — centered with flex grow */}
+      <div style={{ zIndex: 1, flex: 1, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 8 }}>
         <PhoneShell>{phone}</PhoneShell>
       </div>
-
-      {/* Bottom soft bar */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 8,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: 120,
-          height: 5,
-          borderRadius: 3,
-          background: "rgba(255,255,255,0.15)",
-        }}
-      />
     </div>
   );
 }
@@ -626,7 +587,7 @@ export default function AppStorePreviewPage() {
   const panels = [
     {
       id: "dashboard",
-      headline: "Make Your Dream Body\nFeel Possible",
+      headline: "Make Your Goal\nFeel Possible",
       subtext: "AI plans your meals, workouts, and habits around your goal.",
       phone: <DashboardScreen />,
     },
@@ -638,7 +599,7 @@ export default function AppStorePreviewPage() {
     },
     {
       id: "meals",
-      headline: "Snap Meals.\nGet Honest Feedback.",
+      headline: "Snap Meals.\nGet Honest Feedback",
       subtext: "AI checks food, water, and progress.",
       phone: <MealsScreen />,
     },
@@ -650,13 +611,13 @@ export default function AppStorePreviewPage() {
     },
     {
       id: "coach",
-      headline: "Science-Backed Coach\nIn Your Pocket",
+      headline: "Ask Your Coach\nAnything",
       subtext: "Evidence-based guidance, real safety boundaries, zero fluff.",
       phone: <CoachScreen />,
     },
     {
       id: "progress",
-      headline: "Track Progress\nThat Matters",
+      headline: "Track Progress.\nStay Consistent",
       subtext: "Weight, habits, streaks, and consistency.",
       phone: <ProgressScreen />,
     },
@@ -671,13 +632,51 @@ export default function AppStorePreviewPage() {
         pixelRatio: 3,
         cacheBust: true,
         backgroundColor: BG_DARK,
+        style: {
+          margin: "0",
+          padding: "0",
+          overflow: "hidden",
+        },
       });
+
+      const filename = `ascend-fit-preview-${index + 1}.png`;
+
+      // Mobile Safari: use navigator.share if available, otherwise open in new tab
+      if (typeof navigator.share === "function" && navigator.canShare && navigator.canShare({ files: [] })) {
+        const byteString = atob(dataUrl.split(",")[1]);
+        const mimeString = dataUrl.split(",")[0].split(":")[1].split(";")[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ab], { type: mimeString });
+        const file = new File([blob], filename, { type: mimeString });
+        navigator.share({ files: [file], title: filename }).catch(() => {
+          // User cancelled or share failed — fallback
+          window.open(dataUrl, "_blank");
+        });
+        return;
+      }
+
+      // Desktop / other browsers
       const link = document.createElement("a");
-      link.download = `ascend-fit-preview-${index + 1}.png`;
+      link.download = filename;
       link.href = dataUrl;
       link.click();
     } catch (err) {
       console.error("Export failed:", err);
+      // Fallback: open in new tab on any failure
+      try {
+        const dataUrl = await toPng(node, {
+          pixelRatio: 3,
+          cacheBust: true,
+          backgroundColor: BG_DARK,
+        });
+        window.open(dataUrl, "_blank");
+      } catch {
+        // Nothing more we can do
+      }
     }
   }, []);
 
@@ -689,7 +688,7 @@ export default function AppStorePreviewPage() {
   }, [exportPanel]);
 
   return (
-    <div style={{ background: "#05070A", padding: "40px 24px", minHeight: "100dvh", fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ background: "#05070A", padding: "40px 24px", minHeight: "100dvh", fontFamily: "'Inter', system-ui, sans-serif", WebkitTapHighlightColor: "transparent" }}>
       {/* Header */}
       <div style={{ maxWidth: 1200, margin: "0 auto 40px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
         <div>
@@ -707,12 +706,14 @@ export default function AppStorePreviewPage() {
               background: "rgba(107,139,174,0.12)",
               border: "1px solid rgba(107,139,174,0.25)",
               color: ACCENT_BLUE,
-              padding: "10px 18px",
+              padding: "14px 24px",
               borderRadius: 10,
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 700,
               cursor: "pointer",
               fontFamily: "inherit",
+              minHeight: 44,
+              touchAction: "manipulation",
             }}
           >
             Export All
@@ -729,7 +730,6 @@ export default function AppStorePreviewPage() {
               headline={p.headline}
               subtext={p.subtext}
               phone={p.phone}
-              index={i + 1}
               refProp={panelRefs[i]}
             />
             <button
@@ -738,12 +738,14 @@ export default function AppStorePreviewPage() {
                 background: "rgba(255,255,255,0.04)",
                 border: "1px solid rgba(255,255,255,0.08)",
                 color: TEXT_WHITE,
-                padding: "8px 16px",
-                borderRadius: 8,
-                fontSize: 12,
+                padding: "14px 24px",
+                borderRadius: 10,
+                fontSize: 14,
                 fontWeight: 600,
                 cursor: "pointer",
                 fontFamily: "inherit",
+                minHeight: 44,
+                touchAction: "manipulation",
               }}
             >
               Export PNG
