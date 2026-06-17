@@ -535,7 +535,7 @@ interface PanelDef {
   screen: React.ReactNode;
 }
 
-function PreviewPanel({ panel, panelRef }: { panel: PanelDef; panelRef: React.RefObject<HTMLDivElement | null> }) {
+function PreviewPanel({ panel, panelRef, hideBadge }: { panel: PanelDef; panelRef: React.RefObject<HTMLDivElement | null>; hideBadge: boolean }) {
   return (
     <div
       ref={panelRef}
@@ -566,8 +566,10 @@ function PreviewPanel({ panel, panelRef }: { panel: PanelDef; panelRef: React.Re
         pointerEvents: "none",
       }} />
 
-      {/* ① Number badge */}
-      <Badge n={panel.num} />
+      {/* ① Number badge — hidden during export */}
+      <div style={{ visibility: hideBadge ? "hidden" : "visible" }}>
+        <Badge n={panel.num} />
+      </div>
 
       {/* ② Headline */}
       <div style={{ marginTop: 14 }}>
@@ -614,6 +616,7 @@ export default function AppStorePreview() {
   ];
 
   const [exporting, setExporting] = useState<number | null>(null);
+  const [hideBadges, setHideBadges] = useState(false);
 
   const panels: PanelDef[] = [
     {
@@ -682,9 +685,11 @@ export default function AppStorePreview() {
     const ref = refs[index];
     if (!ref.current) return;
     setExporting(index);
+    setHideBadges(true);
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     try {
-      const dataUrl = await toPng(ref.current, { pixelRatio: 1, backgroundColor: BG });
+      const dataUrl = await toPng(ref.current, { pixelRatio: 3, backgroundColor: BG });
+      setHideBadges(false);
       const filename = `ascend-fit-preview-${index + 1}.png`;
       const res = await fetch(dataUrl);
       const blob = await res.blob();
@@ -697,6 +702,7 @@ export default function AppStorePreview() {
         link.click();
       }
     } catch (err) {
+      setHideBadges(false);
       alert("Export failed: " + (err instanceof Error ? err.message : "Unknown error"));
     } finally {
       setExporting(null);
@@ -705,6 +711,7 @@ export default function AppStorePreview() {
 
   const exportAll = useCallback(async () => {
     setExporting(-1);
+    setHideBadges(true);
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     try {
       const zip = new JSZip();
@@ -712,9 +719,10 @@ export default function AppStorePreview() {
       for (let i = 0; i < panels.length; i++) {
         const ref = refs[i];
         if (!ref.current) continue;
-        const dataUrl = await toPng(ref.current, { pixelRatio: 1, backgroundColor: BG });
+        const dataUrl = await toPng(ref.current, { pixelRatio: 3, backgroundColor: BG });
         folder.file(`preview-${i + 1}.png`, dataUrl.split(",")[1], { base64: true });
       }
+      setHideBadges(false);
       const blob = await zip.generateAsync({ type: "blob" });
       const filename = "ascend-fit-previews.zip";
       if (typeof navigator.share === "function" && navigator.canShare?.({ files: [new File([blob], filename, { type: "application/zip" })] })) {
@@ -728,6 +736,7 @@ export default function AppStorePreview() {
         setTimeout(() => URL.revokeObjectURL(url), 10000);
       }
     } catch (err) {
+      setHideBadges(false);
       alert("Export All failed: " + (err instanceof Error ? err.message : "Unknown error"));
     } finally {
       setExporting(null);
@@ -769,7 +778,7 @@ export default function AppStorePreview() {
       <div style={{ maxWidth: 1320, margin: "0 auto", display: "flex", flexWrap: "wrap", gap: 24, justifyContent: "center" }}>
         {panels.map((panel, i) => (
           <div key={panel.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-            <PreviewPanel panel={panel} panelRef={refs[i]} />
+            <PreviewPanel panel={panel} panelRef={refs[i]} hideBadge={hideBadges} />
             <button
               onClick={() => exportOne(i)}
               disabled={exporting !== null}
