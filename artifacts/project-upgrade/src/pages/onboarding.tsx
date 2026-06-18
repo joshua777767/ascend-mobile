@@ -22,6 +22,8 @@ const GOALS = [
   { label: "More Energy",  value: "higher energy",      emoji: "🌟" },
 ] as const;
 
+const WEIGHT_GOALS = new Set(["lose weight", "gain weight"]);
+
 const TOTAL_STEPS = 4;
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -46,13 +48,15 @@ export default function OnboardingPage() {
   // Step state
   const [step, setStep] = useState(1);
   const [selectedGoal, setSelectedGoal] = useState<string>("");
-  const [weightLbs, setWeightLbs] = useState("");
+  const [currentWeightLbs, setCurrentWeightLbs] = useState("");
+  const [goalWeightLbs, setGoalWeightLbs] = useState("");
   const [heightFt, setHeightFt] = useState("");
   const [heightIn, setHeightIn] = useState("");
   const [age, setAge] = useState("");
   const [error, setError] = useState("");
 
   const isLoading = createProfile.isPending || generatePlan.isPending;
+  const isWeightGoal = WEIGHT_GOALS.has(selectedGoal);
 
   // ── Step handlers ────────────────────────────────────────────────────────
 
@@ -63,10 +67,18 @@ export default function OnboardingPage() {
   };
 
   const handleStep2 = () => {
-    const w = parseFloat(weightLbs);
-    if (!weightLbs || isNaN(w) || w < 50 || w > 700) {
-      setError("Enter a valid weight between 50 and 700 lbs.");
+    const cw = parseFloat(currentWeightLbs);
+    if (!currentWeightLbs || isNaN(cw) || cw < 50 || cw > 700) {
+      setError("Enter a valid current weight between 50 and 700 lbs.");
       return;
+    }
+    // Goal weight: required for lose/gain weight, optional for others
+    if (isWeightGoal) {
+      const gw = parseFloat(goalWeightLbs);
+      if (!goalWeightLbs || isNaN(gw) || gw < 50 || gw > 700) {
+        setError("Enter a valid goal weight between 50 and 700 lbs.");
+        return;
+      }
     }
     setError("");
     setStep(3);
@@ -75,7 +87,7 @@ export default function OnboardingPage() {
   const handleStep3 = () => {
     const ft = parseInt(heightFt);
     const inches = parseInt(heightIn) || 0;
-    if (!heightFt || isNaN(ft) || ft < 3 || ft > 8 || isNaN(inches) || inches < 0 || inches > 11) {
+    if (!heightFt || isNaN(ft) || ft < 3 || ft > 8 || inches < 0 || inches > 11) {
       setError("Enter a valid height.");
       return;
     }
@@ -93,7 +105,10 @@ export default function OnboardingPage() {
 
     const ft = parseInt(heightFt) || 0;
     const inches = parseInt(heightIn) || 0;
-    const currentWeightKg = lbsToKg(parseFloat(weightLbs));
+    const currentWeightKg = lbsToKg(parseFloat(currentWeightLbs));
+    const goalWeightKg = goalWeightLbs
+      ? lbsToKg(parseFloat(goalWeightLbs))
+      : currentWeightKg;
 
     const payload = {
       name: me?.email?.split("@")[0] ?? "User",
@@ -101,7 +116,7 @@ export default function OnboardingPage() {
       gender: "prefer not to say",
       heightCm: ftInToCm(ft, inches),
       currentWeightKg,
-      goalWeightKg: currentWeightKg,
+      goalWeightKg,
       bodyType: "average",
       goals: [selectedGoal],
       skinConcerns: [],
@@ -130,12 +145,40 @@ export default function OnboardingPage() {
     }
   };
 
-  // ── Shared input class ───────────────────────────────────────────────────
+  // ── Shared styles ────────────────────────────────────────────────────────
   const numInputCls = cn(
     "w-full bg-elevated border border-border rounded-2xl text-center text-3xl font-bold",
     "text-foreground placeholder:text-muted-foreground/40",
     "focus:outline-none focus:ring-2 focus:ring-primary/50",
     "h-20 px-4",
+  );
+
+  const smInputCls = cn(
+    "w-full bg-elevated border border-border rounded-2xl text-center text-2xl font-bold",
+    "text-foreground placeholder:text-muted-foreground/40",
+    "focus:outline-none focus:ring-2 focus:ring-primary/50",
+    "h-16 px-4",
+  );
+
+  const backBtn = (onClick: () => void) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="h-14 px-5 rounded-2xl border border-border text-muted-foreground font-semibold hover:bg-elevated transition-colors"
+    >
+      Back
+    </button>
+  );
+
+  const continueBtn = (onClick: () => void, label = "Continue") => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex-1 h-14 rounded-2xl text-[15px] font-semibold text-primary-foreground active:scale-[0.99] transition-all"
+      style={{ background: "#C89A3E" }}
+    >
+      {label}
+    </button>
   );
 
   return (
@@ -184,7 +227,7 @@ export default function OnboardingPage() {
                         : "bg-card border-border text-foreground hover:bg-elevated"
                     )}
                   >
-                    <span className="text-3xl">{g.emoji}</span>
+                    <span className="text-3xl leading-none">{g.emoji}</span>
                     <span className="text-sm font-semibold leading-tight text-center">{g.label}</span>
                   </button>
                 ))}
@@ -204,47 +247,82 @@ export default function OnboardingPage() {
             </>
           )}
 
-          {/* ── Step 2: Current Weight ───────────────────────────────────── */}
+          {/* ── Step 2: Current weight + Goal weight ─────────────────────── */}
           {step === 2 && (
             <>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">What's your current weight?</h1>
-                <p className="text-sm text-muted-foreground mt-1">We use this to calculate your starting plan.</p>
+                <h1 className="text-2xl font-bold tracking-tight">Your weight</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {isWeightGoal
+                    ? "We use these to track your progress and build your plan."
+                    : "We use this to calibrate your daily targets."}
+                </p>
               </div>
 
-              <div className="flex flex-col items-center gap-3 py-4">
-                <div className="relative w-full max-w-xs">
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={weightLbs}
-                    onChange={e => { setWeightLbs(e.target.value); setError(""); }}
-                    placeholder="185"
-                    className={numInputCls}
-                    autoFocus
-                  />
-                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">lbs</span>
+              <div className="flex flex-col gap-5">
+                {/* Current weight */}
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm font-semibold text-foreground">Current weight</p>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={currentWeightLbs}
+                      onChange={e => { setCurrentWeightLbs(e.target.value); setError(""); }}
+                      placeholder="185"
+                      className={numInputCls}
+                      autoFocus
+                    />
+                    <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground pointer-events-none">lbs</span>
+                  </div>
+                </div>
+
+                {/* Goal weight */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-sm font-semibold text-foreground">Goal weight</p>
+                    {!isWeightGoal && (
+                      <span className="text-xs text-muted-foreground">(optional)</span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={goalWeightLbs}
+                      onChange={e => { setGoalWeightLbs(e.target.value); setError(""); }}
+                      placeholder={isWeightGoal ? (selectedGoal === "lose weight" ? "165" : "200") : "Optional"}
+                      className={smInputCls}
+                    />
+                    <span className="absolute right-5 top-1/2 -translate-y-1/2 text-base font-semibold text-muted-foreground pointer-events-none">
+                      {goalWeightLbs ? "lbs" : ""}
+                    </span>
+                  </div>
+                  {isWeightGoal && currentWeightLbs && goalWeightLbs && (() => {
+                    const cw = parseFloat(currentWeightLbs);
+                    const gw = parseFloat(goalWeightLbs);
+                    if (!isNaN(cw) && !isNaN(gw) && cw > 0 && gw > 0) {
+                      const diff = Math.abs(cw - gw);
+                      const dir = selectedGoal === "lose weight"
+                        ? gw < cw ? `Losing ${diff.toFixed(0)} lbs` : "⚠️ Goal weight is higher than current"
+                        : gw > cw ? `Gaining ${diff.toFixed(0)} lbs` : "⚠️ Goal weight is lower than current";
+                      const isWarning = (selectedGoal === "lose weight" && gw >= cw) || (selectedGoal === "gain weight" && gw <= cw);
+                      return (
+                        <p className={cn("text-xs mt-1", isWarning ? "text-amber-400" : "text-muted-foreground")}>
+                          {dir}
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
 
-              {error && <p className="text-sm text-destructive text-center">{error}</p>}
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
               <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="h-14 px-5 rounded-2xl border border-border text-muted-foreground font-semibold hover:bg-elevated transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  type="button"
-                  onClick={handleStep2}
-                  className="flex-1 h-14 rounded-2xl text-[15px] font-semibold text-primary-foreground active:scale-[0.99] transition-all"
-                  style={{ background: "#C89A3E" }}
-                >
-                  Continue
-                </button>
+                {backBtn(() => setStep(1))}
+                {continueBtn(handleStep2)}
               </div>
             </>
           )}
@@ -268,7 +346,7 @@ export default function OnboardingPage() {
                     className={numInputCls}
                     autoFocus
                   />
-                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">ft</span>
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground pointer-events-none">ft</span>
                 </div>
                 <div className="flex-1 relative">
                   <input
@@ -279,28 +357,15 @@ export default function OnboardingPage() {
                     placeholder="10"
                     className={numInputCls}
                   />
-                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">in</span>
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground pointer-events-none">in</span>
                 </div>
               </div>
 
               {error && <p className="text-sm text-destructive text-center">{error}</p>}
 
               <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="h-14 px-5 rounded-2xl border border-border text-muted-foreground font-semibold hover:bg-elevated transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  type="button"
-                  onClick={handleStep3}
-                  className="flex-1 h-14 rounded-2xl text-[15px] font-semibold text-primary-foreground active:scale-[0.99] transition-all"
-                  style={{ background: "#C89A3E" }}
-                >
-                  Continue
-                </button>
+                {backBtn(() => setStep(2))}
+                {continueBtn(handleStep3)}
               </div>
             </>
           )}
@@ -324,7 +389,7 @@ export default function OnboardingPage() {
                     className={numInputCls}
                     autoFocus
                   />
-                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">yrs</span>
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground pointer-events-none">yrs</span>
                 </div>
               </div>
 
@@ -342,13 +407,7 @@ export default function OnboardingPage() {
               </div>
 
               <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep(3)}
-                  className="h-14 px-5 rounded-2xl border border-border text-muted-foreground font-semibold hover:bg-elevated transition-colors"
-                >
-                  Back
-                </button>
+                {backBtn(() => setStep(3))}
                 <button
                   type="button"
                   onClick={handleSubmit}
