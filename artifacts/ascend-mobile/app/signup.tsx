@@ -67,6 +67,7 @@ export default function SignupScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [parentalConsent, setParentalConsent] = useState(false);
   const [tosAgreed, setTosAgreed] = useState(false);
 
   const handleSignup = async () => {
@@ -80,6 +81,10 @@ export default function SignupScreen() {
     }
     if (!ageConfirmed) {
       setError("You must confirm you are 13 years of age or older.");
+      return;
+    }
+    if (!parentalConsent) {
+      setError("You must confirm parental/guardian consent if you are under 18.");
       return;
     }
     if (!tosAgreed) {
@@ -201,6 +206,13 @@ export default function SignupScreen() {
               checked={ageConfirmed}
               onToggle={() => setAgeConfirmed((v) => !v)}
               label="I confirm that I am 13 years of age or older. Ascend Fit is not available for users under 13."
+            />
+
+            {/* Parental consent */}
+            <Checkbox
+              checked={parentalConsent}
+              onToggle={() => setParentalConsent((v) => !v)}
+              label="If I am under 18, I have permission from my parent or legal guardian to use Ascend Fit."
             />
 
             {/* ToS + Privacy */}

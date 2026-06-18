@@ -223,6 +223,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
             Pricing
           </Link>
         </div>
+        <div className="px-5 py-3 border-t" style={{ borderColor: "hsl(217 32% 13%)" }}>
+          <div className="flex items-center gap-3">
+            <Link href="/terms" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">
+              Terms
+            </Link>
+            <span className="text-[10px] text-muted-foreground/40">·</span>
+            <Link href="/privacy" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">
+              Privacy
+            </Link>
+          </div>
+          <p className="text-[9px] text-muted-foreground/50 mt-1 leading-relaxed">
+            Not medical advice. Results vary.
+          </p>
+        </div>
       </aside>
 
       {/* ── Mobile Top Bar ── */}

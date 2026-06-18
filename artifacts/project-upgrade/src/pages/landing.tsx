@@ -144,6 +144,17 @@ export default function LandingPage() {
             </Link>
           </p>
         </div>
+        <div className="px-6 pb-6 flex items-center justify-center gap-4 border-t border-border/30 pt-4">
+          <Link href="/terms" className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors">
+            Terms of Service
+          </Link>
+          <span className="text-[11px] text-muted-foreground/30">·</span>
+          <Link href="/privacy" className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors">
+            Privacy Policy
+          </Link>
+          <span className="text-[11px] text-muted-foreground/30">·</span>
+          <span className="text-[11px] text-muted-foreground/40">Not medical advice</span>
+        </div>
       </div>
     </div>
   );

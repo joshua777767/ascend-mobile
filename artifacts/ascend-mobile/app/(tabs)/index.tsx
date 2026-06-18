@@ -172,6 +172,19 @@ export default function HomeScreen() {
           <Feather name="chevron-right" size={18} color={colors.primary} />
         </TouchableOpacity>
       )}
+
+      {/* Legal footer */}
+      <View style={styles.legalFooter}>
+        <TouchableOpacity onPress={() => router.push("/settings")}>
+          <Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Terms</Text>
+        </TouchableOpacity>
+        <Text style={[styles.legalDot, { color: colors.mutedForeground }]}>·</Text>
+        <TouchableOpacity onPress={() => router.push("/settings")}>
+          <Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Privacy</Text>
+        </TouchableOpacity>
+        <Text style={[styles.legalDot, { color: colors.mutedForeground }]}>·</Text>
+        <Text style={[styles.legalNote, { color: colors.mutedForeground }]}>Not medical advice</Text>
+      </View>
     </ScrollView>
   );
 }
@@ -246,4 +259,8 @@ const styles = StyleSheet.create({
   upgradeText: { flex: 1 },
   upgradeTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   upgradeSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  legalFooter: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 20, marginTop: 8 },
+  legalLink: { fontSize: 11, fontFamily: "Inter_400Regular", opacity: 0.6 },
+  legalDot: { fontSize: 11, opacity: 0.3 },
+  legalNote: { fontSize: 11, fontFamily: "Inter_400Regular", opacity: 0.4 },
 });

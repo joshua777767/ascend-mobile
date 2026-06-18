@@ -1052,7 +1052,7 @@ export default function OnboardingPage() {
                   <strong className="text-foreground">Ascend is not medical advice.</strong> Consult a healthcare professional before starting any new diet or exercise program, especially if you have a history of eating disorders, heart disease, diabetes, pregnancy, hypertension, or any serious health condition.
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Results are not guaranteed and vary by individual. You are responsible for your own health and safety decisions. By launching your plan, you confirm you have read and agreed to our <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Terms of Service</a>.
+                  Results are not guaranteed and vary by individual. You are responsible for your own health and safety decisions. By launching your plan, you confirm you have read and agreed to our <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Privacy Policy</a>.
                 </p>
               </div>
 
