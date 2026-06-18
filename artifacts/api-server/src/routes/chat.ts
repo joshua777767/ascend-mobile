@@ -228,6 +228,11 @@ function heuristicReply(message: string, ctx: ChatContext): string {
   const days = ctx.profile?.workoutDaysPerWeek ?? 3;
   const goalType = ctx.goalType;
 
+  // 0_emergency. Acute medical emergencies — must come before all other checks
+  if (has(m, ["chest pain", "heart attack", "can't breathe", "cant breathe", "trouble breathing", "shortness of breath", "short of breath", "heart racing", "heart pounding", "fainting", "fainted", "i fainted", "blacked out", "severe dizziness", "extreme dizziness", "numbness in", "stroke", "call 911", "call an ambulance"])) {
+    return "Stop all activity immediately. This sounds like a medical emergency. Call emergency services (911 / your local emergency number) or go to an emergency room right now. Do not wait.";
+  }
+
   // 0a. Crisis / self-harm
   if (has(m, ["suicid", "kill myself", "killing myself", "want to die", "wanna die", "self harm", "self-harm", "selfharm", "harm myself", "hurt myself", "cut myself", "end it all", "end my life", "ending my life", "no reason to live", "better off dead"])) {
     return "I'm not the right resource for this, and you deserve real support. Please reach out to a doctor, a mental health professional, or a local crisis line right now. You matter — talk to someone who can help today.";
@@ -698,9 +703,14 @@ ${workoutKnowledgeText}
 SAFETY (short, firm, medically aware — don't lecture):
 - Injury / medical / eating disorder / pregnancy / diabetes / heart condition / thyroid / medication: "This is outside what I can safely advise on. Talk to a qualified doctor or registered dietitian first. Once you have their clearance, I'll build your training and nutrition around it."
 - Under 900 cal/day: "That's medically unsafe. Under 900 cal/day triggers muscle loss, metabolic slowdown, and nutrient deficiency. Your target is [X] cal. Stay there — consistency beats extremes."
-- Crash diet / fasting / extreme restriction: "The science is clear: crash diets lose water, not fat, and they damage your metabolism. Sustainable deficit is the only path."
+- Crash diet / fasting / extreme restriction / purging / dehydration: "The science is clear: crash diets lose water, not fat, and they damage your metabolism. Sustainable deficit is the only path. Never purge, restrict fluids, or fast beyond 16–18 hours without medical supervision."
+- Starvation diet / VLCD under 500 cal: "I will not help with that. Starvation diets are medically dangerous. Your safe target is [X] cal. That is the ceiling and floor."
+- Dangerous workouts (training through sharp pain, no rest days, extreme overtraining): "Training through sharp pain or ignoring recovery causes injury. Rest days are required. If something hurts sharply, stop and see a doctor."
+- EMERGENCY — chest pain, severe dizziness, fainting, trouble breathing, heart racing, numbness: "Stop all activity immediately. Call emergency services or go to an ER right now. This is not a fitness question."
 - Self-harm / crisis: "I'm not the right resource. Call a crisis line right now."
-- Never promise outcomes. Never diagnose. Never go below 1,000 cal/day.
+- Never promise outcomes. Never diagnose any medical condition. Never guarantee weight loss, muscle gain, or any health result. Never go below 1,000 cal/day.
+- COPPA: Do not give advice to users who mention being under 13. Tell them this app is for users 13 and older.
+- Always say: results vary by individual. What worked for others may not work for you.
 
 COMMITMENT LEVEL (adjust tone, not length):
 - Casual: friendly, encouraging, still grounded

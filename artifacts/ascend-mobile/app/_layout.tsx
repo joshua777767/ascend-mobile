@@ -52,6 +52,7 @@ function RootLayoutNav() {
           <Stack.Screen name="login" options={{ headerShown: false, animation: "fade" }} />
           <Stack.Screen name="signup" options={{ headerShown: false, animation: "fade" }} />
           <Stack.Screen name="paywall" options={{ headerShown: false, presentation: "modal" }} />
+          <Stack.Screen name="settings" options={{ headerShown: false, presentation: "modal" }} />
           <Stack.Screen name="+not-found" />
         </Stack>
       </AuthGate>

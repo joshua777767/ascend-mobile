@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -19,6 +20,39 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
+const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN ?? "";
+
+function openLink(path: string) {
+  const url = `https://${DOMAIN}${path}`;
+  WebBrowser.openBrowserAsync(url, {
+    presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+  });
+}
+
+function Checkbox({ checked, onToggle, label, linkLabel, onLinkPress }: {
+  checked: boolean; onToggle: () => void; label?: string; linkLabel?: string; onLinkPress?: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <TouchableOpacity style={styles.checkRow} onPress={onToggle} activeOpacity={0.75}>
+      <View style={[
+        styles.checkBox,
+        { borderColor: checked ? colors.primary : colors.border, backgroundColor: checked ? colors.primary : "transparent" },
+      ]}>
+        {checked && <Feather name="check" size={11} color={colors.primaryForeground} />}
+      </View>
+      <Text style={[styles.checkLabel, { color: colors.mutedForeground }]}>
+        {label}
+        {linkLabel && (
+          <Text onPress={onLinkPress} style={[styles.checkLink, { color: colors.primary }]}>
+            {linkLabel}
+          </Text>
+        )}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 export default function SignupScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -32,6 +66,9 @@ export default function SignupScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [tosAgreed, setTosAgreed] = useState(false);
+
   const handleSignup = async () => {
     if (!username.trim() || !email.trim() || !password) {
       setError("All fields are required.");
@@ -39,6 +76,14 @@ export default function SignupScreen() {
     }
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (!ageConfirmed) {
+      setError("You must confirm you are 13 years of age or older.");
+      return;
+    }
+    if (!tosAgreed) {
+      setError("You must agree to the Terms of Service and Privacy Policy to continue.");
       return;
     }
     setError(null);
@@ -81,7 +126,16 @@ export default function SignupScreen() {
             </View>
             <Text style={[styles.appName, { color: colors.foreground }]}>Ascend</Text>
             <Text style={[styles.tagline, { color: colors.mutedForeground }]}>
-              Start your transformation today
+              Your AI coach for body, energy & focus
+            </Text>
+          </View>
+
+          {/* Health Disclaimer */}
+          <View style={[styles.disclaimerBox, { backgroundColor: colors.amber + "10", borderColor: colors.amber + "44" }]}>
+            <Feather name="alert-triangle" size={13} color={colors.amber} style={{ marginTop: 1 }} />
+            <Text style={[styles.disclaimerText, { color: colors.mutedForeground }]}>
+              <Text style={{ color: colors.amber, fontFamily: "Inter_600SemiBold" }}>Health Notice: </Text>
+              Ascend Fit provides general fitness and nutrition guidance only. It is not medical advice. Consult a healthcare professional before starting any diet or exercise program, especially if you have a medical condition or history of eating disorders.
             </Text>
           </View>
 
@@ -96,7 +150,7 @@ export default function SignupScreen() {
             )}
 
             <View style={styles.fields}>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.surface ?? colors.muted, borderColor: colors.border }]}>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.muted, borderColor: colors.border }]}>
                 <Feather name="user" size={16} color={colors.mutedForeground} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: colors.foreground }]}
@@ -109,7 +163,7 @@ export default function SignupScreen() {
                   returnKeyType="next"
                 />
               </View>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.surface ?? colors.muted, borderColor: colors.border }]}>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.muted, borderColor: colors.border }]}>
                 <Feather name="mail" size={16} color={colors.mutedForeground} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: colors.foreground }]}
@@ -123,7 +177,7 @@ export default function SignupScreen() {
                   returnKeyType="next"
                 />
               </View>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.surface ?? colors.muted, borderColor: colors.border }]}>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.muted, borderColor: colors.border }]}>
                 <Feather name="lock" size={16} color={colors.mutedForeground} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: colors.foreground }]}
@@ -142,6 +196,22 @@ export default function SignupScreen() {
               </View>
             </View>
 
+            {/* Age gate */}
+            <Checkbox
+              checked={ageConfirmed}
+              onToggle={() => setAgeConfirmed((v) => !v)}
+              label="I confirm that I am 13 years of age or older. Ascend Fit is not available for users under 13."
+            />
+
+            {/* ToS + Privacy */}
+            <Checkbox
+              checked={tosAgreed}
+              onToggle={() => setTosAgreed((v) => !v)}
+              label="I agree to the "
+              linkLabel="Terms of Service and Privacy Policy"
+              onLinkPress={() => openLink("/terms")}
+            />
+
             <TouchableOpacity
               style={[styles.primaryBtn, { backgroundColor: colors.primary, opacity: isLoading ? 0.7 : 1 }]}
               onPress={handleSignup}
@@ -154,10 +224,6 @@ export default function SignupScreen() {
                 <Text style={[styles.primaryBtnText, { color: colors.primaryForeground }]}>Create Account</Text>
               )}
             </TouchableOpacity>
-
-            <Text style={[styles.disclaimer, { color: colors.mutedForeground }]}>
-              By signing up you agree to our Terms of Service and Privacy Policy.
-            </Text>
           </View>
 
           <View style={styles.footer}>
@@ -180,76 +246,43 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
   scroll: { flexGrow: 1, paddingHorizontal: 24 },
-  logoArea: { alignItems: "center", marginBottom: 40 },
+  logoArea: { alignItems: "center", marginBottom: 24 },
   logoCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
+    width: 72, height: 72, borderRadius: 20, borderWidth: 1.5,
+    alignItems: "center", justifyContent: "center", marginBottom: 16,
   },
-  appName: {
-    fontSize: 32,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.5,
-    marginBottom: 6,
-  },
+  appName: { fontSize: 32, fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginBottom: 6 },
   tagline: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center" },
-  card: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 24,
-    gap: 20,
+  disclaimerBox: {
+    flexDirection: "row", alignItems: "flex-start", gap: 8,
+    borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 16,
   },
+  disclaimerText: { fontSize: 12, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 },
+  card: { borderRadius: 20, borderWidth: 1, padding: 24, gap: 16 },
   title: { fontSize: 22, fontFamily: "Inter_700Bold" },
   errorBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
+    flexDirection: "row", alignItems: "center", gap: 8,
+    padding: 12, borderRadius: 10, borderWidth: 1,
   },
   errorText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 },
   fields: { gap: 12 },
   inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    height: 52,
+    flexDirection: "row", alignItems: "center", borderRadius: 12,
+    borderWidth: 1, paddingHorizontal: 14, height: 52,
   },
   inputIcon: { marginRight: 10 },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-  },
+  input: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular" },
   eyeBtn: { padding: 4 },
-  primaryBtn: {
-    height: 52,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
+  checkRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  checkBox: {
+    width: 20, height: 20, borderRadius: 5, borderWidth: 1.5,
+    alignItems: "center", justifyContent: "center", marginTop: 1,
   },
-  primaryBtnText: {
-    fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
-  },
-  disclaimer: {
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    lineHeight: 16,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 24,
-  },
+  checkLabel: { fontSize: 12, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 },
+  checkLink: { fontFamily: "Inter_600SemiBold" },
+  primaryBtn: { height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  primaryBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  footer: { flexDirection: "row", justifyContent: "center", marginTop: 24 },
   footerText: { fontSize: 14, fontFamily: "Inter_400Regular" },
   footerLink: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
 });

@@ -28,7 +28,7 @@ export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { isPro } = useSubscription();
 
   const { data: plan, isLoading: planLoading, refetch: refetchPlan } = useGetCurrentPlan();
@@ -44,11 +44,6 @@ export default function HomeScreen() {
     refetchStreak();
     refetchMeals();
     refetchWater();
-  };
-
-  const handleLogout = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    logout();
   };
 
   const todayCalories = recentMeals
@@ -81,10 +76,21 @@ export default function HomeScreen() {
             {isPro && <ProBadge />}
           </View>
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-          <Feather name="log-out" size={20} color={colors.mutedForeground} />
+        <TouchableOpacity onPress={() => router.push("/settings")} style={styles.logoutBtn}>
+          <Feather name="settings" size={20} color={colors.mutedForeground} />
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        style={[styles.emergencyBanner, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "33" }]}
+        onPress={() => router.push("/settings")}
+        activeOpacity={0.8}
+      >
+        <Feather name="alert-octagon" size={12} color={colors.destructive} />
+        <Text style={[styles.emergencyText, { color: colors.destructive }]}>
+          Chest pain, dizziness, or trouble breathing? Stop and call emergency services immediately.
+        </Text>
+      </TouchableOpacity>
 
       {streak && (
         <View style={[styles.streakBanner, { backgroundColor: colors.primary + "1A", borderColor: colors.primary + "44" }]}>
@@ -220,6 +226,8 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   name: { fontSize: 22, fontFamily: "Inter_700Bold" },
   logoutBtn: { padding: 8 },
+  emergencyBanner: { flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 10, borderWidth: 1, padding: 10, marginBottom: 20 },
+  emergencyText: { fontSize: 11, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 16 },
   streakBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 12, borderWidth: 1, marginBottom: 24 },
   streakText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   streakSub: { fontSize: 14, fontFamily: "Inter_400Regular" },

@@ -22,7 +22,7 @@ export default function TermsOfServicePage() {
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">1. Acceptance of Terms</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              By creating an account or using Ascend, you agree to these Terms of Service and our <Link href="/privacy" className="text-primary font-semibold">Privacy Policy</Link>. If you do not agree, do not use the service. You must be at least 18 years old to use Ascend.
+              By creating an account or using Ascend, you agree to these Terms of Service and our <Link href="/privacy" className="text-primary font-semibold">Privacy Policy</Link>. If you do not agree, do not use the service. You must be at least 13 years old to use Ascend. Users under 18 must have parental or legal guardian consent before creating an account. Ascend does not knowingly collect data from children under 13.
             </p>
           </section>
 

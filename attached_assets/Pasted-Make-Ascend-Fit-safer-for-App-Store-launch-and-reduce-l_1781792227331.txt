@@ -1,0 +1,30 @@
+Make Ascend Fit safer for App Store launch and reduce legal risk. Do not redesign the app. Add these protections:
+
+1. Add a clear Health Disclaimer during onboarding and in Settings:
+    “Ascend Fit provides general fitness, nutrition, and habit-tracking information only. It is not medical advice, diagnosis, or treatment. Always consult a qualified healthcare professional before starting a diet, exercise program, or weight-loss plan, especially if you have a medical condition, injury, eating disorder history, or are under medical care.”
+2. Add AI accuracy disclaimer near food photo/calorie tracking:
+    “AI food estimates may be inaccurate. Always verify nutrition information when accuracy matters.”
+3. Add safe AI coach rules:
+
+* Never recommend starvation diets, extreme fasting, unsafe calorie targets, dehydration, purging, or dangerous workouts.
+* Never diagnose medical conditions.
+* Never guarantee weight loss, muscle gain, or health outcomes.
+* If user mentions injury, illness, eating disorder, chest pain, fainting, pregnancy, diabetes, or medical condition, tell them to consult a doctor.
+* Keep advice general, safe, and moderate.
+
+4. Add Terms of Use page and Privacy Policy page linked from signup, onboarding, settings, and App Store metadata.
+5. Add required checkbox at signup:
+    “I agree to the Terms of Use and Privacy Policy.”
+6. Add age gate:
+    Ask for date of birth or age. Do not allow users under 13 to create an account. Show: “Ascend Fit is not available for users under 13.”
+7. Add account deletion:
+    Settings → Account → Delete Account.
+    Deleting account must delete user profile, goals, uploaded food photos, meal logs, progress logs, journal entries, and coach history unless legally required to keep payment records.
+8. Add data controls:
+    Settings page should show what data is collected: email, profile info, fitness goals, food photos, meal logs, workouts, water, progress, journal, and subscription status.
+9. Add marketing/legal guardrails in app copy:
+    Do not say guaranteed weight loss, guaranteed muscle gain, medical treatment, cure, or diagnosis. Use words like “helps,” “supports,” “tracks,” “guides,” and “personalized fitness support.”
+10. Add emergency disclaimer:
+    “If you feel chest pain, severe dizziness, fainting, trouble breathing, or a medical emergency, stop exercising and seek emergency medical help.”
+
+After implementing, give me a checklist of each item completed and where it appears in the app.

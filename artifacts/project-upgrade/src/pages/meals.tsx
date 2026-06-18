@@ -478,6 +478,9 @@ export default function MealsPage() {
               >
                 {createMeal.isPending ? "Getting Coach Feedback..." : "Get Coach Feedback"}
               </Button>
+              <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
+                AI food estimates may be inaccurate. Always verify nutrition information when accuracy matters. Coach feedback is not medical or dietary advice.
+              </p>
               {error && (
                 <p className="text-xs text-red-400 text-center" data-testid="text-meal-error">{error}</p>
               )}

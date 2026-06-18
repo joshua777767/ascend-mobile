@@ -277,6 +277,13 @@ export default function MealsScreen() {
             </View>
 
             <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Photo (optional)</Text>
+            <View style={[styles.aiDisclaimer, { backgroundColor: colors.amber + "10", borderColor: colors.amber + "33" }]}>
+              <Feather name="info" size={12} color={colors.amber} />
+              <Text style={[styles.aiDisclaimerText, { color: colors.mutedForeground }]}>
+                AI food estimates may be inaccurate. Always verify nutrition information when accuracy matters.
+              </Text>
+            </View>
+
             {imageUri ? (
               <View style={styles.imagePreviewContainer}>
                 <Image source={{ uri: imageUri }} style={styles.imagePreview} />
@@ -353,4 +360,6 @@ const styles = StyleSheet.create({
   imagePreviewContainer: { position: "relative" },
   imagePreview: { width: "100%", height: 200, borderRadius: 12 },
   removeImageBtn: { position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  aiDisclaimer: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 10, borderWidth: 1, padding: 10 },
+  aiDisclaimerText: { fontSize: 11, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 16 },
 });
