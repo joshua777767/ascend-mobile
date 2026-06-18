@@ -849,6 +849,12 @@ export default function DashboardPage() {
     }
   }, [todayProtein, plan?.proteinTargetG, dailyHabits]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [profilePromptDismissed, setProfilePromptDismissed] = useState(
+    () => typeof localStorage !== "undefined" && localStorage.getItem("ascend.profilePromptDismissed") === "1"
+  );
+  const showProfilePrompt = !profilePromptDismissed &&
+    !!profile && !(profile as any).dietStyle && !(profile as any).allergies && (profile as any).gymAccess === "no";
+
   if (loadingProfile || !profile) {
     return (
       <div className="h-full overflow-y-auto scroll-area">
@@ -1039,6 +1045,39 @@ export default function DashboardPage() {
           <div className="rounded-2xl px-4 py-3 text-xs font-semibold text-emerald-400 flex items-center gap-2"
             style={{ background: "hsl(150 50% 10%)", border: "1px solid hsl(150 50% 20%)" }}>
             <span>✓</span> Location locked in — your schedule is now timezone-precise.
+          </div>
+        )}
+
+        {/* ── Profile completion prompt ── */}
+        {showProfilePrompt && (
+          <div
+            className="rounded-2xl p-4 flex items-start gap-3"
+            style={{ background: "hsl(220 12% 9%)", border: "1px solid hsl(38 70% 45% / 0.35)" }}
+          >
+            <Sparkles className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "#C89A3E" }} strokeWidth={2} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground leading-snug">Want a more personalized plan?</p>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                Add your gym access, diet preferences, and workout experience to unlock a better-tailored plan.
+              </p>
+              <Link
+                href="/settings"
+                className="inline-block mt-2 text-xs font-bold"
+                style={{ color: "#C89A3E" }}
+              >
+                Complete your profile →
+              </Link>
+            </div>
+            <button
+              onClick={() => {
+                setProfilePromptDismissed(true);
+                localStorage.setItem("ascend.profilePromptDismissed", "1");
+              }}
+              className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none shrink-0 -mt-0.5"
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
           </div>
         )}
 

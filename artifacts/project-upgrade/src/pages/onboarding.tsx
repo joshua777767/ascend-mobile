@@ -1,446 +1,156 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCreateUserProfile, useGeneratePlan, getGetCurrentPlanQueryKey, getGetUserProfileQueryKey } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
+import {
+  useCreateUserProfile,
+  useGeneratePlan,
+  useGetMe,
+  getGetCurrentPlanQueryKey,
+  getGetUserProfileQueryKey,
+} from "@workspace/api-client-react";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
+
+// ─── constants ────────────────────────────────────────────────────────────────
 
 const GOALS = [
-  "lose fat","lose weight","gain weight","build muscle",
-  "maintain fitness","better skin","higher energy","better sleep","discipline",
-];
-const SKIN_CONCERNS = ["acne","oily skin","dry skin","dull skin","none"];
-const DIGESTION_CONCERNS = ["bloating","constipation","stomach pain","none"];
-const STRUGGLES = [
-  "cravings","consistency","late-night eating","motivation","fast food",
-  "no appetite","no time","binge eating","skipping meals","not eating enough",
-];
+  { label: "Lose Weight",  value: "lose weight",       emoji: "🔥" },
+  { label: "Gain Weight",  value: "gain weight",        emoji: "⬆️" },
+  { label: "Gain Muscle",  value: "build muscle",       emoji: "💪" },
+  { label: "Stay Fit",     value: "maintain fitness",   emoji: "⚡" },
+  { label: "Better Skin",  value: "better skin",        emoji: "✨" },
+  { label: "More Energy",  value: "higher energy",      emoji: "🌟" },
+] as const;
 
-const SPORTS = [
-  "No sport","Football","Basketball","Soccer","Track","Boxing/MMA",
-  "Baseball/Softball","Volleyball","Wrestling","Other",
-];
+const TOTAL_STEPS = 4;
 
-const WORKOUT_FOCUSES = [
-  { label: "Lose fat", value: "lose_fat" },
-  { label: "Build muscle", value: "build_muscle" },
-  { label: "Strength", value: "strength" },
-  { label: "Athletic performance", value: "athletic_performance" },
-  { label: "Conditioning", value: "conditioning" },
-  { label: "General fitness", value: "general_fitness" },
-];
+// ─── helpers ──────────────────────────────────────────────────────────────────
 
-const step1Schema = z.object({
-  name: z.string().min(1, "Required"),
-  age: z.coerce.number().int().min(13).max(100),
-  gender: z.string().min(1, "Required"),
-  heightFt: z.coerce.number().int().min(3).max(8),
-  heightIn: z.coerce.number().int().min(0).max(11),
-  currentWeightLbs: z.coerce.number().min(66).max(660),
-  goalWeightLbs: z.coerce.number().min(66).max(660),
-  bodyType: z.string().min(1, "Required"),
-});
-
-const step2Schema = z.object({
-  fitnessLevel: z.string().min(1, "Required"),
-  gymAccess: z.string().min(1, "Required"),
-  workoutDaysPerWeek: z.coerce.number().int().min(1).max(7),
-  preferredWorkoutTime: z.string().optional(),
-  targetDate: z.string().optional(),
-});
-
-const step3Schema = z.object({
-  wakeTime: z.string().min(1, "Required"),
-  sleepTime: z.string().min(1, "Required"),
-  workSchedule: z.string().optional(),
-});
-
-const step4Schema = z.object({
-  mealsPerDay: z.coerce.number().int().min(1).max(8),
-  waterIntakeLiters: z.coerce.number().min(0.5).max(10),
-  allergies: z.string().optional(),
-  dislikedFoods: z.string().optional(),
-  dietStyle: z.string().optional(),
-});
-
-type Step1 = z.infer<typeof step1Schema>;
-type Step2 = z.infer<typeof step2Schema>;
-type Step3 = z.infer<typeof step3Schema>;
-type Step4 = z.infer<typeof step4Schema>;
-
-const TOTAL_STEPS = 6;
-
-const STEP_TITLES = [
-  "About you",
-  "Your training",
-  "Daily routine",
-  "Nutrition & health",
-  "Your commitment",
-  "Review & launch",
-];
-
-const STEP_SUBTITLES = [
-  "Let's set up your profile",
-  "How you like to train",
-  "When you wake, work, and rest",
-  "What you eat and how you feel",
-  "How serious are you about this goal?",
-  "Confirm and build your plan",
-];
-
-const COMMITMENT_LEVELS = [
-  { value: "casual", label: "Casual", desc: "I want to make small changes, no pressure." },
-  { value: "serious", label: "Serious", desc: "I'm focused. I'll follow the plan and track daily." },
-  { value: "locked_in", label: "All In", desc: "I want real results and honest accountability. Every day, every choice." },
-  { value: "extreme_discipline", label: "Deep Focus", desc: "I want to build strong habits and stay consistent. Small wins, every day." },
-];
-
-function Chip({ label, selected, onToggle, testId }: { label: string; selected: boolean; onToggle: () => void; testId?: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className={cn(
-        "px-4 py-2.5 rounded-full text-sm font-medium capitalize border transition-all active:scale-[0.97]",
-        selected
-          ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20"
-          : "bg-card text-muted-foreground border-border active:bg-elevated"
-      )}
-      data-testid={testId ?? `chip-${label.replace(/\s+/g, "-")}`}
-    >
-      {label}
-    </button>
-  );
+function lbsToKg(lbs: number) {
+  return Math.round((lbs / 2.2046226) * 10) / 10;
+}
+function ftInToCm(ft: number, inches: number) {
+  return Math.round((ft * 12 + inches) * 2.54 * 10) / 10;
 }
 
-function FieldError({ msg }: { msg?: string }) {
-  if (!msg) return null;
-  return <p className="text-xs text-destructive mt-1.5">{msg}</p>;
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm font-semibold text-foreground mb-2.5">{children}</p>;
-}
-
-const inputClass = "bg-elevated border border-border rounded-xl h-12 text-base px-3 w-full";
-const textareaClass = "bg-elevated border border-border rounded-xl p-3 text-base text-foreground placeholder:text-muted-foreground w-full resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[100px]";
-
-const ONBOARD_KEY = "ascend.onboarding";
-
-// ─── Timeline safety validation ──────────────────────────────────────────────
-
-/** Formats an ISO date string (YYYY-MM-DD) as "Jan 15, 2026" without TZ shift. */
-function fmtIso(iso: string): string {
-  const [yr, mo, dy] = iso.split("-").map(Number);
-  return new Date(yr, mo - 1, dy).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-/** Adds `weeks` weeks to today and returns an ISO date string. */
-function addWeeksFromToday(weeks: number): string {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + Math.ceil(weeks) * 7);
-  return d.toISOString().split("T")[0];
-}
-
-/**
- * Returns `{ error }` if the selected date implies an unsafe weekly rate,
- * or `{ recommended }` (ISO date) as a hint when no date is selected.
- * Safety limits: fat loss ≤ 2 lbs/week, weight gain ≤ 1 lb/week.
- */
-function validateTargetDate(
-  targetDate: string | undefined,
-  currentWeightLbs: number | undefined,
-  goalWeightLbs: number | undefined,
-): { error?: string; recommended?: string } {
-  const current = currentWeightLbs ?? 0;
-  const goal = goalWeightLbs ?? 0;
-  const diffLbs = current - goal; // positive = loss goal, negative = gain goal
-  const significant = Math.abs(diffLbs) > 2;
-
-  // No date set — show a recommended date when there is a weight gap
-  if (!targetDate) {
-    if (!significant) return {};
-    const weeksNeeded = diffLbs > 0
-      ? Math.ceil(diffLbs / 1)        // 1 lb/week standard loss pace
-      : Math.ceil(-diffLbs / 0.5);    // 0.5 lb/week lean gain pace
-    return { recommended: addWeeksFromToday(weeksNeeded) };
-  }
-
-  // Date set but no significant weight change — no rate to check
-  if (!significant) return {};
-
-  const parts = targetDate.split("-").map(Number);
-  if (parts.length !== 3) return {};
-  const [yr, mo, dy] = parts;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const targetObj = new Date(yr, mo - 1, dy);
-  const diffDays = Math.round((targetObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 7) {
-    return { error: "Target date is too soon — pick a date at least 1 week from today." };
-  }
-
-  const diffWeeks = diffDays / 7;
-
-  if (diffLbs > 2) {
-    // Fat loss check
-    const lbsPerWeek = diffLbs / diffWeeks;
-    if (lbsPerWeek > 2) {
-      const minWeeks = Math.ceil(diffLbs / 2);
-      return {
-        error: `Losing ${diffLbs.toFixed(0)} lbs by then needs ${lbsPerWeek.toFixed(1)} lbs/week — above the 2 lbs/week safe max. Try a date after ${fmtIso(addWeeksFromToday(minWeeks))}.`,
-      };
-    }
-  } else if (diffLbs < -2) {
-    // Weight gain check
-    const gainLbs = -diffLbs;
-    const lbsPerWeek = gainLbs / diffWeeks;
-    if (lbsPerWeek > 1) {
-      const minWeeks = Math.ceil(gainLbs / 1);
-      return {
-        error: `Gaining ${gainLbs.toFixed(0)} lbs by then needs ${lbsPerWeek.toFixed(1)} lbs/week — above the 1 lb/week safe lean gain max. Try a date after ${fmtIso(addWeeksFromToday(minWeeks))}.`,
-      };
-    }
-  }
-
-  return {};
-}
-
-type OnboardingState = {
-  step: number;
-  selectedGoals: string[];
-  skinConcerns: string[];
-  digestionConcerns: string[];
-  biggestStruggle: string;
-  sleepQuality: number;
-  energyLevel: number;
-  stressLevel: number;
-  formData: Partial<Step1 & Step2 & Step3 & Step4>;
-  commitmentLevel: string;
-  selectedSport: string;
-  sportCustomText: string;
-  scheduleChoice: "" | "yes" | "no";
-  ownScheduleText: string;
-  selectedWorkoutFocus: string;
-  // Sport schedule
-  sportDays: string[];
-  sportStartTime: string;
-  sportDuration: number;
-  sportIntensity: string;
-  sportGameDays: string[];
-  // Custom workout schedule
-  customWorkoutDays: { day: string; focus: string }[];
-};
-
-const DAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-
-function loadState(): OnboardingState | null {
-  try {
-    const raw = sessionStorage.getItem(ONBOARD_KEY);
-    return raw ? (JSON.parse(raw) as OnboardingState) : null;
-  } catch {
-    return null;
-  }
-}
-function saveState(s: OnboardingState) {
-  try { sessionStorage.setItem(ONBOARD_KEY, JSON.stringify(s)); } catch {}
-}
-function clearState() {
-  try { sessionStorage.removeItem(ONBOARD_KEY); } catch {}
-}
+// ─── main component ───────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const persisted = loadState();
-
-  const [step, setStep] = useState(persisted?.step ?? 1);
-  const [selectedGoals, setSelectedGoals] = useState<string[]>(persisted?.selectedGoals ?? []);
-  const [skinConcerns, setSkinConcerns] = useState<string[]>(persisted?.skinConcerns ?? []);
-  const [digestionConcerns, setDigestionConcerns] = useState<string[]>(persisted?.digestionConcerns ?? []);
-  const [biggestStruggle, setBiggestStruggle] = useState(persisted?.biggestStruggle ?? "");
-  const [sleepQuality, setSleepQuality] = useState(persisted?.sleepQuality ?? 5);
-  const [energyLevel, setEnergyLevel] = useState(persisted?.energyLevel ?? 5);
-  const [stressLevel, setStressLevel] = useState(persisted?.stressLevel ?? 5);
-  const [formData, setFormData] = useState<Partial<Step1 & Step2 & Step3 & Step4>>(persisted?.formData ?? {});
-  const [commitmentLevel, setCommitmentLevel] = useState<string>(persisted?.commitmentLevel ?? "");
-
-  const [selectedSport, setSelectedSport] = useState(persisted?.selectedSport ?? "");
-  const [sportCustomText, setSportCustomText] = useState(persisted?.sportCustomText ?? "");
-  const [scheduleChoice, setScheduleChoice] = useState<"" | "yes" | "no">(persisted?.scheduleChoice ?? "");
-  const [ownScheduleText, setOwnScheduleText] = useState(persisted?.ownScheduleText ?? "");
-  const [selectedWorkoutFocus, setSelectedWorkoutFocus] = useState(persisted?.selectedWorkoutFocus ?? "");
-
-  // Sport schedule state
-  const [sportDays, setSportDays] = useState<string[]>(persisted?.sportDays ?? []);
-  const [sportStartTime, setSportStartTime] = useState(persisted?.sportStartTime ?? "16:00");
-  const [sportDuration, setSportDuration] = useState(persisted?.sportDuration ?? 90);
-  const [sportDurationRaw, setSportDurationRaw] = useState(String(persisted?.sportDuration ?? 90));
-  const [sportIntensity, setSportIntensity] = useState(persisted?.sportIntensity ?? "moderate");
-  const [sportGameDays, setSportGameDays] = useState<string[]>(persisted?.sportGameDays ?? []);
-
-  // Custom workout schedule state
-  const [customWorkoutDays, setCustomWorkoutDays] = useState<{ day: string; focus: string }[]>(persisted?.customWorkoutDays ?? []);
-
-  // Persist everything when any state changes
-  useEffect(() => {
-    saveState({
-      step, selectedGoals, skinConcerns, digestionConcerns, biggestStruggle,
-      sleepQuality, energyLevel, stressLevel, formData, commitmentLevel,
-      selectedSport, sportCustomText, scheduleChoice, ownScheduleText, selectedWorkoutFocus,
-      sportDays, sportStartTime, sportDuration, sportIntensity, sportGameDays,
-      customWorkoutDays,
-    });
-  }, [step, selectedGoals, skinConcerns, digestionConcerns, biggestStruggle,
-      sleepQuality, energyLevel, stressLevel, formData, commitmentLevel,
-      selectedSport, sportCustomText, scheduleChoice, ownScheduleText, selectedWorkoutFocus,
-      sportDays, sportStartTime, sportDuration, sportIntensity, sportGameDays,
-      customWorkoutDays]);
+  const { data: me } = useGetMe();
 
   const createProfile = useCreateUserProfile();
   const generatePlan = useGeneratePlan();
 
-  const form1 = useForm<Step1>({ resolver: zodResolver(step1Schema), defaultValues: persisted?.formData as Step1 });
-  const form2 = useForm<Step2>({ resolver: zodResolver(step2Schema), defaultValues: { workoutDaysPerWeek: 3, ...(persisted?.formData ?? {}) } });
-  const form3 = useForm<Step3>({ resolver: zodResolver(step3Schema), defaultValues: { wakeTime: "06:30", sleepTime: "22:30", ...(persisted?.formData ?? {}) } });
-  const form4 = useForm<Step4>({ resolver: zodResolver(step4Schema), defaultValues: { mealsPerDay: 3, waterIntakeLiters: 2, ...(persisted?.formData ?? {}) } });
+  // Step state
+  const [step, setStep] = useState(1);
+  const [selectedGoal, setSelectedGoal] = useState<string>("");
+  const [weightLbs, setWeightLbs] = useState("");
+  const [heightFt, setHeightFt] = useState("");
+  const [heightIn, setHeightIn] = useState("");
+  const [age, setAge] = useState("");
+  const [error, setError] = useState("");
 
-  const toggleGoal = (g: string) => setSelectedGoals(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
-  const toggleSkin = (s: string) => setSkinConcerns(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
-  const toggleDigestion = (d: string) => setDigestionConcerns(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+  const isLoading = createProfile.isPending || generatePlan.isPending;
 
-  const [goalError, setGoalError] = useState(false);
-  const [targetDateValidation, setTargetDateValidation] = useState<{ error?: string; recommended?: string }>({});
-  const watchedTargetDate = form2.watch("targetDate");
+  // ── Step handlers ────────────────────────────────────────────────────────
 
-  // Re-validate target date whenever date, current weight, or goal weight changes
-  useEffect(() => {
-    setTargetDateValidation(validateTargetDate(watchedTargetDate, formData.currentWeightLbs, formData.goalWeightLbs));
-  }, [watchedTargetDate, formData.currentWeightLbs, formData.goalWeightLbs]);
+  const handleStep1 = () => {
+    if (!selectedGoal) { setError("Pick a goal to continue."); return; }
+    setError("");
+    setStep(2);
+  };
 
-  const handleStep1 = form1.handleSubmit((data) => {
-    if (selectedGoals.length === 0) {
-      setGoalError(true);
+  const handleStep2 = () => {
+    const w = parseFloat(weightLbs);
+    if (!weightLbs || isNaN(w) || w < 50 || w > 700) {
+      setError("Enter a valid weight between 50 and 700 lbs.");
       return;
     }
-    setGoalError(false);
-    setFormData(prev => ({ ...prev, ...data }));
-    setStep(2);
-  });
-  const handleStep2 = form2.handleSubmit((data) => {
-    if (targetDateValidation.error) return; // block unsafe timelines
-    setFormData(prev => ({ ...prev, ...data }));
+    setError("");
     setStep(3);
-  });
-  const handleStep3 = form3.handleSubmit((data) => {
-    setFormData(prev => ({ ...prev, ...data }));
-    setStep(4);
-  });
-  const handleStep4 = form4.handleSubmit((data) => {
-    setFormData(prev => ({ ...prev, ...data }));
-    setStep(5);
-  });
+  };
 
-  const handleStep5 = () => {
-    if (!commitmentLevel) return;
-    setStep(6);
+  const handleStep3 = () => {
+    const ft = parseInt(heightFt);
+    const inches = parseInt(heightIn) || 0;
+    if (!heightFt || isNaN(ft) || ft < 3 || ft > 8 || isNaN(inches) || inches < 0 || inches > 11) {
+      setError("Enter a valid height.");
+      return;
+    }
+    setError("");
+    setStep(4);
   };
 
   const handleSubmit = async () => {
-    const { heightFt, heightIn, currentWeightLbs, goalWeightLbs, ...rest } = formData;
-    const heightCm = Math.round((((heightFt ?? 0) * 12 + (heightIn ?? 0)) * 2.54) * 10) / 10;
-    const currentWeightKg = Math.round(((currentWeightLbs ?? 0) / 2.2046226) * 10) / 10;
-    const goalWeightKg = Math.round(((goalWeightLbs ?? 0) / 2.2046226) * 10) / 10;
+    const a = parseInt(age);
+    if (!age || isNaN(a) || a < 13 || a > 100) {
+      setError("Enter a valid age between 13 and 100.");
+      return;
+    }
+    setError("");
 
-    const sportValue = selectedSport.toLowerCase();
-    const sportCustom = selectedSport.toLowerCase() === "other" ? sportCustomText : undefined;
-    const hasOwnSchedule = scheduleChoice || undefined;
-    const ownSchedule = scheduleChoice === "yes" ? ownScheduleText : undefined;
-    const workoutFocus = scheduleChoice === "no" ? selectedWorkoutFocus : undefined;
-
-    // Build sportSchedule JSON
-    const sportSchedule = sportValue && sportValue !== "no sport" && sportDays.length > 0
-      ? JSON.stringify({
-          sport: sportCustom || sportValue,
-          days: sportDays,
-          startTime: sportStartTime,
-          durationMinutes: sportDuration,
-          intensity: sportIntensity,
-          gameDays: sportGameDays.length > 0 ? sportGameDays : undefined,
-        })
-      : undefined;
-
-    // Build customWorkoutSchedule JSON
-    const customWorkoutSchedule = customWorkoutDays.length > 0
-      ? JSON.stringify({ days: customWorkoutDays })
-      : undefined;
+    const ft = parseInt(heightFt) || 0;
+    const inches = parseInt(heightIn) || 0;
+    const currentWeightKg = lbsToKg(parseFloat(weightLbs));
 
     const payload = {
-      ...rest,
-      heightCm,
+      name: me?.email?.split("@")[0] ?? "User",
+      age: a,
+      gender: "prefer not to say",
+      heightCm: ftInToCm(ft, inches),
       currentWeightKg,
-      goalWeightKg,
-      goals: selectedGoals,
-      skinConcerns,
-      digestionConcerns,
-      biggestStruggle,
-      sleepQuality,
-      energyLevel,
-      stressLevel,
-      mealsPerDay: formData.mealsPerDay ?? 3,
-      waterIntakeLiters: formData.waterIntakeLiters ?? 2,
-      workoutDaysPerWeek: formData.workoutDaysPerWeek ?? 3,
-      wakeTime: formData.wakeTime ?? "06:30",
-      sleepTime: formData.sleepTime ?? "22:30",
-      ...(sportValue ? { sport: sportValue } : {}),
-      ...(sportCustom ? { sportCustom } : {}),
-      ...(hasOwnSchedule ? { hasOwnSchedule } : {}),
-      ...(ownSchedule ? { ownSchedule } : {}),
-      ...(workoutFocus ? { workoutFocus } : {}),
-      ...(sportSchedule ? { sportSchedule } : {}),
-      ...(customWorkoutSchedule ? { customWorkoutSchedule } : {}),
-      commitmentLevel,
+      goalWeightKg: currentWeightKg,
+      bodyType: "average",
+      goals: [selectedGoal],
+      skinConcerns: [],
+      digestionConcerns: [],
+      fitnessLevel: "beginner",
+      gymAccess: "no",
+      workoutDaysPerWeek: 3,
+      wakeTime: "06:30",
+      sleepTime: "22:30",
+      sleepQuality: 5,
+      energyLevel: 5,
+      stressLevel: 5,
+      mealsPerDay: 3,
+      waterIntakeLiters: 2,
+      commitmentLevel: "serious",
     } as any;
+
     try {
       await createProfile.mutateAsync({ data: payload });
       queryClient.invalidateQueries({ queryKey: getGetUserProfileQueryKey() });
       await generatePlan.mutateAsync(undefined as any);
       queryClient.invalidateQueries({ queryKey: getGetCurrentPlanQueryKey() });
-      clearState();
       setLocation("/dashboard");
-    } catch (e) {
-      console.error(e);
+    } catch {
+      setError("Something went wrong. Please try again.");
     }
   };
 
-  const isLoading = createProfile.isPending || generatePlan.isPending;
+  // ── Shared input class ───────────────────────────────────────────────────
+  const numInputCls = cn(
+    "w-full bg-elevated border border-border rounded-2xl text-center text-3xl font-bold",
+    "text-foreground placeholder:text-muted-foreground/40",
+    "focus:outline-none focus:ring-2 focus:ring-primary/50",
+    "h-20 px-4",
+  );
 
   return (
     <div
       className="flex flex-col bg-background text-foreground"
       style={{ height: "100dvh", overflow: "hidden", paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      {/* Sticky header */}
-      <div className="shrink-0 px-5 pt-5 pb-4 bg-background">
+      {/* Header */}
+      <div className="shrink-0 px-5 pt-5 pb-4">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <span className="text-[15px] font-black tracking-tighter leading-none">
-              Ascend<span style={{ color: "#C89A3E" }}>Fit</span>
-            </span>
-          </div>
-          <p className="text-sm font-medium text-muted-foreground">
-            Step {step} of {TOTAL_STEPS}
-          </p>
+          <span className="text-[15px] font-black tracking-tighter leading-none">
+            Ascend<span style={{ color: "#C89A3E" }}>Fit</span>
+          </span>
+          <p className="text-sm font-medium text-muted-foreground">Step {step} of {TOTAL_STEPS}</p>
         </div>
-        {/* Progress bar */}
         <div className="h-1.5 rounded-full bg-elevated overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-300"
@@ -450,629 +160,208 @@ export default function OnboardingPage() {
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto scroll-area">
-        <div className="px-5 pt-2 pb-6 max-w-lg mx-auto">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold tracking-tight">{STEP_TITLES[step - 1]}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{STEP_SUBTITLES[step - 1]}</p>
-          </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-5 pt-4 pb-8 max-w-lg mx-auto flex flex-col gap-6">
 
-          {/* STEP 1 — Identity */}
+          {/* ── Step 1: Goal ─────────────────────────────────────────────── */}
           {step === 1 && (
-            <form onSubmit={handleStep1} className="space-y-6">
+            <>
               <div>
-                <SectionLabel>Your name</SectionLabel>
-                <Input
-                  {...form1.register("name")}
-                  placeholder="First name or nickname"
-                  className={inputClass}
-                  data-testid="input-name"
-                  autoComplete="given-name"
-                />
-                <FieldError msg={form1.formState.errors.name?.message} />
+                <h1 className="text-2xl font-bold tracking-tight">What's your main goal?</h1>
+                <p className="text-sm text-muted-foreground mt-1">Pick the one that matters most right now.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <SectionLabel>Age</SectionLabel>
-                  <Input {...form1.register("age")} type="number" inputMode="numeric" placeholder="25" className={inputClass} data-testid="input-age" />
-                  <FieldError msg={form1.formState.errors.age?.message} />
-                </div>
-                <div>
-                  <SectionLabel>Gender</SectionLabel>
-                  <div className="flex gap-2 flex-wrap">
-                    {["Male","Female","Other"].map(g => (
-                      <Chip key={g} label={g} selected={form1.watch("gender") === g} onToggle={() => form1.setValue("gender", g)} testId={`option-${g}`} />
-                    ))}
-                  </div>
-                  <FieldError msg={form1.formState.errors.gender?.message} />
-                </div>
-              </div>
-
-              <div>
-                <SectionLabel>Height</SectionLabel>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Input {...form1.register("heightFt")} type="number" inputMode="numeric" placeholder="6" className={inputClass} data-testid="input-height-ft" />
-                    <p className="text-xs text-muted-foreground mt-1">feet</p>
-                  </div>
-                  <div>
-                    <Input {...form1.register("heightIn")} type="number" inputMode="numeric" placeholder="0" className={inputClass} data-testid="input-height-in" />
-                    <p className="text-xs text-muted-foreground mt-1">inches</p>
-                  </div>
-                </div>
-                <FieldError msg={form1.formState.errors.heightFt?.message ?? form1.formState.errors.heightIn?.message} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <SectionLabel>Current weight</SectionLabel>
-                  <Input {...form1.register("currentWeightLbs")} type="number" inputMode="decimal" step="0.1" placeholder="220" className={inputClass} data-testid="input-current-weight" />
-                  <p className="text-xs text-muted-foreground mt-1">lbs</p>
-                </div>
-                <div>
-                  <SectionLabel>Goal weight</SectionLabel>
-                  <Input {...form1.register("goalWeightLbs")} type="number" inputMode="decimal" step="0.1" placeholder="200" className={inputClass} data-testid="input-goal-weight" />
-                  <p className="text-xs text-muted-foreground mt-1">lbs</p>
-                </div>
-              </div>
-
-              <div>
-                <SectionLabel>Body type</SectionLabel>
-                <div className="flex flex-wrap gap-2">
-                  {["skinny","overweight","fit","average"].map(t => (
-                    <Chip key={t} label={t} selected={form1.watch("bodyType") === t} onToggle={() => form1.setValue("bodyType", t)} testId={`option-${t}`} />
-                  ))}
-                </div>
-                <FieldError msg={form1.formState.errors.bodyType?.message} />
-              </div>
-
-              <div>
-                <SectionLabel>Main goals</SectionLabel>
-                <div className="flex flex-wrap gap-2">
-                  {GOALS.map(g => (
-                    <Chip key={g} label={g} selected={selectedGoals.includes(g)} onToggle={() => toggleGoal(g)} />
-                  ))}
-                </div>
-                {goalError && selectedGoals.length === 0 ? (
-                  <p className="text-xs text-destructive font-semibold mt-2">Pick at least one goal to continue.</p>
-                ) : selectedGoals.length === 0 ? (
-                  <p className="text-xs text-muted-foreground mt-2">Pick all that apply — at least one.</p>
-                ) : null}
-              </div>
-
-              <Button type="submit" className="w-full h-14 rounded-2xl text-[15px] font-semibold gap-2" data-testid="button-next-step1">
-                Continue <ArrowRight className="w-[18px] h-[18px]" />
-              </Button>
-            </form>
-          )}
-
-          {/* STEP 2 — Training */}
-          {step === 2 && (
-            <form onSubmit={handleStep2} className="space-y-6">
-              <div>
-                <SectionLabel>Fitness level</SectionLabel>
-                <div className="flex flex-wrap gap-2">
-                  {["beginner","intermediate","advanced"].map(l => (
-                    <Chip key={l} label={l} selected={form2.watch("fitnessLevel") === l} onToggle={() => form2.setValue("fitnessLevel", l)} testId={`option-${l}`} />
-                  ))}
-                </div>
-                <FieldError msg={form2.formState.errors.fitnessLevel?.message} />
-              </div>
-
-              <div>
-                <SectionLabel>Gym access</SectionLabel>
-                <div className="flex flex-wrap gap-2">
-                  {["full gym","home gym","no gym"].map(g => (
-                    <Chip key={g} label={g} selected={form2.watch("gymAccess") === g} onToggle={() => form2.setValue("gymAccess", g)} testId={`option-${g.replace(/\s+/g,"-")}`} />
-                  ))}
-                </div>
-                <FieldError msg={form2.formState.errors.gymAccess?.message} />
-              </div>
-
-              <div>
-                <SectionLabel>Workout days — {form2.watch("workoutDaysPerWeek") ?? 3} per week</SectionLabel>
-                <Slider
-                  min={1} max={7} step={1}
-                  value={[form2.watch("workoutDaysPerWeek") ?? 3]}
-                  onValueChange={v => form2.setValue("workoutDaysPerWeek", v[0])}
-                  data-testid="slider-workout-days"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span>1 day</span><span>7 days</span>
-                </div>
-              </div>
-
-              <div>
-                <SectionLabel>Preferred workout time</SectionLabel>
-                <div className="flex flex-wrap gap-2">
-                  {["morning","afternoon","evening","any"].map(t => (
-                    <Chip key={t} label={t} selected={form2.watch("preferredWorkoutTime") === t} onToggle={() => form2.setValue("preferredWorkoutTime", t)} testId={`option-${t}`} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Sport question */}
-              <div>
-                <SectionLabel>Do you play any sports?</SectionLabel>
-                <div className="flex flex-wrap gap-2">
-                  {SPORTS.map(s => (
-                    <Chip
-                      key={s}
-                      label={s}
-                      selected={selectedSport.toLowerCase() === s.toLowerCase()}
-                      onToggle={() => setSelectedSport(prev => prev.toLowerCase() === s.toLowerCase() ? "" : s)}
-                    />
-                  ))}
-                </div>
-                {selectedSport.toLowerCase() === "other" && (
-                  <div className="mt-3">
-                    <Input
-                      value={sportCustomText}
-                      onChange={e => setSportCustomText(e.target.value)}
-                      placeholder="What sport do you play?"
-                      className={inputClass}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Sport schedule input (shown when sport is selected) */}
-              {selectedSport && selectedSport.toLowerCase() !== "no sport" && selectedSport.toLowerCase() !== "none" && (
-                <div className="space-y-4">
-                  <SectionLabel>Sport practice schedule</SectionLabel>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-2">What days do you practice?</p>
-                    <div className="flex flex-wrap gap-2">
-                      {DAY_NAMES.map(d => (
-                        <Chip
-                          key={d}
-                          label={d.slice(0,3)}
-                          selected={sportDays.includes(d)}
-                          onToggle={() => setSportDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d])}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Start time</p>
-                      <Input
-                        type="time"
-                        value={sportStartTime}
-                        onChange={e => setSportStartTime(e.target.value)}
-                        className={inputClass}
-                      />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Duration (min)</p>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={sportDurationRaw}
-                        onChange={e => setSportDurationRaw(e.target.value)}
-                        onFocus={e => e.target.select()}
-                        onBlur={e => {
-                          const val = parseInt(e.target.value, 10);
-                          if (Number.isNaN(val) || val <= 0) {
-                            setSportDurationRaw("60");
-                            setSportDuration(60);
-                          } else {
-                            const clamped = Math.max(15, Math.min(300, val));
-                            setSportDurationRaw(String(clamped));
-                            setSportDuration(clamped);
-                          }
-                        }}
-                        className={inputClass}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-2">Intensity</p>
-                    <div className="flex flex-wrap gap-2">
-                      {["light","moderate","hard"].map(i => (
-                        <Chip
-                          key={i}
-                          label={i}
-                          selected={sportIntensity === i}
-                          onToggle={() => setSportIntensity(i)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-2">Game days (optional)</p>
-                    <div className="flex flex-wrap gap-2">
-                      {DAY_NAMES.map(d => (
-                        <Chip
-                          key={d}
-                          label={d.slice(0,3)}
-                          selected={sportGameDays.includes(d)}
-                          onToggle={() => setSportGameDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d])}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Schedule question */}
-              <div>
-                <SectionLabel>Do you already have a workout schedule?</SectionLabel>
-                <div className="flex gap-2">
-                  <Chip
-                    label="Yes, I have one"
-                    selected={scheduleChoice === "yes"}
-                    onToggle={() => setScheduleChoice(prev => prev === "yes" ? "" : "yes")}
-                  />
-                  <Chip
-                    label="No, generate one"
-                    selected={scheduleChoice === "no"}
-                    onToggle={() => setScheduleChoice(prev => prev === "no" ? "" : "no")}
-                  />
-                </div>
-
-                {scheduleChoice === "yes" && (
-                  <div className="mt-3 space-y-4">
-                    <div className="space-y-2">
-                      {DAY_NAMES.map(d => {
-                        const entry = customWorkoutDays.find(x => x.day === d);
-                        const focus = entry?.focus ?? "";
-                        return (
-                          <div key={d} className="flex items-center gap-2">
-                            <span className="text-xs font-medium w-20 text-muted-foreground">{d}</span>
-                            <Input
-                              value={focus}
-                              onChange={e => {
-                                const val = e.target.value;
-                                setCustomWorkoutDays(prev => {
-                                  const next = prev.filter(x => x.day !== d);
-                                  if (val.trim()) next.push({ day: d, focus: val.trim() });
-                                  return next;
-                                });
-                              }}
-                              placeholder="e.g. chest, rest, practice"
-                              className="bg-elevated border-border rounded-xl h-10 text-sm"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {scheduleChoice === "no" && (
-                  <div className="mt-3 space-y-2">
-                    <p className="text-xs text-muted-foreground">What do you want to focus on? A schedule will be built for you.</p>
-                    <div className="flex flex-wrap gap-2">
-                      {WORKOUT_FOCUSES.map(f => (
-                        <Chip
-                          key={f.value}
-                          label={f.label}
-                          selected={selectedWorkoutFocus === f.value}
-                          onToggle={() => setSelectedWorkoutFocus(prev => prev === f.value ? "" : f.value)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <SectionLabel>Target date (optional)</SectionLabel>
-                <Input
-                  {...form2.register("targetDate")}
-                  type="date"
-                  className={cn(inputClass, targetDateValidation.error ? "border-destructive ring-1 ring-destructive" : "")}
-                  data-testid="input-target-date"
-                />
-                {targetDateValidation.error ? (
-                  <p className="text-xs text-destructive font-semibold mt-1.5" data-testid="target-date-error">
-                    ⚠ {targetDateValidation.error}
-                  </p>
-                ) : targetDateValidation.recommended && !watchedTargetDate ? (
-                  <p className="text-xs text-muted-foreground mt-1.5">
-                    💡 Recommended: <span className="text-foreground font-medium">{fmtIso(targetDateValidation.recommended)}</span> — at a safe, steady pace
-                  </p>
-                ) : watchedTargetDate && !targetDateValidation.error ? (
-                  <p className="text-xs text-primary font-medium mt-1.5">✓ Timeline looks safe</p>
-                ) : null}
-              </div>
-
-              <div className="flex gap-3">
-                <Button type="button" variant="outline" onClick={() => setStep(1)} className="h-14 px-5 rounded-2xl" data-testid="button-back-step2">
-                  <ChevronLeft className="w-5 h-5" />
-                </Button>
-                <Button type="submit" className="flex-1 h-14 rounded-2xl text-[15px] font-semibold gap-2" data-testid="button-next-step2">
-                  Continue <ArrowRight className="w-[18px] h-[18px]" />
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {/* STEP 3 — Daily Routine */}
-          {step === 3 && (
-            <form onSubmit={handleStep3} className="space-y-6">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <SectionLabel>Wake time</SectionLabel>
-                  <Input {...form3.register("wakeTime")} type="time" className={inputClass} data-testid="input-wake-time" />
-                  <FieldError msg={form3.formState.errors.wakeTime?.message} />
-                </div>
-                <div>
-                  <SectionLabel>Sleep time</SectionLabel>
-                  <Input {...form3.register("sleepTime")} type="time" className={inputClass} data-testid="input-sleep-time" />
-                  <FieldError msg={form3.formState.errors.sleepTime?.message} />
-                </div>
-              </div>
-
-              <div>
-                <SectionLabel>Work / school schedule</SectionLabel>
-                <Input
-                  {...form3.register("workSchedule")}
-                  placeholder="e.g. 9am–5pm office, student, N/A"
-                  className={inputClass}
-                  data-testid="input-work-schedule"
-                />
-              </div>
-
-              <div className="space-y-6">
-                <div>
-                  <SectionLabel>Sleep quality — {sleepQuality}/10</SectionLabel>
-                  <Slider min={1} max={10} step={1} value={[sleepQuality]} onValueChange={v => setSleepQuality(v[0])} />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                    <span>Poor</span><span>Excellent</span>
-                  </div>
-                </div>
-                <div>
-                  <SectionLabel>Energy level — {energyLevel}/10</SectionLabel>
-                  <Slider min={1} max={10} step={1} value={[energyLevel]} onValueChange={v => setEnergyLevel(v[0])} />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                    <span>Exhausted</span><span>Full energy</span>
-                  </div>
-                </div>
-                <div>
-                  <SectionLabel>Stress level — {stressLevel}/10</SectionLabel>
-                  <Slider min={1} max={10} step={1} value={[stressLevel]} onValueChange={v => setStressLevel(v[0])} />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                    <span>Calm</span><span>Very stressed</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <Button type="button" variant="outline" onClick={() => setStep(2)} className="h-14 px-5 rounded-2xl" data-testid="button-back-step3">
-                  <ChevronLeft className="w-5 h-5" />
-                </Button>
-                <Button type="submit" className="flex-1 h-14 rounded-2xl text-[15px] font-semibold gap-2" data-testid="button-next-step3">
-                  Continue <ArrowRight className="w-[18px] h-[18px]" />
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {/* STEP 4 — Nutrition & Health */}
-          {step === 4 && (
-            <form onSubmit={handleStep4} className="space-y-6">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <SectionLabel>Meals per day</SectionLabel>
-                  <Input {...form4.register("mealsPerDay")} type="number" inputMode="numeric" min={1} max={8} placeholder="3" className={inputClass} data-testid="input-meals-per-day" />
-                </div>
-                <div>
-                  <SectionLabel>Water (L/day)</SectionLabel>
-                  <Input {...form4.register("waterIntakeLiters")} type="number" inputMode="decimal" step="0.5" placeholder="2" className={inputClass} data-testid="input-water" />
-                </div>
-              </div>
-
-              <div>
-                <SectionLabel>Diet style</SectionLabel>
-                <div className="flex flex-wrap gap-2">
-                  {["no preference","vegetarian","vegan","keto","high protein","paleo"].map(d => (
-                    <Chip key={d} label={d} selected={form4.watch("dietStyle") === d} onToggle={() => form4.setValue("dietStyle", d)} testId={`option-${d.replace(/\s+/g,"-")}`} />
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <SectionLabel>Foods you dislike or won't eat</SectionLabel>
-                <Input {...form4.register("dislikedFoods")} placeholder="e.g. broccoli, fish, tofu" className={inputClass} data-testid="input-disliked-foods" />
-              </div>
-
-              <div>
-                <SectionLabel>Allergies</SectionLabel>
-                <Input {...form4.register("allergies")} placeholder="e.g. nuts, dairy, gluten, none" className={inputClass} data-testid="input-allergies" />
-              </div>
-
-              <div>
-                <SectionLabel>Skin concerns</SectionLabel>
-                <div className="flex flex-wrap gap-2">
-                  {SKIN_CONCERNS.map(s => (
-                    <Chip key={s} label={s} selected={skinConcerns.includes(s)} onToggle={() => toggleSkin(s)} />
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <SectionLabel>Digestion / bloating</SectionLabel>
-                <div className="flex flex-wrap gap-2">
-                  {DIGESTION_CONCERNS.map(d => (
-                    <Chip key={d} label={d} selected={digestionConcerns.includes(d)} onToggle={() => toggleDigestion(d)} />
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <SectionLabel>Biggest struggle</SectionLabel>
-                <div className="flex flex-wrap gap-2">
-                  {STRUGGLES.map(s => (
-                    <Chip key={s} label={s} selected={biggestStruggle === s} onToggle={() => setBiggestStruggle(prev => prev === s ? "" : s)} testId={`option-${s.replace(/\s+/g,"-")}`} />
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <Button type="button" variant="outline" onClick={() => setStep(3)} className="h-14 px-5 rounded-2xl" data-testid="button-back-step4">
-                  <ChevronLeft className="w-5 h-5" />
-                </Button>
-                <Button type="submit" className="flex-1 h-14 rounded-2xl text-[15px] font-semibold gap-2" data-testid="button-next-step4">
-                  Continue <ArrowRight className="w-[18px] h-[18px]" />
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {/* STEP 5 — Commitment Level */}
-          {step === 5 && (
-            <div className="space-y-6">
-              <div className="space-y-3">
-                {COMMITMENT_LEVELS.map((level) => (
+                {GOALS.map((g) => (
                   <button
-                    key={level.value}
+                    key={g.value}
                     type="button"
-                    onClick={() => setCommitmentLevel(level.value)}
+                    onClick={() => { setSelectedGoal(g.value); setError(""); }}
                     className={cn(
-                      "w-full text-left rounded-2xl border p-4 transition-all",
-                      commitmentLevel === level.value
-                        ? "bg-primary/10 border-primary shadow-sm shadow-primary/10"
-                        : "bg-card border-border hover:bg-elevated"
+                      "flex flex-col items-center justify-center gap-3 rounded-2xl border p-5 transition-all active:scale-[0.97]",
+                      selectedGoal === g.value
+                        ? "bg-primary/10 border-primary text-primary"
+                        : "bg-card border-border text-foreground hover:bg-elevated"
                     )}
                   >
-                    <p className="text-sm font-semibold text-foreground">{level.label}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{level.desc}</p>
+                    <span className="text-3xl">{g.emoji}</span>
+                    <span className="text-sm font-semibold leading-tight text-center">{g.label}</span>
                   </button>
                 ))}
               </div>
-              <div className="flex gap-3">
-                <Button type="button" variant="outline" onClick={() => setStep(4)} className="h-14 px-5 rounded-2xl" data-testid="button-back-step5">
-                  <ChevronLeft className="w-5 h-5" />
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleStep5}
-                  disabled={!commitmentLevel}
-                  className="flex-1 h-14 rounded-2xl text-[15px] font-semibold gap-2"
-                  data-testid="button-next-step5"
-                >
-                  Continue <ArrowRight className="w-[18px] h-[18px]" />
-                </Button>
-              </div>
-            </div>
+
+              {error && <p className="text-sm text-destructive">{error}</p>}
+
+              <button
+                type="button"
+                onClick={handleStep1}
+                disabled={!selectedGoal}
+                className="h-14 rounded-2xl text-[15px] font-semibold text-primary-foreground disabled:opacity-40 active:scale-[0.99] transition-all"
+                style={{ background: "#C89A3E" }}
+              >
+                Continue
+              </button>
+            </>
           )}
 
-          {/* STEP 6 — Review & Launch */}
-          {step === 6 && (
-            <div className="space-y-5">
-              {/* Summary of collected data */}
-              <div className="rounded-2xl bg-card border border-border p-5 space-y-4">
-                <p className="text-sm font-semibold text-foreground">Your profile</p>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                  <div><span className="text-muted-foreground text-xs">Name</span><br /><span className="font-semibold">{formData.name}</span></div>
-                  <div><span className="text-muted-foreground text-xs">Age</span><br /><span className="font-semibold">{formData.age}</span></div>
-                  <div><span className="text-muted-foreground text-xs">Height</span><br /><span className="font-semibold">{formData.heightFt} ft {formData.heightIn ?? 0} in</span></div>
-                  <div><span className="text-muted-foreground text-xs">Current weight</span><br /><span className="font-semibold">{formData.currentWeightLbs} lbs</span></div>
-                  <div><span className="text-muted-foreground text-xs">Goal weight</span><br /><span className="font-semibold text-primary">{formData.goalWeightLbs} lbs</span></div>
-                  <div><span className="text-muted-foreground text-xs">Fitness level</span><br /><span className="font-semibold capitalize">{formData.fitnessLevel}</span></div>
-                  <div><span className="text-muted-foreground text-xs">Gym access</span><br /><span className="font-semibold capitalize">{formData.gymAccess}</span></div>
-                  <div><span className="text-muted-foreground text-xs">Workout days</span><br /><span className="font-semibold">{formData.workoutDaysPerWeek}x / week</span></div>
-                  <div><span className="text-muted-foreground text-xs">Schedule</span><br /><span className="font-semibold">{formData.wakeTime} – {formData.sleepTime}</span></div>
-                  {selectedSport && selectedSport.toLowerCase() !== "no sport" && (
-                    <div>
-                      <span className="text-muted-foreground text-xs">Sport</span><br />
-                      <span className="font-semibold capitalize">
-                        {selectedSport.toLowerCase() === "other" && sportCustomText ? sportCustomText : selectedSport}
-                      </span>
-                    </div>
-                  )}
-                  {scheduleChoice && (
-                    <div>
-                      <span className="text-muted-foreground text-xs">Workout plan</span><br />
-                      <span className="font-semibold">{scheduleChoice === "yes" ? "Custom schedule" : "AI generated"}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="pt-3 border-t border-border">
-                  <p className="text-xs text-muted-foreground mb-2">Goals</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedGoals.map(g => (
-                      <span key={g} className="text-xs font-medium px-3 py-1.5 rounded-full bg-elevated border border-border capitalize">{g}</span>
-                    ))}
-                  </div>
-                </div>
-                {scheduleChoice === "yes" && ownScheduleText && (
-                  <div className="pt-3 border-t border-border">
-                    <p className="text-xs text-muted-foreground mb-1">Your schedule</p>
-                    <p className="text-xs text-foreground leading-relaxed">{ownScheduleText}</p>
-                  </div>
-                )}
-                {scheduleChoice === "no" && selectedWorkoutFocus && (
-                  <div className="pt-3 border-t border-border">
-                    <p className="text-xs text-muted-foreground mb-1">Workout focus</p>
-                    <p className="text-xs font-medium text-primary capitalize">{selectedWorkoutFocus.replace(/_/g, " ")}</p>
-                  </div>
-                )}
-              </div>
-              <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4">
-                <p className="text-xs text-muted-foreground mb-1">Commitment level</p>
-                <p className="text-sm font-semibold text-primary">
-                  {COMMITMENT_LEVELS.find(c => c.value === commitmentLevel)?.label ?? "Not selected"}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {COMMITMENT_LEVELS.find(c => c.value === commitmentLevel)?.desc ?? ""}
-                </p>
+          {/* ── Step 2: Current Weight ───────────────────────────────────── */}
+          {step === 2 && (
+            <>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">What's your current weight?</h1>
+                <p className="text-sm text-muted-foreground mt-1">We use this to calculate your starting plan.</p>
               </div>
 
-              {/* What you'll get */}
-              <div className="rounded-2xl bg-card border border-border p-5 space-y-3">
-                <p className="text-sm font-semibold text-foreground">What's being built for you</p>
-                {[
-                  "Calorie & protein targets from your stats",
-                  scheduleChoice === "yes"
-                    ? "Your custom schedule saved — coach works around it"
-                    : "A personalized workout schedule for your focus & sport",
-                  "Meal check-ins with instant coach feedback",
-                  "Nightly reviews with a performance score",
-                  "Weekly weigh-in plan adjustments",
-                ].map(item => (
-                  <div key={item} className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-[18px] h-[18px] text-success shrink-0 mt-0.5" strokeWidth={2.2} />
-                    <p className="text-sm text-foreground">{item}</p>
-                  </div>
-                ))}
+              <div className="flex flex-col items-center gap-3 py-4">
+                <div className="relative w-full max-w-xs">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={weightLbs}
+                    onChange={e => { setWeightLbs(e.target.value); setError(""); }}
+                    placeholder="185"
+                    className={numInputCls}
+                    autoFocus
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">lbs</span>
+                </div>
               </div>
 
-              {/* Disclaimer */}
-              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-[16px] h-[16px] text-amber-400 shrink-0" strokeWidth={2.2} />
-                  <p className="text-xs font-semibold text-amber-400 tracking-wide">Health Notice</p>
+              {error && <p className="text-sm text-destructive text-center">{error}</p>}
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="h-14 px-5 rounded-2xl border border-border text-muted-foreground font-semibold hover:bg-elevated transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStep2}
+                  className="flex-1 h-14 rounded-2xl text-[15px] font-semibold text-primary-foreground active:scale-[0.99] transition-all"
+                  style={{ background: "#C89A3E" }}
+                >
+                  Continue
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── Step 3: Height ───────────────────────────────────────────── */}
+          {step === 3 && (
+            <>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">How tall are you?</h1>
+                <p className="text-sm text-muted-foreground mt-1">Used to calibrate your calorie and nutrition targets.</p>
+              </div>
+
+              <div className="flex gap-3 py-4">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={heightFt}
+                    onChange={e => { setHeightFt(e.target.value); setError(""); }}
+                    placeholder="5"
+                    className={numInputCls}
+                    autoFocus
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">ft</span>
                 </div>
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={heightIn}
+                    onChange={e => { setHeightIn(e.target.value); setError(""); }}
+                    placeholder="10"
+                    className={numInputCls}
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">in</span>
+                </div>
+              </div>
+
+              {error && <p className="text-sm text-destructive text-center">{error}</p>}
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="h-14 px-5 rounded-2xl border border-border text-muted-foreground font-semibold hover:bg-elevated transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStep3}
+                  className="flex-1 h-14 rounded-2xl text-[15px] font-semibold text-primary-foreground active:scale-[0.99] transition-all"
+                  style={{ background: "#C89A3E" }}
+                >
+                  Continue
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── Step 4: Age ──────────────────────────────────────────────── */}
+          {step === 4 && (
+            <>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">How old are you?</h1>
+                <p className="text-sm text-muted-foreground mt-1">Your age affects your metabolism and daily targets.</p>
+              </div>
+
+              <div className="flex flex-col items-center gap-3 py-4">
+                <div className="relative w-full max-w-xs">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={age}
+                    onChange={e => { setAge(e.target.value); setError(""); }}
+                    placeholder="25"
+                    className={numInputCls}
+                    autoFocus
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">yrs</span>
+                </div>
+              </div>
+
+              {error && <p className="text-sm text-destructive text-center">{error}</p>}
+
+              {/* Health notice */}
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 flex gap-3">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" strokeWidth={2.2} />
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  <strong className="text-foreground">Ascend is not medical advice.</strong> Consult a healthcare professional before starting any new diet or exercise program, especially if you have a history of eating disorders, heart disease, diabetes, pregnancy, hypertension, or any serious health condition.
-                </p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Results are not guaranteed and vary by individual. You are responsible for your own health and safety decisions. By launching your plan, you confirm you have read and agreed to our <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Privacy Policy</a>.
+                  <strong className="text-foreground">Not medical advice.</strong> Consult a healthcare professional before starting any diet or exercise program. Results vary. By continuing you agree to our{" "}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Terms</a>
+                  {" "}and{" "}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Privacy Policy</a>.
                 </p>
               </div>
 
               <div className="flex gap-3">
-                <Button type="button" variant="outline" onClick={() => setStep(5)} className="h-14 px-5 rounded-2xl" data-testid="button-back-step6">
-                  <ChevronLeft className="w-5 h-5" />
-                </Button>
-                <Button
+                <button
+                  type="button"
+                  onClick={() => setStep(3)}
+                  className="h-14 px-5 rounded-2xl border border-border text-muted-foreground font-semibold hover:bg-elevated transition-colors"
+                >
+                  Back
+                </button>
+                <button
                   type="button"
                   onClick={handleSubmit}
                   disabled={isLoading}
-                  className="flex-1 h-14 rounded-2xl text-[15px] font-semibold gap-2"
-                  data-testid="button-launch"
+                  className="flex-1 h-14 rounded-2xl text-[15px] font-semibold text-primary-foreground disabled:opacity-60 active:scale-[0.99] transition-all"
+                  style={{ background: "#C89A3E" }}
                 >
-                  {isLoading ? "Building your plan…" : "Launch my plan"}
-                  {!isLoading && <ArrowRight className="w-[18px] h-[18px]" />}
-                </Button>
+                  {isLoading ? "Building your plan…" : "Build My Plan →"}
+                </button>
               </div>
-            </div>
+            </>
           )}
+
         </div>
       </div>
     </div>

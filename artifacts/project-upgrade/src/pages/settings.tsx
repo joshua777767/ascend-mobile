@@ -198,6 +198,7 @@ export default function SettingsPage() {
   const [saved3, setSaved3] = useState(false);
   const [saved4, setSaved4] = useState(false);
   const [saved5, setSaved5] = useState(false);
+  const [saved6, setSaved6] = useState(false);
 
   // ── Section 1: Personal Info ──────────────────────────────────────────────
   const [name, setName] = useState("");
@@ -212,6 +213,11 @@ export default function SettingsPage() {
   // ── Section 2: Goals ──────────────────────────────────────────────────────
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [targetDate, setTargetDate] = useState("");
+
+  // ── Section 2b: Nutrition ─────────────────────────────────────────────────
+  const [dietStyle, setDietStyle] = useState("");
+  const [allergies, setAllergies] = useState("");
+  const [dislikedFoods, setDislikedFoods] = useState("");
 
   // ── Section 3: Training ───────────────────────────────────────────────────
   const [fitnessLevel, setFitnessLevel] = useState("");
@@ -267,6 +273,11 @@ export default function SettingsPage() {
     // Goals
     if (Array.isArray(p.goals) && p.goals.length > 0) setSelectedGoals(p.goals);
     if (p.targetDate) setTargetDate(p.targetDate);
+
+    // Nutrition
+    if (p.dietStyle) setDietStyle(p.dietStyle);
+    if (p.allergies) setAllergies(p.allergies);
+    if (p.dislikedFoods) setDislikedFoods(p.dislikedFoods);
 
     // Training
     if (p.fitnessLevel) setFitnessLevel(p.fitnessLevel);
@@ -352,6 +363,14 @@ export default function SettingsPage() {
     const payload: Record<string, unknown> = { goals: selectedGoals };
     if (targetDate) payload.targetDate = targetDate;
     saveAndRegenerate(payload, setSaved2);
+  };
+
+  const handleSaveNutrition = () => {
+    const payload: Record<string, unknown> = {};
+    if (dietStyle) payload.dietStyle = dietStyle;
+    if (allergies.trim()) payload.allergies = allergies.trim();
+    if (dislikedFoods.trim()) payload.dislikedFoods = dislikedFoods.trim();
+    saveAndRegenerate(payload, setSaved6);
   };
 
   const handleSaveTraining = () => {
@@ -627,6 +646,49 @@ export default function SettingsPage() {
           </Field>
 
           <SaveBtn onClick={handleSaveGoals} pending={isSaving} saved={saved2} label="Save goals" />
+        </section>
+
+        {/* ── 2b. Nutrition ────────────────────────────────────────────────── */}
+        <section className="rounded-2xl bg-card border border-border p-5 space-y-5">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Nutrition</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Helps your plan avoid foods that don't work for you.</p>
+          </div>
+
+          <Field label="Diet style">
+            <div className="flex flex-wrap gap-2">
+              {["None","Vegan","Vegetarian","Pescatarian","Keto","Paleo","Mediterranean","Halal","Kosher"].map(d => (
+                <Chip
+                  key={d}
+                  label={d}
+                  selected={dietStyle.toLowerCase() === d.toLowerCase()}
+                  onToggle={() => setDietStyle(prev => prev.toLowerCase() === d.toLowerCase() ? "" : d.toLowerCase())}
+                />
+              ))}
+            </div>
+          </Field>
+
+          <Field label="Allergies or intolerances (optional)">
+            <textarea
+              value={allergies}
+              onChange={e => setAllergies(e.target.value)}
+              placeholder="e.g. peanuts, dairy, gluten, shellfish"
+              className={textareaClass}
+              rows={2}
+            />
+          </Field>
+
+          <Field label="Foods you dislike (optional)">
+            <textarea
+              value={dislikedFoods}
+              onChange={e => setDislikedFoods(e.target.value)}
+              placeholder="e.g. brussels sprouts, beets, fish"
+              className={textareaClass}
+              rows={2}
+            />
+          </Field>
+
+          <SaveBtn onClick={handleSaveNutrition} pending={isSaving} saved={saved6} label="Save nutrition" />
         </section>
 
         {/* ── 3. Training ───────────────────────────────────────────────────── */}
