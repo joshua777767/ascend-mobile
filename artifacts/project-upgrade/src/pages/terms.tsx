@@ -55,7 +55,7 @@ export default function TermsOfServicePage() {
               You are solely responsible for your own health and safety decisions. By using Ascend, you acknowledge that you are voluntarily participating in fitness and nutritional activities and that you assume all risks associated with those activities. You agree to use your own judgment and to consult a professional before acting on any recommendation made by Ascend.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              You must be at least 18 years old to use Ascend. You are responsible for maintaining the confidentiality of your account credentials and for all activity under your account. You agree to provide accurate information and keep your profile updated.
+              You must be at least 13 years old to use Ascend. Users under 18 must have parental or legal guardian consent. You are responsible for maintaining the confidentiality of your account credentials and for all activity under your account. You agree to provide accurate information and keep your profile updated.
             </p>
           </section>
 
