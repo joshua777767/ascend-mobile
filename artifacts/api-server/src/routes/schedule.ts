@@ -43,16 +43,18 @@ async function getScheduleItems(userId: number, req: Request): Promise<{ items: 
   const overrides = await db.select().from(scheduleOverridesTable)
     .where(and(eq(scheduleOverridesTable.userId, userId), eq(scheduleOverridesTable.date, today)));
 
-  const items: ScheduleItem[] = baseItems.map((item) => {
-    const override = overrides.find((o) => o.activity === item.activity && o.type === item.type);
-    return {
-      time: override?.time ?? item.time,
-      activity: item.activity,
-      type: item.type,
-      notes: item.notes,
-      status: override?.status ?? "active",
-    };
-  });
+  const items: ScheduleItem[] = baseItems
+    .map((item) => {
+      const override = overrides.find((o) => o.activity === item.activity && o.type === item.type);
+      return {
+        time: override?.time ?? item.time,
+        activity: item.activity,
+        type: item.type,
+        notes: item.notes,
+        status: override?.status ?? "active",
+      };
+    })
+    .sort((a, b) => a.time.localeCompare(b.time));
 
   const keyHabits: string[] = (() => { try { return JSON.parse(plan.keyHabits); } catch { return []; } })();
   const todaysMission = keyHabits[0] ?? plan.coachNotes.split(".")[0] ?? "Execute your plan today.";
