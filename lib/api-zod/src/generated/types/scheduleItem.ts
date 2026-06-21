@@ -8,6 +8,8 @@
 import type { ScheduleItemStatus } from './scheduleItemStatus';
 
 export interface ScheduleItem {
+  /** DB id — only present for custom user-created tasks */
+  id?: number;
   time: string;
   activity: string;
   type: string;
@@ -15,4 +17,5 @@ export interface ScheduleItem {
   notes?: string | null;
   /** @nullable */
   status?: ScheduleItemStatus;
+  isCustom?: boolean;
 }

@@ -693,11 +693,13 @@ export const CreateWeighInBody = zod.object({
 export const GetTodayScheduleResponse = zod.object({
   "date": zod.string(),
   "items": zod.array(zod.object({
+  "id": zod.number().optional().describe('DB id — only present for custom user-created tasks'),
   "time": zod.string(),
   "activity": zod.string(),
   "type": zod.string(),
   "notes": zod.string().nullish(),
-  "status": zod.enum(['active', 'skipped', 'completed']).nullish()
+  "status": zod.enum(['active', 'skipped', 'completed']).nullish(),
+  "isCustom": zod.boolean().optional()
 })),
   "todaysMission": zod.string()
 })
@@ -716,11 +718,46 @@ export const UpdateScheduleItemBody = zod.object({
 export const UpdateScheduleItemResponse = zod.object({
   "date": zod.string(),
   "items": zod.array(zod.object({
+  "id": zod.number().optional().describe('DB id — only present for custom user-created tasks'),
   "time": zod.string(),
   "activity": zod.string(),
   "type": zod.string(),
   "notes": zod.string().nullish(),
-  "status": zod.enum(['active', 'skipped', 'completed']).nullish()
+  "status": zod.enum(['active', 'skipped', 'completed']).nullish(),
+  "isCustom": zod.boolean().optional()
+})),
+  "todaysMission": zod.string()
+})
+
+
+/**
+ * @summary Create a custom task on today's schedule
+ */
+export const CreateCustomTaskBody = zod.object({
+  "activity": zod.string(),
+  "type": zod.string(),
+  "time": zod.string(),
+  "notes": zod.string().optional()
+})
+
+
+/**
+ * @summary Delete a custom task by its DB id
+ */
+export const DeleteCustomTaskParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteCustomTaskResponse = zod.object({
+  "date": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.number().optional().describe('DB id — only present for custom user-created tasks'),
+  "time": zod.string(),
+  "activity": zod.string(),
+  "type": zod.string(),
+  "notes": zod.string().nullish(),
+  "status": zod.enum(['active', 'skipped', 'completed']).nullish(),
+  "isCustom": zod.boolean().optional()
 })),
   "todaysMission": zod.string()
 })

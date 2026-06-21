@@ -3,16 +3,18 @@ import { eq, and } from "drizzle-orm";
 import { db, userProfilesTable, plansTable, scheduleOverridesTable } from "@workspace/db";
 import { generateDailySchedule } from "../lib/scheduleGenerator";
 import { getUserId, getUserToday } from "../middlewares/auth";
-import { UpdateScheduleItemBody } from "@workspace/api-zod";
+import { UpdateScheduleItemBody, CreateCustomTaskBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
 interface ScheduleItem {
+  id?: number;
   time: string;
   activity: string;
   type: string;
   notes: string | null;
   status: string | null;
+  isCustom?: boolean;
 }
 
 async function getScheduleItems(userId: number, req: Request): Promise<{ items: ScheduleItem[]; todaysMission: string }> {
@@ -21,14 +23,29 @@ async function getScheduleItems(userId: number, req: Request): Promise<{ items: 
 
   const today = getUserToday(req);
 
+  const allOverrides = await db.select().from(scheduleOverridesTable)
+    .where(and(eq(scheduleOverridesTable.userId, userId), eq(scheduleOverridesTable.date, today)));
+
+  // Custom user-created tasks
+  const customTasks: ScheduleItem[] = allOverrides
+    .filter(o => o.isCustom)
+    .map(o => ({
+      id: o.id,
+      time: o.time,
+      activity: o.activity,
+      type: o.type,
+      notes: o.notes ?? null,
+      status: o.status,
+      isCustom: true,
+    }));
+
   if (!profile || !plan) {
-    return {
-      items: [
-        { time: "06:30", activity: "Wake up", type: "health", notes: "Complete your profile to get a personalized schedule.", status: "active" },
-        { time: "22:30", activity: "Sleep", type: "sleep", notes: null, status: "active" },
-      ],
-      todaysMission: "Complete your onboarding to get your personalized daily schedule.",
-    };
+    const items: ScheduleItem[] = [
+      { time: "06:30", activity: "Wake up", type: "health", notes: "Complete your profile to get a personalized schedule.", status: "active" },
+      { time: "22:30", activity: "Sleep", type: "sleep", notes: null, status: "active" },
+      ...customTasks,
+    ].sort((a, b) => a.time.localeCompare(b.time));
+    return { items, todaysMission: "Complete your onboarding to get your personalized daily schedule." };
   }
 
   const profileWithArrays = {
@@ -40,20 +57,20 @@ async function getScheduleItems(userId: number, req: Request): Promise<{ items: 
   };
 
   const baseItems = generateDailySchedule(profileWithArrays as any, plan);
-  const overrides = await db.select().from(scheduleOverridesTable)
-    .where(and(eq(scheduleOverridesTable.userId, userId), eq(scheduleOverridesTable.date, today)));
+  const nonCustomOverrides = allOverrides.filter(o => !o.isCustom);
 
-  const items: ScheduleItem[] = baseItems
-    .map((item) => {
-      const override = overrides.find((o) => o.activity === item.activity && o.type === item.type);
-      return {
-        time: override?.time ?? item.time,
-        activity: item.activity,
-        type: item.type,
-        notes: item.notes,
-        status: override?.status ?? "active",
-      };
-    })
+  const generatedItems: ScheduleItem[] = baseItems.map((item) => {
+    const override = nonCustomOverrides.find(o => o.activity === item.activity && o.type === item.type);
+    return {
+      time: override?.time ?? item.time,
+      activity: item.activity,
+      type: item.type,
+      notes: item.notes,
+      status: override?.status ?? "active",
+    };
+  });
+
+  const items: ScheduleItem[] = [...generatedItems, ...customTasks]
     .sort((a, b) => a.time.localeCompare(b.time));
 
   const keyHabits: string[] = (() => { try { return JSON.parse(plan.keyHabits); } catch { return []; } })();
@@ -79,7 +96,6 @@ router.patch("/schedule/today", async (req, res): Promise<void> => {
   const today = getUserToday(req);
   const data = parsed.data;
 
-  // Upsert override
   const [existing] = await db.select().from(scheduleOverridesTable)
     .where(and(
       eq(scheduleOverridesTable.userId, userId),
@@ -109,6 +125,58 @@ router.patch("/schedule/today", async (req, res): Promise<void> => {
 
   const { items, todaysMission } = await getScheduleItems(userId, req);
   res.json({ date: today, items, todaysMission });
+});
+
+// ── POST /schedule/today/custom — create a user-defined task ─────────────────
+router.post("/schedule/today/custom", async (req, res): Promise<void> => {
+  const parsed = CreateCustomTaskBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const userId = getUserId(req);
+  const today = getUserToday(req);
+  const { activity, type, time, notes } = parsed.data;
+
+  await db.insert(scheduleOverridesTable).values({
+    userId,
+    date: today,
+    activity,
+    type,
+    time,
+    notes: notes ?? null,
+    isCustom: true,
+    status: "active",
+  });
+
+  const { items, todaysMission } = await getScheduleItems(userId, req);
+  res.status(201).json({ date: today, items, todaysMission });
+});
+
+// ── DELETE /schedule/today/custom/:id — delete a user-defined task ───────────
+router.delete("/schedule/today/custom/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id ?? "", 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const userId = getUserId(req);
+
+  const [row] = await db.select().from(scheduleOverridesTable)
+    .where(and(eq(scheduleOverridesTable.id, id), eq(scheduleOverridesTable.userId, userId)));
+
+  if (!row || !row.isCustom) {
+    res.status(404).json({ error: "Custom task not found" });
+    return;
+  }
+
+  await db.delete(scheduleOverridesTable).where(eq(scheduleOverridesTable.id, id));
+
+  const todayStr = getUserToday(req);
+  const { items, todaysMission } = await getScheduleItems(userId, req);
+  res.json({ date: todayStr, items, todaysMission });
 });
 
 export default router;

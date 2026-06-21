@@ -15,6 +15,7 @@ export * from './chatResponse';
 export * from './checkoutInput';
 export * from './coachReview';
 export * from './createCheckout200';
+export * from './createCustomTaskInput';
 export * from './createPortal200';
 export * from './dailySchedule';
 export * from './dailyScore';

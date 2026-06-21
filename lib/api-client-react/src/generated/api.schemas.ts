@@ -408,6 +408,8 @@ export const ScheduleItemStatus = {
 } as const;
 
 export interface ScheduleItem {
+  /** DB id — only present for custom user-created tasks */
+  id?: number;
   time: string;
   activity: string;
   type: string;
@@ -415,12 +417,20 @@ export interface ScheduleItem {
   notes?: string | null;
   /** @nullable */
   status?: ScheduleItemStatus;
+  isCustom?: boolean;
 }
 
 export interface DailySchedule {
   date: string;
   items: ScheduleItem[];
   todaysMission: string;
+}
+
+export interface CreateCustomTaskInput {
+  activity: string;
+  type: string;
+  time: string;
+  notes?: string;
 }
 
 export type UpdateScheduleInputStatus = typeof UpdateScheduleInputStatus[keyof typeof UpdateScheduleInputStatus];

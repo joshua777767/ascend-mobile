@@ -645,6 +645,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/DailySchedule"
 
+  /schedule/today/custom:
+    post:
+      operationId: createCustomTask
+      tags: [schedule]
+      summary: Create a custom task on today's schedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomTaskInput"
+      responses:
+        "201":
+          description: Updated schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailySchedule"
+
+  /schedule/today/custom/{id}:
+    delete:
+      operationId: deleteCustomTask
+      tags: [schedule]
+      summary: Delete a custom task by its DB id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailySchedule"
+
   /chat:
     post:
       operationId: sendChatMessage
@@ -1673,6 +1711,9 @@ components:
         - activity
         - type
       properties:
+        id:
+          type: integer
+          description: DB id — only present for custom user-created tasks
         time:
           type: string
         activity:
@@ -1684,6 +1725,24 @@ components:
         status:
           type: ["string", "null"]
           enum: ["active", "skipped", "completed"]
+        isCustom:
+          type: boolean
+
+    CreateCustomTaskInput:
+      type: object
+      required:
+        - activity
+        - type
+        - time
+      properties:
+        activity:
+          type: string
+        type:
+          type: string
+        time:
+          type: string
+        notes:
+          type: string
 
     UpdateScheduleInput:
       type: object

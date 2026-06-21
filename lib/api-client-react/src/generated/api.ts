@@ -29,6 +29,7 @@ import type {
   CheckoutInput,
   CoachReview,
   CreateCheckout200,
+  CreateCustomTaskInput,
   CreatePortal200,
   DailySchedule,
   DailyScore,
@@ -2724,6 +2725,147 @@ export const useUpdateScheduleItem = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateScheduleItemMutationOptions(options));
+    }
+
+export const getCreateCustomTaskUrl = () => {
+
+
+
+
+  return `/api/schedule/today/custom`
+}
+
+/**
+ * @summary Create a custom task on today's schedule
+ */
+export const createCustomTask = async (createCustomTaskInput: CreateCustomTaskInput, options?: RequestInit): Promise<DailySchedule> => {
+
+  return customFetch<DailySchedule>(getCreateCustomTaskUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createCustomTaskInput,)
+  }
+);}
+
+
+
+
+export const getCreateCustomTaskMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCustomTask>>, TError,{data: BodyType<CreateCustomTaskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCustomTask>>, TError,{data: BodyType<CreateCustomTaskInput>}, TContext> => {
+
+const mutationKey = ['createCustomTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCustomTask>>, {data: BodyType<CreateCustomTaskInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCustomTask(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCustomTaskMutationResult = NonNullable<Awaited<ReturnType<typeof createCustomTask>>>
+    export type CreateCustomTaskMutationBody = BodyType<CreateCustomTaskInput>
+    export type CreateCustomTaskMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a custom task on today's schedule
+ */
+export const useCreateCustomTask = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCustomTask>>, TError,{data: BodyType<CreateCustomTaskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCustomTask>>,
+        TError,
+        {data: BodyType<CreateCustomTaskInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCustomTaskMutationOptions(options));
+    }
+
+export const getDeleteCustomTaskUrl = (id: number,) => {
+
+
+
+
+  return `/api/schedule/today/custom/${id}`
+}
+
+/**
+ * @summary Delete a custom task by its DB id
+ */
+export const deleteCustomTask = async (id: number, options?: RequestInit): Promise<DailySchedule> => {
+
+  return customFetch<DailySchedule>(getDeleteCustomTaskUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteCustomTaskMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCustomTask>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteCustomTask>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteCustomTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteCustomTask>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteCustomTask(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteCustomTaskMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCustomTask>>>
+
+    export type DeleteCustomTaskMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a custom task by its DB id
+ */
+export const useDeleteCustomTask = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCustomTask>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteCustomTask>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteCustomTaskMutationOptions(options));
     }
 
 export const getSendChatMessageUrl = () => {
