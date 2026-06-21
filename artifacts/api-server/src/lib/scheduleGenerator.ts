@@ -171,9 +171,9 @@ export function generateDailySchedule(profile: ProfileWithRange, plan: Plan): Sc
   // ─── MORNING SEQUENCE ──────────────────────────────────────────────────────
 
   const wakeNote = wakeRange
-    ? `Wake window: ${to12h(wakeRange.start)}–${to12h(wakeRange.end)}. Weigh in before eating.`
-    : "Weigh yourself before eating. Log it.";
-  items.push({ time: wake, activity: "Wake up + weigh in", type: "health", notes: wakeNote });
+    ? `Wake window: ${to12h(wakeRange.start)}–${to12h(wakeRange.end)}.`
+    : "Start your morning strong.";
+  items.push({ time: wake, activity: "Wake up", type: "health", notes: wakeNote });
   items.push({ time: addMins(wake, 5), activity: "Drink 16 oz water", type: "hydration", notes: "Before coffee or food — hydrate first." });
 
   if (isSkin) {

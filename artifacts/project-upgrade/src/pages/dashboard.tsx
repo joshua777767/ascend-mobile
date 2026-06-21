@@ -13,6 +13,7 @@ import {
   useGetProgressSummary,
   useListGoalCheckIns,
   useGetDailyScore,
+  useListWeighIns,
   getGetWaterTodayQueryKey,
   getGetTodayMealsQueryKey,
   getGetTodayWorkoutQueryKey,
@@ -855,6 +856,21 @@ export default function DashboardPage() {
   const showProfilePrompt = !profilePromptDismissed &&
     !!profile && !(profile as any).dietStyle && !(profile as any).allergies && (profile as any).gymAccess === "no";
 
+  const { data: weighIns } = useListWeighIns();
+  const [weighInPromptDismissed, setWeighInPromptDismissed] = useState(
+    () => typeof localStorage !== "undefined" && localStorage.getItem("ascend.weighInDismissedDate") === new Date().toDateString()
+  );
+  const daysSinceOnboarding = profile
+    ? (Date.now() - new Date((profile as any).createdAt ?? Date.now()).getTime()) / 86400000
+    : 0;
+  const lastWeighIn = weighIns && weighIns.length > 0
+    ? weighIns.slice().sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())[0]
+    : null;
+  const daysSinceLastWeighIn = lastWeighIn
+    ? (Date.now() - new Date(lastWeighIn.loggedAt).getTime()) / 86400000
+    : Infinity;
+  const showWeighInPrompt = !weighInPromptDismissed && daysSinceOnboarding >= 7 && daysSinceLastWeighIn >= 6;
+
   if (loadingProfile || !profile) {
     return (
       <div className="h-full overflow-y-auto scroll-area">
@@ -1072,6 +1088,39 @@ export default function DashboardPage() {
               onClick={() => {
                 setProfilePromptDismissed(true);
                 localStorage.setItem("ascend.profilePromptDismissed", "1");
+              }}
+              className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none shrink-0 -mt-0.5"
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* ── Weekly weigh-in prompt ── */}
+        {showWeighInPrompt && (
+          <div
+            className="rounded-2xl p-4 flex items-start gap-3"
+            style={{ background: "hsl(220 12% 9%)", border: "1px solid hsl(220 80% 55% / 0.3)" }}
+          >
+            <span className="text-lg leading-none shrink-0 mt-0.5">⚖️</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground leading-snug">Time for your weekly weigh-in</p>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                Update your current weight to track progress and let your coach adjust your plan.
+              </p>
+              <Link
+                href="/progress"
+                className="inline-block mt-2 text-xs font-bold"
+                style={{ color: "#C89A3E" }}
+              >
+                Log weigh-in →
+              </Link>
+            </div>
+            <button
+              onClick={() => {
+                setWeighInPromptDismissed(true);
+                localStorage.setItem("ascend.weighInDismissedDate", new Date().toDateString());
               }}
               className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none shrink-0 -mt-0.5"
               aria-label="Dismiss"

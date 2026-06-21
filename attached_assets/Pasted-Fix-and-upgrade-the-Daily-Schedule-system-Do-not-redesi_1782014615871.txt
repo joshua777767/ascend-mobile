@@ -1,0 +1,65 @@
+Fix and upgrade the Daily Schedule system.
+
+Do not redesign the whole app. Only improve schedule behavior.
+
+Current problem:
+When the user changes a task time, the schedule card does not move/update correctly.
+
+Goal:
+Daily Schedule should feel dynamic, editable, and personalized.
+
+Requirements:
+
+1. Add wake-up time/range to onboarding:
+- Ask: “What time do you usually wake up?”
+- Options:
+  - 5–7 AM
+  - 7–9 AM
+  - 9–11 AM
+  - Varies
+- Also allow exact time if possible.
+- Save this to the user profile.
+- Let users edit it later in Settings/Profile.
+
+2. Generate daily schedule based on wake-up time:
+- Morning tasks should start after the user’s wake-up time.
+- Do not use fixed hardcoded times.
+- Meal, workout, water, journal, and check-in tasks should adjust based on wake-up time.
+
+3. Fix task time editing:
+- When a user changes a task time, immediately update the task card time.
+- Re-sort the schedule by time after the change.
+- Save the new time to the database.
+- The change should still be there after refresh/logout/login.
+
+4. Add drag-and-drop reorder:
+- User should be able to drag daily schedule cards up/down.
+- Save the new order.
+- Reordered cards should persist after refresh.
+- Completed tasks should stay completed.
+
+5. Keep it simple:
+- Do not build a full calendar.
+- Do not overcomplicate.
+- Just allow task time editing + drag-to-reorder daily cards.
+
+6. Dynamic dashboard:
+- Show the next upcoming task at the top.
+- Completed tasks move to completed/done state.
+- Missed old tasks should not stay as the main focus.
+- Schedule resets fresh each new day.
+
+7. Weekly weigh-in:
+- Do not ask for weekly weigh-in during onboarding.
+- Use Current Weight as baseline.
+- First weekly weigh-in prompt should appear 7 days after onboarding.
+- Then repeat every 7 days.
+- Prompt: “Time for your weekly weigh-in. Update your current weight to track progress.”
+
+After changes, test:
+- changing task time moves the card
+- drag reorder works
+- changes persist after refresh
+- wake-up time affects schedule
+- weekly weigh-in does not appear at signup
+- weekly weigh-in appears after 7 days
