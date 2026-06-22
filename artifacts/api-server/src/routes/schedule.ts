@@ -139,6 +139,25 @@ router.post("/schedule/today/custom", async (req, res): Promise<void> => {
   const today = getUserToday(req);
   const { activity, type, time, notes } = parsed.data;
 
+  // Deduplication: if an identical custom task already exists for today
+  // (same user, date, activity, type, and time) return the existing schedule
+  // instead of inserting a duplicate.  Prevents double-tap / double-click spam.
+  const [existing] = await db.select().from(scheduleOverridesTable)
+    .where(and(
+      eq(scheduleOverridesTable.userId, userId),
+      eq(scheduleOverridesTable.date, today),
+      eq(scheduleOverridesTable.activity, activity),
+      eq(scheduleOverridesTable.type, type),
+      eq(scheduleOverridesTable.time, time),
+      eq(scheduleOverridesTable.isCustom, true),
+    ));
+
+  if (existing) {
+    const { items, todaysMission } = await getScheduleItems(userId, req);
+    res.status(200).json({ date: today, items, todaysMission });
+    return;
+  }
+
   await db.insert(scheduleOverridesTable).values({
     userId,
     date: today,

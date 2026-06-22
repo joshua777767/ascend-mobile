@@ -195,7 +195,10 @@ function ProtectedApp() {
     // Last trial day override: force check-in on day 7 if they haven't done one today
     const checkedInToday = !!last && new Date(last).toDateString() === new Date().toDateString();
     const isLastTrialDay = !isPro && trialDay >= 7;
-    const isDue = sevenDaysDue || (isLastTrialDay && !checkedInToday);
+    // Prevent the modal re-appearing on the same calendar day even after a
+    // hard-refresh or re-login.  Both paths (7-day cadence and last trial day)
+    // guard with !checkedInToday so the modal fires at most once per day.
+    const isDue = !checkedInToday && (sevenDaysDue || isLastTrialDay);
     if (!isDue) return;
     // Small delay so the app shell renders first before the modal appears
     const t = setTimeout(() => setShowWeeklyCheckIn(true), 1500);

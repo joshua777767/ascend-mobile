@@ -14,18 +14,25 @@ router.get("/progress/summary", async (req, res): Promise<void> => {
   const meals = await db.select().from(mealsTable).where(eq(mealsTable.userId, getUserId(req))).orderBy(desc(mealsTable.loggedAt));
 
   // Start weight = onboarding weight from profile. Current = latest weigh-in or onboarding.
-  const startWeightKg = profile?.currentWeightKg ?? 0;
-  const currentWeightKg = weighIns.length > 0
-    ? weighIns[weighIns.length - 1].weightKg
-    : startWeightKg;
+  // Guard: if profile has no valid weight (null, 0) treat as "no data" so we never
+  // compute a giant lbs-change (e.g. 160 lbs lost) against a 0-kg baseline.
+  const rawStartKg = profile?.currentWeightKg ?? null;
+  const hasWeightData = rawStartKg !== null && rawStartKg > 0;
+  const startWeightKg = hasWeightData ? rawStartKg : null;
+
+  const latestWeighIn = weighIns.length > 0 ? weighIns[weighIns.length - 1].weightKg : null;
+  const currentWeightKg = latestWeighIn ?? startWeightKg ?? 0;
 
   const goalWeightKg = profile?.goalWeightKg ?? currentWeightKg;
 
-  const totalChange = Math.abs(startWeightKg - goalWeightKg);
-  const currentChange = Math.abs(startWeightKg - currentWeightKg);
+  const totalChange = startWeightKg !== null ? Math.abs(startWeightKg - goalWeightKg) : 0;
+  const currentChange = startWeightKg !== null ? Math.abs(startWeightKg - currentWeightKg) : 0;
   const progressPercent = totalChange > 0 ? Math.min(100, (currentChange / totalChange) * 100) : 0;
 
-  const totalLbsChange = Math.round((currentWeightKg - startWeightKg) * 2.2046226 * 10) / 10;
+  // Show 0 instead of a misleading huge number when start weight is unknown.
+  const totalLbsChange = startWeightKg !== null
+    ? Math.round((currentWeightKg - startWeightKg) * 2.2046226 * 10) / 10
+    : 0;
 
   // Goal reached detection: use 7-day average to avoid single-day fluctuations
   const today = getUserToday(req);
@@ -35,8 +42,9 @@ router.get("/progress/summary", async (req, res): Promise<void> => {
     ? recentWeighIns.reduce((s, w) => s + w.weightKg, 0) / recentWeighIns.length
     : currentWeightKg;
 
-  const isLosing = goalWeightKg < startWeightKg;
-  const isGaining = goalWeightKg > startWeightKg;
+  const effectiveStart = startWeightKg ?? currentWeightKg;
+  const isLosing = goalWeightKg < effectiveStart;
+  const isGaining = goalWeightKg > effectiveStart;
   const withinThreshold = Math.abs(avg7DayWeightKg - goalWeightKg) <= 0.5;
   const goalReached = (isLosing || isGaining) ? withinThreshold : false;
   const goalReachedAt = profile?.goalReachedAt ?? null;

@@ -10,8 +10,23 @@ const router: IRouter = Router();
  * RevenueCat webhook handler.
  * RevenueCat sends events here when subscription status changes.
  * We update the user's isFreePro flag to match the entitlement state.
+ *
+ * Authorization: RevenueCat allows configuring a shared secret that it sends
+ * as the `Authorization` header value.  When REVENUECAT_WEBHOOK_SECRET is set
+ * we reject any request that does not carry that exact value, preventing
+ * spoofed webhooks from granting or revoking Pro access.
  */
 router.post("/revenuecat/webhook", async (req, res): Promise<void> => {
+  const secret = process.env.REVENUECAT_WEBHOOK_SECRET;
+  if (secret) {
+    const authHeader = req.headers["authorization"];
+    if (!authHeader || authHeader !== secret) {
+      logger.warn({ hasHeader: !!authHeader }, "RevenueCat webhook rejected: invalid authorization");
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+  }
+
   const event = req.body;
   const eventType = event?.event?.type;
   const appUserId = event?.event?.app_user_id;

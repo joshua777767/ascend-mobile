@@ -34,7 +34,26 @@ function getGoalContext(goal: string, score: number, profile: any): string {
   return concerns[goal] || `Goal: ${goal}. Score: ${score}/10.`;
 }
 
-function determineStatus(score: number, previousScores: number[]): string {
+// Goals that represent an ongoing state, not a one-time milestone.
+// Users with these goals should never see "goal complete" prompts.
+const ONGOING_GOALS = new Set([
+  "maintain fitness",
+  "maintain",
+  "stay fit",
+  "maintenance",
+]);
+
+function determineStatus(score: number, previousScores: number[], goal: string): string {
+  // Maintenance/stay-fit goals are permanent ongoing states — never mark them
+  // as achieved or ask for "goal complete" confirmation.
+  if (ONGOING_GOALS.has(goal.toLowerCase().trim())) {
+    if (score <= 5 && previousScores.length >= 2) {
+      const recent = previousScores.slice(0, 2);
+      if (recent.every(s => Math.abs(s - score) <= 1)) return "plateau";
+    }
+    return "on_track";
+  }
+
   // previousScores is newest-first (desc order).
   // Two consecutive 9–10 scores → prompt user to confirm goal complete
   if (score >= 9 && previousScores.length > 0 && previousScores[0] >= 9) {
@@ -62,7 +81,7 @@ async function getGoalFeedback(
   profile: any,
   previousScores: number[],
 ): Promise<{ coachFeedback: string; status: string }> {
-  const status = determineStatus(score, previousScores);
+  const status = determineStatus(score, previousScores, goal);
   const context = getGoalContext(goal, score, profile);
 
   const prompt = `You are an elite-level AI performance coach with deep knowledge in physiology, nutrition, dermatology, sleep science, and behavioral psychology.
