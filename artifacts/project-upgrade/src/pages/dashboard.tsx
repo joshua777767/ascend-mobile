@@ -850,6 +850,11 @@ export default function DashboardPage() {
     }
   }, [todayProtein, plan?.proteinTargetG, dailyHabits]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [welcomeDismissed, setWelcomeDismissed] = useState(
+    () => typeof localStorage !== "undefined" && localStorage.getItem("ascend.dashboardWelcome") === "1"
+  );
+  const showWelcome = !welcomeDismissed;
+
   const [profilePromptDismissed, setProfilePromptDismissed] = useState(
     () => typeof localStorage !== "undefined" && localStorage.getItem("ascend.profilePromptDismissed") === "1"
   );
@@ -1066,6 +1071,36 @@ export default function DashboardPage() {
           <div className="rounded-2xl px-4 py-3 text-xs font-semibold text-emerald-400 flex items-center gap-2"
             style={{ background: "hsl(150 50% 10%)", border: "1px solid hsl(150 50% 20%)" }}>
             <span>✓</span> Location locked in — your schedule is now timezone-precise.
+          </div>
+        )}
+
+        {/* ── Welcome card (first visit only) ── */}
+        {showWelcome && (
+          <div
+            className="rounded-2xl p-4 space-y-3"
+            style={{ background: "hsl(220 12% 9%)", border: "1px solid hsl(38 70% 45% / 0.35)" }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground leading-snug">Welcome to Ascend</p>
+                <ul className="text-xs text-muted-foreground mt-2 space-y-1.5 leading-relaxed">
+                  <li>• Ascend builds a personalized plan based on your goals.</li>
+                  <li>• Follow your daily meals, workouts, habits, and schedule.</li>
+                  <li>• Track your progress and stay consistent.</li>
+                  <li>• Chat with your AI coach anytime for guidance and adjustments.</li>
+                </ul>
+              </div>
+              <button
+                onClick={() => {
+                  setWelcomeDismissed(true);
+                  localStorage.setItem("ascend.dashboardWelcome", "1");
+                }}
+                className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none shrink-0 -mt-0.5"
+                aria-label="Dismiss"
+              >
+                ×
+              </button>
+            </div>
           </div>
         )}
 
