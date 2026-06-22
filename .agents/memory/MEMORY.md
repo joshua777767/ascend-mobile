@@ -10,3 +10,4 @@
 - [Owner account must exist in DB](owner-admin-forgot-password.md) — admin gate + forgot-password both silently no-op if no users row matches OWNER_EMAIL; forgot-password returns success even for non-existent emails by design.
 - [Password reset tokens](password-reset-tokens.md) — TTL is 1hr (single source of truth); validation returns distinct invalid/used/expired errors; new request invalidates prior links.
 - [Prod vs dev environment](prod-vs-dev-environment.md) — prod has its own DB and runs the last-published build; dev-correct code can fail in prod until re-published. Check prod DB + deploy logs separately.
+- [Stripe removal](stripe-removal.md) — Stripe fully removed from API server; auth.ts now uses DB-only subscription check; RevenueCat/IAP unaffected. Stub routes kept so frontend degrades gracefully.

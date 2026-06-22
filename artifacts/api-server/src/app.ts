@@ -6,7 +6,6 @@ import pinoHttp from "pino-http";
 import { pool } from "@workspace/db";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { WebhookHandlers } from "./webhookHandlers";
 
 if (!process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET must be set for authentication");
@@ -33,32 +32,6 @@ app.use(
       },
     },
   }),
-);
-
-// —— Stripe webhook MUST be before express.json() ——
-app.post(
-  "/api/stripe/webhook",
-  express.raw({ type: "application/json" }),
-  async (req, res) => {
-    const signature = req.headers["stripe-signature"];
-    if (!signature) {
-      res.status(400).json({ error: "Missing stripe-signature" });
-      return;
-    }
-    try {
-      const sig = Array.isArray(signature) ? signature[0] : signature;
-      if (!Buffer.isBuffer(req.body)) {
-        logger.error("Stripe webhook: req.body is not a Buffer");
-        res.status(500).json({ error: "Webhook processing error" });
-        return;
-      }
-      await WebhookHandlers.processWebhook(req.body as Buffer, sig);
-      res.status(200).json({ received: true });
-    } catch (error: any) {
-      logger.error({ err: error }, "Stripe webhook error");
-      res.status(400).json({ error: "Webhook processing error" });
-    }
-  }
 );
 
 app.use(cors());
