@@ -52,6 +52,7 @@ const SPORT_HABITS: Record<string, string> = {
 
 const GLOW_GOALS = ["better skin", "higher energy", "better sleep", "less bloating", "better digestion"];
 const PRIMARY_GOALS = ["lose fat", "lose weight", "gain weight", "build muscle", "maintain fitness"];
+const MAINTENANCE_GOALS = ["maintain fitness", "maintain", "stay fit", "maintenance"];
 
 // Order goals so a combined daily mission reads sensibly
 const GOAL_ORDER = [
@@ -202,11 +203,20 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   const isGain = weightDiff > 1;
 
   const hasGlowGoals = goals.some(g => GLOW_GOALS.includes(g));
+  // If the user explicitly chose a maintenance goal, always honour it —
+  // even if their goal weight differs slightly from their current weight.
+  const userChoseMaintenance = goals.some(g => MAINTENANCE_GOALS.includes(g.toLowerCase()));
 
   let goalType = "maintain";
-  if (isLoss) goalType = "fat_loss";
-  else if (isGain) goalType = "muscle_gain";
-  else if (hasGlowGoals) goalType = "glow";
+  if (userChoseMaintenance) {
+    goalType = "maintain";
+  } else if (isLoss) {
+    goalType = "fat_loss";
+  } else if (isGain) {
+    goalType = "muscle_gain";
+  } else if (hasGlowGoals) {
+    goalType = "glow";
+  }
 
   // Weight diff in lbs (used for timeline calculations)
   const weightDiffLbs = Math.abs(weightDiff) * 2.2046;

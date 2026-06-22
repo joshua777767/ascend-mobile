@@ -979,13 +979,18 @@ export default function DashboardPage() {
   // --- Personalized mission copy ---
   const calorieDeficit = plan ? plan.calorieTarget - todayCalories : 0;
   const proteinDeficit = plan ? plan.proteinTargetG - todayProtein : 0;
-  const isBulking = plan ? (profile.goalWeightKg ?? 0) > (profile.currentWeightKg ?? 0) : false;
-  const isCutting = plan ? (profile.goalWeightKg ?? 0) < (profile.currentWeightKg ?? 0) : false;
+  const isMaintenance = plan?.goalType === "maintain";
+  const isBulking = !isMaintenance && plan ? (profile.goalWeightKg ?? 0) > (profile.currentWeightKg ?? 0) : false;
+  const isCutting = !isMaintenance && plan ? (profile.goalWeightKg ?? 0) < (profile.currentWeightKg ?? 0) : false;
   const missionComplete = checklistScore >= 100 && dailyHabits.length > 0;
 
   function buildMission(): string {
     if (missionComplete) {
       return "Day stacked. Every choice you made today built something real.";
+    }
+    if (isMaintenance && plan) {
+      if (proteinDeficit > 30) return `${proteinDeficit}g protein still to go. Hit your target — protein is what keeps you strong.`;
+      return `${firstName}, consistency is the goal. Train, eat well, drink water, protect your sleep.`;
     }
     if (plan && calorieDeficit > 500) {
       return `You're ${calorieDeficit} calories behind. Fuel up before bed. Every meal counts.`;
@@ -1221,33 +1226,61 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        {/* ── Proof of Change ── */}
+        {/* ── Proof of Change / Consistency (maintenance) ── */}
         {(() => {
-          // All three weights come from the same API response so they're
-          // internally consistent. currentWeightKg = latest weigh-in (or start
-          // if no weigh-ins). Fallback to profile only when progress hasn't loaded.
+          // Maintenance users don't have a "weight to lose/gain" goal.
+          // Show a consistency card instead of a weight-progress bar.
+          if (isMaintenance) {
+            const streak = streakData?.currentStreak ?? 0;
+            const pct = Math.min(100, checklistScore);
+            const barColor = pct >= 80 ? "#4A9B78" : pct >= 50 ? "#6B8BAE" : "#C89A3E";
+            return (
+              <div
+                className="rounded-2xl p-4 space-y-3"
+                style={{ background: "hsl(220 12% 9%)", border: "1px solid hsl(220 10% 18%)" }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[9px] font-bold tracking-[0.02em] text-muted-foreground mb-1">Consistency</p>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-2xl font-black" style={{ color: barColor }}>{pct}%</span>
+                      <span className="text-[11px] text-muted-foreground">daily mission today</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {streak > 0 ? `${streak}-day streak · ` : ""}Stay fit by showing up daily.
+                    </p>
+                  </div>
+                  <Link href="/progress" className="text-xs font-bold text-primary shrink-0 pt-1">Track</Link>
+                </div>
+                <div className="space-y-1">
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "hsl(218 46% 12%)" }}>
+                    <div className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${pct}%`, background: barColor }} />
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">{checklistCompleted}/{dailyHabits.length} habits done today</p>
+                </div>
+              </div>
+            );
+          }
+
+          // Weight-change card for loss / gain users
           const startKg = progress?.startWeightKg ?? profile.currentWeightKg ?? 0;
           const currentKg = progress?.currentWeightKg ?? profile.currentWeightKg ?? 0;
           const goalKg = progress?.goalWeightKg ?? profile.goalWeightKg ?? 0;
           const startLbs = Math.round(startKg * 2.2046226);
           const currentLbs = Math.round(currentKg * 2.2046226);
           const goalLbs = goalKg > 0 ? Math.round(goalKg * 2.2046226) : 0;
-          // Recompute from the same values we display — can never mismatch
           const totalChange = Math.round((currentKg - startKg) * 2.2046226 * 10) / 10;
           const hasChange = Math.abs(totalChange) > 0;
           const isLoss = totalChange < 0;
           const changeColor = isLoss ? "#4A9B78" : totalChange > 0 ? "#C89A3E" : "#6B8BAE";
-          // Progress bar: start→goal, clamped
           const progressPct = goalLbs > 0 && startLbs !== goalLbs
             ? Math.max(0, Math.min(100, Math.round(Math.abs(startLbs - currentLbs) / Math.abs(startLbs - goalLbs) * 100)))
             : 0;
           return (
             <div
               className="rounded-2xl p-4 space-y-3"
-              style={{
-                background: "hsl(220 12% 9%)",
-                border: "1px solid hsl(220 10% 18%)",
-              }}
+              style={{ background: "hsl(220 12% 9%)", border: "1px solid hsl(220 10% 18%)" }}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -1263,7 +1296,6 @@ export default function DashboardPage() {
                   ) : (
                     <p className="text-sm font-semibold text-muted-foreground">Log a weigh-in to see your change.</p>
                   )}
-                  {/* start → current → goal */}
                   <p className="text-[11px] text-muted-foreground mt-1">
                     {startLbs} lbs
                     {hasChange ? ` → ${currentLbs} lbs` : ""}
@@ -1274,7 +1306,6 @@ export default function DashboardPage() {
                   {hasChange ? "Track" : "Weigh In"}
                 </Link>
               </div>
-              {/* progress bar */}
               {goalLbs > 0 && startLbs !== goalLbs && (
                 <div className="space-y-1">
                   <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "hsl(218 46% 12%)" }}>
@@ -1290,8 +1321,8 @@ export default function DashboardPage() {
           );
         })()}
 
-        {/* ── Goal Reached ── */}
-        {progress?.goalReached && (
+        {/* ── Goal Reached — not shown for maintenance users ── */}
+        {progress?.goalReached && !isMaintenance && (
           <div
             className="rounded-2xl p-4 text-center space-y-2"
             style={{
