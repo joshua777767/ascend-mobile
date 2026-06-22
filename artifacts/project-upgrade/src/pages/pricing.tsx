@@ -25,75 +25,13 @@ function getTrialEndDate() {
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
 }
 
-interface StripePrice {
-  id: string;
-  unitAmount: number | null;
-  currency: string;
-  recurring: { interval: string; interval_count: number } | null;
-  active: boolean;
-}
-
-interface StripeProduct {
-  id: string;
-  name: string;
-  description: string | null;
-  active: boolean;
-  prices: StripePrice[];
-}
-
-interface PriceIds {
-  monthlyPriceId: string | null;
-  annualPriceId: string | null;
-  loadingPrices: boolean;
-  keyMode: string;
-  stripeConfigError: string | null;
-}
-
-function usePriceIds(): PriceIds {
-  const [monthlyPriceId, setMonthlyPriceId] = useState<string | null>(null);
-  const [annualPriceId, setAnnualPriceId] = useState<string | null>(null);
-  const [loadingPrices, setLoadingPrices] = useState(true);
-  const [keyMode, setKeyMode] = useState<string>("unknown");
-  const [stripeConfigError, setStripeConfigError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/stripe/products")
-      .then((r) => r.json())
-      .then((data: { data: StripeProduct[]; keyMode?: string; error?: string }) => {
-        setKeyMode(data.keyMode ?? "unknown");
-        if (data.error) setStripeConfigError(data.error);
-
-        const products: StripeProduct[] = data.data ?? [];
-        for (const product of products) {
-          for (const price of product.prices) {
-            if (!price.active || !price.recurring) continue;
-            if (price.recurring.interval === "month" && price.recurring.interval_count === 1) {
-              setMonthlyPriceId(price.id);
-            }
-            if (price.recurring.interval === "year") {
-              setAnnualPriceId(price.id);
-            }
-          }
-        }
-      })
-      .catch(() => {
-        setStripeConfigError("Could not reach the server. Please try again.");
-      })
-      .finally(() => setLoadingPrices(false));
-  }, []);
-
-  return { monthlyPriceId, annualPriceId, loadingPrices, keyMode, stripeConfigError };
-}
-
 export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { isPro, isNative, currentPackage } = useSubscription();
   const [location] = useLocation();
   const { data: me } = useGetMe();
-  const { monthlyPriceId, annualPriceId, loadingPrices, stripeConfigError } = usePriceIds();
 
-  // Only show "expired" lockout when trial truly ended AND no active access (not a paid subscriber)
   const isExpired = location.includes("expired=1") || (!!me?.trialExpired && !me?.hasAccess);
   const hasTrial = me ? !me.trialUsed : true;
 
@@ -103,14 +41,7 @@ export default function PricingPage() {
     }
   }, [isPro]);
 
-  const handleSubscribe = async (priceId: string | null, trial = false) => {
-    // If banner already shows the config error, don't duplicate it as a red box
-    if (!priceId) {
-      if (!stripeConfigError) {
-        setError("Checkout is not available. Please contact support.");
-      }
-      return;
-    }
+  const handleSubscribe = async (trial = false) => {
     setLoading(true);
     setError("");
     try {
@@ -128,7 +59,7 @@ export default function PricingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ priceId, trial }),
+        body: JSON.stringify({ trial }),
       });
       const data = await res.json();
       if (data.url) {
@@ -184,21 +115,12 @@ export default function PricingPage() {
           </div>
         )}
 
-        {/* Stripe config warning — visible to admin, not end-user-scary */}
-        {!loadingPrices && stripeConfigError && (
-          <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-200 leading-relaxed">{stripeConfigError}</p>
-          </div>
-        )}
-
         <div className="text-center mb-12">
           <p className="text-xs font-medium tracking-wide text-primary mb-3">Pricing</p>
           <h1 className="text-4xl font-bold tracking-tight mb-4">One Price. Everything Included.</h1>
           <p className="text-muted-foreground">No upsells. No add-ons. The full AI coaching system.</p>
         </div>
 
-        {/* Shared error display */}
         {error && (
           <div className="mb-6 bg-destructive/10 border border-destructive/30 rounded-xl p-4">
             <p className="text-sm text-destructive leading-relaxed">{error}</p>
@@ -225,7 +147,7 @@ export default function PricingPage() {
               </p>
             </div>
             <div className="border-t border-border pt-4 space-y-2">
-              {["Full onboarding & personalized plan","All Pro features during trial","AI meal feedback & coach chat","Custom workout plan","Dashboard & progress tracking"].map((f, i) => (
+              {["Full onboarding & personalized plan", "All Pro features during trial", "AI meal feedback & coach chat", "Custom workout plan", "Dashboard & progress tracking"].map((f, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
                   <CheckCircle className="w-4 h-4 text-primary shrink-0" />
                   {f}
@@ -234,14 +156,12 @@ export default function PricingPage() {
             </div>
             <Button
               className="w-full"
-              disabled={loading || loadingPrices || !hasTrial}
-              onClick={() => handleSubscribe(monthlyPriceId, true)}
+              disabled={loading || !hasTrial}
+              onClick={() => handleSubscribe(true)}
               data-testid="button-start-trial"
             >
               {loading ? (
                 <><Loader2 className="w-4 h-4 animate-spin mr-2" />Redirecting...</>
-              ) : loadingPrices ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Loading...</>
               ) : !hasTrial ? (
                 "Trial already used"
               ) : (
@@ -266,17 +186,6 @@ export default function PricingPage() {
                 <p className="text-muted-foreground mb-1">/month</p>
               </div>
               <p className="text-xs text-muted-foreground mt-1">Cancel anytime</p>
-              {!loadingPrices && annualPriceId && (
-                <div className="border-t border-border pt-3">
-                  <button
-                    className="text-xs text-primary font-semibold hover:underline disabled:opacity-50"
-                    onClick={() => handleSubscribe(annualPriceId)}
-                    disabled={loading}
-                  >
-                    Or save 17% with $199.99/year
-                  </button>
-                </div>
-              )}
             </div>
             <div className="border-t border-border pt-4 space-y-2">
               {PRO_FEATURES.map((f, i) => (
@@ -288,14 +197,12 @@ export default function PricingPage() {
             </div>
             <Button
               className="w-full"
-              disabled={loading || loadingPrices}
-              onClick={() => handleSubscribe(monthlyPriceId)}
+              disabled={loading}
+              onClick={() => handleSubscribe(false)}
               data-testid="button-subscribe-pro"
             >
               {loading ? (
                 <><Loader2 className="w-4 h-4 animate-spin mr-2" />Redirecting...</>
-              ) : loadingPrices ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Loading...</>
               ) : (
                 "Start Pro — $19.99/month"
               )}

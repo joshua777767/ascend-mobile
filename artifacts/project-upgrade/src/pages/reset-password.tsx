@@ -39,7 +39,8 @@ export default function ResetPasswordPage() {
       setDone(true);
       setTimeout(() => setLocation("/login"), 2500);
     } catch (err: any) {
-      setError(err?.data?.error ?? "This reset link is invalid or has expired.");
+      const serverMsg = err?.data?.error;
+      setError(serverMsg ?? "Something went wrong. Please request a new reset link.");
     }
   };
 
