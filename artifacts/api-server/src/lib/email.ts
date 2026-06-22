@@ -46,7 +46,7 @@ export async function sendEmail(payload: EmailPayload): Promise<{ id: string } |
   }
 }
 
-export function buildPasswordResetEmail({ resetUrl, email }: { resetUrl: string; email: string }): EmailPayload {
+export function buildPasswordResetEmail({ resetUrl, email, expiresInLabel = "1 hour" }: { resetUrl: string; email: string; expiresInLabel?: string }): EmailPayload {
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -80,7 +80,7 @@ export function buildPasswordResetEmail({ resetUrl, email }: { resetUrl: string;
               </p>
 
               <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#52525b;">
-                Click the button below to choose a new password. This link is valid for <strong>1 hour</strong>.
+                Click the button below to choose a new password. This link is valid for <strong>${expiresInLabel}</strong>.
               </p>
 
               <!-- CTA Button -->
@@ -133,7 +133,7 @@ export function buildPasswordResetEmail({ resetUrl, email }: { resetUrl: string;
 
 We received a request to reset the password for your Ascend account (${email}).
 
-To choose a new password, open this link in your browser (valid for 1 hour):
+To choose a new password, open this link in your browser (valid for ${expiresInLabel}):
 ${resetUrl}
 
 If you did not request a password reset, you can safely ignore this email. Your password will not change.

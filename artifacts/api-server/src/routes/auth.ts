@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { Router, type IRouter } from "express";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db, usersTable, userProfilesTable, passwordResetTokensTable } from "@workspace/db";
 import { SignupBody, LoginBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword } from "../lib/password";
@@ -10,6 +10,11 @@ import { getUncachableStripeClient } from "../stripeClient";
 const router: IRouter = Router();
 
 const SAFE_RESET_MSG = "If an account exists with that email, a reset link has been sent.";
+
+// Single source of truth for reset-token lifetime. RESET_TOKEN_TTL_LABEL is the
+// human-readable form shown in the email — keep it in sync with RESET_TOKEN_TTL_MS.
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+const RESET_TOKEN_TTL_LABEL = "1 hour";
 
 function publicUser(
   user: {
@@ -323,7 +328,20 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
   }
 
   const token = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+
+  // Invalidate any earlier unused reset tokens for this user so only the newest
+  // link works. Prevents stale/duplicate links from lingering and makes the
+  // "this link was replaced" case explicit on validation.
+  await db
+    .update(passwordResetTokensTable)
+    .set({ usedAt: new Date() })
+    .where(
+      and(
+        eq(passwordResetTokensTable.userId, user.id),
+        isNull(passwordResetTokensTable.usedAt),
+      ),
+    );
 
   await db.insert(passwordResetTokensTable).values({ userId: user.id, token, expiresAt });
 
@@ -338,7 +356,7 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
   if (resendConfigured) {
     const baseUrl = process.env.APP_BASE_URL || "https://ascendfit.fitness";
     const fullResetUrl = `${baseUrl}${resetLink}`;
-    const emailPayload = buildPasswordResetEmail({ resetUrl: fullResetUrl, email: user.email });
+    const emailPayload = buildPasswordResetEmail({ resetUrl: fullResetUrl, email: user.email, expiresInLabel: RESET_TOKEN_TTL_LABEL });
     const sent = await sendEmail(emailPayload);
     if (sent) {
       req.log.info({ email: user.email }, "Password reset email sent via Resend");
@@ -369,28 +387,48 @@ router.post("/auth/reset-password", async (req, res): Promise<void> => {
   const [resetToken] = await db
     .select()
     .from(passwordResetTokensTable)
+    .where(eq(passwordResetTokensTable.token, token));
+
+  // Distinct messages per failure mode so users (and we) can tell *why* a link
+  // failed instead of a single ambiguous "invalid or expired".
+  if (!resetToken) {
+    res.status(400).json({ error: "This reset link is invalid. Please request a new password reset." });
+    return;
+  }
+
+  const ALREADY_USED_MSG =
+    "This reset link has already been used, or a newer reset link was requested. Please use the most recent email, or request a new one.";
+
+  if (resetToken.usedAt) {
+    res.status(400).json({ error: ALREADY_USED_MSG });
+    return;
+  }
+
+  if (resetToken.expiresAt <= new Date()) {
+    res.status(400).json({ error: "This reset link has expired. Please request a new password reset." });
+    return;
+  }
+
+  // Atomically claim the token: the conditional UPDATE guarantees single-use even
+  // under concurrent submissions — only one request can flip usedAt from NULL.
+  const claimed = await db
+    .update(passwordResetTokensTable)
+    .set({ usedAt: new Date() })
     .where(
       and(
-        eq(passwordResetTokensTable.token, token),
-        gt(passwordResetTokensTable.expiresAt, new Date()),
-        isNull(passwordResetTokensTable.usedAt)
-      )
-    );
+        eq(passwordResetTokensTable.id, resetToken.id),
+        isNull(passwordResetTokensTable.usedAt),
+      ),
+    )
+    .returning({ id: passwordResetTokensTable.id });
 
-  if (!resetToken) {
-    res.status(400).json({ error: "This reset link is invalid or has expired." });
+  if (claimed.length === 0) {
+    res.status(400).json({ error: ALREADY_USED_MSG });
     return;
   }
 
   const passwordHash = await hashPassword(password);
-
-  await Promise.all([
-    db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, resetToken.userId)),
-    db
-      .update(passwordResetTokensTable)
-      .set({ usedAt: new Date() })
-      .where(eq(passwordResetTokensTable.id, resetToken.id)),
-  ]);
+  await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, resetToken.userId));
 
   res.json({ message: "Password updated. You can now log in with your new password." });
 });
