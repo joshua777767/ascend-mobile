@@ -9,3 +9,4 @@
 - [iOS Safari scroll on standalone pages](ios-safari-scroll.md) — standalone pages (no Layout) need their own scroll container: `height: 100dvh; overflow-y: auto; -webkit-overflow-scrolling: touch`. `min-h-full` or `min-h-screen` won't scroll because `#root` is `height: 100dvh`.
 - [Owner account must exist in DB](owner-admin-forgot-password.md) — admin gate + forgot-password both silently no-op if no users row matches OWNER_EMAIL; forgot-password returns success even for non-existent emails by design.
 - [Password reset tokens](password-reset-tokens.md) — TTL is 1hr (single source of truth); validation returns distinct invalid/used/expired errors; new request invalidates prior links.
+- [Prod vs dev environment](prod-vs-dev-environment.md) — prod has its own DB and runs the last-published build; dev-correct code can fail in prod until re-published. Check prod DB + deploy logs separately.
