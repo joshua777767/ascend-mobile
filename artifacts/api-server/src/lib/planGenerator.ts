@@ -266,35 +266,29 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   let weeklyPace: string;
   let warnings: string | null = null;
 
+  // Safe calorie floors by sex
+  const calorieFloor = isMale ? 1500 : 1200;
+
   if (goalType === "fat_loss") {
     // Timeline-driven deficit: if user set a target date, derive the needed pace.
-    // Otherwise fall back to commitment-level defaults.
-    // Hard cap: 1000 cal/day = ~2 lb/week (safe maximum).
+    // Deficit capped at 300–500 cal/day for safety.
     let deficit: number;
     let timelineCapHit = false;
 
     if (weeksToGoal !== null && weightDiffLbs > 0.5) {
       const neededLbsPerWeek = weightDiffLbs / weeksToGoal;
-      if (neededLbsPerWeek > 2) timelineCapHit = true;
-      const clampedRate = Math.min(neededLbsPerWeek, 2);
-      deficit = Math.round(clampedRate * 500); // 3500 cal/lb ÷ 7 days = 500
-      deficit = Math.max(250, Math.min(1000, deficit));
+      if (neededLbsPerWeek > 1) timelineCapHit = true;
+      const clampedRate = Math.min(neededLbsPerWeek, 1);
+      deficit = Math.round(clampedRate * 500);
+      deficit = Math.max(300, Math.min(500, deficit));
     } else {
-      deficit =
-        isExtreme ? 1000
-        : isLocked ? 800
-        : isSerious ? 650
-        : isCasual ? 300
-        : 500;
+      deficit = isCasual ? 300 : 500;
     }
 
-    calorieTarget = Math.max(1200, tdee - deficit);
-    // Higher deficit → higher protein to protect muscle
-    proteinTargetG = deficit >= 900
-      ? Math.round(weightKg * 2.6)
-      : deficit >= 650
-        ? Math.round(weightKg * 2.4)
-        : Math.round(weightKg * 2.2);
+    calorieTarget = Math.max(calorieFloor, tdee - deficit);
+    // Protein from the lower of current or goal weight, capped at 2.2g/kg (1.0g/lb)
+    const proteinBaseKg = Math.min(weightKg, profile.goalWeightKg);
+    proteinTargetG = Math.round(proteinBaseKg * 2.2);
 
     const actualLbsPerWeek = deficit / 500;
     const paceStr = actualLbsPerWeek >= 1.85 ? "~2 lb / week"
@@ -304,30 +298,29 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     weeklyPace = targetDateLabel ? `${paceStr} → goal by ${targetDateLabel}` : paceStr;
 
     if (timelineCapHit) {
-      warnings = `Your goal requires losing more than 2 lbs/week — the safe maximum. Your plan uses the max safe deficit of 1,000 cal/day. You'll need more time than your target date to reach your goal safely.`;
-    } else if (Math.abs(weightDiff) > 20 || isExtreme || isLocked) {
-      warnings = isExtreme || isLocked
-        ? `You're in a ${deficit}-calorie daily deficit. This requires strict daily execution — hit protein every day to protect muscle. If energy crashes or hunger becomes unmanageable, adjust.`
-        : "Your goal is ambitious. Stay consistent — do not cut more than planned. Extreme deficits cause muscle loss and burnout.";
+      warnings = `Your goal requires losing more than 1 lb/week given your timeline. Your plan uses the max safe deficit of 500 cal/day. You'll need more time than your target date to reach your goal safely.`;
+    } else if (Math.abs(weightDiff) > 20) {
+      warnings = "Your goal is ambitious. Stay consistent and patient — safe fat loss takes time. Do not try to cut more than planned.";
     }
   } else if (goalType === "muscle_gain") {
     // Timeline-driven surplus: if user set a date, derive the needed pace.
-    // Hard cap: 500 cal/day = ~1 lb/week (safe lean bulk maximum).
+    // Surplus capped at 250–400 cal/day for a clean lean bulk.
     let surplus: number;
     let timelineCapHit = false;
 
     if (weeksToGoal !== null && weightDiffLbs > 0.5) {
       const neededLbsPerWeek = weightDiffLbs / weeksToGoal;
-      if (neededLbsPerWeek > 1) timelineCapHit = true;
-      const clampedRate = Math.min(neededLbsPerWeek, 1);
+      if (neededLbsPerWeek > 0.8) timelineCapHit = true;
+      const clampedRate = Math.min(neededLbsPerWeek, 0.8);
       surplus = Math.round(clampedRate * 500);
-      surplus = Math.max(150, Math.min(500, surplus));
+      surplus = Math.max(250, Math.min(400, surplus));
     } else {
-      surplus = isCasual ? 200 : isExtreme ? 400 : 300;
+      surplus = isCasual ? 250 : isExtreme ? 400 : 300;
     }
 
     calorieTarget = tdee + surplus;
-    proteinTargetG = Math.round(weightKg * 2.4);
+    // Protein from goal weight, capped at 2.2g/kg (1.0g/lb)
+    proteinTargetG = Math.round(profile.goalWeightKg * 2.2);
 
     const actualLbsPerWeek = surplus / 500;
     const paceStr = actualLbsPerWeek >= 0.85 ? "~1 lb / week (lean bulk)"
@@ -336,7 +329,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     weeklyPace = targetDateLabel ? `${paceStr} → goal by ${targetDateLabel}` : paceStr;
 
     if (timelineCapHit) {
-      warnings = `Your goal requires gaining more than 1 lb/week — above the safe lean bulk rate. Your plan uses the max safe surplus of 500 cal/day. You'll need more time than your target date to reach your goal without excess fat gain.`;
+      warnings = `Your goal requires gaining faster than 0.8 lb/week — above the safe lean bulk rate. Your plan uses the max safe surplus of 400 cal/day. You'll need more time than your target date to reach your goal without excess fat gain.`;
     }
   } else {
     calorieTarget = tdee;
