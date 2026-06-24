@@ -117,75 +117,98 @@ function AddTaskModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.6)" }}
-      onClick={onClose}>
-      <div className="w-full max-w-lg rounded-t-3xl p-5 pb-8 flex flex-col gap-4"
-        style={{ background: "hsl(220 14% 10%)", border: "1px solid hsl(217 32% 18%)" }}
-        onClick={e => e.stopPropagation()}>
-
-        <div className="flex items-center justify-between">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      style={{ background: "rgba(0,0,0,0.6)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-t-3xl flex flex-col"
+        style={{
+          background: "hsl(220 14% 10%)",
+          border: "1px solid hsl(217 32% 18%)",
+          maxHeight: "85dvh",
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* ── static header ── */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
           <h2 className="text-lg font-bold tracking-tight">Add Task</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors text-xl leading-none">×</button>
         </div>
 
-        {/* Task name */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-muted-foreground">Task name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={e => { setName(e.target.value); setErr(""); }}
-            placeholder="e.g. Take vitamins"
-            autoFocus
-            className="w-full bg-elevated border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/40"
-          />
-        </div>
+        {/* ── scrollable fields ── */}
+        <div className="flex-1 overflow-y-auto px-5 flex flex-col gap-4" style={{ WebkitOverflowScrolling: "touch" }}>
 
-        {/* Time */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-muted-foreground">Time</label>
-          <input
-            type="time"
-            value={time}
-            onChange={e => setTime(e.target.value)}
-            className="w-full bg-elevated border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-          />
-        </div>
-
-        {/* Category */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-muted-foreground">Category</label>
-          <div className="flex gap-2 flex-wrap">
-            {CATEGORIES.map(c => (
-              <button key={c.value} type="button"
-                onClick={() => setCategory(c.value)}
-                className={cn(
-                  "px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all",
-                  category === c.value
-                    ? "bg-primary/15 border-primary/40 text-primary"
-                    : "bg-elevated border-border text-muted-foreground hover:text-foreground"
-                )}>
-                {c.label}
-              </button>
-            ))}
+          {/* Task name */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">Task name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => { setName(e.target.value); setErr(""); }}
+              placeholder="e.g. Take vitamins"
+              autoFocus
+              className="w-full bg-elevated border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
           </div>
+
+          {/* Time */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">Time</label>
+            <input
+              type="time"
+              value={time}
+              onChange={e => setTime(e.target.value)}
+              className="w-full bg-elevated border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+          </div>
+
+          {/* Category */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">Category</label>
+            <div className="flex gap-2 flex-wrap">
+              {CATEGORIES.map(c => (
+                <button key={c.value} type="button"
+                  onClick={() => setCategory(c.value)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all",
+                    category === c.value
+                      ? "bg-primary/15 border-primary/40 text-primary"
+                      : "bg-elevated border-border text-muted-foreground hover:text-foreground"
+                  )}>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">Notes <span className="text-muted-foreground/50">(optional)</span></label>
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Any details…"
+              rows={2}
+              className="w-full bg-elevated border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+            />
+          </div>
+
+          {err && <p className="text-xs text-destructive">{err}</p>}
+
+          {/* spacer so content doesn't sit flush against the sticky bar */}
+          <div className="h-2 shrink-0" />
         </div>
 
-        {/* Notes */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-muted-foreground">Notes <span className="text-muted-foreground/50">(optional)</span></label>
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            placeholder="Any details…"
-            rows={2}
-            className="w-full bg-elevated border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
-          />
-        </div>
-
-        {err && <p className="text-xs text-destructive">{err}</p>}
-
-        <div className="flex gap-3 pt-1">
+        {/* ── sticky button row ── */}
+        <div
+          className="shrink-0 flex gap-3 px-5 pt-3 pb-5"
+          style={{
+            borderTop: "1px solid hsl(217 32% 16%)",
+            paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))",
+          }}
+        >
           <button onClick={onClose} className="flex-1 h-12 rounded-2xl border border-border text-sm font-semibold text-muted-foreground hover:bg-elevated transition-colors">
             Cancel
           </button>
