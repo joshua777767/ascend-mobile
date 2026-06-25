@@ -50,20 +50,22 @@ const SPORT_HABITS: Record<string, string> = {
   wrestling: "Train grip strength, explosive takedowns, and neck strength",
 };
 
-const GLOW_GOALS = ["higher energy", "better sleep", "less bloating", "better digestion"];
-const PRIMARY_GOALS = ["lose fat", "lose weight", "gain weight", "build muscle", "maintain fitness"];
-const MAINTENANCE_GOALS = ["maintain fitness", "maintain", "stay fit", "maintenance"];
+const PRIMARY_GOALS = ["lose weight", "lose fat", "gain muscle", "gain weight and muscle", "stay fit", "gain weight", "build muscle", "maintain fitness"];
+const MAINTENANCE_GOALS = ["stay fit", "maintain fitness", "maintain", "maintenance"];
 
 // Order goals so a combined daily mission reads sensibly
 const GOAL_ORDER = [
-  "lose fat", "lose weight", "gain weight", "build muscle", "maintain fitness",
-  "higher energy", "better sleep", "discipline",
+  "lose weight", "lose fat", "gain weight and muscle", "gain weight", "gain muscle",
+  "build muscle", "stay fit", "maintain fitness", "higher energy", "better sleep", "discipline",
 ];
 
 // How each goal is referenced in coach copy
 const GOAL_LABELS: Record<string, string> = {
-  "lose fat": "fat loss",
   "lose weight": "weight loss",
+  "lose fat": "fat loss",
+  "gain muscle": "muscle building",
+  "gain weight and muscle": "gaining weight and muscle",
+  "stay fit": "staying fit",
   "gain weight": "weight gain",
   "build muscle": "muscle building",
   "maintain fitness": "staying fit",
@@ -118,6 +120,30 @@ function habitsForGoal(goal: string, v: HabitVals): string[] {
         `Walk ${v.steps.toLocaleString()} steps`,
         `Log every meal`,
         ...(v.workoutDays > 0 ? [`Train ${v.workoutDays}x this week`] : [`Stay active — steps and movement count`]),
+      ];
+    case "gain muscle":
+      return [
+        `Eat ${v.protein}g protein — every single day`,
+        `Strength train ${v.workoutDays}x — progressive overload`,
+        `Beat last session: add a rep or add weight`,
+        `Sleep ${v.sleep}h for recovery`,
+        `Rest days are mandatory — muscle grows during recovery`,
+      ];
+    case "gain weight and muscle":
+      return [
+        `Eat ${v.cal} calories — don't undereat`,
+        `Eat ${v.protein}g protein`,
+        `Eat ${v.mealsPerDay}+ meals — never skip`,
+        `Strength train ${v.workoutDays}x this week`,
+        `Add a shake or snack between meals if needed`,
+        `Sleep ${v.sleep}h — that's where mass is built`,
+      ];
+    case "stay fit":
+      return [
+        `Train ${v.workoutDays}x this week`,
+        `Eat ${v.protein}g protein`,
+        `Walk ${v.steps.toLocaleString()} steps`,
+        `Stay near ${v.cal} maintenance calories`,
       ];
     case "gain weight":
       return [
@@ -201,20 +227,27 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   const isLoss = weightDiff < -1;
   const isGain = weightDiff > 1;
 
-  const hasGlowGoals = goals.some(g => GLOW_GOALS.includes(g));
-  // If the user explicitly chose a maintenance goal, always honour it —
-  // even if their goal weight differs slightly from their current weight.
+  // Goal type is driven primarily by the user's chosen goal string.
+  // Weight diff is used as a tiebreaker for legacy/ambiguous goal strings only.
+  const userChoseLoss = goals.some(g => ["lose weight", "lose fat"].includes(g));
+  const userChoseBulk = goals.includes("gain weight and muscle");
+  const userChoseRecomp = goals.includes("gain muscle");
   const userChoseMaintenance = goals.some(g => MAINTENANCE_GOALS.includes(g.toLowerCase()));
 
   let goalType = "maintain";
-  if (userChoseMaintenance) {
+  if (userChoseLoss) {
+    goalType = "fat_loss";
+  } else if (userChoseBulk) {
+    goalType = "muscle_gain";
+  } else if (userChoseRecomp) {
+    goalType = "recomp";
+  } else if (userChoseMaintenance) {
     goalType = "maintain";
   } else if (isLoss) {
+    // Legacy/fallback: infer from weight diff when no explicit goal matches
     goalType = "fat_loss";
   } else if (isGain) {
     goalType = "muscle_gain";
-  } else if (hasGlowGoals) {
-    goalType = "glow";
   }
 
   // Weight diff in lbs (used for timeline calculations)
@@ -330,6 +363,13 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     if (timelineCapHit) {
       warnings = `Your goal requires gaining faster than 0.8 lb/week — above the safe lean bulk rate. Your plan uses the max safe surplus of 400 cal/day. You'll need more time than your target date to reach your goal without excess fat gain.`;
     }
+  } else if (goalType === "recomp") {
+    // Recomposition: tiny surplus to support muscle growth while minimising fat gain
+    const surplus = isCasual ? 75 : 100;
+    calorieTarget = tdee + surplus;
+    // High protein drives recomp — use current weight at 2.2g/kg
+    proteinTargetG = Math.round(weightKg * 2.2);
+    weeklyPace = "Recomp: build muscle & reduce body fat simultaneously";
   } else {
     calorieTarget = tdee;
     proteinTargetG = Math.round(weightKg * 2.0);
@@ -339,9 +379,8 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   // Personalized water target — weight base + goal/training adjustments
   // Rest-day base. Sport-day on-top boosts happen dynamically in getWaterSummary.
   let waterTargetL = weightKg * 0.033;
-  if (goals.includes("better skin"))                                         waterTargetL += 0.30;
   if (goalType === "fat_loss")                                               waterTargetL += 0.25;
-  if (goals.includes("higher energy"))                                       waterTargetL += 0.15;
+  if (goalType === "recomp")                                                 waterTargetL += 0.10;
   if (profile.workoutFocus === "athletic_performance"
     || profile.workoutFocus === "conditioning")                              waterTargetL += 0.35;
   if (profile.workoutDaysPerWeek >= 5)                                       waterTargetL += 0.20;
@@ -350,9 +389,11 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   waterTargetL = Math.max(2.3, Math.min(3.8, Math.round(waterTargetL * 10) / 10));
 
   const stepsTarget = goalType === "fat_loss"
-    ? (isExtreme ? 15000 : isLocked ? 12000 : isSerious ? 10000 : isCasual ? 7500 : 10000)
+    ? (isExtreme ? 15000 : isLocked ? 12000 : isSerious ? 10000 : 7500)
     : goalType === "muscle_gain"
       ? (isCasual ? 7000 : isExtreme ? 8000 : 7500)
+    : goalType === "recomp"
+      ? (isCasual ? 7500 : isExtreme ? 9000 : 8000)
       : (isCasual ? 7000 : isExtreme ? 9000 : 8000);
 
   const sleepTargetHours = profile.sleepQuality <= 4 ? 8.5 : 8;
@@ -384,6 +425,8 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     workoutSchedule = `${workoutDays}x/week: ${Math.ceil(workoutDays * 0.6)}x strength + ${Math.floor(workoutDays * 0.4)}x cardio/HIIT${sportText}`;
   } else if (goalType === "muscle_gain") {
     workoutSchedule = `${workoutDays}x/week: progressive overload strength training. No missed sessions.${sportText}`;
+  } else if (goalType === "recomp") {
+    workoutSchedule = `${workoutDays}x/week: strength training with progressive overload. Recomp demands consistency.${sportText}`;
   } else {
     workoutSchedule = `${workoutDays}x/week: balanced strength + conditioning${sportText}`;
   }
@@ -484,8 +527,8 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     }
   } else if (goalType === "muscle_gain") {
     nutritionExplanation = `You need ${calorieTarget} calories (TDEE ~${tdee}) to grow. Undereating is the #1 reason people don't gain — don't skip meals. Train hard, eat more, sleep more.`;
-  } else if (goalType === "glow") {
-    nutritionExplanation = `Eat around ${calorieTarget} calories with ${proteinTargetG}g protein. Energy and sleep run on the same engine: water, whole foods, and a steady daily routine.`;
+  } else if (goalType === "recomp") {
+    nutritionExplanation = `You need ${calorieTarget} calories (TDEE ~${tdee}) with a tiny surplus to fuel muscle growth without adding fat. Hit ${proteinTargetG}g protein every day — that's the engine of recomp. Train with progressive overload and sleep 8+ hours. Results come slower than a bulk, but you stay lean.`;
   } else {
     nutritionExplanation = `Stay near ${calorieTarget} maintenance calories and hold your protein. Maintenance is discipline, not relaxation.`;
   }

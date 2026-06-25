@@ -21,15 +21,20 @@ function parseArr(json: string | null): string[] {
 function getGoalContext(goal: string, score: number, profile: any): string {
   const name = profile?.name ?? "User";
   const concerns: Record<string, string> = {
+    // Current 4-goal set
+    "lose weight": `Body type: ${profile?.bodyType ?? "unknown"}. Current weight: ${profile?.currentWeightKg ?? "unknown"}kg. Goal: ${profile?.goalWeightKg ?? "unknown"}kg.`,
+    "gain muscle": `Body type: ${profile?.bodyType ?? "unknown"}. Fitness level: ${profile?.fitnessLevel ?? "unknown"}. Current weight: ${profile?.currentWeightKg ?? "unknown"}kg. Workout days: ${profile?.workoutDaysPerWeek ?? 3}/week.`,
+    "gain weight and muscle": `Body type: ${profile?.bodyType ?? "unknown"}. Current weight: ${profile?.currentWeightKg ?? "unknown"}kg. Goal: ${profile?.goalWeightKg ?? "unknown"}kg. Workout days: ${profile?.workoutDaysPerWeek ?? 3}/week.`,
+    "stay fit": `Fitness level: ${profile?.fitnessLevel ?? "unknown"}. Workout days: ${profile?.workoutDaysPerWeek ?? 3}/week.`,
+    // Legacy goal strings — kept for existing user profiles
+    "lose fat": `Body type: ${profile?.bodyType ?? "unknown"}. Current weight: ${profile?.currentWeightKg ?? "unknown"}kg. Goal: ${profile?.goalWeightKg ?? "unknown"}kg.`,
+    "gain weight": `Body type: ${profile?.bodyType ?? "unknown"}. Current weight: ${profile?.currentWeightKg ?? "unknown"}kg. Goal: ${profile?.goalWeightKg ?? "unknown"}kg.`,
+    "build muscle": `Body type: ${profile?.bodyType ?? "unknown"}. Fitness level: ${profile?.fitnessLevel ?? "unknown"}. Goal: ${profile?.goalWeightKg ?? "unknown"}kg.`,
+    "maintain fitness": `Fitness level: ${profile?.fitnessLevel ?? "unknown"}. Workout days: ${profile?.workoutDaysPerWeek ?? 3}/week.`,
+    "better sleep": `Sleep quality: ${profile?.sleepQuality ?? 5}/10. Sleep time: ${profile?.sleepTime ?? "unknown"}. Wake time: ${profile?.wakeTime ?? "unknown"}. Screen time: ${profile?.screenTimeBeforeBed || "unknown"}.`,
     "better skin": `Skin concerns: ${profile?.skinConcerns?.join(", ") || "none reported"}. Sleep: ${profile?.sleepTime ?? "unknown"}. Water: ${profile?.waterIntakeLiters ?? 2}L.`,
     "higher energy": `Energy level: ${profile?.energyLevel ?? 5}/10. Sleep: ${profile?.sleepTime ?? "unknown"}. Wake: ${profile?.wakeTime ?? "unknown"}. Caffeine: ${profile?.caffeineUse || "not reported"}.`,
-    "better sleep": `Sleep quality: ${profile?.sleepQuality ?? 5}/10. Sleep time: ${profile?.sleepTime ?? "unknown"}. Wake time: ${profile?.wakeTime ?? "unknown"}. Screen time: ${profile?.screenTimeBeforeBed || "unknown"}.`,
     "discipline": `Commitment level: ${profile?.commitmentLevel || "unknown"}. Workout days: ${profile?.workoutDaysPerWeek ?? 3}/week. Biggest struggle: ${profile?.biggestStruggle || "unknown"}.`,
-    "lose fat": `Body type: ${profile?.bodyType ?? "unknown"}. Current weight: ${profile?.currentWeightKg ?? "unknown"}kg. Goal: ${profile?.goalWeightKg ?? "unknown"}kg.`,
-    "lose weight": `Body type: ${profile?.bodyType ?? "unknown"}. Current weight: ${profile?.currentWeightKg ?? "unknown"}kg. Goal: ${profile?.goalWeightKg ?? "unknown"}kg.`,
-    "build muscle": `Body type: ${profile?.bodyType ?? "unknown"}. Fitness level: ${profile?.fitnessLevel ?? "unknown"}. Goal: ${profile?.goalWeightKg ?? "unknown"}kg.`,
-    "gain weight": `Body type: ${profile?.bodyType ?? "unknown"}. Current weight: ${profile?.currentWeightKg ?? "unknown"}kg. Goal: ${profile?.goalWeightKg ?? "unknown"}kg.`,
-    "maintain fitness": `Fitness level: ${profile?.fitnessLevel ?? "unknown"}. Workout days: ${profile?.workoutDaysPerWeek ?? 3}/week.`,
   };
   return concerns[goal] || `Goal: ${goal}. Score: ${score}/10.`;
 }

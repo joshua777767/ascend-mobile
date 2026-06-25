@@ -14,11 +14,10 @@ import { cn } from "@/lib/utils";
 // ─── constants ────────────────────────────────────────────────────────────────
 
 const GOALS = [
-  { label: "Lose Weight",  value: "lose weight",       emoji: "🔥" },
-  { label: "Gain Weight",  value: "gain weight",        emoji: "⬆️" },
-  { label: "Gain Muscle",  value: "build muscle",       emoji: "💪" },
-  { label: "Stay Fit",     value: "maintain fitness",   emoji: "⚡" },
-  { label: "More Energy",  value: "higher energy",      emoji: "🌟" },
+  { label: "Lose Weight",          value: "lose weight",           emoji: "🔥" },
+  { label: "Gain Muscle",          value: "gain muscle",           emoji: "💪" },
+  { label: "Gain Weight + Muscle", value: "gain weight and muscle", emoji: "⬆️" },
+  { label: "Stay Fit",             value: "stay fit",              emoji: "⚡" },
 ] as const;
 
 const WAKE_OPTIONS = [
@@ -29,7 +28,7 @@ const WAKE_OPTIONS = [
   { label: "Varies",      emoji: "🔀",  wakeTime: "07:30", wakeTimeRange: null },
 ] as const;
 
-const WEIGHT_GOALS = new Set(["lose weight", "gain weight"]);
+const WEIGHT_GOALS = new Set(["lose weight", "gain weight and muscle"]);
 
 const TOTAL_STEPS = 5;
 
@@ -270,8 +269,8 @@ export default function OnboardingPage() {
                     const gw = parseFloat(goalWeightLbs);
                     if (!isNaN(cw) && !isNaN(gw) && cw > 0 && gw > 0) {
                       const diff = Math.abs(cw - gw);
-                      const isWarning = (selectedGoal === "lose weight" && gw >= cw) || (selectedGoal === "gain weight" && gw <= cw);
-                      const dir = selectedGoal === "lose weight"
+                      const isWarning = (selectedGoal === "lose weight" && gw >= cw) || (selectedGoal === "gain weight and muscle" && gw <= cw);
+                      const dir = selectedGoal === "lose weight" || selectedGoal === "lose fat"
                         ? gw < cw ? `Losing ${diff.toFixed(0)} lbs` : "⚠️ Goal weight is higher than current"
                         : gw > cw ? `Gaining ${diff.toFixed(0)} lbs` : "⚠️ Goal weight is lower than current";
                       return <p className={cn("text-xs mt-1", isWarning ? "text-amber-400" : "text-muted-foreground")}>{dir}</p>;

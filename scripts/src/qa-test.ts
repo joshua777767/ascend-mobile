@@ -63,7 +63,7 @@ function ftInToCm(feet: number, inches: number) {
 
 const tests: TestProfile[] = [
   {
-    label: "Overweight user → lose weight",
+    label: "Goal: Lose Weight — overweight male",
     profile: {
       ...baseProfile(),
       gender: "male",
@@ -72,55 +72,41 @@ const tests: TestProfile[] = [
       currentWeightKg: lbsToKg(220),
       goalWeightKg: lbsToKg(180),
       bodyType: "endomorph",
-      goals: JSON.stringify(["lose fat", "better energy"]),
+      goals: JSON.stringify(["lose weight"]),
       commitmentLevel: "serious",
     },
   },
   {
-    label: "Underweight user → gain weight",
+    label: "Goal: Lose Weight — overweight female",
     profile: {
       ...baseProfile(),
-      gender: "male",
-      age: 20,
-      heightCm: ftInToCm(5, 9),
-      currentWeightKg: lbsToKg(120),
-      goalWeightKg: lbsToKg(160),
-      bodyType: "ectomorph",
-      goals: JSON.stringify(["gain weight", "build muscle"]),
+      gender: "female",
+      age: 27,
+      heightCm: ftInToCm(5, 5),
+      currentWeightKg: lbsToKg(155),
+      goalWeightKg: lbsToKg(130),
+      bodyType: "endomorph",
+      goals: JSON.stringify(["lose weight"]),
       commitmentLevel: "serious",
     },
   },
   {
-    label: "Skinny user → gain muscle",
+    label: "Goal: Gain Muscle (recomp) — male at maintenance weight",
     profile: {
       ...baseProfile(),
       gender: "male",
       age: 22,
       heightCm: ftInToCm(5, 11),
-      currentWeightKg: lbsToKg(140),
-      goalWeightKg: lbsToKg(170),
-      bodyType: "ectomorph",
-      goals: JSON.stringify(["build muscle"]),
+      currentWeightKg: lbsToKg(165),
+      goalWeightKg: lbsToKg(165),
+      bodyType: "average",
+      goals: JSON.stringify(["gain muscle"]),
       commitmentLevel: "locked_in",
       workoutDaysPerWeek: 5,
     },
   },
   {
-    label: "Average user → stay fit",
-    profile: {
-      ...baseProfile(),
-      gender: "male",
-      age: 28,
-      heightCm: ftInToCm(5, 10),
-      currentWeightKg: lbsToKg(170),
-      goalWeightKg: lbsToKg(170),
-      bodyType: "mesomorph",
-      goals: JSON.stringify(["maintain fitness"]),
-      commitmentLevel: "casual",
-    },
-  },
-  {
-    label: "Energy focus (single goal)",
+    label: "Goal: Gain Muscle (recomp) — female",
     profile: {
       ...baseProfile(),
       gender: "female",
@@ -129,79 +115,65 @@ const tests: TestProfile[] = [
       currentWeightKg: lbsToKg(130),
       goalWeightKg: lbsToKg(130),
       bodyType: "average",
-      goals: JSON.stringify(["higher energy"]),
+      goals: JSON.stringify(["gain muscle"]),
+      commitmentLevel: "serious",
+      workoutDaysPerWeek: 4,
+    },
+  },
+  {
+    label: "Goal: Gain Weight + Muscle — underweight male",
+    profile: {
+      ...baseProfile(),
+      gender: "male",
+      age: 20,
+      heightCm: ftInToCm(5, 9),
+      currentWeightKg: lbsToKg(120),
+      goalWeightKg: lbsToKg(160),
+      bodyType: "ectomorph",
+      goals: JSON.stringify(["gain weight and muscle"]),
+      commitmentLevel: "serious",
+    },
+  },
+  {
+    label: "Goal: Gain Weight + Muscle — skinny male",
+    profile: {
+      ...baseProfile(),
+      gender: "male",
+      age: 22,
+      heightCm: ftInToCm(5, 11),
+      currentWeightKg: lbsToKg(140),
+      goalWeightKg: lbsToKg(175),
+      bodyType: "ectomorph",
+      goals: JSON.stringify(["gain weight and muscle"]),
+      commitmentLevel: "locked_in",
+      workoutDaysPerWeek: 5,
+    },
+  },
+  {
+    label: "Goal: Stay Fit — male at maintenance",
+    profile: {
+      ...baseProfile(),
+      gender: "male",
+      age: 28,
+      heightCm: ftInToCm(5, 10),
+      currentWeightKg: lbsToKg(170),
+      goalWeightKg: lbsToKg(170),
+      bodyType: "mesomorph",
+      goals: JSON.stringify(["stay fit"]),
       commitmentLevel: "casual",
     },
   },
   {
-    label: "Energy + sleep focus",
+    label: "Goal: Stay Fit — female at maintenance",
     profile: {
       ...baseProfile(),
       gender: "female",
       age: 30,
       heightCm: ftInToCm(5, 6),
-      currentWeightKg: lbsToKg(145),
-      goalWeightKg: lbsToKg(145),
+      currentWeightKg: lbsToKg(140),
+      goalWeightKg: lbsToKg(140),
       bodyType: "average",
-      goals: JSON.stringify(["higher energy", "better sleep"]),
-      energyLevel: 3,
-      sleepQuality: 3,
-      commitmentLevel: "casual",
-    },
-  },
-  {
-    label: "Short user",
-    profile: {
-      ...baseProfile(),
-      gender: "male",
-      age: 35,
-      heightCm: ftInToCm(5, 3),
-      currentWeightKg: lbsToKg(160),
-      goalWeightKg: lbsToKg(140),
-      bodyType: "endomorph",
-      goals: JSON.stringify(["lose fat"]),
-      commitmentLevel: "serious",
-    },
-  },
-  {
-    label: "Tall user",
-    profile: {
-      ...baseProfile(),
-      gender: "male",
-      age: 24,
-      heightCm: ftInToCm(6, 5),
-      currentWeightKg: lbsToKg(240),
-      goalWeightKg: lbsToKg(210),
-      bodyType: "endomorph",
-      goals: JSON.stringify(["lose fat"]),
-      commitmentLevel: "serious",
-    },
-  },
-  {
-    label: "Male profile",
-    profile: {
-      ...baseProfile(),
-      gender: "male",
-      age: 25,
-      heightCm: ftInToCm(5, 10),
-      currentWeightKg: lbsToKg(185),
-      goalWeightKg: lbsToKg(175),
-      bodyType: "mesomorph",
-      goals: JSON.stringify(["lose fat", "build muscle"]),
-      commitmentLevel: "serious",
-    },
-  },
-  {
-    label: "Female profile",
-    profile: {
-      ...baseProfile(),
-      gender: "female",
-      age: 27,
-      heightCm: ftInToCm(5, 5),
-      currentWeightKg: lbsToKg(155),
-      goalWeightKg: lbsToKg(140),
-      bodyType: "endomorph",
-      goals: JSON.stringify(["lose fat", "better skin"]),
+      goals: JSON.stringify(["stay fit"]),
       commitmentLevel: "serious",
     },
   },
@@ -217,10 +189,11 @@ function safeCalorieCheck(cal: number, gender: string): string | null {
 function safeProteinCheck(protein: number, currentWeightKg: number, goalWeightKg: number, gender: string, goalType: string): string | null {
   const lbsCurrent = currentWeightKg * 2.2046;
   const lbsGoal = goalWeightKg * 2.2046;
-  // For muscle gain, use goal weight; for fat loss, use min of current/goal; for maintain, use current
+  // For muscle gain (bulk), use goal weight; recomp uses current weight at 2.2g/kg (≈1g/lb); fat loss uses min; maintain uses current
   const proteinBase = goalType === "muscle_gain" ? lbsGoal : Math.min(lbsCurrent, lbsGoal);
-  const proteinMax = proteinBase * 1.0;
-  if (protein > proteinMax + 3) return `Protein ${protein}g exceeds max 1.0g/lb of ${proteinBase.toFixed(1)} lb = ${Math.round(proteinMax)}g`;
+  // Recomp uses 2.2g/kg of current weight — allow slightly higher ceiling
+  const proteinMax = goalType === "recomp" ? lbsCurrent * 1.05 : proteinBase * 1.0;
+  if (protein > proteinMax + 3) return `Protein ${protein}g exceeds max for ${goalType} of ${proteinBase.toFixed(1)} lb = ${Math.round(proteinMax)}g`;
   return null;
 }
 

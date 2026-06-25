@@ -426,17 +426,22 @@ function heuristicReply(message: string, ctx: ChatContext): string {
   //     into one mission, mirroring the system-prompt behavior.
   if (ctx.goals.length > 0) {
     const labelMap: Record<string, string> = {
-      "lose fat": "fat loss", "lose weight": "weight loss", "gain weight": "weight gain",
-      "build muscle": "muscle building", "maintain fitness": "staying fit",
-      "higher energy": "better energy",
-      "better sleep": "better sleep", discipline: "discipline",
+      "lose weight": "weight loss", "lose fat": "fat loss",
+      "gain muscle": "muscle building", "gain weight and muscle": "gaining weight and muscle",
+      "stay fit": "staying fit", "maintain fitness": "staying fit",
+      "gain weight": "weight gain", "build muscle": "muscle building",
+      "higher energy": "better energy", "better sleep": "better sleep",
+      discipline: "discipline",
     };
     const itemMap: Record<string, string> = {
-      "lose fat": `hit ${calStr}, ${proStr}, 8,000 steps, log every meal`,
       "lose weight": `hit ${calStr}, ${proStr}, 8,000 steps, log every meal`,
+      "lose fat": `hit ${calStr}, ${proStr}, 8,000 steps, log every meal`,
+      "gain muscle": `${proStr}, train with progressive overload, sleep 8h — recomp takes consistency`,
+      "gain weight and muscle": `eat ${calStr} across 4+ meals, ${proStr}, strength train ${days}x, don't skip a meal`,
+      "stay fit": `train ${days}x/week, ${proStr}, walk daily`,
+      "maintain fitness": `train ${days}x/week, ${proStr}, walk daily`,
       "gain weight": `eat ${calStr} across 4+ meals, ${proStr}, don't skip a meal`,
       "build muscle": `${proStr}, train with progressive overload, sleep 8h to recover`,
-      "maintain fitness": `train ${days}x/week, ${proStr}, walk daily`,
       "higher energy": "protein breakfast, morning sunlight, no late caffeine",
       "better sleep": "consistent bedtime, screens off 60 min before bed, cool dark room",
       discipline: "pick one main mission and finish it — no zero days",
@@ -528,7 +533,7 @@ function buildContextSummary(
 
   if (plan) {
     parts.push(
-      `PLAN: goal type "${plan.goalType}", ${plan.calorieTarget} cal/day (because this ${plan.goalType === "fat_loss" ? "creates a moderate deficit for steady fat loss without muscle loss" : plan.goalType === "muscle_gain" ? "provides a controlled surplus to build lean mass" : "supports energy balance for maintenance"}), ` +
+      `PLAN: goal type "${plan.goalType}", ${plan.calorieTarget} cal/day (because this ${plan.goalType === "fat_loss" ? "creates a moderate deficit for steady fat loss without muscle loss" : plan.goalType === "muscle_gain" ? "provides a controlled calorie surplus to build lean mass" : plan.goalType === "recomp" ? "provides a tiny surplus above maintenance to fuel muscle growth while keeping body fat low" : "supports energy balance for maintenance"}), ` +
         `${plan.proteinTargetG}g protein/day, ${plan.waterTargetL}L water, ` +
         `${plan.stepsTarget} steps/day, ${plan.sleepTargetHours}h sleep. Weekly pace: ${plan.weeklyPace}.`,
     );

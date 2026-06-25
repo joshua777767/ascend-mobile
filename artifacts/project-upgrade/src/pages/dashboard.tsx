@@ -1009,11 +1009,11 @@ export default function DashboardPage() {
     if (isCutting && plan) {
       return `${firstName}, stay focused: protein, steps, water, clean tracking. Your next move matters.`;
     }
-    if (goals.includes("higher energy")) {
-      return "Energy is built: protein breakfast, water, sunlight, and sleep. One choice at a time.";
+    if (goals.includes("gain muscle")) {
+      return "Recomp is built on consistency: hit protein every day, train with progressive overload, and sleep 8 hours.";
     }
-    if (goals.includes("better sleep")) {
-      return "Better sleep: wind down before 9, magnesium, cool room, and a consistent wake time.";
+    if (goals.includes("gain weight and muscle")) {
+      return `${firstName}, you're building. Hit ${plan?.calorieTarget?.toLocaleString() ?? "your"} calories today. Every meal is a choice.`;
     }
     if (goals.includes("discipline")) {
       return "Discipline is built daily. Show up. Small wins compound. Progress is proof.";

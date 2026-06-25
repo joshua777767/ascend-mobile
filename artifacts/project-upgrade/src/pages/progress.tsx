@@ -98,11 +98,13 @@ export default function ProgressPage() {
   };
 
   function getTrendQuestion(goal: string): string {
-    if (goal === "higher energy") return "Is your energy better, same, or worse than last week?";
+    if (goal === "lose weight" || goal === "lose fat") return "Did this week feel easier, same, or harder?";
+    if (goal === "gain muscle") return "Are you getting stronger — more reps or more weight? Better, same, or worse?";
+    if (goal === "gain weight and muscle") return "Are you eating enough and seeing the scale move? Better, same, or harder?";
+    if (goal === "stay fit" || goal === "maintain fitness") return "Are you staying consistent? Better, same, or harder?";
     if (goal === "better sleep") return "Is your sleep better, same, or worse than last week?";
     if (goal === "discipline") return "Were you more or less consistent than last week?";
-    if (["lose fat", "lose weight", "build muscle", "gain weight"].includes(goal))
-      return "Did this week feel easier, same, or harder?";
+    if (goal === "higher energy") return "Is your energy better, same, or worse than last week?";
     return "Is your progress better, same, or worse than last week?";
   }
 
