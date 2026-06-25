@@ -35,9 +35,9 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "YOUR_APPLE_ID_EMAIL",
-        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
-        "appleTeamId": "YOUR_APPLE_TEAM_ID"
+        "appleId": "mike@mikequaglia.com",
+        "ascAppId": "6784409058",
+        "appleTeamId": "4BZY3Y44XW"
       }
     }
   }
