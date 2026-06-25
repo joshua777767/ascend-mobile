@@ -230,8 +230,17 @@ async function downloadFile(url, outputPath) {
 }
 
 async function downloadBundle(platform, timestamp) {
-  const entryPath = path.resolve(projectRoot, "node_modules", "expo-router", "entry");
-  const bundlePath = path.relative(projectRoot, entryPath);
+  // Metro's effective root is the workspace root (pnpm monorepo root), not the artifact dir.
+  // The bundle URL must use the real (non-symlink) path relative to the workspace root,
+  // which matches Metro's mainModuleName (node_modules/.pnpm/expo-router@.../entry).
+  const symlinkEntry = path.resolve(projectRoot, "node_modules", "expo-router", "entry");
+  let entryPath;
+  try {
+    entryPath = fs.realpathSync(symlinkEntry + ".js").replace(/\.js$/, "");
+  } catch {
+    entryPath = symlinkEntry;
+  }
+  const bundlePath = path.relative(workspaceRoot, entryPath);
   const url = new URL(`http://localhost:8081/${bundlePath}.bundle`);
   url.searchParams.set("platform", platform);
   url.searchParams.set("dev", "false");
