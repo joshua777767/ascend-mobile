@@ -155,12 +155,14 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
       "--no-dev",
       "--minify",
       "--localhost",
+      "--port",
+      "8081",
     ],
     {
       stdio: ["ignore", "pipe", "pipe"],
       detached: false,
       cwd: projectRoot,
-      env,
+      env: { ...env, PORT: "8081" },
     },
   );
 
@@ -177,7 +179,7 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
     });
   }
 
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 180; i++) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const healthy = await checkMetroHealth();
@@ -476,9 +478,13 @@ function updateManifests(manifests, timestamp, baseUrl, assetsByHash) {
     ).toISOString();
     manifest.extra.expoClient.hostUri =
       baseUrl.replace("https://", "") + "/" + platform;
-    manifest.extra.expoGo.debuggerHost =
-      baseUrl.replace("https://", "") + "/" + platform;
-    manifest.extra.expoGo.packagerOpts.dev = false;
+    if (manifest.extra.expoGo) {
+      manifest.extra.expoGo.debuggerHost =
+        baseUrl.replace("https://", "") + "/" + platform;
+      if (manifest.extra.expoGo.packagerOpts) {
+        manifest.extra.expoGo.packagerOpts.dev = false;
+      }
+    }
 
     if (manifest.assets && manifest.assets.length > 0) {
       manifest.assets.forEach((asset) => {
