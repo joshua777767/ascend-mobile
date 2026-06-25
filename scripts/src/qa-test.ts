@@ -120,7 +120,7 @@ const tests: TestProfile[] = [
     },
   },
   {
-    label: "Better skin focus",
+    label: "Energy focus (single goal)",
     profile: {
       ...baseProfile(),
       gender: "female",
@@ -129,13 +129,12 @@ const tests: TestProfile[] = [
       currentWeightKg: lbsToKg(130),
       goalWeightKg: lbsToKg(130),
       bodyType: "average",
-      goals: JSON.stringify(["better skin", "higher energy"]),
-      skinConcerns: JSON.stringify(["acne", "dryness"]),
+      goals: JSON.stringify(["higher energy"]),
       commitmentLevel: "casual",
     },
   },
   {
-    label: "More energy focus",
+    label: "Energy + sleep focus",
     profile: {
       ...baseProfile(),
       gender: "female",

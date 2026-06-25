@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 const GOALS = [
   "lose fat", "lose weight", "gain weight", "build muscle",
-  "maintain fitness", "better skin", "higher energy", "better sleep", "discipline",
+  "maintain fitness", "higher energy", "better sleep", "discipline",
 ];
 
 const GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];

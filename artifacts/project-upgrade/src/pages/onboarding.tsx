@@ -18,7 +18,6 @@ const GOALS = [
   { label: "Gain Weight",  value: "gain weight",        emoji: "⬆️" },
   { label: "Gain Muscle",  value: "build muscle",       emoji: "💪" },
   { label: "Stay Fit",     value: "maintain fitness",   emoji: "⚡" },
-  { label: "Better Skin",  value: "better skin",        emoji: "✨" },
   { label: "More Energy",  value: "higher energy",      emoji: "🌟" },
 ] as const;
 

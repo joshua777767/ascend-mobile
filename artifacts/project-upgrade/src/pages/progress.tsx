@@ -98,7 +98,6 @@ export default function ProgressPage() {
   };
 
   function getTrendQuestion(goal: string): string {
-    if (goal === "better skin") return "Is your skin better, same, or worse than last week?";
     if (goal === "higher energy") return "Is your energy better, same, or worse than last week?";
     if (goal === "better sleep") return "Is your sleep better, same, or worse than last week?";
     if (goal === "discipline") return "Were you more or less consistent than last week?";

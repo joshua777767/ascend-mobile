@@ -249,42 +249,6 @@ function BuildMuscleGoalForm({
   );
 }
 
-function SkinGoalForm({
-  ans,
-  update,
-}: {
-  ans: GoalAnswers;
-  update: (k: keyof GoalAnswers, v: string) => void;
-}) {
-  return (
-    <>
-      <ScoreSlider
-        label="Skin rating this week (1–10)"
-        value={ans.score}
-        onChange={(v) => update("score", v)}
-      />
-      <div className="space-y-1.5">
-        <Label className="text-[10px] tracking-wide text-muted-foreground">
-          Is your skin better, same, or worse than last week?
-        </Label>
-        <TrendButtons value={ans.trend} onChange={(v) => update("trend", v)} />
-      </div>
-      <Field
-        label="What helped your skin this week?"
-        value={ans.whatHelped}
-        onChange={(v) => update("whatHelped", v)}
-        placeholder="e.g. extra water, less sugar, 8h sleep"
-      />
-      <Field
-        label="What made it worse?"
-        value={ans.whatHardened}
-        onChange={(v) => update("whatHardened", v)}
-        placeholder="e.g. stress, dairy, late nights"
-      />
-    </>
-  );
-}
-
 function EnergyGoalForm({
   ans,
   update,
@@ -459,19 +423,6 @@ function deriveNextWeekFocus(goal: string, ans: GoalAnswers): string {
   const helped = [ans.whatHelped, ans.proteinConsistency, ans.strengthProgress]
     .join(" ")
     .toLowerCase();
-
-  if (goal === "better skin") {
-    if (/dairy|milk|cheese|yogurt|cream/.test(harder))
-      return 'Try cutting dairy for 5 days — it may help reduce inflammation. Track any change in skin texture or breakouts.';
-    if (/sugar|sweet|candy|dessert|chocolate/.test(harder))
-      return 'Limit added sugar this week. High glycemic foods may spike sebum production — track the pattern.';
-    if (/sleep|rest|tired/.test(harder))
-      return 'Protect your sleep this week. Poor sleep raises cortisol, which may worsen skin. Aim for 7–8h and note any difference.';
-    if (/sleep|rest|hydrat/.test(helped))
-      return 'Sleep and hydration are clearly helping your skin. Keep your wind-down routine tight — lights low by 10pm.';
-    if (/stress|work|anxious/.test(harder))
-      return 'Stress may be triggering flare-ups. Add a 10-min walk or breathing break daily — cortisol regulation can help skin over time.';
-  }
 
   if (goal === "higher energy") {
     if (/sleep|tired|rest|fatigue/.test(harder))
@@ -890,8 +841,6 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
       return <LoseFatGoalForm ans={ans} update={update} />;
     if (BUILD_MUSCLE_GOALS.includes(currentGoal))
       return <BuildMuscleGoalForm ans={ans} update={update} />;
-    if (currentGoal === "better skin")
-      return <SkinGoalForm ans={ans} update={update} />;
     if (currentGoal === "higher energy")
       return <EnergyGoalForm ans={ans} update={update} />;
     if (currentGoal === "better sleep")

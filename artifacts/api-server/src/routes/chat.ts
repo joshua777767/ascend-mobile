@@ -428,7 +428,7 @@ function heuristicReply(message: string, ctx: ChatContext): string {
     const labelMap: Record<string, string> = {
       "lose fat": "fat loss", "lose weight": "weight loss", "gain weight": "weight gain",
       "build muscle": "muscle building", "maintain fitness": "staying fit",
-      "better skin": "clear skin", "higher energy": "better energy",
+      "higher energy": "better energy",
       "better sleep": "better sleep", discipline: "discipline",
     };
     const itemMap: Record<string, string> = {
@@ -437,7 +437,6 @@ function heuristicReply(message: string, ctx: ChatContext): string {
       "gain weight": `eat ${calStr} across 4+ meals, ${proStr}, don't skip a meal`,
       "build muscle": `${proStr}, train with progressive overload, sleep 8h to recover`,
       "maintain fitness": `train ${days}x/week, ${proStr}, walk daily`,
-      "better skin": "drink 3L water, wash your face AM and PM, AM SPF 30+, PM active (salicylic acid 2% or benzoyl peroxide 2.5%), cut dairy/whey/sugar for 2-4 weeks, change pillowcase 2x/week",
       "higher energy": "protein breakfast, morning sunlight, no late caffeine",
       "better sleep": "consistent bedtime, screens off 60 min before bed, cool dark room",
       discipline: "pick one main mission and finish it — no zero days",
@@ -454,10 +453,7 @@ function heuristicReply(message: string, ctx: ChatContext): string {
     const mission = missionItems.length
       ? missionItems.map((i) => `• ${i}`).join("\n")
       : `• Calories: ${calStr}\n• Protein: ${proStr}\n• Steps: 8,000\n• Sleep: 7-8 hours`;
-    const skinNote = ctx.goals.includes("better skin")
-      ? "\n\nFor persistent acne or a skin condition, see a dermatologist — that's outside my lane."
-      : "";
-    return `You picked ${joined}. Here's today's combined mission:\n\n${mission}\n\nWin these daily and the goals take care of themselves. Tell me what you're stuck on and I'll give you the next step.${skinNote}`;
+    return `You picked ${joined}. Here's today's combined mission:\n\n${mission}\n\nWin these daily and the goals take care of themselves. Tell me what you're stuck on and I'll give you the next step.`;
   }
 
   const workoutMissionLine = days > 0

@@ -50,14 +50,14 @@ const SPORT_HABITS: Record<string, string> = {
   wrestling: "Train grip strength, explosive takedowns, and neck strength",
 };
 
-const GLOW_GOALS = ["better skin", "higher energy", "better sleep", "less bloating", "better digestion"];
+const GLOW_GOALS = ["higher energy", "better sleep", "less bloating", "better digestion"];
 const PRIMARY_GOALS = ["lose fat", "lose weight", "gain weight", "build muscle", "maintain fitness"];
 const MAINTENANCE_GOALS = ["maintain fitness", "maintain", "stay fit", "maintenance"];
 
 // Order goals so a combined daily mission reads sensibly
 const GOAL_ORDER = [
   "lose fat", "lose weight", "gain weight", "build muscle", "maintain fitness",
-  "better skin", "higher energy", "better sleep", "discipline",
+  "higher energy", "better sleep", "discipline",
 ];
 
 // How each goal is referenced in coach copy
@@ -67,7 +67,6 @@ const GOAL_LABELS: Record<string, string> = {
   "gain weight": "weight gain",
   "build muscle": "muscle building",
   "maintain fitness": "staying fit",
-  "better skin": "clear skin",
   "higher energy": "better energy",
   "better sleep": "better sleep",
   discipline: "discipline",
@@ -454,10 +453,6 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   const goalLabelList = orderedGoals.map((g) => GOAL_LABELS[g] || g);
   const goalText = goalLabelList.length ? joinList(goalLabelList) : "your goals";
   const missionLine = joinList(finalHabits.slice(0, 6).map((h) => h.charAt(0).toLowerCase() + h.slice(1)));
-  const skinNote = goals.includes("better skin")
-    ? " For skin, habits help — but for persistent acne or a medical skin condition, see a dermatologist."
-    : "";
-
   const commitmentLabel = commitment === "locked_in" ? "Locked In" : commitment === "extreme_discipline" ? "Extreme Discipline" : commitment === "serious" ? "Serious" : "Casual";
   const commitmentNote = commitment === "locked_in"
     ? ` You chose ${commitmentLabel}. No fake tracking. Hit protein, log meals, train, water, sleep, and check in tonight.`
@@ -490,7 +485,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   } else if (goalType === "muscle_gain") {
     nutritionExplanation = `You need ${calorieTarget} calories (TDEE ~${tdee}) to grow. Undereating is the #1 reason people don't gain — don't skip meals. Train hard, eat more, sleep more.`;
   } else if (goalType === "glow") {
-    nutritionExplanation = `Eat around ${calorieTarget} calories with ${proteinTargetG}g protein. Skin, energy, and sleep all run on the same engine: water, whole foods, and a steady daily routine.`;
+    nutritionExplanation = `Eat around ${calorieTarget} calories with ${proteinTargetG}g protein. Energy and sleep run on the same engine: water, whole foods, and a steady daily routine.`;
   } else {
     nutritionExplanation = `Stay near ${calorieTarget} maintenance calories and hold your protein. Maintenance is discipline, not relaxation.`;
   }
@@ -501,9 +496,9 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
 
   let coachNotes: string;
   if (hasOwnSchedule === "yes" && ownSchedule) {
-    coachNotes = `You picked ${goalText}. The plan respects your own training schedule and builds nutrition and recovery around it. Today's mission: ${missionLine}. Hit ${proteinTargetG}g protein every day regardless of the gym.${commitmentNote}${sportNote}${skinNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
+    coachNotes = `You picked ${goalText}. The plan respects your own training schedule and builds nutrition and recovery around it. Today's mission: ${missionLine}. Hit ${proteinTargetG}g protein every day regardless of the gym.${commitmentNote}${sportNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
   } else {
-    coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${skinNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
+    coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
   }
 
   return {

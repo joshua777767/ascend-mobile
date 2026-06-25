@@ -1009,9 +1009,6 @@ export default function DashboardPage() {
     if (isCutting && plan) {
       return `${firstName}, stay focused: protein, steps, water, clean tracking. Your next move matters.`;
     }
-    if (goals.includes("better skin")) {
-      return "Clear skin is built: water, sleep, face wash, and less sugar. Small steps, daily.";
-    }
     if (goals.includes("higher energy")) {
       return "Energy is built: protein breakfast, water, sunlight, and sleep. One choice at a time.";
     }
