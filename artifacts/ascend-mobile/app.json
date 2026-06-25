@@ -44,8 +44,7 @@
           "photosPermission": "Allow Ascend to access your photos to log meals.",
           "cameraPermission": "Allow Ascend to use your camera to take meal photos."
         }
-      ],
-      "react-native-purchases"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
