@@ -11,14 +11,14 @@
         "simulator": true
       },
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "YOUR_REPLIT_DOMAIN_HERE"
+        "EXPO_PUBLIC_DOMAIN": "ascendfit.fitness"
       }
     },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "YOUR_REPLIT_DOMAIN_HERE"
+        "EXPO_PUBLIC_DOMAIN": "ascendfit.fitness"
       }
     },
     "production": {
@@ -28,7 +28,7 @@
         "distribution": "store"
       },
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "YOUR_REPLIT_DOMAIN_HERE"
+        "EXPO_PUBLIC_DOMAIN": "ascendfit.fitness"
       }
     }
   },
