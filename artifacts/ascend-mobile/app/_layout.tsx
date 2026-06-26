@@ -6,8 +6,8 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { setBaseUrl } from "@workspace/api-client-react";
-import { Redirect, Stack, useRouter, useSegments } from "expo-router";
+import { setBaseUrl, useGetUserProfile, getGetUserProfileQueryKey } from "@workspace/api-client-react";
+import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -16,7 +16,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import { SubscriptionProvider, useSubscription } from "@/contexts/SubscriptionContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
 setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
@@ -25,20 +25,79 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
-function AuthGate({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+function AppGate({ children }: { children: React.ReactNode }) {
+  const { user, isLoading: authLoading } = useAuth();
+  const { isPro, isLoading: subLoading } = useSubscription();
   const segments = useSegments();
   const router = useRouter();
 
-  useEffect(() => {
-    if (isLoading) return;
-    const inAuth = segments[0] === "login" || segments[0] === "signup";
-    if (!user && !inAuth) {
-      router.replace("/login");
-    }
-  }, [user, isLoading, segments, router]);
+  // Only query the profile once authenticated. retry:false so a 404 (no profile
+  // yet) resolves immediately instead of retrying.
+  const profileQuery = useGetUserProfile({
+    query: {
+      queryKey: getGetUserProfileQueryKey(),
+      enabled: !!user,
+      retry: false,
+    },
+  });
 
-  if (isLoading) return <LoadingScreen />;
+  useEffect(() => {
+    if (authLoading) return;
+
+    const seg0 = segments[0];
+    const inAuth = seg0 === "login" || seg0 === "signup";
+
+    // Not signed in → login (allow login/signup screens through).
+    if (!user) {
+      if (!inAuth) router.replace("/login");
+      return;
+    }
+
+    // Signed in — wait for profile + subscription state before routing.
+    if (profileQuery.isLoading || subLoading) return;
+
+    const profile404 = (profileQuery.error as any)?.status === 404;
+    const hasProfile = !!profileQuery.data;
+    const profileErrored = !!profileQuery.error && !profile404;
+
+    const onOnboarding = seg0 === "onboarding";
+    const onPaywall = seg0 === "paywall";
+
+    // No profile yet → onboarding.
+    if (!hasProfile && profile404) {
+      if (!onOnboarding) router.replace("/onboarding");
+      return;
+    }
+
+    // Transient (non-404) profile error → don't force navigation; let it retry.
+    if (profileErrored && !hasProfile) return;
+
+    // Has profile but not Pro → hard paywall gate.
+    if (!isPro) {
+      if (!onPaywall) router.replace("/paywall");
+      return;
+    }
+
+    // Pro + profile → into the app; bounce off auth/onboarding/paywall screens.
+    if (inAuth || onOnboarding || onPaywall) router.replace("/(tabs)");
+  }, [
+    user,
+    authLoading,
+    subLoading,
+    isPro,
+    profileQuery.isLoading,
+    profileQuery.data,
+    profileQuery.error,
+    segments,
+    router,
+  ]);
+
+  // Block rendering of any screen until auth AND (for signed-in users) the
+  // profile + subscription state are resolved. Without this, (tabs) can render
+  // for a frame before the gate redirects — letting a non-Pro user briefly
+  // reach the app. The `!user` case falls through to the login redirect above.
+  const resolving = !!user && (profileQuery.isLoading || subLoading);
+  if (authLoading || resolving) return <LoadingScreen />;
   return <>{children}</>;
 }
 
@@ -46,16 +105,23 @@ function RootLayoutNav() {
   const { user } = useAuth();
   return (
     <SubscriptionProvider userId={user ? String(user.id) : null}>
-      <AuthGate>
+      <AppGate>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false, animation: "fade" }} />
           <Stack.Screen name="signup" options={{ headerShown: false, animation: "fade" }} />
-          <Stack.Screen name="paywall" options={{ headerShown: false, presentation: "modal" }} />
+          <Stack.Screen
+            name="onboarding"
+            options={{ headerShown: false, animation: "fade", gestureEnabled: false }}
+          />
+          <Stack.Screen
+            name="paywall"
+            options={{ headerShown: false, gestureEnabled: false }}
+          />
           <Stack.Screen name="settings" options={{ headerShown: false, presentation: "modal" }} />
           <Stack.Screen name="+not-found" />
         </Stack>
-      </AuthGate>
+      </AppGate>
     </SubscriptionProvider>
   );
 }

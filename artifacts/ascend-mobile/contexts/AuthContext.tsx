@@ -1,5 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setAuthTokenGetter, setBaseUrl } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, {
   createContext,
@@ -9,9 +9,12 @@ import React, {
   useState,
 } from "react";
 
-setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
-
-const TOKEN_KEY = "ascend_auth_token";
+const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
+setBaseUrl(BASE);
+// Auth is session-cookie based (the API server issues an httpOnly connect.sid
+// cookie and has no bearer-token endpoint). Make sure no stale bearer token is
+// attached to generated-client requests; cookies carry the session instead.
+setAuthTokenGetter(() => null);
 
 type User = {
   id: number;
@@ -21,7 +24,6 @@ type User = {
 
 type AuthContextValue = {
   user: User | null;
-  token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (username: string, email: string, password: string) => Promise<void>;
@@ -30,123 +32,98 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function toUser(data: any): User | null {
+  const raw = data?.user ?? data;
+  if (!raw || typeof raw.id !== "number") return null;
+  const email: string = raw.email ?? "";
+  return {
+    id: raw.id,
+    email,
+    username: raw.username ?? (email ? email.split("@")[0] : "Coach"),
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const storeToken = useCallback(async (t: string) => {
-    await AsyncStorage.setItem(TOKEN_KEY, t);
-    setToken(t);
-    setAuthTokenGetter(() => t);
-  }, []);
-
-  const clearToken = useCallback(async () => {
-    await AsyncStorage.removeItem(TOKEN_KEY);
-    setToken(null);
-    setAuthTokenGetter(() => null);
-  }, []);
-
-  const fetchMe = useCallback(async (t: string): Promise<User | null> => {
+  const fetchMe = useCallback(async (): Promise<User | null> => {
     try {
-      const base = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
-      const res = await fetch(`${base}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${t}` },
+      const res = await fetch(`${BASE}/api/auth/me`, {
+        credentials: "include",
       });
       if (!res.ok) return null;
-      const data = await res.json();
-      return data.user ?? data ?? null;
+      return toUser(await res.json());
     } catch {
       return null;
     }
   }, []);
 
+  // Restore session from the persisted cookie on launch.
   useEffect(() => {
     (async () => {
       try {
-        const stored = await AsyncStorage.getItem(TOKEN_KEY);
-        if (stored) {
-          setAuthTokenGetter(() => stored);
-          const me = await fetchMe(stored);
-          if (me) {
-            setToken(stored);
-            setUser(me);
-          } else {
-            await AsyncStorage.removeItem(TOKEN_KEY);
-          }
-        }
+        const me = await fetchMe();
+        if (me) setUser(me);
       } finally {
         setIsLoading(false);
       }
     })();
   }, [fetchMe]);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const base = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
-      const res = await fetch(`${base}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message ?? "Login failed");
-      }
-      const data = await res.json();
-      const t = data.token ?? data.accessToken ?? data.jwt;
-      if (!t) throw new Error("No token returned");
-      const me = data.user ?? (await fetchMe(t));
-      if (!me) throw new Error("Could not load profile");
-      await storeToken(t);
-      setUser(me);
-    },
-    [storeToken, fetchMe]
-  );
+  const login = useCallback(async (email: string, password: string) => {
+    const res = await fetch(`${BASE}/api/auth/login`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error ?? err.message ?? "Login failed");
+    }
+    const me = toUser(await res.json()) ?? (await fetchMe());
+    if (!me) throw new Error("Could not load your account.");
+    setUser(me);
+  }, [fetchMe]);
 
   const signup = useCallback(
     async (username: string, email: string, password: string) => {
-      const base = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
-      const res = await fetch(`${base}/api/auth/signup`, {
+      const res = await fetch(`${BASE}/api/auth/signup`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, password }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message ?? "Signup failed");
+        throw new Error(err.error ?? err.message ?? "Signup failed");
       }
-      const data = await res.json();
-      const t = data.token ?? data.accessToken ?? data.jwt;
-      if (!t) throw new Error("No token returned");
-      const me = data.user ?? (await fetchMe(t));
-      if (!me) throw new Error("Could not load profile");
-      await storeToken(t);
+      const me = toUser(await res.json()) ?? (await fetchMe());
+      if (!me) throw new Error("Could not create your account.");
       setUser(me);
     },
-    [storeToken, fetchMe]
+    [fetchMe]
   );
 
   const logout = useCallback(async () => {
     try {
-      const base = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
-      if (token) {
-        await fetch(`${base}/api/auth/logout`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      }
+      await fetch(`${BASE}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
     } catch {}
-    await clearToken();
     setUser(null);
+    // Wipe all cached query data (profile, plan, etc.) so the previous account's
+    // data can never drive routing or render for the next signed-in user.
+    queryClient.clear();
     router.replace("/login");
-  }, [token, clearToken, router]);
+  }, [router, queryClient]);
 
   return (
-    <AuthContext.Provider
-      value={{ user, token, isLoading, login, signup, logout }}
-    >
+    <AuthContext.Provider value={{ user, isLoading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

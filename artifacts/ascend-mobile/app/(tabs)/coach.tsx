@@ -29,7 +29,6 @@ export default function CoachScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { token } = useAuth();
   const { isPro } = useSubscription();
 
   const { data: historyData } = useGetChatHistory();
@@ -63,9 +62,9 @@ export default function CoachScreen() {
       const base = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
       const res = await fetch(`${base}/api/chat`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ message: currentInput }),
       });
@@ -116,7 +115,7 @@ export default function CoachScreen() {
     } finally {
       setIsStreaming(false);
     }
-  }, [input, isStreaming, token, history, sendMessage]);
+  }, [input, isStreaming, history, sendMessage]);
 
   if (!isPro) {
     return (

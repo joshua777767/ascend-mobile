@@ -96,7 +96,7 @@ export default function SignupScreen() {
     try {
       await signup(username.trim(), email.trim(), password);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace("/(tabs)");
+      router.replace("/onboarding");
     } catch (e: any) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setError(e?.message ?? "Signup failed. Please try again.");

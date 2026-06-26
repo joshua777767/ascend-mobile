@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
 const FEATURES = [
@@ -30,6 +31,7 @@ export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { packages, purchase, restore, isPro } = useSubscription();
+  const { logout } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
@@ -37,7 +39,7 @@ export default function PaywallScreen() {
 
   const priceString =
     pkg?.product?.priceString ??
-    `$${((pkg?.product as any)?.price ?? 9.99).toFixed(2)}`;
+    `$${((pkg?.product as any)?.price ?? 19.99).toFixed(2)}`;
 
   const handlePurchase = async () => {
     if (!pkg) {
@@ -49,7 +51,7 @@ export default function PaywallScreen() {
       const success = await purchase(pkg);
       if (success) {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.back();
+        router.replace("/(tabs)");
       }
     } catch (e: any) {
       Alert.alert("Purchase failed", e?.message ?? "Something went wrong.");
@@ -65,7 +67,7 @@ export default function PaywallScreen() {
       if (success) {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert("Restored!", "Your subscription has been restored.", [
-          { text: "OK", onPress: () => router.back() },
+          { text: "OK", onPress: () => router.replace("/(tabs)") },
         ]);
       } else {
         Alert.alert("No subscription found", "We couldn't find an active subscription to restore.");
@@ -75,10 +77,14 @@ export default function PaywallScreen() {
     }
   };
 
-  if (isPro) {
-    router.back();
-    return null;
-  }
+  const handleSignOut = () => {
+    Alert.alert("Sign out?", "You can sign back in anytime.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Sign out", style: "destructive", onPress: () => logout() },
+    ]);
+  };
+
+  const busy = isLoading || isRestoring;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -89,12 +95,15 @@ export default function PaywallScreen() {
         end={{ x: 0.5, y: 0.6 }}
       />
 
-      <TouchableOpacity
-        style={[styles.closeBtn, { top: insets.top + 8 }]}
-        onPress={() => router.back()}
-      >
-        <Feather name="x" size={20} color={colors.mutedForeground} />
-      </TouchableOpacity>
+      {/* Only Pro users (rare — the gate normally redirects them out) can close. */}
+      {isPro && (
+        <TouchableOpacity
+          style={[styles.closeBtn, { top: insets.top + 8 }]}
+          onPress={() => router.replace("/(tabs)")}
+        >
+          <Feather name="x" size={20} color={colors.mutedForeground} />
+        </TouchableOpacity>
+      )}
 
       <ScrollView
         contentContainerStyle={[
@@ -127,26 +136,29 @@ export default function PaywallScreen() {
         </View>
 
         <View style={[styles.priceCard, { backgroundColor: colors.card, borderColor: colors.primary + "55" }]}>
+          <View style={[styles.trialBadge, { backgroundColor: colors.primary + "22", borderColor: colors.primary + "55" }]}>
+            <Text style={[styles.trialBadgeText, { color: colors.primary }]}>7-DAY FREE TRIAL</Text>
+          </View>
           <View style={styles.priceRow}>
             <Text style={[styles.price, { color: colors.foreground }]}>{priceString}</Text>
             <Text style={[styles.pricePer, { color: colors.mutedForeground }]}> / month</Text>
           </View>
           <Text style={[styles.priceNote, { color: colors.mutedForeground }]}>
-            Cancel anytime. No commitment.
+            Cancel anytime. Trial converts to {priceString}/month after 7 days unless canceled.
           </Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.ctaBtn, { backgroundColor: colors.primary, opacity: isLoading ? 0.7 : 1 }]}
+          style={[styles.ctaBtn, { backgroundColor: colors.primary, opacity: busy ? 0.7 : 1 }]}
           onPress={handlePurchase}
-          disabled={isLoading || isRestoring}
+          disabled={busy}
           activeOpacity={0.85}
         >
           {isLoading ? (
             <ActivityIndicator color={colors.primaryForeground} />
           ) : (
             <Text style={[styles.ctaBtnText, { color: colors.primaryForeground }]}>
-              Start My Transformation
+              Start 7-Day Free Trial
             </Text>
           )}
         </TouchableOpacity>
@@ -154,7 +166,7 @@ export default function PaywallScreen() {
         <TouchableOpacity
           style={styles.restoreBtn}
           onPress={handleRestore}
-          disabled={isLoading || isRestoring}
+          disabled={busy}
         >
           {isRestoring ? (
             <ActivityIndicator size="small" color={colors.mutedForeground} />
@@ -163,6 +175,12 @@ export default function PaywallScreen() {
               Restore Purchases
             </Text>
           )}
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} disabled={busy}>
+          <Text style={[styles.signOutText, { color: colors.mutedForeground }]}>
+            Sign out
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -227,10 +245,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
+  trialBadge: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginBottom: 12,
+  },
+  trialBadgeText: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.8 },
   priceRow: { flexDirection: "row", alignItems: "baseline" },
   price: { fontSize: 36, fontFamily: "Inter_700Bold" },
   pricePer: { fontSize: 16, fontFamily: "Inter_400Regular" },
-  priceNote: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 4 },
+  priceNote: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 8, textAlign: "center", lineHeight: 18 },
   ctaBtn: {
     width: "100%",
     height: 56,
@@ -242,4 +268,6 @@ const styles = StyleSheet.create({
   ctaBtnText: { fontSize: 17, fontFamily: "Inter_700Bold" },
   restoreBtn: { paddingVertical: 12 },
   restoreText: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  signOutBtn: { paddingVertical: 8 },
+  signOutText: { fontSize: 13, fontFamily: "Inter_400Regular" },
 });

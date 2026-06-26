@@ -60,17 +60,16 @@ export function SubscriptionProvider({
   const isPro =
     customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
 
+  // Configure once and keep customerInfo in sync via the native listener.
   useEffect(() => {
     const apiKey = getApiKey();
-    if (!apiKey) return;
-    Purchases.configure({ apiKey });
+    if (apiKey) Purchases.configure({ apiKey });
+    const listener = (info: CustomerInfo) => setCustomerInfo(info);
+    Purchases.addCustomerInfoUpdateListener(listener);
+    return () => {
+      Purchases.removeCustomerInfoUpdateListener(listener);
+    };
   }, []);
-
-  useEffect(() => {
-    if (userId) {
-      Purchases.logIn(userId).catch(() => {});
-    }
-  }, [userId]);
 
   const refresh = useCallback(async () => {
     try {
@@ -79,20 +78,53 @@ export function SubscriptionProvider({
         Purchases.getOfferings(),
       ]);
       setCustomerInfo(info);
-      const pkgs = offerings.current?.availablePackages ?? [];
-      setPackages(pkgs);
+      setPackages(offerings.current?.availablePackages ?? []);
     } catch {
     } finally {
       setIsLoading(false);
     }
   }, []);
 
+  // Re-key all subscription state on the identity. On login: identify with
+  // RevenueCat then load fresh entitlements. On logout (userId null): log out
+  // of RevenueCat and wipe any cached entitlement/package state so the previous
+  // user's Pro status can never leak into the next account. isLoading is held
+  // true across the switch so the gate waits for fresh state.
   useEffect(() => {
-    refresh();
-    Purchases.addCustomerInfoUpdateListener((info) => {
-      setCustomerInfo(info);
-    });
-  }, [refresh]);
+    let cancelled = false;
+    (async () => {
+      setIsLoading(true);
+      try {
+        if (userId) {
+          try { await Purchases.logIn(userId); } catch {}
+        } else {
+          try { await Purchases.logOut(); } catch {}
+          if (!cancelled) {
+            setCustomerInfo(null);
+            setPackages([]);
+          }
+        }
+        const [info, offerings] = await Promise.all([
+          Purchases.getCustomerInfo(),
+          Purchases.getOfferings(),
+        ]);
+        if (!cancelled) {
+          setCustomerInfo(info);
+          setPackages(offerings.current?.availablePackages ?? []);
+        }
+      } catch {
+        if (!cancelled && !userId) {
+          setCustomerInfo(null);
+          setPackages([]);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const purchase = useCallback(async (pkg: PurchasesPackage): Promise<boolean> => {
     try {

@@ -33,10 +33,12 @@ function publicUser(
     !user.freeProExpiresAt || user.freeProExpiresAt > new Date()
   );
   const now = new Date();
-  const trialStartDate = user.trialStartDate ?? user.createdAt;
-  const trialEndDate = user.trialEndDate ?? new Date(new Date(user.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000);
-  const trialExpired = now > trialEndDate;
-  const trialActive = !trialExpired && !isFreePro;
+  // A trial only counts when it was explicitly granted (both dates present).
+  // New users no longer receive an automatic backend trial — iOS Pro is driven
+  // solely by RevenueCat entitlements; the createdAt+7d fallback was removed.
+  const hasTrialDates = !!user.trialStartDate && !!user.trialEndDate;
+  const trialExpired = hasTrialDates ? now > user.trialEndDate! : true;
+  const trialActive = hasTrialDates && !trialExpired && !isFreePro;
   const hasAccess = !!isFreePro || trialActive || isPaidSubscriber;
   return {
     id: user.id,
@@ -44,8 +46,8 @@ function publicUser(
     isFreePro: !!isFreePro,
     isPaidSubscriber,
     trialUsed: !!user.trialUsed,
-    trialStartDate: trialStartDate.toISOString(),
-    trialEndDate: trialEndDate.toISOString(),
+    trialStartDate: user.trialStartDate ? user.trialStartDate.toISOString() : null,
+    trialEndDate: user.trialEndDate ? user.trialEndDate.toISOString() : null,
     trialExpired,
     trialActive,
     hasAccess,
@@ -133,14 +135,12 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   }
 
   const passwordHash = await hashPassword(password);
-  const now = new Date();
-  const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  // No automatic trial on signup. Pro access is granted only via RevenueCat
+  // (iOS in-app purchase) or an explicit freePro grant.
   const [user] = await db.insert(usersTable).values({
     email,
     passwordHash,
     trialUsed: false,
-    trialStartDate: now,
-    trialEndDate: trialEnd,
   }).returning();
 
   req.session.regenerate((err) => {
