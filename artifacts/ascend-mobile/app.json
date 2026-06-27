@@ -24,7 +24,10 @@
     },
     "android": {
       "package": "com.ascendfit.app",
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -51,7 +54,10 @@
       "reactCompiler": true
     },
     "extra": {
-      "eas": {}
-    }
+      "eas": {
+        "projectId": "9f7ecdc3-860f-4b3a-803b-a5398b4f5079"
+      }
+    },
+    "owner": "joshua7777"
   }
 }
