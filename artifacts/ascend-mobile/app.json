@@ -51,9 +51,7 @@
       "reactCompiler": true
     },
     "extra": {
-      "eas": {
-        "projectId": "REPLACE_AFTER_EAS_INIT"
-      }
+      "eas": {}
     }
   }
 }
