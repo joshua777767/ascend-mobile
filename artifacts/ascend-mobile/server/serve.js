@@ -15,7 +15,7 @@ const path = require("path");
 
 const STATIC_ROOT = path.resolve(__dirname, "..", "static-build");
 const TEMPLATE_PATH = path.resolve(__dirname, "templates", "landing-page.html");
-const basePath = (process.env.BASE_PATH || "/").replace(/\/+$/, "");
+const basePath = (process.env.BASE_PATH || "/ascend-mobile/").replace(/\/+$/, "");
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -136,7 +136,7 @@ const server = http.createServer((req, res) => {
   serveStaticFile(pathname, res);
 });
 
-const port = parseInt(process.env.PORT || "3000", 10);
+const port = parseInt(process.env.PORT || "21494", 10);
 server.listen(port, "0.0.0.0", () => {
   console.log(`Serving static Expo build on port ${port}`);
 });
