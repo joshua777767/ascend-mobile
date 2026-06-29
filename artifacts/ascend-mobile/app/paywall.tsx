@@ -55,13 +55,13 @@ export default function PaywallScreen() {
     }
   };
 
+  const { restore } = useSubscription();
+
   const handleRestore = async () => {
     setIsRestoring(true);
     try {
-      const result = await RevenueCatUI.presentPaywall({
-        displayCloseButton: false,
-      });
-      if (result === PAYWALL_RESULT.RESTORED || result === PAYWALL_RESULT.PURCHASED) {
+      const restored = await restore();
+      if (restored) {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         await refresh();
         Alert.alert("Restored!", "Your subscription has been restored.", [

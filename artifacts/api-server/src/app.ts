@@ -34,7 +34,23 @@ app.use(
   }),
 );
 
-app.use(cors());
+const allowedDomains: string[] = [
+  process.env.REPLIT_INTERNAL_APP_DOMAIN,
+  process.env.REPLIT_DEV_DOMAIN,
+  ...(process.env.REPLIT_DOMAINS?.split(",").map((s) => s.trim()) ?? []),
+].filter((d): d is string => !!d);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Native apps, curl, server-to-server requests have no Origin header
+      if (!origin) return callback(null, true);
+      const ok = allowedDomains.some((d) => origin.includes(d));
+      callback(null, ok);
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: "12mb" }));
 app.use(express.urlencoded({ extended: true, limit: "12mb" }));
 

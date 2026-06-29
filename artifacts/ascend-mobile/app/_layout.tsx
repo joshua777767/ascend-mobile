@@ -69,8 +69,18 @@ function AppGate({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Transient (non-404) profile error → don't force navigation; let it retry.
-    if (profileErrored && !hasProfile) return;
+    // Transient (non-404) profile error → block rendering until resolved.
+    // This prevents the gate from fail-open (allowing non-Pro users into tabs).
+    if (profileErrored && !hasProfile) {
+      const errStatus = (profileQuery.error as any)?.status;
+      // 401 means session expired → force re-auth
+      if (errStatus === 401) {
+        router.replace("/login");
+        return;
+      }
+      // Any other error → stay on loading screen (handled below)
+      return;
+    }
 
     // Has profile but not Pro → hard paywall gate.
     if (!isPro) {

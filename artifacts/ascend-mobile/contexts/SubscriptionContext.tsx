@@ -9,7 +9,7 @@ import Purchases, {
   type CustomerInfo,
   type PurchasesPackage,
 } from "react-native-purchases";
-import { Platform } from "react-native";
+import { Platform, AppState } from "react-native";
 
 const ENTITLEMENT_ID =
   process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID ?? "pro";
@@ -125,6 +125,15 @@ export function SubscriptionProvider({
       cancelled = true;
     };
   }, [userId]);
+
+  // Refresh entitlements when app returns to foreground so revocation
+  // or expiration is detected without waiting for a native push.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") refresh();
+    });
+    return () => sub.remove();
+  }, [refresh]);
 
   const purchase = useCallback(async (pkg: PurchasesPackage): Promise<boolean> => {
     try {
