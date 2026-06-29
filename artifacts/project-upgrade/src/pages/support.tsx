@@ -3,7 +3,7 @@ import { AscendMark } from "@/components/ascend-mark";
 
 export default function SupportPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="h-dvh overflow-y-auto bg-background text-foreground" style={{ WebkitOverflowScrolling: "touch" }}>
       <div className="px-4 py-8 max-w-3xl mx-auto">
         <div className="flex items-center gap-2.5 mb-8">
           <AscendMark size="lg" />
@@ -23,7 +23,7 @@ export default function SupportPage() {
             <h2 className="text-lg font-semibold">Contact Us</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
               For questions, bug reports, or feedback, email us at{" "}
-              <a href="mailto:support@ascendfit.fitness" className="text-primary font-semibold">support@ascendfit.fitness</a>.
+              <a href="mailto:support@ascend.app" className="text-primary font-semibold">support@ascend.app</a>.
               We typically respond within 24 hours.
             </p>
           </section>
@@ -56,7 +56,7 @@ export default function SupportPage() {
               <div>
                 <h3 className="text-sm font-semibold">My data is not syncing across devices</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed mt-1">
-                  Make sure you are signed in with the same account on all devices. If the issue persists, try signing out and signing back in. If that does not work, contact us at support@ascendfit.fitness.
+                  Make sure you are signed in with the same account on all devices. If the issue persists, try signing out and signing back in. If that does not work, contact us at support@ascend.app.
                 </p>
               </div>
 

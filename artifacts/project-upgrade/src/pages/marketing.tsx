@@ -3,7 +3,7 @@ import { AscendMark } from "@/components/ascend-mark";
 
 export default function MarketingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="h-dvh overflow-y-auto bg-background text-foreground" style={{ WebkitOverflowScrolling: "touch" }}>
       <div className="px-4 py-8 max-w-3xl mx-auto">
         <div className="flex items-center gap-2.5 mb-8">
           <AscendMark size="lg" />
@@ -73,7 +73,7 @@ export default function MarketingPage() {
               Need help? Visit our{" "}
               <Link href="/support" className="text-primary font-semibold">Support Center</Link>
               {" "}or email{" "}
-              <a href="mailto:support@ascendfit.fitness" className="text-primary font-semibold">support@ascendfit.fitness</a>.
+              <a href="mailto:support@ascend.app" className="text-primary font-semibold">support@ascend.app</a>.
             </p>
           </section>
 

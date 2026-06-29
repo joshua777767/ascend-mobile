@@ -3,7 +3,7 @@ import { AscendMark } from "@/components/ascend-mark";
 
 export default function TermsOfServicePage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="h-dvh overflow-y-auto bg-background text-foreground" style={{ WebkitOverflowScrolling: "touch" }}>
       <div className="px-4 py-8 max-w-3xl mx-auto">
         <div className="flex items-center gap-2.5 mb-8">
           <AscendMark size="lg" />
