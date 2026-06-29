@@ -65,7 +65,7 @@ export default function PrivacyPolicyPage() {
               You have the right to access, update, correct, or delete your personal data at any time through the Settings page. You may request a full export of your data or request complete account deletion. We will respond to data requests within 30 days.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">California residents (CCPA):</strong> You have the right to know what personal information we collect, to request deletion of your data, and to opt out of the sale of your personal information. Ascend does not sell personal information. To exercise your rights, contact us at <a href="mailto:support@ascend.app" className="text-primary font-semibold">support@ascend.app</a>.
+              <strong className="text-foreground">California residents (CCPA):</strong> You have the right to know what personal information we collect, to request deletion of your data, and to opt out of the sale of your personal information. Ascend does not sell personal information. To exercise your rights, contact us at <a href="mailto:jquag7@gmail.com" className="text-primary font-semibold">jquag7@gmail.com</a>.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               <strong className="text-foreground">EEA/UK residents (GDPR):</strong> You have the right to access, rectification, erasure, restriction of processing, data portability, and to lodge a complaint with a supervisory authority. Our legal basis for processing is your consent and the performance of our service agreement with you.
@@ -82,7 +82,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">8. Third-Party Services</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">Stripe:</strong> Payment processing is handled by Stripe. Ascend does not store credit card numbers. Stripe processes your payment data subject to its own <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Privacy Policy</a>.
+              <strong className="text-foreground">Apple App Store & RevenueCat:</strong> Subscription payments are processed through Apple In-App Purchase. Ascend does not store credit card numbers or payment details. Apple processes your payment data subject to its own <a href="https://www.apple.com/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Privacy Policy</a>. RevenueCat handles subscription validation; see their <a href="https://www.revenuecat.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Privacy Policy</a>.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               <strong className="text-foreground">OpenAI:</strong> AI coaching features are powered by OpenAI. Relevant portions of your profile and activity data are sent to OpenAI for processing. See Section 4 above.
@@ -106,7 +106,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">11. Contact Us</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              For privacy-related questions, data requests, or to exercise your rights, contact us at <a href="mailto:support@ascend.app" className="text-primary font-semibold">support@ascend.app</a>.
+              For privacy-related questions, data requests, or to exercise your rights, contact us at <a href="mailto:jquag7@gmail.com" className="text-primary font-semibold">jquag7@gmail.com</a>.
             </p>
           </section>
 
