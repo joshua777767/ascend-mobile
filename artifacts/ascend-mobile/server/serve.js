@@ -115,6 +115,13 @@ const server = http.createServer((req, res) => {
     pathname = pathname.slice(basePath.length) || "/";
   }
 
+  // Healthcheck endpoint (required by Replit deployment)
+  if (pathname === "/status" || pathname === "/healthz") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ status: "ok", artifact: "ascend-mobile" }));
+    return;
+  }
+
   if (pathname === "/" || pathname === "/manifest") {
     const platform = req.headers["expo-platform"];
     if (platform === "ios" || platform === "android") {
