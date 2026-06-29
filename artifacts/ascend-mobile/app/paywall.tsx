@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
 
 const FEATURES = [
   { icon: "cpu", label: "AI-generated daily schedules" },
@@ -30,31 +31,25 @@ export default function PaywallScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { packages, purchase, restore, isPro } = useSubscription();
+  const { isPro, refresh } = useSubscription();
   const { logout } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
-  const pkg = packages[0];
-
-  const priceString =
-    pkg?.product?.priceString ??
-    `$${((pkg?.product as any)?.price ?? 19.99).toFixed(2)}`;
-
   const handlePurchase = async () => {
-    if (!pkg) {
-      Alert.alert("Not available", "No subscription package found. Try again.");
-      return;
-    }
     setIsLoading(true);
     try {
-      const success = await purchase(pkg);
-      if (success) {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const result = await RevenueCatUI.presentPaywall({
+        displayCloseButton: false,
+      });
+      if (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED) {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await refresh();
         router.replace("/(tabs)");
       }
-    } catch (e: any) {
-      Alert.alert("Purchase failed", e?.message ?? "Something went wrong.");
+    } catch {
+      // User cancelled or error — stay on paywall
     } finally {
       setIsLoading(false);
     }
@@ -63,15 +58,20 @@ export default function PaywallScreen() {
   const handleRestore = async () => {
     setIsRestoring(true);
     try {
-      const success = await restore();
-      if (success) {
+      const result = await RevenueCatUI.presentPaywall({
+        displayCloseButton: false,
+      });
+      if (result === PAYWALL_RESULT.RESTORED || result === PAYWALL_RESULT.PURCHASED) {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await refresh();
         Alert.alert("Restored!", "Your subscription has been restored.", [
           { text: "OK", onPress: () => router.replace("/(tabs)") },
         ]);
       } else {
         Alert.alert("No subscription found", "We couldn't find an active subscription to restore.");
       }
+    } catch {
+      Alert.alert("Restore failed", "Something went wrong. Please try again.");
     } finally {
       setIsRestoring(false);
     }
@@ -95,7 +95,6 @@ export default function PaywallScreen() {
         end={{ x: 0.5, y: 0.6 }}
       />
 
-      {/* Only Pro users (rare — the gate normally redirects them out) can close. */}
       {isPro && (
         <TouchableOpacity
           style={[styles.closeBtn, { top: insets.top + 8 }]}
@@ -140,11 +139,11 @@ export default function PaywallScreen() {
             <Text style={[styles.trialBadgeText, { color: colors.primary }]}>7-DAY FREE TRIAL</Text>
           </View>
           <View style={styles.priceRow}>
-            <Text style={[styles.price, { color: colors.foreground }]}>{priceString}</Text>
+            <Text style={[styles.price, { color: colors.foreground }]}>$19.99</Text>
             <Text style={[styles.pricePer, { color: colors.mutedForeground }]}> / month</Text>
           </View>
           <Text style={[styles.priceNote, { color: colors.mutedForeground }]}>
-            Cancel anytime. Trial converts to {priceString}/month after 7 days unless canceled.
+            Cancel anytime. Trial converts to $19.99/month after 7 days unless canceled.
           </Text>
         </View>
 

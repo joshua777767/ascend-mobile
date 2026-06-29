@@ -16,7 +16,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useResetUserProfile } from "@workspace/api-client-react";
+import RevenueCatUI from "react-native-purchases-ui";
 
 const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN ?? "";
 
@@ -70,9 +72,19 @@ export default function SettingsScreen() {
   const resetProfile = useResetUserProfile();
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const { isPro } = useSubscription();
+
   const handleLogout = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     logout();
+  };
+
+  const handleOpenCustomerCenter = async () => {
+    try {
+      await RevenueCatUI.presentCustomerCenter();
+    } catch (e: any) {
+      Alert.alert("Error", e?.message ?? "Could not open subscription management.");
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -176,6 +188,17 @@ export default function SettingsScreen() {
             </Text>
           </View>
         </Section>
+
+        {isPro && (
+          <Section title="Subscription">
+            <Row
+              icon="credit-card"
+              label="Manage Subscription"
+              sublabel="Cancel, change plan, or restore"
+              onPress={handleOpenCustomerCenter}
+            />
+          </Section>
+        )}
 
         <Section title="Account">
           <Row
