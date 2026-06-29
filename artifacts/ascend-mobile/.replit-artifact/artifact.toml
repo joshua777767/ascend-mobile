@@ -1,6 +1,6 @@
 kind = "mobile"
 previewPath = "/ascend-mobile/"
-title = "Ascend Fit — iOS App"
+title = "Ascend Fit \u2014 iOS App"
 version = "1.0.0"
 id = "artifacts/ascend-mobile"
 router = "expo-domain"
@@ -12,15 +12,26 @@ version = "1.0.0"
 [[services]]
 ensurePreviewReachable = "/status"
 name = "expo"
-paths = [ "/ascend-mobile/" ]
+paths = ["/ascend-mobile/"]
 localPort = 21494
 
 [services.development]
 run = "pnpm --filter @workspace/ascend-mobile run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/ascend-mobile", "run", "build" ]
-run = [ "pnpm", "--filter", "@workspace/ascend-mobile", "run", "serve" ]
+
+[services.production.build]
+args = ["pnpm", "--filter", "@workspace/ascend-mobile", "run", "build"]
+
+[services.production.run]
+args = ["node", "server/serve.js"]
+
+[services.production.run.env]
+PORT = "21494"
+BASE_PATH = "/ascend-mobile/"
+
+[services.production.health.startup]
+path = "/ascend-mobile/status"
 
 [services.env]
 PORT = "21494"
