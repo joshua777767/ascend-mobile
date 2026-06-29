@@ -24,7 +24,7 @@ run = "pnpm --filter @workspace/ascend-mobile run dev"
 args = ["pnpm", "--filter", "@workspace/ascend-mobile", "run", "build"]
 
 [services.production.run]
-args = ["node", "server/serve.js"]
+args = ["node", "artifacts/ascend-mobile/server/serve.js"]
 
 [services.production.run.env]
 PORT = "21494"
