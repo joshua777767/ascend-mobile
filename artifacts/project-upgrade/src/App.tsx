@@ -22,6 +22,8 @@ import ResetPasswordPage from "@/pages/reset-password";
 import SettingsPage from "@/pages/settings";
 import PrivacyPolicyPage from "@/pages/privacy";
 import TermsOfServicePage from "@/pages/terms";
+import SupportPage from "@/pages/support";
+import MarketingPage from "@/pages/marketing";
 import DeleteAccountPage from "@/pages/delete-account";
 import DataExportPage from "@/pages/data-export";
 import TrialReviewPage from "@/pages/trial-review";
@@ -247,7 +249,7 @@ function ProtectedApp() {
 
   // Expired users can only access account-utility pages (GDPR-style).
   // All app feature pages — including settings — require active access.
-  const FREE_ROUTES = ["/privacy", "/terms", "/delete-account", "/data-export"];
+  const FREE_ROUTES = ["/privacy", "/terms", "/support", "/marketing", "/delete-account", "/data-export"];
   const isFreeRoute = typeof window !== "undefined" && FREE_ROUTES.some((r) => window.location.pathname.includes(r));
 
   if (expired && !isFreeRoute) {
@@ -331,6 +333,8 @@ function AppRouter() {
       <Route path="/pricing" component={PricingPage} />
       <Route path="/privacy" component={PrivacyPolicyPage} />
       <Route path="/terms" component={TermsOfServicePage} />
+      <Route path="/support" component={SupportPage} />
+      <Route path="/marketing" component={MarketingPage} />
       <Route path="/app-store-preview" component={AppStorePreviewPage} />
       <Route path="/intro">{isAuthed ? <IntroPage /> : <Redirect to="/login" />}</Route>
       <Route path="/onboarding">{isAuthed ? <OnboardingGuard /> : <Redirect to="/login" />}</Route>
