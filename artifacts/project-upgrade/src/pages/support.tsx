@@ -23,7 +23,7 @@ export default function SupportPage() {
             <h2 className="text-lg font-semibold">Contact Us</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
               For questions, bug reports, or feedback, email us at{" "}
-              <a href="mailto:support@ascend.app" className="text-primary font-semibold">support@ascend.app</a>.
+              <a href="mailto:support@ascendfit.fitness" className="text-primary font-semibold">support@ascendfit.fitness</a>.
               We typically respond within 24 hours.
             </p>
           </section>
@@ -56,7 +56,7 @@ export default function SupportPage() {
               <div>
                 <h3 className="text-sm font-semibold">My data is not syncing across devices</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed mt-1">
-                  Make sure you are signed in with the same account on all devices. If the issue persists, try signing out and signing back in. If that does not work, contact us at support@ascend.app.
+                  Make sure you are signed in with the same account on all devices. If the issue persists, try signing out and signing back in. If that does not work, contact us at support@ascendfit.fitness.
                 </p>
               </div>
 

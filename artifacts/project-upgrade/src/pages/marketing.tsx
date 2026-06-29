@@ -73,7 +73,7 @@ export default function MarketingPage() {
               Need help? Visit our{" "}
               <Link href="/support" className="text-primary font-semibold">Support Center</Link>
               {" "}or email{" "}
-              <a href="mailto:support@ascend.app" className="text-primary font-semibold">support@ascend.app</a>.
+              <a href="mailto:support@ascendfit.fitness" className="text-primary font-semibold">support@ascendfit.fitness</a>.
             </p>
           </section>
 
