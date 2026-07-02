@@ -16,7 +16,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
 
 const FEATURES = [
   { icon: "cpu", label: "AI-generated daily schedules" },
@@ -31,31 +30,57 @@ export default function PaywallScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isPro, refresh } = useSubscription();
+  const { isPro, isLoading, packages, offeringsError, purchase, restore, refresh } =
+    useSubscription();
   const { logout } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
+  // The first available package from the current offering. RevenueCat returns
+  // packages in priority order; index 0 is always the primary product.
+  const pkg = packages[0] ?? null;
+
+  // Show the price from StoreKit if available, fall back to display string.
+  const priceLabel =
+    pkg?.product?.priceString ??
+    pkg?.product?.price?.toFixed(2).replace(/^/, "$") ??
+    "$19.99";
+
   const handlePurchase = async () => {
-    setIsLoading(true);
+    if (!pkg) {
+      // Packages not loaded — try refreshing first.
+      Alert.alert(
+        "Subscription unavailable",
+        "Could not load subscription details. Please check your internet connection and try again.",
+        [
+          { text: "Retry", onPress: () => refresh() },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+      return;
+    }
+
+    setIsPurchasing(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const result = await RevenueCatUI.presentPaywall({
-        displayCloseButton: false,
-      });
-      if (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED) {
+      const granted = await purchase(pkg);
+      if (granted) {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        await refresh();
         router.replace("/(tabs)");
+      } else {
+        // purchase() returned false without throwing = user cancelled
+        // Stay on paywall, no alert needed.
       }
-    } catch {
-      // User cancelled or error — stay on paywall
+    } catch (e: any) {
+      // Surface the real error to the user — never swallow silently.
+      const message =
+        e?.message ??
+        "Something went wrong with the purchase. Please try again.";
+      Alert.alert("Purchase failed", message, [{ text: "OK" }]);
     } finally {
-      setIsLoading(false);
+      setIsPurchasing(false);
     }
   };
-
-  const { restore } = useSubscription();
 
   const handleRestore = async () => {
     setIsRestoring(true);
@@ -63,15 +88,22 @@ export default function PaywallScreen() {
       const restored = await restore();
       if (restored) {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        await refresh();
         Alert.alert("Restored!", "Your subscription has been restored.", [
-          { text: "OK", onPress: () => router.replace("/(tabs)") },
+          { text: "Continue", onPress: () => router.replace("/(tabs)") },
         ]);
       } else {
-        Alert.alert("No subscription found", "We couldn't find an active subscription to restore.");
+        Alert.alert(
+          "No active subscription found",
+          "We couldn't find a subscription linked to your Apple ID. If you believe this is an error, contact support.",
+          [{ text: "OK" }]
+        );
       }
     } catch {
-      Alert.alert("Restore failed", "Something went wrong. Please try again.");
+      Alert.alert(
+        "Restore failed",
+        "Something went wrong. Please try again.",
+        [{ text: "OK" }]
+      );
     } finally {
       setIsRestoring(false);
     }
@@ -84,7 +116,7 @@ export default function PaywallScreen() {
     ]);
   };
 
-  const busy = isLoading || isRestoring;
+  const busy = isPurchasing || isRestoring;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -112,7 +144,15 @@ export default function PaywallScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View style={[styles.crown, { backgroundColor: colors.primary + "22", borderColor: colors.primary + "44" }]}>
+          <View
+            style={[
+              styles.crown,
+              {
+                backgroundColor: colors.primary + "22",
+                borderColor: colors.primary + "44",
+              },
+            ]}
+          >
             <Feather name="zap" size={32} color={colors.primary} />
           </View>
           <Text style={[styles.headline, { color: colors.foreground }]}>
@@ -126,38 +166,137 @@ export default function PaywallScreen() {
         <View style={styles.featureList}>
           {FEATURES.map((f) => (
             <View key={f.label} style={styles.featureRow}>
-              <View style={[styles.featureIcon, { backgroundColor: colors.primary + "1A" }]}>
-                <Feather name={f.icon as any} size={16} color={colors.primary} />
+              <View
+                style={[
+                  styles.featureIcon,
+                  { backgroundColor: colors.primary + "1A" },
+                ]}
+              >
+                <Feather
+                  name={f.icon as any}
+                  size={16}
+                  color={colors.primary}
+                />
               </View>
-              <Text style={[styles.featureLabel, { color: colors.foreground }]}>{f.label}</Text>
+              <Text style={[styles.featureLabel, { color: colors.foreground }]}>
+                {f.label}
+              </Text>
             </View>
           ))}
         </View>
 
-        <View style={[styles.priceCard, { backgroundColor: colors.card, borderColor: colors.primary + "55" }]}>
-          <View style={[styles.trialBadge, { backgroundColor: colors.primary + "22", borderColor: colors.primary + "55" }]}>
-            <Text style={[styles.trialBadgeText, { color: colors.primary }]}>7-DAY FREE TRIAL</Text>
+        {/* Price card — show skeleton while loading, error banner if failed */}
+        {isLoading ? (
+          <View
+            style={[
+              styles.priceCard,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                justifyContent: "center",
+                minHeight: 120,
+              },
+            ]}
+          >
+            <ActivityIndicator color={colors.primary} />
+            <Text
+              style={[
+                styles.priceNote,
+                { color: colors.mutedForeground, marginTop: 12 },
+              ]}
+            >
+              Loading subscription details…
+            </Text>
           </View>
-          <View style={styles.priceRow}>
-            <Text style={[styles.price, { color: colors.foreground }]}>$19.99</Text>
-            <Text style={[styles.pricePer, { color: colors.mutedForeground }]}> / month</Text>
+        ) : offeringsError && !pkg ? (
+          <View
+            style={[
+              styles.priceCard,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.destructive + "55",
+                gap: 10,
+              },
+            ]}
+          >
+            <Feather name="alert-circle" size={20} color={colors.destructive} />
+            <Text
+              style={[
+                styles.priceNote,
+                { color: colors.destructive, textAlign: "center" },
+              ]}
+            >
+              {offeringsError}
+            </Text>
+            <TouchableOpacity onPress={refresh}>
+              <Text
+                style={[
+                  styles.priceNote,
+                  { color: colors.primary, fontFamily: "Inter_600SemiBold" },
+                ]}
+              >
+                Tap to retry
+              </Text>
+            </TouchableOpacity>
           </View>
-          <Text style={[styles.priceNote, { color: colors.mutedForeground }]}>
-            Cancel anytime. Trial converts to $19.99/month after 7 days unless canceled.
-          </Text>
-        </View>
+        ) : (
+          <View
+            style={[
+              styles.priceCard,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.primary + "55",
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.trialBadge,
+                {
+                  backgroundColor: colors.primary + "22",
+                  borderColor: colors.primary + "55",
+                },
+              ]}
+            >
+              <Text
+                style={[styles.trialBadgeText, { color: colors.primary }]}
+              >
+                7-DAY FREE TRIAL
+              </Text>
+            </View>
+            <View style={styles.priceRow}>
+              <Text style={[styles.price, { color: colors.foreground }]}>
+                {priceLabel}
+              </Text>
+              <Text style={[styles.pricePer, { color: colors.mutedForeground }]}>
+                {" "}
+                / month
+              </Text>
+            </View>
+            <Text style={[styles.priceNote, { color: colors.mutedForeground }]}>
+              Cancel anytime. Trial converts to {priceLabel}/month after 7 days
+              unless canceled.
+            </Text>
+          </View>
+        )}
 
         <TouchableOpacity
-          style={[styles.ctaBtn, { backgroundColor: colors.primary, opacity: busy ? 0.7 : 1 }]}
+          style={[
+            styles.ctaBtn,
+            {
+              backgroundColor: pkg ? colors.primary : colors.muted,
+              opacity: busy ? 0.7 : 1,
+            },
+          ]}
           onPress={handlePurchase}
-          disabled={busy}
+          disabled={busy || isLoading}
           activeOpacity={0.85}
         >
-          {isLoading ? (
+          {isPurchasing ? (
             <ActivityIndicator color={colors.primaryForeground} />
           ) : (
             <Text style={[styles.ctaBtnText, { color: colors.primaryForeground }]}>
-              Start 7-Day Free Trial
+              {pkg ? "Start 7-Day Free Trial" : "Retry"}
             </Text>
           )}
         </TouchableOpacity>
@@ -176,7 +315,11 @@ export default function PaywallScreen() {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} disabled={busy}>
+        <TouchableOpacity
+          style={styles.signOutBtn}
+          onPress={handleSignOut}
+          disabled={busy}
+        >
           <Text style={[styles.signOutText, { color: colors.mutedForeground }]}>
             Sign out
           </Text>
@@ -251,11 +394,21 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     marginBottom: 12,
   },
-  trialBadgeText: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.8 },
+  trialBadgeText: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.8,
+  },
   priceRow: { flexDirection: "row", alignItems: "baseline" },
   price: { fontSize: 36, fontFamily: "Inter_700Bold" },
   pricePer: { fontSize: 16, fontFamily: "Inter_400Regular" },
-  priceNote: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 8, textAlign: "center", lineHeight: 18 },
+  priceNote: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    marginTop: 8,
+    textAlign: "center",
+    lineHeight: 18,
+  },
   ctaBtn: {
     width: "100%",
     height: 56,
