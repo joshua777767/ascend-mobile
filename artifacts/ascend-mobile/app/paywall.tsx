@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -16,6 +17,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+
+const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN ?? "";
+
+function openLink(path: string) {
+  const url = `https://${DOMAIN}${path}`;
+  WebBrowser.openBrowserAsync(url, {
+    presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+  });
+}
 
 const FEATURES = [
   { icon: "cpu", label: "AI-generated daily schedules" },
@@ -315,6 +325,22 @@ export default function PaywallScreen() {
           )}
         </TouchableOpacity>
 
+        <View style={styles.legalRow}>
+          <TouchableOpacity onPress={() => openLink("/terms")}>
+            <Text style={[styles.legalText, { color: colors.mutedForeground }]}>
+              Terms of Use
+            </Text>
+          </TouchableOpacity>
+          <Text style={[styles.legalText, { color: colors.mutedForeground }]}>
+            {"  •  "}
+          </Text>
+          <TouchableOpacity onPress={() => openLink("/privacy")}>
+            <Text style={[styles.legalText, { color: colors.mutedForeground }]}>
+              Privacy Policy
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
           style={styles.signOutBtn}
           onPress={handleSignOut}
@@ -420,6 +446,13 @@ const styles = StyleSheet.create({
   ctaBtnText: { fontSize: 17, fontFamily: "Inter_700Bold" },
   restoreBtn: { paddingVertical: 12 },
   restoreText: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  legalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  legalText: { fontSize: 12, fontFamily: "Inter_400Regular" },
   signOutBtn: { paddingVertical: 8 },
   signOutText: { fontSize: 13, fontFamily: "Inter_400Regular" },
 });
