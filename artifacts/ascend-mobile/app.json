@@ -53,17 +53,14 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "extra": {
-      "eas": {
-        "projectId": "9f7ecdc3-860f-4b3a-803b-a5398b4f5079"
-      }
-    },
-    "owner": "joshua7777",
+    "owner": "ascend-ai-coach",
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "updates": {
-      "url": "https://u.expo.dev/9f7ecdc3-860f-4b3a-803b-a5398b4f5079"
+    "extra": {
+      "eas": {
+        "projectId": "cc67b3fb-5b5a-4ab1-867d-5713bb821e15"
+      }
     }
   }
 }
