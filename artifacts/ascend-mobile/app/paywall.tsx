@@ -40,7 +40,7 @@ export default function PaywallScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isPro, isLoading, packages, offeringsError, purchase, restore, refresh } =
+  const { isPro, isLoading, packages, offeringsError, offeringsDiagnostic, purchase, restore, refresh } =
     useSubscription();
   const { logout } = useAuth();
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -238,6 +238,21 @@ export default function PaywallScreen() {
             >
               {offeringsError}
             </Text>
+            {offeringsDiagnostic ? (
+              <Text
+                style={[
+                  styles.priceNote,
+                  {
+                    color: colors.mutedForeground,
+                    textAlign: "left",
+                    fontFamily: "Inter_400Regular",
+                    fontSize: 11,
+                  },
+                ]}
+              >
+                {offeringsDiagnostic}
+              </Text>
+            ) : null}
             <TouchableOpacity onPress={refresh}>
               <Text
                 style={[
