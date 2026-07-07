@@ -35,7 +35,6 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "mike@mikequaglia.com",
         "ascAppId": "6784409058",
         "appleTeamId": "4BZY3Y44XW"
       }
