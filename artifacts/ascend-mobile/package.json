@@ -57,7 +57,7 @@
   },
   "dependencies": {
     "expo-updates": "~29.0.18",
-    "react-native-purchases": "^10.4.0",
-    "react-native-purchases-ui": "^10.4.0"
+    "react-native-purchases": "10.4.0",
+    "react-native-purchases-ui": "10.4.0"
   }
 }
