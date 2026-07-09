@@ -15,7 +15,7 @@ import Purchases, {
 import { Platform, AppState } from "react-native";
 
 const ENTITLEMENT_ID =
-  process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID ?? "pro";
+  process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID ?? "Ascend AI Fitness Pro";
 
 function getApiKey(): string {
   if (Platform.OS === "ios") {
