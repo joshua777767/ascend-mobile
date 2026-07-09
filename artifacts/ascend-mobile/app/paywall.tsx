@@ -3,7 +3,7 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -45,6 +45,13 @@ export default function PaywallScreen() {
   const { logout } = useAuth();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+
+  // Auto-navigate away from paywall once Pro is active (handles listener path).
+  useEffect(() => {
+    if (isPro) {
+      router.replace("/(tabs)");
+    }
+  }, [isPro]);
 
   // The first available package from the current offering. RevenueCat returns
   // packages in priority order; index 0 is always the primary product.

@@ -294,7 +294,10 @@ export function SubscriptionProvider({
         pkg.identifier;
       console.log("[RC:purchase] starting purchase for:", productId);
       try {
-        const { customerInfo: info } = await Purchases.purchasePackage(pkg);
+        await Purchases.purchasePackage(pkg);
+        // purchasePackage() can return stale entitlements in sandbox.
+        // Force a fresh fetch so the listener + gate react immediately.
+        const info = await Purchases.getCustomerInfo();
         setCustomerInfo(info);
         const active =
           info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
@@ -315,7 +318,9 @@ export function SubscriptionProvider({
   const restore = useCallback(async (): Promise<boolean> => {
     console.log("[RC:restore] restoring purchases …");
     try {
-      const info = await Purchases.restorePurchases();
+      await Purchases.restorePurchases();
+      // Same as purchase — force fresh fetch so entitlements are current.
+      const info = await Purchases.getCustomerInfo();
       setCustomerInfo(info);
       const active =
         info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
