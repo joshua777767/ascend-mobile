@@ -11,4 +11,5 @@
 - [Password reset tokens](password-reset-tokens.md) — TTL is 1hr (single source of truth); validation returns distinct invalid/used/expired errors; new request invalidates prior links.
 - [Prod vs dev environment](prod-vs-dev-environment.md) — prod has its own DB and runs the last-published build; dev-correct code can fail in prod until re-published. Check prod DB + deploy logs separately.
 - [Stripe removal](stripe-removal.md) — Stripe fully removed from API server; auth.ts now uses DB-only subscription check; RevenueCat/IAP unaffected. Stub routes kept so frontend degrades gracefully.
+- [EAS build env vars must be explicit](eas-build-env-vars.md) — EXPO_PUBLIC_ Replit secrets are NOT forwarded to EAS cloud builds; must be in eas.json env block or features silently break at runtime.
 - [iOS subscription hard-gate](ios-subscription-gate.md) — no backend auto-trial; Pro is RevenueCat entitlement "pro" only; client AppGate is the real gate (block render while resolving; reset RC + clear query cache on logout or Pro leaks across accounts). Mobile auth is cookie-based, no token.
