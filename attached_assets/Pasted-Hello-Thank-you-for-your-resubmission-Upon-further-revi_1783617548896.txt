@@ -1,0 +1,122 @@
+Hello,
+
+Thank you for your resubmission. Upon further review, we identified additional issues that need your attention. See below for more information.
+
+If you have any questions, we are here to help. Reply to this message in App Store Connect and let us know.
+
+Review Environment
+
+Submission ID: 1e82a08a-c184-4fde-a9b1-cf3040533ab2
+Review date: July 09, 2026
+Review Device: iPad Air 11-inch (M3)
+Version reviewed: 1.0 (3)
+
+Guideline 2.3.10 - Performance - Accurate Metadata
+
+Issue Description
+
+The app or metadata includes information about third-party platforms that may not be relevant for App Store users, who are focused on experiences offered by the app itself.
+
+Next Steps
+
+Revise the app's screenshots to remove non-iOS status bar images. 
+
+Revised screenshots should accurately reflect the app in use on the supported devices and highlight the app's main features in the majority of the screenshots. Note some screenshots may only be viewed and updated by selecting "View All Sizes in Media Manager" in the Previews and Screenshots section of App Store Connect. 
+
+Reply to App Review in App Store Connect with additional information if the app's functionality and how it interacts with third-party platforms has been misunderstood.
+
+Resources
+
+Learn how to edit App Store metadata on App Store Connect Help.
+Guideline 3.1.2(c) - Business - Payments - Subscriptions
+
+Issue Description
+
+The submission still did not include all the required information for apps offering auto-renewable subscriptions.
+
+The following information needs to be included in the App Store metadata: a functional link to the Terms of Use (EULA) (if you are using the standard Apple Terms of Use (EULA), include a link in the App Description, and if you are using a custom EULA, add it in App Store Connect).
+
+Next Steps
+
+Update the App Store metadata to include the information specified above.
+
+Once the app and metadata includes all of the required information, or if they already do, reply to this message with a screen recording to confirm. Include this information in the Notes field of the App Review Information section in App Store Connect for future submissions.
+
+Resources
+
+Apps offering auto-renewable subscriptions must include all of the following required information in the app itself:
+
+- Title of auto-renewing subscription (this may be the same as the In-App Purchase product name)
+- Length of subscription
+- Price of subscription, and price per unit if appropriate
+- Functional links to the privacy policy and Terms of Use (EULA)
+
+The app metadata must also include functional links to the privacy policy in the Privacy Policy field in App Store Connect and the Terms of Use (EULA) in the App Description or EULA field in App Store Connect.
+
+Review Schedule 2 of the Apple Developer Program License Agreement to learn more.
+Guideline 3.1.2 - Business - Payments - Subscriptions
+
+
+Issue Description
+
+We noticed that one or more of your auto-renewable subscriptions is marketed in the purchase flow in a manner that may mislead or confuse users about the subscription terms or pricing. Specifically: 
+
+ - Your auto-renewable subscription promotes the free trial or introductory period for your subscription more clearly and conspicuously than the billed amount. The free trial was not listed on the subscription pane.
+
+Next Steps
+
+To resolve this issue, please revise your auto-renewable subscription purchase flow to clearly indicate how long the free trial lasts and the amount that will be billed after the free trial is over. 
+
+Please revise your auto-renewable subscription purchase flow to ensure that the billed amount is the most clear and conspicuous pricing element in the layout. Any other pricing elements, including free trial and calculated pricing information, must be displayed in a subordinate position and size to the total billed amount. Factors that contribute to whether the billed amount is clear and conspicuous include, but are not limited to, the font, size, color, and location of the billed amount in the auto-renewable subscription purchase flow.
+
+Resources
+
+- See design guidance for auto-renewable subscriptions in the Human Interface Guidelines, including how to create a positive onboarding experience. 
+- Learn more about offering auto-renewable subscriptions in the app.
+Guideline 2.1(b) - Performance - App Completeness
+
+
+Issue Description
+
+The In-App Purchase products in the app exhibited one or more bugs which create a poor user experience. Specifically, when we tried to purchase the subscription the app showed an error message. Review the details and resources below to troubleshoot this issue.
+
+Review device details: 
+
+- Device type: iPad Air 11-inch (M3) 
+- OS version: iPadOS 26.5.2
+
+Next Steps
+
+Apple reviews In-App Purchase products in the sandbox and the In-App Purchase products do not need prior approval to function in review. Review the product configurations, complete any missing information, and test them in the sandbox.
+
+To offer In-App Purchases in the app, implement the StoreKit framework and the Account Holder must also accept the Paid Apps Agreement in the Business section of App Store Connect. Confirm you have a Paid Apps Agreement in effect.
+
+If you still need assistance after completing the steps and reviewing the resources, visit the Apple Developer Forums. If you can’t find an answer from an existing thread, start a new thread with your question to get guidance from Apple engineers and other developers.
+
+Resources
+
+Learn more about app completeness requirements in guideline 2.1(b).
+Guideline 2.1 - Information Needed
+
+
+We need more information to continue the review.
+
+Next Steps
+
+Provide detailed answers to the following questions:
+
+1. Please clarify if the AI in your app is built in-house?
+2. Please clarify if the AI in your app sends personal user data to any third-party AI providers such as ChatGPT or any others?
+3. If personal user data is transmitted to third-party AI providers, where can users explicitly consent to this in your app? 
+
+
+Support
+
+- Reply to this message in your preferred language if you need assistance. If you need additional support, use the Contact Us module.
+- Consult with fellow developers and Apple engineers on the Apple Developer Forums.
+- Request an App Review Appointment at Meet with Apple to discuss your app's review. Appointments subject to availability during your local business hours on Tuesdays and Thursdays.
+- Provide feedback on this message and your review experience by completing a short survey.
+
+Test on the latest betas
+
+Betas of iOS 27, iPadOS 27, macOS 27, tvOS 27 and visionOS 27 are now available. Download the latest betas to prepare your app for upcoming software releases. Learn more about installing and using Apple beta software.

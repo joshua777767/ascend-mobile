@@ -274,21 +274,6 @@ export default function PaywallScreen() {
               },
             ]}
           >
-            <View
-              style={[
-                styles.trialBadge,
-                {
-                  backgroundColor: colors.primary + "22",
-                  borderColor: colors.primary + "55",
-                },
-              ]}
-            >
-              <Text
-                style={[styles.trialBadgeText, { color: colors.primary }]}
-              >
-                7-DAY FREE TRIAL
-              </Text>
-            </View>
             <View style={styles.priceRow}>
               <Text style={[styles.price, { color: colors.foreground }]}>
                 {priceLabel}
@@ -299,8 +284,7 @@ export default function PaywallScreen() {
               </Text>
             </View>
             <Text style={[styles.priceNote, { color: colors.mutedForeground }]}>
-              Cancel anytime. Trial converts to {priceLabel}/month after 7 days
-              unless canceled.
+              First 7 days free — then {priceLabel}/month. Cancel anytime.
             </Text>
           </View>
         )}

@@ -196,7 +196,7 @@ export function SubscriptionProvider({
         }
       }
 
-      // --- Step 2: Identify or log out the user ---
+      // --- Step 2: Identify the user (optional — offerings load regardless) ---
       if (userId) {
         try {
           const { customerInfo: info } = await Purchases.logIn(String(userId));
@@ -212,12 +212,9 @@ export function SubscriptionProvider({
         } catch {
           // logOut throws if no user was logged in — safe to ignore
         }
-        if (!cancelled) {
-          setCustomerInfo(null);
-          setPackages([]);
-          setIsLoading(false);
-        }
-        return;
+        if (!cancelled) setCustomerInfo(null);
+        // Do NOT return early — always fetch offerings so the paywall
+        // shows packages even before the user is fully identified.
       }
 
       // --- Step 3: Load entitlements + offerings ---
