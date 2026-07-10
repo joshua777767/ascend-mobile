@@ -74,7 +74,8 @@ export default function MealsScreen() {
 
   // Log form — description + photo only (matches web)
   const [description, setDescription] = useState("");
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageUri, setImageUri] = useState<string | null>(null); // local URI for preview
+  const [imageDataUri, setImageDataUri] = useState<string | null>(null); // base64 data URI for API
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Generator form
@@ -92,35 +93,45 @@ export default function MealsScreen() {
     snack: colors.purple,
   };
 
+  const setPickerResult = (asset: ImagePicker.ImagePickerAsset) => {
+    setImageUri(asset.uri);
+    // Convert to base64 data URI so the API accepts it (it rejects raw file:// URIs)
+    if (asset.base64) {
+      setImageDataUri(`data:image/jpeg;base64,${asset.base64}`);
+    } else {
+      setImageDataUri(null);
+    }
+  };
+
   const openCamera = async () => {
     if (Platform.OS === "web") { Alert.alert("Camera not available on web"); return; }
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") { Alert.alert("Camera permission required"); return; }
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.8, allowsEditing: true, aspect: [4, 3] });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.8, allowsEditing: true, aspect: [4, 3], base64: true });
+    if (!result.canceled) setPickerResult(result.assets[0]);
   };
 
   const openGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") { Alert.alert("Photo library permission required"); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8, allowsEditing: true, aspect: [4, 3] });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8, allowsEditing: true, aspect: [4, 3], base64: true });
+    if (!result.canceled) setPickerResult(result.assets[0]);
   };
 
   const handleSubmit = async () => {
     if (!description.trim()) { Alert.alert("Description required", "Please describe what you ate."); return; }
     setIsSubmitting(true);
     try {
-      // Send description directly — same as web (no mealType prepend, no calories/protein)
       await logMeal.mutateAsync({
         data: {
           description: description.trim(),
-          ...(imageUri ? { imageUrl: imageUri } : {}),
+          // Send base64 data URI — the API rejects raw file:// URIs
+          ...(imageDataUri ? { imageUrl: imageDataUri } : {}),
         },
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowLogModal(false);
-      setDescription(""); setImageUri(null);
+      setDescription(""); setImageUri(null); setImageDataUri(null);
       refetch();
     } catch (e: any) {
       Alert.alert("Error", e?.message ?? "Failed to log meal");
@@ -255,7 +266,7 @@ export default function MealsScreen() {
       <Modal visible={showLogModal} animationType="slide" presentationStyle="formSheet" onRequestClose={() => setShowLogModal(false)}>
         <View style={[styles.modalRoot, { backgroundColor: colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={() => { setShowLogModal(false); setDescription(""); setImageUri(null); }}>
+            <TouchableOpacity onPress={() => { setShowLogModal(false); setDescription(""); setImageUri(null); setImageDataUri(null); }}>
               <Text style={[styles.modalCancel, { color: colors.mutedForeground }]}>Cancel</Text>
             </TouchableOpacity>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>Log Meal</Text>
@@ -285,7 +296,7 @@ export default function MealsScreen() {
             {imageUri ? (
               <View style={styles.imagePreviewContainer}>
                 <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-                <TouchableOpacity style={[styles.removeImageBtn, { backgroundColor: colors.card }]} onPress={() => setImageUri(null)}>
+                <TouchableOpacity style={[styles.removeImageBtn, { backgroundColor: colors.card }]} onPress={() => { setImageUri(null); setImageDataUri(null); }}>
                   <Feather name="x" size={14} color={colors.foreground} />
                 </TouchableOpacity>
               </View>

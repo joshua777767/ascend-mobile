@@ -45,7 +45,7 @@ function AppGate({ children }: { children: React.ReactNode }) {
     if (authLoading) return;
 
     const seg0 = segments[0];
-    const inAuth = seg0 === "login" || seg0 === "signup";
+    const inAuth = seg0 === "login" || seg0 === "signup" || seg0 === "forgot-password" || seg0 === "reset-password";
 
     // Not signed in → login (allow login/signup screens through).
     if (!user) {
