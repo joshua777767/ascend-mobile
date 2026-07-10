@@ -110,8 +110,8 @@ export default function PaywallScreen() {
         ]);
       } else {
         Alert.alert(
-          "No active subscription found",
-          "We couldn't find a subscription linked to your Apple ID. If you believe this is an error, contact support.",
+          "Subscription not found",
+          "We could not find an active subscription for your account. If you already subscribed, please try the purchase button instead, which will automatically restore your subscription.",
           [{ text: "OK" }]
         );
       }
