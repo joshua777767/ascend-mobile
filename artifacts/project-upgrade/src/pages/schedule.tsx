@@ -368,45 +368,76 @@ export default function SchedulePage() {
           </div>
         )}
 
-        {/* Target chips — show sport-day calorie target when applicable */}
+        {/* Target chips — when sport schedule exists, show Rest / Practice / Game targets */}
         {plan && (
-          <div className="mb-5 flex gap-2">
+          <div className="mb-5 space-y-2">
             {(() => {
               const p = plan as any;
               const prof = profile as any;
-              let calorieVal = plan.calorieTarget.toLocaleString();
-              let calorieLabel = "calories";
-              if (p?.restDayCalorieTarget && p?.practiceDayCalorieTarget && prof?.sportSchedule) {
+              const hasSportTargets = p?.restDayCalorieTarget && p?.practiceDayCalorieTarget && prof?.sportSchedule;
+
+              const chip = (val: string, label: string, i: number) => (
+                <div key={i} className="flex-1 rounded-xl p-3 text-center"
+                  style={{ background: "hsl(220 52% 8%)", border: "1px solid hsl(217 32% 14%)" }}>
+                  <p className="text-base font-bold text-primary leading-none">{val}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{label}</p>
+                </div>
+              );
+
+              // Common macro chips (protein + water)
+              const macroChips = (
+                <div className="flex gap-2">
+                  {chip(`${plan.proteinTargetG}g`, "protein", 1)}
+                  {chip(`${plan.waterTargetL}L`, "water", 2)}
+                </div>
+              );
+
+              if (hasSportTargets) {
+                // Detect today's type for visual highlight
+                let todayType: "rest" | "practice" | "game" = "rest";
                 try {
                   const schedule = JSON.parse(prof.sportSchedule);
                   const todayFull = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
                   const todayShort = todayFull.slice(0, 3);
-                  const matchDay = (arr: string[]) => arr.map(d => d.toLowerCase().trim()).some(d => d.startsWith(todayShort) || todayFull.startsWith(d.slice(0, 3)));
+                  const matchDay = (arr: string[]) => (arr ?? []).map((d: string) => d.toLowerCase().trim()).some((d: string) => d.startsWith(todayShort) || todayFull.startsWith(d.slice(0, 3)));
                   const gameDays: string[] = schedule.gameDays ?? [];
                   const practiceDays: string[] = schedule.days ?? [];
-                  if (gameDays.length > 0 && p.gameDayCalorieTarget && matchDay(gameDays)) {
-                    calorieVal = (p.gameDayCalorieTarget as number).toLocaleString();
-                    calorieLabel = "cal (game day)";
-                  } else if (matchDay(practiceDays)) {
-                    calorieVal = (p.practiceDayCalorieTarget as number).toLocaleString();
-                    calorieLabel = "cal (practice)";
-                  } else {
-                    calorieVal = (p.restDayCalorieTarget as number).toLocaleString();
-                    calorieLabel = "cal (rest day)";
-                  }
-                } catch { /* keep defaults */ }
+                  if (gameDays.length > 0 && p.gameDayCalorieTarget && matchDay(gameDays)) todayType = "game";
+                  else if (matchDay(practiceDays)) todayType = "practice";
+                } catch { /* use rest default */ }
+
+                const dayChips: { val: string; label: string; type: "rest" | "practice" | "game" }[] = [
+                  { val: (p.restDayCalorieTarget as number).toLocaleString(), label: "cal · rest day", type: "rest" },
+                  { val: (p.practiceDayCalorieTarget as number).toLocaleString(), label: "cal · practice", type: "practice" },
+                  ...(p.gameDayCalorieTarget ? [{ val: (p.gameDayCalorieTarget as number).toLocaleString(), label: "cal · game day", type: "game" as const }] : []),
+                ];
+
+                return (
+                  <>
+                    <div className="flex gap-2">
+                      {dayChips.map((s, i) => (
+                        <div key={i} className="flex-1 rounded-xl p-3 text-center"
+                          style={{
+                            background: s.type === todayType ? "hsl(38 92% 25%)" : "hsl(220 52% 8%)",
+                            border: s.type === todayType ? "1px solid hsl(38 92% 50%)" : "1px solid hsl(217 32% 14%)",
+                          }}>
+                          <p className="text-base font-bold text-primary leading-none">{s.val}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {macroChips}
+                  </>
+                );
               }
-              return [
-                { val: calorieVal, label: calorieLabel },
-                { val: `${plan.proteinTargetG}g`, label: "protein" },
-                { val: `${plan.waterTargetL}L`, label: "water" },
-              ].map((s, i) => (
-                <div key={i} className="flex-1 rounded-xl p-3 text-center"
-                  style={{ background: "hsl(220 52% 8%)", border: "1px solid hsl(217 32% 14%)" }}>
-                  <p className="text-base font-bold text-primary leading-none">{s.val}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
+
+              return (
+                <div className="flex gap-2">
+                  {chip(plan.calorieTarget.toLocaleString(), "calories", 0)}
+                  {chip(`${plan.proteinTargetG}g`, "protein", 1)}
+                  {chip(`${plan.waterTargetL}L`, "water", 2)}
                 </div>
-              ));
+              );
             })()}
           </div>
         )}

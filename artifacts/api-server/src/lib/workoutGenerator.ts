@@ -489,7 +489,12 @@ function getEquipmentRequirement(name: string): string | null {
   if (/resistance band|band pull|band face|\bbanded\b/.test(n)) return "resistance bands";
   // Jump rope
   if (/jump rope|skipping rope/.test(n)) return "jump rope";
-  return null; // bodyweight — no equipment needed
+  // Explicit bodyweight exercises — always allowed with no equipment
+  if (/push.?up|sit.?up|crunch|plank|glute bridge|hip\s+thrust(?!\s+bar|\s+barbell)|burpee|lunge|step\s*up(?!\s+weighted)|jumping\s+jack|high\s+knee|mountain\s+climber|bear\s+crawl|inchworm|flutter\s+kick|wall\s+sit|dead\s+bug|bird\s+dog|superman|hollow\s+body|arch\s+body|v.up|box\s+jump|skater|air\s+squat|bodyweight\s+squat|body\s*weight\s+squat|squat(?!\s+(rack|bar|plate|clean|jerk|jump))|\bjump squat|\bsplit squat(?!\s+bar)|\bpistol squat|reverse\s+lunge|lateral\s+lunge|curtsy\s+lunge|calf\s+raise|hip\s+circle|fire\s+hydrant|donkey\s+kick|leg\s+swing|ankle\s+circle|neck\s+roll|shoulder\s+circle|arm\s+circle|torso\s+rotation|hip\s+hinge|good\s+morning(?!\s+bar)|\bstretch|\bmobility|\byoga|\bfoam\s+roll|\bbreathing/.test(n)) return null;
+  // Sprint / run / row / bodyweight cardio — no equipment
+  if (/\bsprint\b|\brun\b|\bjog\b|\bwalk\b|\broad\s+work\b|\bsuicide\b|\bshuttle\b/.test(n)) return null;
+  // Unknown exercise — default to requiring a commercial gym (safe for strict equipment enforcement)
+  return "__full_gym__";
 }
 
 /** Returns true if exercise is bodyweight-only (no equipment required). */

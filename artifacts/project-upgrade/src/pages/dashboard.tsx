@@ -850,7 +850,7 @@ export default function DashboardPage() {
 
   // Auto-check the calorie habit when daily calorie target is met
   useEffect(() => {
-    if (plan && todayCalories > 0 && todayCalories >= plan.calorieTarget) {
+    if (plan && todayCalories > 0 && todayCalories >= effectiveCalorieTarget) {
       const calorieHabit = dailyHabits.find((h) =>
         ["calorie", "caloric", "deficit", "surplus", "kcal"].some((k) => h.toLowerCase().includes(k))
       );
@@ -923,8 +923,8 @@ export default function DashboardPage() {
   const apiScore = dailyScore && typeof dailyScore.totalScore === "number" ? dailyScore.totalScore : null;
 
   // Fallback blended score (old logic) for users before API score exists
-  const calorieProgress = plan && plan.calorieTarget > 0
-    ? Math.min(todayCalories / plan.calorieTarget, 1) : 0;
+  const calorieProgress = effectiveCalorieTarget > 0
+    ? Math.min(todayCalories / effectiveCalorieTarget, 1) : 0;
   const proteinProgress = plan && plan.proteinTargetG > 0
     ? Math.min(todayProtein / plan.proteinTargetG, 1) : 0;
   const waterProgress = waterTargetOz > 0
@@ -1004,7 +1004,7 @@ export default function DashboardPage() {
   }, [displayScore, hasAnyData, streakData?.lastStreakDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Personalized mission copy ---
-  const calorieDeficit = plan ? plan.calorieTarget - todayCalories : 0;
+  const calorieDeficit = plan ? effectiveCalorieTarget - todayCalories : 0;
   const proteinDeficit = plan ? plan.proteinTargetG - todayProtein : 0;
   const isMaintenance = plan?.goalType === "maintain";
   const isBulking = !isMaintenance && plan ? (profile.goalWeightKg ?? 0) > (profile.currentWeightKg ?? 0) : false;
@@ -1026,7 +1026,7 @@ export default function DashboardPage() {
       return `${proteinDeficit}g protein short. Make the next meal count. You're building.`;
     }
     if (isBulking && plan) {
-      return `${firstName}, you're building. Hit ${plan.calorieTarget.toLocaleString()} calories today. Every meal is a choice.`;
+      return `${firstName}, you're building. Hit ${effectiveCalorieTarget.toLocaleString()} calories today. Every meal is a choice.`;
     }
     if (isCutting && plan) {
       return `${firstName}, stay focused: protein, steps, water, clean tracking. Your next move matters.`;
@@ -1035,7 +1035,7 @@ export default function DashboardPage() {
       return "Recomp is built on consistency: hit protein every day, train with progressive overload, and sleep 8 hours.";
     }
     if (goals.includes("gain weight and muscle")) {
-      return `${firstName}, you're building. Hit ${plan?.calorieTarget?.toLocaleString() ?? "your"} calories today. Every meal is a choice.`;
+      return `${firstName}, you're building. Hit ${effectiveCalorieTarget > 0 ? effectiveCalorieTarget.toLocaleString() : "your"} calories today. Every meal is a choice.`;
     }
     if (goals.includes("discipline")) {
       return "Discipline is built daily. Show up. Small wins compound. Progress is proof.";
@@ -1588,7 +1588,7 @@ export default function DashboardPage() {
                   {(() => {
                     const nextAction = (() => {
                       if (!todayMeals || todayMeals.length === 0) return "Next: log your first meal";
-                      if (plan && todayCalories < plan.calorieTarget * 0.5) return "Next: hit your calorie target";
+                      if (effectiveCalorieTarget > 0 && todayCalories < effectiveCalorieTarget * 0.5) return "Next: hit your calorie target";
                       if (waterOz < waterTargetOz * 0.5) return "Next: drink water";
                       if (!review) return "Next: journal tonight";
                       return "Next: hit tomorrow's plan";

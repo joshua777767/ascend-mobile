@@ -293,7 +293,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!planAny || !checklistLoaded) return;
-    if (todayCalories > 0 && todayCalories >= planAny.calorieTarget) {
+    if (todayCalories > 0 && todayCalories >= effectiveCalorieTarget) {
       const h = habits.find((h) => ["calorie", "caloric", "deficit", "kcal"].some((k) => h.toLowerCase().includes(k)));
       if (h && !done[h]) setDone((prev) => { const n = { ...prev, [h]: true }; saveChecklist(n); return n; });
     }
@@ -376,14 +376,14 @@ export default function HomeScreen() {
     }
     if (planAny && calorieDeficit > 500) return `You're ${calorieDeficit} calories behind. Fuel up. Every meal counts.`;
     if (planAny && proteinDeficit > 30) return `${proteinDeficit}g protein short. Make the next meal count. You're building.`;
-    if (isBulking && planAny) return `${firstName}, you're building. Hit ${planAny.calorieTarget?.toLocaleString()} calories today. Every meal is a choice.`;
+    if (isBulking && planAny) return `${firstName}, you're building. Hit ${effectiveCalorieTarget > 0 ? effectiveCalorieTarget.toLocaleString() : "your"} calories today. Every meal is a choice.`;
     if (isCutting && planAny) return `${firstName}, stay focused: protein, steps, water, clean tracking. Your next move matters.`;
     return planAny?.coachNotes?.trim()?.split(".")?.[0] + "." || "Protein, movement, water, sleep. Small choices, big change.";
   })();
 
   const nextAction = (() => {
     if (todayMeals.length === 0) return "Next: log your first meal";
-    if (planAny && todayCalories < planAny.calorieTarget * 0.5) return "Next: hit your calorie target";
+    if (effectiveCalorieTarget > 0 && todayCalories < effectiveCalorieTarget * 0.5) return "Next: hit your calorie target";
     if (waterTotalOz < waterTargetOz * 0.5) return "Next: drink water";
     return "Next: hit tomorrow's plan";
   })();

@@ -174,10 +174,6 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
         [saved] = await db.insert(plansTable).values({ userId, ...planFields }).returning();
       }
       updatedPlan = saved ?? null;
-      // Clear custom workout schedule so next getTodayWorkout uses new profile settings
-      await db.update(userProfilesTable)
-        .set({ customWorkoutSchedule: null, ownSchedule: null })
-        .where(eq(userProfilesTable.userId, userId));
     } catch (err) {
       req.log.warn({ err }, "Plan regen after profile patch failed; continuing");
     }
