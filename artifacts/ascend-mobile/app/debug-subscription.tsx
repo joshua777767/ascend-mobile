@@ -51,15 +51,15 @@ export default function DebugSubscriptionScreen() {
     appUserId: (customerInfo as any)?.appUserId ?? null,
     originalAppUserId: (customerInfo as any)?.originalAppUserId ?? null,
     ascendUserId: user?.id ?? null,
-    entitlementId: "entl67aca298cd",
+    entitlementId: "Ascend: AI Fitness Pro",
     allActiveEntitlementKeys: customerInfo
       ? Object.keys((customerInfo as any).entitlements?.active ?? {})
       : null,
     targetEntitlementExists: customerInfo
-      ? !!(customerInfo as any).entitlements?.active?.["entl67aca298cd"]
+      ? !!(customerInfo as any).entitlements?.active?.["Ascend: AI Fitness Pro"]
       : null,
     targetEntitlementIsActive: customerInfo
-      ? (customerInfo as any).entitlements?.active?.["entl67aca298cd"]?.isActive ??
+      ? (customerInfo as any).entitlements?.active?.["Ascend: AI Fitness Pro"]?.isActive ??
         null
       : null,
     isPro,

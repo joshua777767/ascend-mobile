@@ -13,3 +13,4 @@
 - [Stripe removal](stripe-removal.md) — Stripe fully removed from API server; auth.ts now uses DB-only subscription check; RevenueCat/IAP unaffected. Stub routes kept so frontend degrades gracefully.
 - [EAS build env vars must be explicit](eas-build-env-vars.md) — EXPO_PUBLIC_ Replit secrets are NOT forwarded to EAS cloud builds; must be in eas.json env block or features silently break at runtime.
 - [iOS subscription hard-gate](ios-subscription-gate.md) — no backend auto-trial; Pro is RevenueCat entitlement "pro" only; client AppGate is the real gate (block render while resolving; reset RC + clear query cache on logout or Pro leaks across accounts). Mobile auth is cookie-based, no token.
+- [RevenueCat entitlement key is display name](revenuecat-entitlement-key.md) — RC uses the display name ("Ascend: AI Fitness Pro") as the key in entitlements.active, not the machine ID (entl67aca298cd). Always verify with live device debug, not RC dashboard IDs.
