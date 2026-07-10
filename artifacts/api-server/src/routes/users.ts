@@ -139,7 +139,7 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
 
   // Regenerate plan when plan-relevant fields change
   const PLAN_RELEVANT_FIELDS = [
-    "goals", "currentWeightKg", "goalWeightKg", "heightCm", "age", "sex",
+    "goals", "currentWeightKg", "goalWeightKg", "heightCm", "age", "gender",
     "fitnessLevel", "gymAccess", "equipment", "workoutDaysPerWeek",
     "preferredWorkoutTime", "sport", "sportSchedule", "sportCustom",
     "hasOwnSchedule", "activityLevel", "dietStyle", "targetDate",

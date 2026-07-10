@@ -477,8 +477,8 @@ function getEquipmentRequirement(name: string): string | null {
   if (/\bbarbell\b|back squat|front squat|pause squat|\bdeadlift\b|bench press|close.grip bench|overhead press barbell|hip thrust barbell|power clean|hang clean|trap bar|sumo deadlift|romanian deadlift/.test(n)) return "barbell & plates";
   // Squat rack (exercises that explicitly name the rack)
   if (/squat rack|power rack/.test(n)) return "squat rack";
-  // Dumbbells
-  if (/\bdumbbell\b|\bdb\b|goblet squat|farmer carry|farmer.s carry/.test(n)) return "dumbbells";
+  // Dumbbells — includes named exercises that require free weights even without "dumbbell" in the name
+  if (/\bdumbbell\b|\bdb\b|goblet squat|farmer carry|farmer.s carry|hammer curl|lateral raise|front raise|rear delt fly|rear delt raise|overhead tricep ext|skull crusher|skullcrusher|tricep kickback|chest fly|incline fly|concentration curl|zottman curl/.test(n)) return "dumbbells";
   // Pull-up bar
   if (/pull.up|chin.up|hanging knee|hanging leg raise|toes.to.bar/.test(n)) return "pull-up bar";
   // Kettlebell

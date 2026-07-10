@@ -826,6 +826,28 @@ export default function DashboardPage() {
   const todayCalories = (todayMeals ?? []).reduce((s, m) => s + (m.calories ?? 0), 0);
   const todayProtein = (todayMeals ?? []).reduce((s, m) => s + (m.protein ?? 0), 0);
 
+  // Detect today's sport day type to show the right calorie target
+  const todaySportInfo = (() => {
+    const p = plan as any;
+    if (!p?.restDayCalorieTarget || !p?.practiceDayCalorieTarget) return null;
+    const raw = (profile as any)?.sportSchedule;
+    if (!raw) return null;
+    try {
+      const schedule = JSON.parse(raw);
+      const todayFull = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+      const todayShort = todayFull.slice(0, 3);
+      const matchDay = (arr: string[]) => arr.map(d => d.toLowerCase().trim()).some(d => d.startsWith(todayShort) || todayFull.startsWith(d.slice(0, 3)));
+      const gameDays: string[] = schedule.gameDays ?? [];
+      const practiceDays: string[] = schedule.days ?? [];
+      if (gameDays.length > 0 && p.gameDayCalorieTarget && matchDay(gameDays)) {
+        return { target: p.gameDayCalorieTarget as number, label: "Game Day" };
+      }
+      if (matchDay(practiceDays)) return { target: p.practiceDayCalorieTarget as number, label: "Practice Day" };
+      return { target: p.restDayCalorieTarget as number, label: "Rest Day" };
+    } catch { return null; }
+  })();
+  const effectiveCalorieTarget = todaySportInfo?.target ?? plan?.calorieTarget ?? 0;
+
   // Auto-check the calorie habit when daily calorie target is met
   useEffect(() => {
     if (plan && todayCalories > 0 && todayCalories >= plan.calorieTarget) {
@@ -1746,7 +1768,7 @@ export default function DashboardPage() {
           <div>
             <SectionLabel>Fuel</SectionLabel>
             <div className="grid grid-cols-2 gap-3">
-              <IntakeBar icon={Flame} label="Calories" eaten={todayCalories} target={plan.calorieTarget} tint="blue" />
+              <IntakeBar icon={Flame} label={todaySportInfo ? `Calories (${todaySportInfo.label})` : "Calories"} eaten={todayCalories} target={effectiveCalorieTarget} tint="blue" />
               <IntakeBar icon={Beef} label="Protein" eaten={todayProtein} target={plan.proteinTargetG} unit="g" tint="green" />
             </div>
           </div>

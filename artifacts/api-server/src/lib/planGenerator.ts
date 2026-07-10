@@ -566,14 +566,8 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     restDayCalorieTarget     = calorieTarget;
     practiceDayCalorieTarget = Math.max(calorieFloor, calorieTarget + practiceBurn);
     if (sportEntry.gameDays && sportEntry.gameDays.length > 0) {
-      // Game sessions: 25% longer duration, always at hard intensity → explicit premium over practice
-      const gameBurn = estimateSportCalBurn(
-        sportEntry.sport,
-        Math.round(sportEntry.durationMinutes * 1.25),
-        "hard",
-        profile.currentWeightKg,
-      );
-      gameDayCalorieTarget = Math.max(calorieFloor, calorieTarget + gameBurn);
+      // Game day: ~17.5% premium above practice day (midpoint of 15–20% spec)
+      gameDayCalorieTarget = Math.max(calorieFloor, Math.round(practiceDayCalorieTarget * 1.175));
     }
   }
 

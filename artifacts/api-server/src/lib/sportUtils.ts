@@ -150,7 +150,7 @@ export function estimateSportCalBurn(
   weightKg: number
 ): number {
   const baseMet = METS[sport.toLowerCase()] || 5.0;
-  const intensityMult = intensity === "hard" ? 1.3 : intensity === "light" ? 0.7 : 1.0;
+  const intensityMult = intensity === "hard" ? 1.7 : intensity === "light" ? 1.3 : 1.5;
   const met = baseMet * intensityMult;
   const durationHours = durationMinutes / 60;
   return Math.round(met * weightKg * durationHours);
