@@ -150,32 +150,34 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
   if (triggerRegen) {
     try {
       const [existingPlan] = await db.select().from(plansTable).where(eq(plansTable.userId, userId));
+      const newPlan = generatePlan(profile as any);
+      const planFields = {
+        goalType: newPlan.goalType,
+        calorieTarget: newPlan.calorieTarget,
+        proteinTargetG: newPlan.proteinTargetG,
+        waterTargetL: newPlan.waterTargetL,
+        stepsTarget: newPlan.stepsTarget,
+        sleepTargetHours: newPlan.sleepTargetHours,
+        weeklyPace: newPlan.weeklyPace,
+        workoutSchedule: newPlan.workoutSchedule,
+        keyHabits: JSON.stringify(newPlan.keyHabits),
+        coachNotes: newPlan.coachNotes,
+        warnings: newPlan.warnings,
+        restDayCalorieTarget: newPlan.restDayCalorieTarget,
+        practiceDayCalorieTarget: newPlan.practiceDayCalorieTarget,
+        gameDayCalorieTarget: newPlan.gameDayCalorieTarget,
+      };
+      let saved: typeof plansTable.$inferSelect | undefined;
       if (existingPlan) {
-        const newPlan = generatePlan(profile as any);
-        const [saved] = await db.update(plansTable).set({
-          goalType: newPlan.goalType,
-          calorieTarget: newPlan.calorieTarget,
-          proteinTargetG: newPlan.proteinTargetG,
-          waterTargetL: newPlan.waterTargetL,
-          stepsTarget: newPlan.stepsTarget,
-          sleepTargetHours: newPlan.sleepTargetHours,
-          weeklyPace: newPlan.weeklyPace,
-          workoutSchedule: newPlan.workoutSchedule,
-          keyHabits: JSON.stringify(newPlan.keyHabits),
-          coachNotes: newPlan.coachNotes,
-          warnings: newPlan.warnings,
-          restDayCalorieTarget: newPlan.restDayCalorieTarget,
-          practiceDayCalorieTarget: newPlan.practiceDayCalorieTarget,
-          gameDayCalorieTarget: newPlan.gameDayCalorieTarget,
-        }).where(eq(plansTable.userId, userId)).returning();
-        updatedPlan = saved ?? null;
-        // Also clear custom workout schedule so next fetch uses new profile settings
-        if (rest.gymAccess !== undefined || rest.equipment !== undefined) {
-          await db.update(userProfilesTable)
-            .set({ customWorkoutSchedule: null, ownSchedule: null })
-            .where(eq(userProfilesTable.userId, userId));
-        }
+        [saved] = await db.update(plansTable).set(planFields).where(eq(plansTable.userId, userId)).returning();
+      } else {
+        [saved] = await db.insert(plansTable).values({ userId, ...planFields }).returning();
       }
+      updatedPlan = saved ?? null;
+      // Clear custom workout schedule so next getTodayWorkout uses new profile settings
+      await db.update(userProfilesTable)
+        .set({ customWorkoutSchedule: null, ownSchedule: null })
+        .where(eq(userProfilesTable.userId, userId));
     } catch (err) {
       req.log.warn({ err }, "Plan regen after profile patch failed; continuing");
     }

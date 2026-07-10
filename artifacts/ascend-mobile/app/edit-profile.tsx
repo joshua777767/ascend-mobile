@@ -21,6 +21,7 @@ import {
   useGeneratePlan,
   getGetUserProfileQueryKey,
   getGetCurrentPlanQueryKey,
+  getGetTodayWorkoutQueryKey,
 } from "@workspace/api-client-react";
 
 // ─── Constants (identical to web settings.tsx) ─────────────────────────────────
@@ -342,6 +343,7 @@ export default function EditProfileScreen() {
       await generatePlan.mutateAsync();
       queryClient.invalidateQueries({ queryKey: getGetUserProfileQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetCurrentPlanQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetTodayWorkoutQueryKey() });
       setSavedIdx(idx);
       setTimeout(() => setSavedIdx(null), 4000);
     } catch {

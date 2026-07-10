@@ -10,6 +10,7 @@ import {
   useGeneratePlan,
   getGetUserProfileQueryKey,
   getGetCurrentPlanQueryKey,
+  getGetTodayWorkoutQueryKey,
 } from "@workspace/api-client-react";
 import { LogOut, RotateCcw, AlertTriangle, Save, CheckCircle2, FileDown, Shield, ScrollText, CreditCard, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -343,6 +344,7 @@ export default function SettingsPage() {
     await generatePlan.mutateAsync();
     queryClient.invalidateQueries({ queryKey: getGetUserProfileQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetCurrentPlanQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetTodayWorkoutQueryKey() });
     setSaved(true);
     setTimeout(() => setSaved(false), 4000);
   };

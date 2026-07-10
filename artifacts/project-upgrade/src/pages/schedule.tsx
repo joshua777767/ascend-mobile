@@ -368,20 +368,46 @@ export default function SchedulePage() {
           </div>
         )}
 
-        {/* Target chips */}
+        {/* Target chips — show sport-day calorie target when applicable */}
         {plan && (
           <div className="mb-5 flex gap-2">
-            {[
-              { val: plan.calorieTarget.toLocaleString(), label: "calories" },
-              { val: `${plan.proteinTargetG}g`, label: "protein" },
-              { val: `${plan.waterTargetL}L`, label: "water" },
-            ].map((s, i) => (
-              <div key={i} className="flex-1 rounded-xl p-3 text-center"
-                style={{ background: "hsl(220 52% 8%)", border: "1px solid hsl(217 32% 14%)" }}>
-                <p className="text-base font-bold text-primary leading-none">{s.val}</p>
-                <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
-              </div>
-            ))}
+            {(() => {
+              const p = plan as any;
+              const prof = profile as any;
+              let calorieVal = plan.calorieTarget.toLocaleString();
+              let calorieLabel = "calories";
+              if (p?.restDayCalorieTarget && p?.practiceDayCalorieTarget && prof?.sportSchedule) {
+                try {
+                  const schedule = JSON.parse(prof.sportSchedule);
+                  const todayFull = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+                  const todayShort = todayFull.slice(0, 3);
+                  const matchDay = (arr: string[]) => arr.map(d => d.toLowerCase().trim()).some(d => d.startsWith(todayShort) || todayFull.startsWith(d.slice(0, 3)));
+                  const gameDays: string[] = schedule.gameDays ?? [];
+                  const practiceDays: string[] = schedule.days ?? [];
+                  if (gameDays.length > 0 && p.gameDayCalorieTarget && matchDay(gameDays)) {
+                    calorieVal = (p.gameDayCalorieTarget as number).toLocaleString();
+                    calorieLabel = "cal (game day)";
+                  } else if (matchDay(practiceDays)) {
+                    calorieVal = (p.practiceDayCalorieTarget as number).toLocaleString();
+                    calorieLabel = "cal (practice)";
+                  } else {
+                    calorieVal = (p.restDayCalorieTarget as number).toLocaleString();
+                    calorieLabel = "cal (rest day)";
+                  }
+                } catch { /* keep defaults */ }
+              }
+              return [
+                { val: calorieVal, label: calorieLabel },
+                { val: `${plan.proteinTargetG}g`, label: "protein" },
+                { val: `${plan.waterTargetL}L`, label: "water" },
+              ].map((s, i) => (
+                <div key={i} className="flex-1 rounded-xl p-3 text-center"
+                  style={{ background: "hsl(220 52% 8%)", border: "1px solid hsl(217 32% 14%)" }}>
+                  <p className="text-base font-bold text-primary leading-none">{s.val}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
+                </div>
+              ));
+            })()}
           </div>
         )}
 
