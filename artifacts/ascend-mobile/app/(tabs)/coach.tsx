@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { fetch } from "expo/fetch";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -216,25 +216,24 @@ export default function CoachScreen() {
         }
       />
 
-      {allMessages.length === 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipsRow}
-          keyboardShouldPersistTaps="handled"
-        >
-          {SUGGESTED_CHIPS.map((chip) => (
-            <TouchableOpacity
-              key={chip}
-              style={[styles.chip, { backgroundColor: colors.card, borderColor: colors.border }]}
-              onPress={() => sendText(chip)}
-              activeOpacity={0.75}
-            >
-              <Text style={[styles.chipText, { color: colors.foreground }]}>{chip}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
+      {/* Suggested chips — shown both on empty state and during conversation */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipsRow}
+        keyboardShouldPersistTaps="handled"
+      >
+        {SUGGESTED_CHIPS.map((chip) => (
+          <TouchableOpacity
+            key={chip}
+            style={[styles.chip, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => sendText(chip)}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.chipText, { color: colors.foreground }]}>{chip}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       <View style={[styles.inputBar, { borderTopColor: colors.border, paddingBottom: insets.bottom + TAB_BAR_HEIGHT + 12 }]}>
         <TextInput
@@ -293,7 +292,7 @@ const styles = StyleSheet.create({
   typingBubble: { borderRadius: 16, padding: 14, alignSelf: "flex-start", marginBottom: 10 },
   emptyChat: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80 },
   emptyChatText: { fontSize: 15, fontFamily: "Inter_400Regular" },
-  chipsRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8, flexDirection: "row" },
+  chipsRow: { paddingHorizontal: 16, paddingVertical: 8, gap: 8, flexDirection: "row" },
   chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, borderWidth: 1 },
   chipText: { fontSize: 13, fontFamily: "Inter_400Regular" },
   inputBar: { flexDirection: "row", alignItems: "flex-end", gap: 10, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1 },

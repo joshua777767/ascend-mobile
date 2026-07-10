@@ -4,10 +4,12 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -30,14 +32,63 @@ import {
   getGetWaterTodayQueryKey,
 } from "@workspace/api-client-react";
 
-const MISSION_ITEMS = [
-  { id: "calories", label: "Hit calorie target", icon: "zap" as const },
-  { id: "protein", label: "Hit protein goal", icon: "activity" as const },
-  { id: "workout", label: "Complete workout", icon: "award" as const },
-  { id: "water", label: "Drink water goal", icon: "droplet" as const },
-  { id: "meals", label: "Log all meals", icon: "coffee" as const },
-  { id: "journal", label: "Write journal entry", icon: "book-open" as const },
+// ─── Habit deduplication / prioritization (matches web dashboard) ──────────────
+
+const HABIT_FAMILIES: Array<{ family: string; keywords: string[] }> = [
+  { family: "calorie",  keywords: ["calorie", "caloric", "deficit", "surplus", "kcal"] },
+  { family: "protein",  keywords: ["protein", "macro"] },
+  { family: "water",    keywords: ["water", "hydrat", "drink"] },
+  { family: "log",      keywords: ["log", "track", "scan", "meal"] },
+  { family: "train",    keywords: ["train", "workout", "gym", "exercise", "lift", "strength", "cardio", "run", "recover", "recovery", "rest day", "sport", "practice"] },
+  { family: "sleep",    keywords: ["sleep", "bed", "night", "wake"] },
+  { family: "skin",     keywords: ["skin", "face", "moistur", "spf", "sunscreen"] },
+  { family: "mindset",  keywords: ["stress", "meditat", "breath", "journal", "gratitude", "focus"] },
+  { family: "steps",    keywords: ["step", "walk", "10k", "active"] },
 ];
+
+function habitFamily(habit: string): string {
+  const lower = habit.toLowerCase();
+  for (const { family, keywords } of HABIT_FAMILIES) {
+    if (keywords.some((k) => lower.includes(k))) return family;
+  }
+  return `other:${habit}`;
+}
+
+function habitPriorityScore(habit: string): number {
+  const lower = habit.toLowerCase();
+  for (let i = 0; i < HABIT_FAMILIES.length; i++) {
+    if (HABIT_FAMILIES[i].keywords.some((k) => lower.includes(k))) return i;
+  }
+  return HABIT_FAMILIES.length;
+}
+
+function prioritizeHabits(rawHabits: string[]): string[] {
+  const byFamily = new Map<string, string>();
+  for (const h of rawHabits) {
+    const fam = habitFamily(h);
+    const existing = byFamily.get(fam);
+    if (!existing || h.length < existing.length) {
+      byFamily.set(fam, h);
+    }
+  }
+  return Array.from(byFamily.values())
+    .sort((a, b) => habitPriorityScore(a) - habitPriorityScore(b))
+    .slice(0, 5);
+}
+
+function habitIcon(habit: string): "zap" | "activity" | "droplet" | "coffee" | "moon" | "book-open" | "award" | "heart" {
+  const lower = habit.toLowerCase();
+  if (lower.match(/calorie|kcal/)) return "zap";
+  if (lower.match(/protein|macro/)) return "activity";
+  if (lower.match(/water|drink|hydrat/)) return "droplet";
+  if (lower.match(/meal|log|track/)) return "coffee";
+  if (lower.match(/sleep|bed|night/)) return "moon";
+  if (lower.match(/journal|meditat|mindset/)) return "book-open";
+  if (lower.match(/workout|train|gym|exercise/)) return "award";
+  return "heart";
+}
+
+// ─── Score Ring ────────────────────────────────────────────────────────────────
 
 function ScoreRing({ score, size = 96, colors }: { score: number; size?: number; colors: any }) {
   const r = (size - 14) / 2;
@@ -66,6 +117,8 @@ function ScoreRing({ score, size = 96, colors }: { score: number; size?: number;
   );
 }
 
+// ─── Main Screen ───────────────────────────────────────────────────────────────
+
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -82,10 +135,16 @@ export default function HomeScreen() {
   const logWater = useLogWater();
 
   const [missionDone, setMissionDone] = useState<Record<string, boolean>>({});
+  const [customWaterOz, setCustomWaterOz] = useState("");
+  const [showCustomWater, setShowCustomWater] = useState(false);
 
   const recentMeals = (mealsData as any) ?? [];
   const isLoading = planLoading;
   const dailyScore = (dailyScoreData as any)?.score ?? 0;
+
+  // Build mission items from plan.keyHabits (matches web dashboard)
+  const rawKeyHabits: string[] = plan && Array.isArray((plan as any).keyHabits) ? (plan as any).keyHabits : [];
+  const missionItems = prioritizeHabits(rawKeyHabits);
 
   const refetch = () => { refetchPlan(); refetchStreak(); refetchMeals(); refetchWater(); refetchScore(); };
 
@@ -102,6 +161,7 @@ export default function HomeScreen() {
   const waterTargetGlasses = Math.round(waterTargetOz / 8);
 
   const handleLogWater = async (amountOz: number) => {
+    if (amountOz <= 0) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       const updated = await logWater.mutateAsync({ data: { amountOz } });
@@ -111,12 +171,23 @@ export default function HomeScreen() {
     }
   };
 
-  const toggleMission = async (id: string) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setMissionDone(prev => ({ ...prev, [id]: !prev[id] }));
+  const handleCustomWater = () => {
+    const oz = parseFloat(customWaterOz);
+    if (!customWaterOz.trim() || isNaN(oz) || oz <= 0) {
+      Alert.alert("Invalid amount", "Enter a number greater than 0.");
+      return;
+    }
+    setCustomWaterOz("");
+    setShowCustomWater(false);
+    handleLogWater(oz);
   };
 
-  const missionDoneCount = Object.values(missionDone).filter(Boolean).length;
+  const toggleMission = async (label: string) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setMissionDone(prev => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const missionDoneCount = missionItems.filter(h => missionDone[h]).length;
 
   return (
     <ScrollView
@@ -187,7 +258,7 @@ export default function HomeScreen() {
             />
           </View>
 
-          {/* Water tracker card */}
+          {/* Water tracker */}
           <View style={[styles.waterCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.waterCardTop}>
               <View style={styles.waterCardLabel}>
@@ -207,7 +278,7 @@ export default function HomeScreen() {
               <View style={[styles.waterFill, { backgroundColor: colors.blue, width: `${Math.min(100, Math.round((waterTotalOz / waterTargetOz) * 100))}%` as any }]} />
             </View>
             <View style={styles.waterBtns}>
-              {[{ oz: 8, label: "1 glass" }, { oz: 16, label: "2 glasses" }, { oz: 24, label: "3 glasses" }].map(({ oz, label }) => (
+              {[{ oz: 8, label: "+8 oz" }, { oz: 16, label: "+16 oz" }, { oz: 24, label: "+24 oz" }].map(({ oz, label }) => (
                 <TouchableOpacity
                   key={oz}
                   style={[styles.waterBtn, { backgroundColor: colors.blue + "18", borderColor: colors.blue + "44" }]}
@@ -215,47 +286,78 @@ export default function HomeScreen() {
                   disabled={logWater.isPending}
                   activeOpacity={0.75}
                 >
-                  <Feather name="plus" size={14} color={colors.blue} />
                   <Text style={[styles.waterBtnText, { color: colors.blue }]}>{label}</Text>
-                  <Text style={[styles.waterBtnSub, { color: colors.blue + "99" }]}>{oz} oz</Text>
                 </TouchableOpacity>
               ))}
+              <TouchableOpacity
+                style={[styles.waterBtn, { backgroundColor: colors.muted, borderColor: colors.border }]}
+                onPress={() => setShowCustomWater(v => !v)}
+                activeOpacity={0.75}
+              >
+                <Feather name="edit-2" size={12} color={colors.mutedForeground} />
+                <Text style={[styles.waterBtnText, { color: colors.mutedForeground }]}>Custom</Text>
+              </TouchableOpacity>
             </View>
+            {showCustomWater && (
+              <View style={styles.customWaterRow}>
+                <TextInput
+                  style={[styles.customWaterInput, { color: colors.foreground, backgroundColor: colors.muted, borderColor: colors.border }]}
+                  placeholder="oz"
+                  placeholderTextColor={colors.mutedForeground}
+                  value={customWaterOz}
+                  onChangeText={setCustomWaterOz}
+                  keyboardType="decimal-pad"
+                  autoFocus
+                />
+                <TouchableOpacity
+                  style={[styles.customWaterBtn, { backgroundColor: colors.blue }]}
+                  onPress={handleCustomWater}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.customWaterBtnText, { color: "#fff" }]}>Add</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </>
       )}
 
-      {/* Daily Mission */}
-      <SectionHeader title={`Daily Mission (${missionDoneCount}/${MISSION_ITEMS.length})`} />
-      <View style={[styles.missionCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={[styles.missionProgress, { backgroundColor: colors.muted }]}>
-          <View style={[styles.missionFill, { backgroundColor: colors.green, width: `${Math.round((missionDoneCount / MISSION_ITEMS.length) * 100)}%` as any }]} />
-        </View>
-        {MISSION_ITEMS.map((item) => {
-          const done = missionDone[item.id] ?? false;
-          return (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.missionItem, { borderBottomColor: colors.border }]}
-              onPress={() => toggleMission(item.id)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.missionCheck, { backgroundColor: done ? colors.green + "22" : colors.muted, borderColor: done ? colors.green : colors.border }]}>
-                <Feather name={done ? "check" : item.icon} size={14} color={done ? colors.green : colors.mutedForeground} />
-              </View>
-              <Text style={[styles.missionLabel, { color: done ? colors.mutedForeground : colors.foreground, textDecorationLine: done ? "line-through" : "none" }]}>
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      {/* Daily Mission from plan.keyHabits */}
+      {missionItems.length > 0 && (
+        <>
+          <SectionHeader title={`Daily Mission (${missionDoneCount}/${missionItems.length})`} />
+          <View style={[styles.missionCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.missionProgress, { backgroundColor: colors.muted }]}>
+              <View style={[styles.missionFill, { backgroundColor: colors.green, width: `${Math.round((missionDoneCount / missionItems.length) * 100)}%` as any }]} />
+            </View>
+            {missionItems.map((habit) => {
+              const done = missionDone[habit] ?? false;
+              const icon = habitIcon(habit);
+              return (
+                <TouchableOpacity
+                  key={habit}
+                  style={[styles.missionItem, { borderBottomColor: colors.border }]}
+                  onPress={() => toggleMission(habit)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.missionCheck, { backgroundColor: done ? colors.green + "22" : colors.muted, borderColor: done ? colors.green : colors.border }]}>
+                    <Feather name={done ? "check" : icon} size={14} color={done ? colors.green : colors.mutedForeground} />
+                  </View>
+                  <Text style={[styles.missionLabel, { color: done ? colors.mutedForeground : colors.foreground, textDecorationLine: done ? "line-through" : "none" }]}>
+                    {habit}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </>
+      )}
 
       <View style={styles.section}>
         <SectionHeader title="Quick Actions" />
         <View style={styles.actionsGrid}>
           <ActionCard icon="plus-circle" label="Log Meal" color={colors.green} onPress={() => router.push("/(tabs)/meals")} colors={colors} />
-          <ActionCard icon="calendar" label="Schedule" color={colors.blue} onPress={() => router.push("/(tabs)/schedule")} colors={colors} />
+          <ActionCard icon="activity" label="Workout" color={colors.blue} onPress={() => router.push("/(tabs)/workouts")} colors={colors} />
           <ActionCard icon="book-open" label="Journal" color={colors.purple} onPress={() => router.push("/(tabs)/journal")} colors={colors} />
           <ActionCard icon="bar-chart-2" label="Progress" color={colors.amber} onPress={() => router.push("/(tabs)/progress")} colors={colors} />
         </View>
@@ -373,10 +475,13 @@ const styles = StyleSheet.create({
   waterSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
   waterTrack: { height: 6, borderRadius: 3, overflow: "hidden" },
   waterFill: { height: 6, borderRadius: 3 },
-  waterBtns: { flexDirection: "row", gap: 8 },
+  waterBtns: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   waterBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 10, borderWidth: 1, paddingVertical: 10 },
   waterBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  waterBtnSub: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  customWaterRow: { flexDirection: "row", gap: 8, alignItems: "center" },
+  customWaterInput: { flex: 1, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, fontFamily: "Inter_400Regular" },
+  customWaterBtn: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10 },
+  customWaterBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   missionCard: { borderRadius: 16, borderWidth: 1, marginBottom: 28, overflow: "hidden" },
   missionProgress: { height: 4 },
   missionFill: { height: 4 },

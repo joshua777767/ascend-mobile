@@ -27,6 +27,15 @@ import {
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
 
+const PREFERENCES = [
+  { label: "High Protein", value: "high protein" },
+  { label: "Cheap", value: "cheap" },
+  { label: "Quick", value: "quick" },
+  { label: "No Cooking", value: "no cooking" },
+  { label: "School Friendly", value: "school friendly" },
+  { label: "Athlete Friendly", value: "athlete friendly" },
+];
+
 type MealEntry = {
   id?: number;
   mealType: string;
@@ -56,15 +65,16 @@ export default function MealsScreen() {
 
   const [showLogModal, setShowLogModal] = useState(false);
   const [showGenModal, setShowGenModal] = useState(false);
-  const [mealType, setMealType] = useState("breakfast");
+
+  // Log form — description + photo only (matches web)
   const [description, setDescription] = useState("");
-  const [calories, setCalories] = useState("");
-  const [protein, setProtein] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [genGoal, setGenGoal] = useState("");
-  const [genType, setGenType] = useState("breakfast");
+  // Generator form
+  const [genMealType, setGenMealType] = useState("breakfast");
+  const [genPreference, setGenPreference] = useState("");
+  const [genAvailableFoods, setGenAvailableFoods] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
 
@@ -94,10 +104,16 @@ export default function MealsScreen() {
     if (!description.trim()) { Alert.alert("Description required", "Please describe what you ate."); return; }
     setIsSubmitting(true);
     try {
-      await logMeal.mutateAsync({ data: { description: `[${mealType}] ${description.trim()}` } });
+      // Send description directly — same as web (no mealType prepend, no calories/protein)
+      await logMeal.mutateAsync({
+        data: {
+          description: description.trim(),
+          ...(imageUri ? { imageUrl: imageUri } : {}),
+        },
+      });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowLogModal(false);
-      setDescription(""); setCalories(""); setProtein(""); setImageUri(null); setMealType("breakfast");
+      setDescription(""); setImageUri(null);
       refetch();
     } catch (e: any) {
       Alert.alert("Error", e?.message ?? "Failed to log meal");
@@ -111,7 +127,11 @@ export default function MealsScreen() {
     setGeneratedPlan(null);
     try {
       const result = await generateMeals.mutateAsync({
-        data: { goal: genGoal.trim() || "balanced nutrition", mealType: genType },
+        data: {
+          mealType: genMealType,
+          ...(genPreference ? { preference: genPreference } : {}),
+          ...(genAvailableFoods.trim() ? { availableFoods: genAvailableFoods.trim() } : {}),
+        },
       } as any);
       const plan = (result as any)?.plan ?? (result as any)?.meals ?? JSON.stringify(result);
       setGeneratedPlan(typeof plan === "string" ? plan : JSON.stringify(plan, null, 2));
@@ -223,11 +243,11 @@ export default function MealsScreen() {
         )}
       </ScrollView>
 
-      {/* Log Meal Modal */}
+      {/* Log Meal Modal — description + photo only */}
       <Modal visible={showLogModal} animationType="slide" presentationStyle="formSheet" onRequestClose={() => setShowLogModal(false)}>
         <View style={[styles.modalRoot, { backgroundColor: colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={() => setShowLogModal(false)}>
+            <TouchableOpacity onPress={() => { setShowLogModal(false); setDescription(""); setImageUri(null); }}>
               <Text style={[styles.modalCancel, { color: colors.mutedForeground }]}>Cancel</Text>
             </TouchableOpacity>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>Log Meal</Text>
@@ -236,52 +256,17 @@ export default function MealsScreen() {
             </TouchableOpacity>
           </View>
           <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
-            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Meal Type</Text>
-            <View style={styles.mealTypeRow}>
-              {MEAL_TYPES.map((t) => (
-                <TouchableOpacity
-                  key={t}
-                  style={[styles.mealTypeBtn, { backgroundColor: mealType === t ? colors.primary : colors.card, borderColor: mealType === t ? colors.primary : colors.border }]}
-                  onPress={() => setMealType(t)}
-                >
-                  <Text style={[styles.mealTypeBtnText, { color: mealType === t ? colors.primaryForeground : colors.mutedForeground }]}>{t}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
             <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>What did you eat?</Text>
             <TextInput
               style={[styles.textArea, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]}
-              placeholder="Describe your meal…"
+              placeholder="Describe your meal — e.g. 2 eggs, toast with butter, black coffee"
               placeholderTextColor={colors.mutedForeground}
               value={description}
               onChangeText={setDescription}
               multiline
               numberOfLines={4}
+              autoFocus
             />
-            <View style={styles.row}>
-              <View style={styles.halfField}>
-                <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Calories</Text>
-                <TextInput
-                  style={[styles.inputField, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]}
-                  placeholder="e.g. 450"
-                  placeholderTextColor={colors.mutedForeground}
-                  value={calories}
-                  onChangeText={setCalories}
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={styles.halfField}>
-                <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Protein (g)</Text>
-                <TextInput
-                  style={[styles.inputField, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]}
-                  placeholder="e.g. 30"
-                  placeholderTextColor={colors.mutedForeground}
-                  value={protein}
-                  onChangeText={setProtein}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
             <View style={[styles.aiDisclaimer, { backgroundColor: colors.amber + "10", borderColor: colors.amber + "33" }]}>
               <Feather name="info" size={12} color={colors.amber} />
               <Text style={[styles.aiDisclaimerText, { color: colors.mutedForeground }]}>
@@ -331,26 +316,44 @@ export default function MealsScreen() {
                 Your AI coach will generate a meal plan tailored to your goals and macro targets.
               </Text>
             </View>
+
             <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Meal Type</Text>
-            <View style={styles.mealTypeRow}>
+            <View style={styles.chipRow}>
               {MEAL_TYPES.map((t) => (
                 <TouchableOpacity
                   key={t}
-                  style={[styles.mealTypeBtn, { backgroundColor: genType === t ? colors.primary : colors.card, borderColor: genType === t ? colors.primary : colors.border }]}
-                  onPress={() => setGenType(t)}
+                  style={[styles.chipBtn, { backgroundColor: genMealType === t ? colors.primary : colors.card, borderColor: genMealType === t ? colors.primary : colors.border }]}
+                  onPress={() => setGenMealType(t)}
                 >
-                  <Text style={[styles.mealTypeBtnText, { color: genType === t ? colors.primaryForeground : colors.mutedForeground }]}>{t}</Text>
+                  <Text style={[styles.chipBtnText, { color: genMealType === t ? colors.primaryForeground : colors.mutedForeground }]}>{t}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Specific Goal (optional)</Text>
+
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Preference</Text>
+            <View style={styles.chipRow}>
+              {PREFERENCES.map((p) => (
+                <TouchableOpacity
+                  key={p.value}
+                  style={[styles.chipBtn, { backgroundColor: genPreference === p.value ? colors.primary : colors.card, borderColor: genPreference === p.value ? colors.primary : colors.border }]}
+                  onPress={() => setGenPreference(prev => prev === p.value ? "" : p.value)}
+                >
+                  <Text style={[styles.chipBtnText, { color: genPreference === p.value ? colors.primaryForeground : colors.mutedForeground }]}>{p.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Foods you have (optional)</Text>
             <TextInput
-              style={[styles.inputField, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]}
-              placeholder="e.g. high protein, low carb, quick to make"
+              style={[styles.textArea, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]}
+              placeholder="e.g. chicken breast, rice, broccoli, eggs"
               placeholderTextColor={colors.mutedForeground}
-              value={genGoal}
-              onChangeText={setGenGoal}
+              value={genAvailableFoods}
+              onChangeText={setGenAvailableFoods}
+              multiline
+              numberOfLines={3}
             />
+
             {generatedPlan && (
               <View style={[styles.genResult, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <View style={styles.genResultHeader}>
@@ -401,13 +404,7 @@ const styles = StyleSheet.create({
   modalSave: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
   modalContent: { padding: 20, gap: 8 },
   fieldLabel: { fontSize: 12, fontFamily: "Inter_500Medium", marginBottom: 6, marginTop: 8, textTransform: "uppercase", letterSpacing: 0.5 },
-  mealTypeRow: { flexDirection: "row", gap: 8, flexWrap: "wrap", marginBottom: 4 },
-  mealTypeBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  mealTypeBtnText: { fontSize: 13, fontFamily: "Inter_500Medium", textTransform: "capitalize" },
   textArea: { borderRadius: 12, borderWidth: 1, padding: 14, fontSize: 15, fontFamily: "Inter_400Regular", minHeight: 100, textAlignVertical: "top" },
-  row: { flexDirection: "row", gap: 12 },
-  halfField: { flex: 1 },
-  inputField: { borderRadius: 12, borderWidth: 1, padding: 14, fontSize: 15, fontFamily: "Inter_400Regular" },
   photoRow: { flexDirection: "row", gap: 12 },
   photoBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 16, borderRadius: 12, borderWidth: 1 },
   photoBtnText: { fontSize: 14, fontFamily: "Inter_500Medium" },
@@ -416,6 +413,9 @@ const styles = StyleSheet.create({
   removeImageBtn: { position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   aiDisclaimer: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 10, borderWidth: 1, padding: 10 },
   aiDisclaimerText: { fontSize: 11, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 16 },
+  chipRow: { flexDirection: "row", gap: 8, flexWrap: "wrap", marginBottom: 4 },
+  chipBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  chipBtnText: { fontSize: 13, fontFamily: "Inter_500Medium", textTransform: "capitalize" },
   genHero: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14, borderRadius: 12, borderWidth: 1 },
   genHeroText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 20 },
   genResult: { borderRadius: 14, borderWidth: 1, padding: 16, gap: 10, marginTop: 8 },

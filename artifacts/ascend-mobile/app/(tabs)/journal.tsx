@@ -19,6 +19,7 @@ import {
   useGetTodayJournalEntry,
   useCreateJournalEntry,
   useGenerateReview,
+  useGetTodayReview,
 } from "@workspace/api-client-react";
 
 type JournalEntry = {
@@ -84,11 +85,13 @@ export default function JournalScreen() {
 
   const { data: entriesData, isLoading, refetch } = useListJournalEntries();
   const { data: todayEntry, refetch: refetchToday } = useGetTodayJournalEntry();
+  const { data: todayReviewData, refetch: refetchReview } = useGetTodayReview();
   const createEntry = useCreateJournalEntry();
   const generateReview = useGenerateReview();
 
   const entries: JournalEntry[] = (entriesData as any) ?? [];
   const today = todayEntry as any;
+  const todayReview = todayReviewData as any;
   const hasToday = !!today;
 
   const [showModal, setShowModal] = useState(false);
@@ -132,14 +135,21 @@ export default function JournalScreen() {
       resetForm();
       refetch();
       refetchToday();
+      // Poll for review after a moment
+      setTimeout(() => refetchReview(), 4000);
     } catch {
-      // continue
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const boolScore = [followedSchedule, hitProtein, stayedNearCalories, workedOut, drankWater, sleptOnTime].filter(Boolean).length;
+
+  const reviewScoreColor = todayReview?.dailyScore >= 75
+    ? colors.green
+    : todayReview?.dailyScore >= 50
+    ? colors.primary
+    : colors.destructive;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -166,45 +176,110 @@ export default function JournalScreen() {
         </Text>
 
         {hasToday ? (
-          <View style={[styles.todayCard, { backgroundColor: colors.card, borderColor: colors.primary + "44" }]}>
-            <View style={styles.todayTop}>
-              <Feather name="check-circle" size={18} color={colors.green} />
-              <Text style={[styles.todayTitle, { color: colors.foreground }]}>Today's entry logged</Text>
+          <>
+            <View style={[styles.todayCard, { backgroundColor: colors.card, borderColor: colors.primary + "44" }]}>
+              <View style={styles.todayTop}>
+                <Feather name="check-circle" size={18} color={colors.green} />
+                <Text style={[styles.todayTitle, { color: colors.foreground }]}>Today's entry logged</Text>
+              </View>
+              <View style={styles.boolGrid}>
+                {[
+                  { key: "followedSchedule", label: "Schedule" },
+                  { key: "hitProtein", label: "Protein" },
+                  { key: "stayedNearCalories", label: "Calories" },
+                  { key: "workedOut", label: "Workout" },
+                  { key: "drankWater", label: "Water" },
+                  { key: "sleptOnTime", label: "Sleep" },
+                ].map(({ key, label }) => {
+                  const val = today[key] === true;
+                  return (
+                    <View
+                      key={key}
+                      style={[styles.boolChip, { backgroundColor: val ? colors.green + "20" : colors.muted, borderColor: val ? colors.green + "44" : colors.border }]}
+                    >
+                      <Feather name={val ? "check" : "x"} size={12} color={val ? colors.green : colors.mutedForeground} />
+                      <Text style={[styles.boolChipText, { color: val ? colors.green : colors.mutedForeground }]}>{label}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+              {today.biggestWin && today.biggestWin !== "–" && (
+                <View style={[styles.winBox, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "33" }]}>
+                  <Feather name="star" size={13} color={colors.primary} />
+                  <Text style={[styles.winText, { color: colors.foreground }]}>{today.biggestWin}</Text>
+                </View>
+              )}
+              <View style={styles.ratings}>
+                <View style={styles.ratingChip}>
+                  <Feather name="zap" size={13} color={colors.amber} />
+                  <Text style={[styles.ratingChipText, { color: colors.mutedForeground }]}>Energy: <Text style={{ color: colors.foreground, fontFamily: "Inter_600SemiBold" }}>{today.energyRating}/10</Text></Text>
+                </View>
+              </View>
             </View>
-            <View style={styles.boolGrid}>
-              {[
-                { key: "followedSchedule", label: "Schedule" },
-                { key: "hitProtein", label: "Protein" },
-                { key: "stayedNearCalories", label: "Calories" },
-                { key: "workedOut", label: "Workout" },
-                { key: "drankWater", label: "Water" },
-                { key: "sleptOnTime", label: "Sleep" },
-              ].map(({ key, label }) => {
-                const val = today[key] === true;
-                return (
-                  <View
-                    key={key}
-                    style={[styles.boolChip, { backgroundColor: val ? colors.green + "20" : colors.muted, borderColor: val ? colors.green + "44" : colors.border }]}
-                  >
-                    <Feather name={val ? "check" : "x"} size={12} color={val ? colors.green : colors.mutedForeground} />
-                    <Text style={[styles.boolChipText, { color: val ? colors.green : colors.mutedForeground }]}>{label}</Text>
+
+            {/* AI Coach Review */}
+            {todayReview ? (
+              <View style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.primary + "33" }]}>
+                <View style={styles.reviewHeader}>
+                  <View style={[styles.reviewIconWrap, { backgroundColor: colors.primary + "18" }]}>
+                    <Feather name="cpu" size={16} color={colors.primary} />
                   </View>
-                );
-              })}
-            </View>
-            {today.biggestWin && today.biggestWin !== "–" && (
-              <View style={[styles.winBox, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "33" }]}>
-                <Feather name="star" size={13} color={colors.primary} />
-                <Text style={[styles.winText, { color: colors.foreground }]}>{today.biggestWin}</Text>
+                  <Text style={[styles.reviewTitle, { color: colors.foreground }]}>AI Coach Review</Text>
+                  <View style={[styles.reviewScoreBadge, { backgroundColor: reviewScoreColor + "22" }]}>
+                    <Text style={[styles.reviewScoreText, { color: reviewScoreColor }]}>{todayReview.dailyScore}/100</Text>
+                  </View>
+                </View>
+
+                {todayReview.onPace !== undefined && (
+                  <View style={[styles.paceBadge, { backgroundColor: todayReview.onPace ? colors.green + "15" : colors.amber + "15", borderColor: todayReview.onPace ? colors.green + "33" : colors.amber + "33" }]}>
+                    <Feather name={todayReview.onPace ? "trending-up" : "alert-circle"} size={13} color={todayReview.onPace ? colors.green : colors.amber} />
+                    <Text style={[styles.paceText, { color: todayReview.onPace ? colors.green : colors.amber }]}>
+                      {todayReview.onPace ? "On pace for your goal" : "Slightly off pace — adjustments below"}
+                    </Text>
+                  </View>
+                )}
+
+                {todayReview.biggestWin && (
+                  <View style={styles.reviewRow}>
+                    <Feather name="star" size={14} color={colors.green} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.reviewRowLabel, { color: colors.mutedForeground }]}>Biggest Win</Text>
+                      <Text style={[styles.reviewRowText, { color: colors.foreground }]}>{todayReview.biggestWin}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {todayReview.biggestMistake && (
+                  <View style={styles.reviewRow}>
+                    <Feather name="alert-circle" size={14} color={colors.destructive} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.reviewRowLabel, { color: colors.mutedForeground }]}>Biggest Mistake</Text>
+                      <Text style={[styles.reviewRowText, { color: colors.foreground }]}>{todayReview.biggestMistake}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {todayReview.exactFixForTomorrow && (
+                  <View style={[styles.fixBox, { backgroundColor: colors.amber + "12", borderColor: colors.amber + "33" }]}>
+                    <Feather name="arrow-right-circle" size={14} color={colors.amber} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.reviewRowLabel, { color: colors.amber }]}>Fix for Tomorrow</Text>
+                      <Text style={[styles.reviewRowText, { color: colors.foreground }]}>{todayReview.exactFixForTomorrow}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {todayReview.strictCoachMessage && (
+                  <Text style={[styles.coachMessage, { color: colors.mutedForeground }]}>{todayReview.strictCoachMessage}</Text>
+                )}
               </View>
-            )}
-            <View style={styles.ratings}>
-              <View style={styles.ratingChip}>
-                <Feather name="zap" size={13} color={colors.amber} />
-                <Text style={[styles.ratingChipText, { color: colors.mutedForeground }]}>Energy: <Text style={{ color: colors.foreground, fontFamily: "Inter_600SemiBold" }}>{today.energyRating}/10</Text></Text>
+            ) : generateReview.isPending ? (
+              <View style={[styles.reviewLoading, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <ActivityIndicator color={colors.primary} size="small" />
+                <Text style={[styles.reviewLoadingText, { color: colors.mutedForeground }]}>Coach is reviewing your day…</Text>
               </View>
-            </View>
-          </View>
+            ) : null}
+          </>
         ) : (
           <View style={[styles.emptyToday, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Feather name="book-open" size={32} color={colors.mutedForeground} />
@@ -336,7 +411,7 @@ const styles = StyleSheet.create({
   pageTitle: { fontSize: 26, fontFamily: "Inter_700Bold" },
   dateSub: { fontSize: 13, fontFamily: "Inter_400Regular", marginBottom: 20 },
   addBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  todayCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 24, gap: 12 },
+  todayCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16, gap: 12 },
   todayTop: { flexDirection: "row", alignItems: "center", gap: 8 },
   todayTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   boolGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -347,6 +422,21 @@ const styles = StyleSheet.create({
   ratings: { flexDirection: "row", gap: 12 },
   ratingChip: { flexDirection: "row", alignItems: "center", gap: 6 },
   ratingChipText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  reviewCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 24, gap: 12 },
+  reviewHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  reviewIconWrap: { width: 32, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  reviewTitle: { flex: 1, fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  reviewScoreBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  reviewScoreText: { fontSize: 13, fontFamily: "Inter_700Bold" },
+  paceBadge: { flexDirection: "row", alignItems: "center", gap: 8, padding: 10, borderRadius: 10, borderWidth: 1 },
+  paceText: { fontSize: 13, fontFamily: "Inter_500Medium", flex: 1 },
+  reviewRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  reviewRowLabel: { fontSize: 11, fontFamily: "Inter_500Medium", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 },
+  reviewRowText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  fixBox: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 12, borderRadius: 10, borderWidth: 1 },
+  coachMessage: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20, fontStyle: "italic" },
+  reviewLoading: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 14, borderWidth: 1, marginBottom: 24 },
+  reviewLoadingText: { fontSize: 14, fontFamily: "Inter_400Regular" },
   emptyToday: { borderRadius: 16, borderWidth: 1, padding: 24, marginBottom: 24, alignItems: "center", gap: 10 },
   emptyTodayTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
   emptyTodayText: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },

@@ -47,6 +47,25 @@ const BLOCK_COLORS: Record<string, string> = {
 
 const TASK_TYPES = ["focus", "meal", "workout", "rest", "water", "custom"];
 
+// ─── Time helpers ──────────────────────────────────────────────────────────────
+
+function parseTimeToMinutes(timeStr: string): number {
+  if (!timeStr) return -1;
+  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!match) return -1;
+  let hours = parseInt(match[1]);
+  const minutes = parseInt(match[2]);
+  const ampm = match[3].toUpperCase();
+  if (ampm === "PM" && hours !== 12) hours += 12;
+  if (ampm === "AM" && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+}
+
+function nowMinutes(): number {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
 export default function ScheduleScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -60,6 +79,8 @@ export default function ScheduleScreen() {
 
   const plan = planData as any;
   const rawBlocks: ScheduleItem[] = (data as any)?.blocks ?? (Array.isArray(data) ? data : []);
+  const todaysMission: string | undefined = (data as any)?.todaysMission;
+  const scheduleItems: ScheduleItem[] = (data as any)?.items ?? rawBlocks;
 
   const [localStatuses, setLocalStatuses] = useState<Record<string, string>>({});
   const [showAddModal, setShowAddModal] = useState(false);
@@ -69,8 +90,23 @@ export default function ScheduleScreen() {
   const [newNotes, setNewNotes] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
+  const currentMinutes = nowMinutes();
+
   const getKey = (item: ScheduleItem) => `${item.time}-${item.activity}`;
   const getStatus = (item: ScheduleItem) => localStatuses[getKey(item)] ?? item.status ?? "active";
+
+  // Find the next upcoming item index
+  const nextUpIndex = scheduleItems.findIndex((item) => {
+    const itemMinutes = parseTimeToMinutes(item.time);
+    const status = getStatus(item);
+    return itemMinutes >= currentMinutes && status === "active";
+  });
+
+  const isMissed = (item: ScheduleItem) => {
+    const itemMinutes = parseTimeToMinutes(item.time);
+    const status = getStatus(item);
+    return itemMinutes >= 0 && itemMinutes < currentMinutes && status === "active";
+  };
 
   const markItem = async (item: ScheduleItem, newStatus: "completed" | "skipped") => {
     const key = getKey(item);
@@ -83,7 +119,6 @@ export default function ScheduleScreen() {
         data: { activity: item.activity, type: item.type, status: resolvedStatus as any },
       });
     } catch {
-      // optimistic update stays; refetch to sync
       refetch();
     }
   };
@@ -126,8 +161,8 @@ export default function ScheduleScreen() {
     ]);
   };
 
-  const doneCount = rawBlocks.filter(b => getStatus(b) === "completed").length;
-  const totalCount = rawBlocks.length;
+  const doneCount = scheduleItems.filter(b => getStatus(b) === "completed").length;
+  const totalCount = scheduleItems.length;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -153,6 +188,17 @@ export default function ScheduleScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Today's Mission banner */}
+        {todaysMission && (
+          <View style={[styles.missionBanner, { backgroundColor: colors.primary + "14", borderColor: colors.primary + "44" }]}>
+            <Feather name="target" size={14} color={colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.missionBannerLabel, { color: colors.primary }]}>TODAY'S MISSION</Text>
+              <Text style={[styles.missionBannerText, { color: colors.foreground }]}>{todaysMission}</Text>
+            </View>
+          </View>
+        )}
+
         {plan && (
           <View style={styles.dailyTargets}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.targetsRow}>
@@ -166,6 +212,14 @@ export default function ScheduleScreen() {
                 <View style={[styles.targetChip, { backgroundColor: colors.blue + "18", borderColor: colors.blue + "44" }]}>
                   <Feather name="activity" size={12} color={colors.blue} />
                   <Text style={[styles.targetChipText, { color: colors.blue }]}>{plan.dailyProteinTarget}g protein</Text>
+                </View>
+              )}
+              {(plan.waterTargetL ?? plan.waterTargetOz) && (
+                <View style={[styles.targetChip, { backgroundColor: "#06B6D4" + "18", borderColor: "#06B6D4" + "44" }]}>
+                  <Feather name="droplet" size={12} color="#06B6D4" />
+                  <Text style={[styles.targetChipText, { color: "#06B6D4" }]}>
+                    {plan.waterTargetL ? `${plan.waterTargetL}L water` : `${plan.waterTargetOz}oz water`}
+                  </Text>
                 </View>
               )}
               {plan.weeklyWorkoutDays && (
@@ -193,7 +247,7 @@ export default function ScheduleScreen() {
           <View style={styles.centerState}>
             <ActivityIndicator color={colors.primary} size="large" />
           </View>
-        ) : rawBlocks.length === 0 ? (
+        ) : scheduleItems.length === 0 ? (
           <View style={styles.emptyState}>
             <Feather name="calendar" size={44} color={colors.mutedForeground} />
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No schedule yet</Text>
@@ -210,28 +264,43 @@ export default function ScheduleScreen() {
           </View>
         ) : (
           <View style={styles.timeline}>
-            {rawBlocks.map((block, i) => {
+            {scheduleItems.map((block, i) => {
               const blockColor = BLOCK_COLORS[block.type?.toLowerCase()] ?? colors.primary;
               const status = getStatus(block);
               const isDone = status === "completed";
               const isSkipped = status === "skipped";
+              const missed = isMissed(block);
+              const isNextUp = i === nextUpIndex;
+
               return (
                 <View key={i} style={styles.blockRow}>
                   <View style={styles.timeCol}>
-                    <Text style={[styles.time, { color: colors.mutedForeground }]}>{block.time}</Text>
+                    <Text style={[styles.time, { color: missed ? colors.destructive : colors.mutedForeground }]}>{block.time}</Text>
+                    {missed && !isDone && !isSkipped && (
+                      <Text style={[styles.missedLabel, { color: colors.destructive }]}>Missed</Text>
+                    )}
                   </View>
                   <View style={styles.connector}>
-                    <View style={[styles.dot, { backgroundColor: isDone ? colors.green : isSkipped ? colors.mutedForeground : blockColor }]} />
-                    {i < rawBlocks.length - 1 && <View style={[styles.line, { backgroundColor: colors.border }]} />}
+                    <View style={[styles.dot, {
+                      backgroundColor: isDone ? colors.green : isSkipped ? colors.mutedForeground : missed ? colors.destructive : blockColor,
+                    }]} />
+                    {i < scheduleItems.length - 1 && <View style={[styles.line, { backgroundColor: colors.border }]} />}
                   </View>
                   <View style={[
                     styles.blockCard,
                     {
-                      backgroundColor: isDone ? colors.green + "0A" : isSkipped ? colors.muted : colors.card,
-                      borderColor: isDone ? colors.green + "33" : isSkipped ? colors.border : colors.border,
+                      backgroundColor: isDone ? colors.green + "0A" : isSkipped ? colors.muted : missed ? colors.destructive + "07" : colors.card,
+                      borderColor: isDone ? colors.green + "33" : isSkipped ? colors.border : missed ? colors.destructive + "33" : isNextUp ? colors.primary + "66" : colors.border,
+                      borderWidth: isNextUp ? 1.5 : 1,
                       opacity: isSkipped ? 0.6 : 1,
                     },
                   ]}>
+                    {isNextUp && (
+                      <View style={[styles.nextUpTag, { backgroundColor: colors.primary + "22" }]}>
+                        <Feather name="arrow-right" size={10} color={colors.primary} />
+                        <Text style={[styles.nextUpText, { color: colors.primary }]}>Next up</Text>
+                      </View>
+                    )}
                     <View style={styles.blockHeader}>
                       <View style={[styles.typePill, { backgroundColor: blockColor + "22" }]}>
                         <Text style={[styles.typeText, { color: blockColor }]}>{block.type}</Text>
@@ -258,7 +327,7 @@ export default function ScheduleScreen() {
                         </TouchableOpacity>
                       )}
                     </View>
-                    <Text style={[styles.blockTitle, { color: isDone ? colors.green : colors.foreground, textDecorationLine: isSkipped ? "line-through" : "none" }]}>
+                    <Text style={[styles.blockTitle, { color: isDone ? colors.green : missed ? colors.destructive : colors.foreground, textDecorationLine: isSkipped ? "line-through" : "none" }]}>
                       {block.activity}
                     </Text>
                     {block.notes && (
@@ -345,6 +414,9 @@ const styles = StyleSheet.create({
   pageTitle: { fontSize: 26, fontFamily: "Inter_700Bold", marginBottom: 2 },
   dateLabel: { fontSize: 13, fontFamily: "Inter_400Regular" },
   addBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", marginTop: 4 },
+  missionBanner: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 16 },
+  missionBannerLabel: { fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 0.7, marginBottom: 3 },
+  missionBannerText: { fontSize: 14, fontFamily: "Inter_500Medium", lineHeight: 20 },
   dailyTargets: { marginBottom: 16 },
   targetsRow: { gap: 8, flexDirection: "row" },
   targetChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
@@ -360,12 +432,15 @@ const styles = StyleSheet.create({
   emptyBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   timeline: { gap: 0 },
   blockRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 8 },
-  timeCol: { width: 56, paddingTop: 14 },
+  timeCol: { width: 56, paddingTop: 14, alignItems: "flex-start" },
   time: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  missedLabel: { fontSize: 9, fontFamily: "Inter_600SemiBold", marginTop: 2 },
   connector: { width: 24, alignItems: "center", paddingTop: 14 },
   dot: { width: 10, height: 10, borderRadius: 5 },
   line: { width: 2, flex: 1, marginTop: 4 },
-  blockCard: { flex: 1, borderRadius: 14, borderWidth: 1, padding: 12, marginLeft: 10, marginBottom: 8 },
+  blockCard: { flex: 1, borderRadius: 14, padding: 12, marginLeft: 10, marginBottom: 8 },
+  nextUpTag: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, alignSelf: "flex-start", marginBottom: 8 },
+  nextUpText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
   blockHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
   typePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   typeText: { fontSize: 11, fontFamily: "Inter_600SemiBold", textTransform: "capitalize" },

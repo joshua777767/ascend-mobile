@@ -60,6 +60,14 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
+        name="workouts"
+        options={{
+          title: "Workout",
+          tabBarIcon: ({ color }) =>
+            isIOS ? <SymbolView name="dumbbell" tintColor={color} size={24} /> : <Feather name="activity" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="meals"
         options={{
           title: "Meals",
