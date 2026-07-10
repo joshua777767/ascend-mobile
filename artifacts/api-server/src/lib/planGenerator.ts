@@ -547,30 +547,21 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
   }
 
-  // Sport day calorie targets
+  // Sport day calorie targets — derived from BMR × activity-factor tiers
+  // Rest=1.3, Light practice=1.5, Moderate/Hard practice=1.7, Game day=1.9
+  // Then apply the same goal-based adjustment (deficit / surplus) that produced calorieTarget.
   let restDayCalorieTarget: number | null = null;
   let practiceDayCalorieTarget: number | null = null;
   let gameDayCalorieTarget: number | null = null;
 
   const sportEntry = parseSportSchedule(profile);
   if (sportEntry) {
-    const practiceBurn = estimateSportCalBurn(
-      sportEntry.sport,
-      sportEntry.durationMinutes,
-      sportEntry.intensity,
-      profile.currentWeightKg
-    );
-    restDayCalorieTarget = calorieTarget;
-    practiceDayCalorieTarget = calorieTarget + practiceBurn;
-
+    const goalDelta = calorieTarget - tdee; // negative for deficit, positive for surplus
+    const practiceFactor = sportEntry.intensity === "light" ? 1.5 : 1.7;
+    restDayCalorieTarget     = Math.max(calorieFloor, Math.round(bmr * 1.3) + goalDelta);
+    practiceDayCalorieTarget = Math.max(calorieFloor, Math.round(bmr * practiceFactor) + goalDelta);
     if (sportEntry.gameDays && sportEntry.gameDays.length > 0) {
-      const gameBurn = estimateSportCalBurn(
-        sportEntry.sport,
-        Math.round(sportEntry.durationMinutes * 1.2),
-        "hard",
-        profile.currentWeightKg
-      );
-      gameDayCalorieTarget = calorieTarget + gameBurn;
+      gameDayCalorieTarget   = Math.max(calorieFloor, Math.round(bmr * 1.9) + goalDelta);
     }
   }
 

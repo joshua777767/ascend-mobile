@@ -15,6 +15,7 @@ import {
 } from "@workspace/db";
 import { CreateUserProfileBody, UpdateUserProfileBody, UpdateGoalBody } from "@workspace/api-zod";
 import { getUserId } from "../middlewares/auth";
+import { generatePlan } from "../lib/planGenerator";
 
 const router: IRouter = Router();
 
@@ -134,6 +135,42 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
   if (!profile) {
     res.status(404).json({ error: "Profile not found" });
     return;
+  }
+
+  // Regenerate plan when plan-relevant fields change
+  const PLAN_RELEVANT_FIELDS = [
+    "goals", "currentWeightKg", "goalWeightKg", "heightCm", "age", "sex",
+    "fitnessLevel", "gymAccess", "equipment", "workoutDaysPerWeek",
+    "preferredWorkoutTime", "sport", "sportSchedule", "sportCustom",
+    "hasOwnSchedule", "activityLevel", "dietStyle", "targetDate",
+  ] as const;
+  const triggerRegen = PLAN_RELEVANT_FIELDS.some(f => f in setValues);
+
+  if (triggerRegen) {
+    try {
+      const [existingPlan] = await db.select().from(plansTable).where(eq(plansTable.userId, userId));
+      if (existingPlan) {
+        const newPlan = generatePlan(profile as any);
+        await db.update(plansTable).set({
+          goalType: newPlan.goalType,
+          calorieTarget: newPlan.calorieTarget,
+          proteinTargetG: newPlan.proteinTargetG,
+          waterTargetL: newPlan.waterTargetL,
+          stepsTarget: newPlan.stepsTarget,
+          sleepTargetHours: newPlan.sleepTargetHours,
+          weeklyPace: newPlan.weeklyPace,
+          workoutSchedule: newPlan.workoutSchedule,
+          keyHabits: JSON.stringify(newPlan.keyHabits),
+          coachNotes: newPlan.coachNotes,
+          warnings: newPlan.warnings,
+          restDayCalorieTarget: newPlan.restDayCalorieTarget,
+          practiceDayCalorieTarget: newPlan.practiceDayCalorieTarget,
+          gameDayCalorieTarget: newPlan.gameDayCalorieTarget,
+        }).where(eq(plansTable.userId, userId));
+      }
+    } catch (err) {
+      req.log.warn({ err }, "Plan regen after profile patch failed; continuing");
+    }
   }
 
   res.json(parseProfileArrays(profile));

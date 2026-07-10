@@ -610,11 +610,9 @@ export default function HomeScreen() {
           </View>
           <View style={s.scoreBarsRow}>
             {[
-              { label: "Calories", score: scoreBreakdown.caloriesScore, max: 25, color: BLUE  },
-              { label: "Protein",  score: scoreBreakdown.proteinScore,  max: 25, color: GREEN },
-              { label: "Water",    score: scoreBreakdown.waterScore,    max: 20, color: BLUE  },
-              { label: "Workout",  score: scoreBreakdown.workoutScore,  max: 20, color: AMBER },
-              { label: "Sleep",    score: scoreBreakdown.sleepScore,    max: 10, color: BLUE  },
+              { label: "Calories", score: scoreBreakdown.caloriesScore, max: 35, color: AMBER },
+              { label: "Protein",  score: scoreBreakdown.proteinScore,  max: 35, color: GREEN },
+              { label: "Water",    score: scoreBreakdown.waterScore,    max: 30, color: BLUE  },
             ].map((item) => {
               const pct = item.max > 0 ? Math.round((item.score / item.max) * 100) : 0;
               return (

@@ -668,15 +668,25 @@ export function getTodayWorkout(profile: UserProfile, plan: Plan, timeZone?: str
     workoutList = fatLossWorkouts;
   }
 
+  const SAFE_BODYWEIGHT_FALLBACK = [
+    { name: "Push-Up", sets: 4, reps: "15-20", restSeconds: 60, coachTip: "Chest to floor. Elbows 45 degrees from torso." },
+    { name: "Bodyweight Squat", sets: 4, reps: "20", restSeconds: 60, coachTip: "Sit back. Break parallel. Stay controlled." },
+    { name: "Reverse Lunge", sets: 3, reps: "10 each", restSeconds: 60, coachTip: "Back knee hovers 1 inch off floor." },
+    { name: "Pike Push-Up", sets: 3, reps: "10-12", restSeconds: 60, coachTip: "Hips high. Head between arms. Press through shoulders." },
+    { name: "Hollow Hold", sets: 3, reps: "30 sec", restSeconds: 45, coachTip: "Lower back pressed to floor. Arms and legs low." },
+  ];
+
   const match = workoutList.find(w => w.day === today);
   if (match) {
     if (isNoGymAccess(gymAccess)) {
       const filtered = match.exercises.filter(ex => !needsGymEquipment(ex.name));
-      return { ...match, exercises: filtered.length > 0 ? filtered : match.exercises };
+      return { ...match, exercises: filtered.length > 0 ? filtered : SAFE_BODYWEIGHT_FALLBACK };
     }
     if (isHomeGym(gymAccess)) {
       const filtered = match.exercises.filter(ex => isAllowedForHomeGym(ex.name, equipment));
-      return { ...match, exercises: filtered.length > 0 ? filtered : match.exercises };
+      // If no exercises pass the equipment filter, fall back to bodyweight-only
+      const safe = filtered.length > 0 ? filtered : match.exercises.filter(ex => !needsGymEquipment(ex.name));
+      return { ...match, exercises: safe.length > 0 ? safe : SAFE_BODYWEIGHT_FALLBACK };
     }
     return match;
   }
