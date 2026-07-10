@@ -295,14 +295,31 @@ export function SubscriptionProvider({
       console.log("[RC:purchase] starting purchase for:", productId);
       try {
         await Purchases.purchasePackage(pkg);
-        // purchasePackage() can return stale entitlements in sandbox.
-        // Force a fresh fetch so the listener + gate react immediately.
-        const info = await Purchases.getCustomerInfo();
-        setCustomerInfo(info);
-        const active =
-          info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
-        console.log("[RC:purchase] complete — isPro:", active);
-        return active;
+        // Sandbox/TestFlight entitlements can lag 1–3 s behind the Apple
+        // transaction completion. Poll getCustomerInfo() up to 3 times.
+        let info: CustomerInfo | null = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          if (attempt > 0) {
+            await new Promise((r) => setTimeout(r, 1200));
+          }
+          info = await Purchases.getCustomerInfo();
+          const active =
+            info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+          console.log(
+            "[RC:purchase] entitlement check attempt",
+            attempt + 1,
+            "— isPro:",
+            active
+          );
+          if (active) {
+            setCustomerInfo(info);
+            return true;
+          }
+        }
+        // Not active after retries — still set the latest info and return false
+        if (info) setCustomerInfo(info);
+        console.log("[RC:purchase] complete — isPro: false after retries");
+        return false;
       } catch (e: any) {
         if (e?.userCancelled) {
           console.log("[RC:purchase] cancelled by user");
@@ -319,13 +336,29 @@ export function SubscriptionProvider({
     console.log("[RC:restore] restoring purchases …");
     try {
       await Purchases.restorePurchases();
-      // Same as purchase — force fresh fetch so entitlements are current.
-      const info = await Purchases.getCustomerInfo();
-      setCustomerInfo(info);
-      const active =
-        info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
-      console.log("[RC:restore] complete — isPro:", active);
-      return active;
+      // Same polling as purchase — sandbox restore can also lag.
+      let info: CustomerInfo | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) {
+          await new Promise((r) => setTimeout(r, 1200));
+        }
+        info = await Purchases.getCustomerInfo();
+        const active =
+          info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+        console.log(
+          "[RC:restore] entitlement check attempt",
+          attempt + 1,
+          "— isPro:",
+          active
+        );
+        if (active) {
+          setCustomerInfo(info);
+          return true;
+        }
+      }
+      if (info) setCustomerInfo(info);
+      console.log("[RC:restore] complete — isPro: false after retries");
+      return false;
     } catch (e) {
       console.error("[RC:restore] failed:", e);
       return false;
