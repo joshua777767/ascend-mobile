@@ -1390,6 +1390,12 @@ components:
           type: string
         warnings:
           type: ["string", "null"]
+        restDayCalorieTarget:
+          type: ["integer", "null"]
+        practiceDayCalorieTarget:
+          type: ["integer", "null"]
+        gameDayCalorieTarget:
+          type: ["integer", "null"]
         createdAt:
           type: string
           format: date-time

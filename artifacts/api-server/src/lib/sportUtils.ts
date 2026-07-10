@@ -143,17 +143,26 @@ const METS: Record<string, number> = {
   wrestling: 7.5,
 };
 
+export function estimateSportCalBurn(
+  sport: string,
+  durationMinutes: number,
+  intensity: "light" | "moderate" | "hard",
+  weightKg: number
+): number {
+  const baseMet = METS[sport.toLowerCase()] || 5.0;
+  const intensityMult = intensity === "hard" ? 1.3 : intensity === "light" ? 0.7 : 1.0;
+  const met = baseMet * intensityMult;
+  const durationHours = durationMinutes / 60;
+  return Math.round(met * weightKg * durationHours);
+}
+
 export function estimateSportCaloriesBurned(
   sport: string,
   durationMinutes: number,
   intensity: "light" | "moderate" | "hard",
   weightKg: number
 ): string {
-  const baseMet = METS[sport.toLowerCase()] || 5.0;
-  const intensityMult = intensity === "hard" ? 1.3 : intensity === "light" ? 0.7 : 1.0;
-  const met = baseMet * intensityMult;
-  const durationHours = durationMinutes / 60;
-  const cal = Math.round(met * weightKg * durationHours);
+  const cal = estimateSportCalBurn(sport, durationMinutes, intensity, weightKg);
   const min = Math.round(cal * 0.8);
   const max = Math.round(cal * 1.2);
   return `roughly ${min}–${max} calories burned`;

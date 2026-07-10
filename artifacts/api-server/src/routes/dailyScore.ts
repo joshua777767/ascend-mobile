@@ -42,16 +42,16 @@ function calculateDailyScore(
   const waterTarget = plan ? Math.round(plan.waterTargetL * 33.814) : 64;
 
   const caloriesScore = calTarget > 0 && todayCalories > 0
-    ? Math.round(Math.min(todayCalories / calTarget, 1) * 25)
+    ? Math.round(Math.min(todayCalories / calTarget, 1) * 35)
     : 0;
   const proteinScore = proTarget > 0 && todayProtein > 0
-    ? Math.round(Math.min(todayProtein / proTarget, 1) * 25)
+    ? Math.round(Math.min(todayProtein / proTarget, 1) * 35)
     : 0;
   const waterScore = waterTarget > 0 && todayWaterOz > 0
-    ? Math.round(Math.min(todayWaterOz / waterTarget, 1) * 20)
+    ? Math.round(Math.min(todayWaterOz / waterTarget, 1) * 30)
     : 0;
-  const workoutScore = hasWorkout ? 20 : 0;
-  const sleepScore = sleptOnTime ? 10 : 0;
+  const workoutScore = 0;
+  const sleepScore = 0;
 
   return {
     totalScore: caloriesScore + proteinScore + waterScore + workoutScore + sleepScore,

@@ -1,5 +1,5 @@
 import type { UserProfile } from "@workspace/db";
-import { parseSportSchedule, getSportAdjustmentForPlan } from "./sportUtils";
+import { parseSportSchedule, getSportAdjustmentForPlan, estimateSportCalBurn } from "./sportUtils";
 
 export interface GeneratedPlan {
   goalType: string;
@@ -13,6 +13,9 @@ export interface GeneratedPlan {
   keyHabits: string[];
   coachNotes: string;
   warnings: string | null;
+  restDayCalorieTarget: number | null;
+  practiceDayCalorieTarget: number | null;
+  gameDayCalorieTarget: number | null;
 }
 
 function parseGoals(goalsJson: unknown): string[] {
@@ -544,6 +547,33 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
   }
 
+  // Sport day calorie targets
+  let restDayCalorieTarget: number | null = null;
+  let practiceDayCalorieTarget: number | null = null;
+  let gameDayCalorieTarget: number | null = null;
+
+  const sportEntry = parseSportSchedule(profile);
+  if (sportEntry) {
+    const practiceBurn = estimateSportCalBurn(
+      sportEntry.sport,
+      sportEntry.durationMinutes,
+      sportEntry.intensity,
+      profile.currentWeightKg
+    );
+    restDayCalorieTarget = calorieTarget;
+    practiceDayCalorieTarget = calorieTarget + practiceBurn;
+
+    if (sportEntry.gameDays && sportEntry.gameDays.length > 0) {
+      const gameBurn = estimateSportCalBurn(
+        sportEntry.sport,
+        Math.round(sportEntry.durationMinutes * 1.2),
+        "hard",
+        profile.currentWeightKg
+      );
+      gameDayCalorieTarget = calorieTarget + gameBurn;
+    }
+  }
+
   return {
     goalType,
     calorieTarget,
@@ -556,5 +586,8 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     keyHabits: finalHabits,
     coachNotes,
     warnings,
+    restDayCalorieTarget,
+    practiceDayCalorieTarget,
+    gameDayCalorieTarget,
   };
 }

@@ -64,6 +64,9 @@ router.post("/plans/current", async (req, res): Promise<void> => {
     keyHabits: JSON.stringify(generated.keyHabits),
     coachNotes: generated.coachNotes,
     warnings: generated.warnings,
+    restDayCalorieTarget: generated.restDayCalorieTarget,
+    practiceDayCalorieTarget: generated.practiceDayCalorieTarget,
+    gameDayCalorieTarget: generated.gameDayCalorieTarget,
   }).returning();
 
   res.status(201).json(formatPlan(plan));

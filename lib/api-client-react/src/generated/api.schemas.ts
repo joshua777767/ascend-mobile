@@ -261,6 +261,12 @@ export interface Plan {
   coachNotes: string;
   /** @nullable */
   warnings?: string | null;
+  /** @nullable */
+  restDayCalorieTarget?: number | null;
+  /** @nullable */
+  practiceDayCalorieTarget?: number | null;
+  /** @nullable */
+  gameDayCalorieTarget?: number | null;
   createdAt: string;
 }
 

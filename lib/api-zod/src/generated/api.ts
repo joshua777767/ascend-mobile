@@ -418,6 +418,9 @@ export const GetCurrentPlanResponse = zod.object({
   "keyHabits": zod.array(zod.string()),
   "coachNotes": zod.string(),
   "warnings": zod.string().nullish(),
+  "restDayCalorieTarget": zod.number().nullish(),
+  "practiceDayCalorieTarget": zod.number().nullish(),
+  "gameDayCalorieTarget": zod.number().nullish(),
   "createdAt": zod.coerce.date()
 })
 

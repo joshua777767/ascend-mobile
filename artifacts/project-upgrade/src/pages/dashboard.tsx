@@ -1592,13 +1592,11 @@ export default function DashboardPage() {
               <p className="label-caps text-muted-foreground">Score Breakdown</p>
               <span className="text-[10px] font-bold text-muted-foreground">{dailyScore.totalScore}/100</span>
             </div>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {[
-                { label: "Calories", score: dailyScore.caloriesScore, max: 25, color: "#6B8BAE" },
-                { label: "Protein", score: dailyScore.proteinScore, max: 25, color: "#4A9B78" },
-                { label: "Water", score: dailyScore.waterScore, max: 20, color: "#6B8BAE" },
-                { label: "Workout", score: dailyScore.workoutScore, max: 20, color: "#C89A3E" },
-                { label: "Sleep", score: dailyScore.sleepScore, max: 10, color: "#6B8BAE" },
+                { label: "Calories", score: dailyScore.caloriesScore, max: 35, color: "#6B8BAE" },
+                { label: "Protein", score: dailyScore.proteinScore, max: 35, color: "#4A9B78" },
+                { label: "Water", score: dailyScore.waterScore, max: 30, color: "#6B8BAE" },
               ].map((item) => (
                 <div key={item.label} className="text-center space-y-1">
                   <div className="relative h-16 rounded-lg overflow-hidden" style={{ background: "hsl(218 46% 12%)" }}>

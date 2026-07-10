@@ -432,33 +432,99 @@ const BODY_PART_EXERCISES: Record<string, Record<string, { name: string; sets: n
   },
 };
 
-/** Returns true for any "no gym / no equipment" variant stored in the DB. */
+/** Returns true only for users with NO gym access at all (bodyweight-only tier). */
 export function isNoGymAccess(gymAccess: string | null | undefined): boolean {
   const val = (gymAccess ?? "").toLowerCase().trim().replace(/[-_]/g, " ");
-  return ["no gym", "no equipment", "no", "home", "home gym"].includes(val);
+  return ["no gym", "no equipment", "no"].includes(val);
 }
 
-/** Exercise keywords that require gym equipment — used to filter for home users. */
-const GYM_EQUIPMENT_TERMS = [
-  "Dumbbell", "Barbell", "Farmer Carry", "Goblet Squat",
-  "Cable", "Bench Press", "Weighted", "Leg Press",
-  "Lat Pulldown", "Face Pull", "Pallof", "Prowler",
-  "Skullcrusher", "Tricep Pushdown", "Overhead Press",
-  "Hanging Knee", "Hanging Leg", "Ab Wheel",
-  "Chest-Supported", "Glute Ham", "Romanian Deadlift",
-  "Hip Thrust", "Nordic", "Kettlebell", "Sled",
-  "Battle", "Power Clean", "Trap Bar",
+/** Returns true for home-gym tier (has equipment, but not a commercial gym). */
+export function isHomeGym(gymAccess: string | null | undefined): boolean {
+  const val = (gymAccess ?? "").toLowerCase().trim().replace(/[-_]/g, " ");
+  return val === "home gym" || val === "home";
+}
+
+/** Parse equipment JSON array from user profile. */
+function parseEquipment(json: string | null | undefined): string[] {
+  if (!json) return [];
+  try {
+    const v = JSON.parse(json);
+    return Array.isArray(v) ? v.map(String).map(s => s.toLowerCase()) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Exercises requiring commercial gym machines/cables — blocked for all home users. */
+const MACHINE_TERMS = [
+  "Cable", "Leg Press", "Leg Curl", "Leg Extension", "Lat Pulldown",
+  "Smith", "Sled", "Prowler", "Battle Ropes", "Row Ergometer",
+  "Glute Ham Raise", "Nordic Curl", "Chest-Supported Row",
+  "Tricep Pushdown", "Face Pull", "Pallof Press",
 ];
 
+/** Exercises requiring a barbell. */
+const BARBELL_TERMS = [
+  "Barbell", "Back Squat", "Front Squat", "Pause Squat", "Deadlift",
+  "Bench Press", "Close-Grip Bench", "Overhead Press", "Hip Thrust",
+  "Power Clean", "Hang Clean", "Trap Bar",
+];
+
+/** Exercises requiring dumbbells. */
+const DUMBBELL_TERMS = ["Dumbbell", "Goblet Squat", "Farmer Carry"];
+
+/** Exercises requiring a pull-up bar. */
+const PULLUP_TERMS = ["Pull-Up", "Chin-Up", "Hanging Knee", "Hanging Leg"];
+
+/** Exercises requiring a kettlebell. */
+const KETTLEBELL_TERMS = ["Kettlebell"];
+
+/** Exercises requiring an ab wheel. */
+const ABWHEEL_TERMS = ["Ab Wheel"];
+
+/** Exercises requiring weighted equipment (dip belt, vest, etc.) */
+const WEIGHTED_TERMS = ["Weighted Dip", "Weighted Pull"];
+
+function needsMachine(name: string): boolean {
+  return MACHINE_TERMS.some(t => name.includes(t));
+}
+function needsBarbell(name: string): boolean {
+  return BARBELL_TERMS.some(t => name.includes(t));
+}
+function needsDumbbells(name: string): boolean {
+  return DUMBBELL_TERMS.some(t => name.includes(t));
+}
+function needsPullUpBar(name: string): boolean {
+  return PULLUP_TERMS.some(t => name.includes(t));
+}
+function needsKettlebell(name: string): boolean {
+  return KETTLEBELL_TERMS.some(t => name.includes(t));
+}
+
+/** Check if exercise is allowed given the user's home gym equipment list. */
+function isAllowedForHomeGym(name: string, equipment: string[]): boolean {
+  if (needsMachine(name)) return false;
+  if (WEIGHTED_TERMS.some(t => name.includes(t))) return false;
+  if (needsBarbell(name) && !equipment.some(e => e.includes("barbell"))) return false;
+  if (needsDumbbells(name) && !equipment.some(e => e.includes("dumbbell"))) return false;
+  if (needsPullUpBar(name) && !equipment.some(e => e.includes("pull"))) return false;
+  if (needsKettlebell(name) && !equipment.some(e => e.includes("kettlebell"))) return false;
+  if (ABWHEEL_TERMS.some(t => name.includes(t)) && !equipment.some(e => e.includes("ab wheel") || e.includes("ab roller"))) return false;
+  return true;
+}
+
+/** @deprecated Use isNoGymAccess / isHomeGym instead. */
 function needsGymEquipment(name: string): boolean {
-  return GYM_EQUIPMENT_TERMS.some(term => name.includes(term));
+  return needsMachine(name) || needsBarbell(name) || needsDumbbells(name) || needsPullUpBar(name) || needsKettlebell(name);
 }
 
 function buildCustomWorkout(
   focus: string,
   level: string,
-  gymAccess: string
+  gymAccess: string,
+  equipmentJson?: string | null
 ): PlannedWorkout {
+  const equipment = parseEquipment(equipmentJson);
   const parts = focus.toLowerCase().split(/[,\/&]|\band\b/).map(p => p.trim().replace(/s$/, "")).filter(Boolean);
   const levelKey = level === "advanced" ? "advanced" : level === "intermediate" ? "intermediate" : "beginner";
   const exercises: Exercise[] = [];
@@ -487,8 +553,8 @@ function buildCustomWorkout(
     for (const ex of partExercises) {
       const key = ex.name.toLowerCase();
       if (!seen.has(key)) {
-        // Skip gym-equipment exercises for no-gym users entirely
         if (isNoGymAccess(gymAccess) && needsGymEquipment(ex.name)) continue;
+        if (isHomeGym(gymAccess) && !isAllowedForHomeGym(ex.name, equipment)) continue;
         seen.add(key);
         collected.push(ex);
       }
@@ -504,6 +570,7 @@ function buildCustomWorkout(
       const key = ex.name.toLowerCase();
       if (!seen.has(key)) {
         if (isNoGymAccess(gymAccess) && needsGymEquipment(ex.name)) continue;
+        if (isHomeGym(gymAccess) && !isAllowedForHomeGym(ex.name, equipment)) continue;
         seen.add(key);
         collected.push(ex);
       }
@@ -541,6 +608,7 @@ export function getTodayWorkout(profile: UserProfile, plan: Plan, timeZone?: str
   const sport = profile.sport;
 
   // Check custom workout schedule first
+  const equipment = parseEquipment(profile.equipment);
   const customSchedule = parseCustomWorkoutSchedule(profile);
   if (customSchedule) {
     const customDay = customSchedule.days.find(d => d.day.toLowerCase() === today.toLowerCase());
@@ -556,7 +624,7 @@ export function getTodayWorkout(profile: UserProfile, plan: Plan, timeZone?: str
           ],
         };
       }
-      const result = buildCustomWorkout(customDay.focus, profile.fitnessLevel, gymAccess);
+      const result = buildCustomWorkout(customDay.focus, profile.fitnessLevel, gymAccess, profile.equipment);
       result.day = today;
       return result;
     }
@@ -584,6 +652,8 @@ export function getTodayWorkout(profile: UserProfile, plan: Plan, timeZone?: str
 
   if (isNoGymAccess(gymAccess)) {
     workoutList = homeWorkouts;
+  } else if (isHomeGym(gymAccess)) {
+    workoutList = homeWorkouts;
   } else if (workoutFocus === "strength") {
     workoutList = strengthWorkouts;
   } else if (
@@ -600,13 +670,13 @@ export function getTodayWorkout(profile: UserProfile, plan: Plan, timeZone?: str
 
   const match = workoutList.find(w => w.day === today);
   if (match) {
-    // Filter out equipment-requiring exercises for no-gym users even in pre-defined lists
     if (isNoGymAccess(gymAccess)) {
       const filtered = match.exercises.filter(ex => !needsGymEquipment(ex.name));
-      return {
-        ...match,
-        exercises: filtered.length > 0 ? filtered : match.exercises,
-      };
+      return { ...match, exercises: filtered.length > 0 ? filtered : match.exercises };
+    }
+    if (isHomeGym(gymAccess)) {
+      const filtered = match.exercises.filter(ex => isAllowedForHomeGym(ex.name, equipment));
+      return { ...match, exercises: filtered.length > 0 ? filtered : match.exercises };
     }
     return match;
   }

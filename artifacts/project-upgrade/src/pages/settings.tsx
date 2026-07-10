@@ -221,6 +221,7 @@ export default function SettingsPage() {
   // ── Section 3: Training ───────────────────────────────────────────────────
   const [fitnessLevel, setFitnessLevel] = useState("");
   const [gymAccess, setGymAccess] = useState("");
+  const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
   const [workoutDaysPerWeek, setWorkoutDaysPerWeek] = useState(3);
   const [preferredWorkoutTime, setPreferredWorkoutTime] = useState("");
   const [selectedSport, setSelectedSport] = useState("");
@@ -281,6 +282,12 @@ export default function SettingsPage() {
     // Training
     if (p.fitnessLevel) setFitnessLevel(p.fitnessLevel);
     if (p.gymAccess) setGymAccess(p.gymAccess);
+    if (p.equipment) {
+      try {
+        const eq = JSON.parse(p.equipment);
+        if (Array.isArray(eq)) setSelectedEquipment(eq);
+      } catch { /* ignore */ }
+    }
     if (p.workoutDaysPerWeek) setWorkoutDaysPerWeek(p.workoutDaysPerWeek);
     if (p.preferredWorkoutTime) setPreferredWorkoutTime(p.preferredWorkoutTime);
     if (p.sport) setSelectedSport(p.sport);
@@ -377,6 +384,7 @@ export default function SettingsPage() {
     const payload: Record<string, unknown> = {};
     if (fitnessLevel) payload.fitnessLevel = fitnessLevel;
     if (gymAccess) payload.gymAccess = gymAccess;
+    payload.equipment = JSON.stringify(selectedEquipment);
     payload.workoutDaysPerWeek = workoutDaysPerWeek;
     if (preferredWorkoutTime) payload.preferredWorkoutTime = preferredWorkoutTime;
     if (sportValue) payload.sport = sportValue;
@@ -709,6 +717,21 @@ export default function SettingsPage() {
               ))}
             </div>
           </Field>
+
+          {gymAccess.toLowerCase() === "home gym" && (
+            <Field label="Home gym equipment">
+              <div className="flex flex-wrap gap-2">
+                {["Dumbbells", "Barbell & plates", "Pull-up bar", "Resistance bands", "Kettlebells", "Bench", "Squat rack", "Jump rope"].map(eq => (
+                  <Chip
+                    key={eq}
+                    label={eq}
+                    selected={selectedEquipment.includes(eq)}
+                    onToggle={() => setSelectedEquipment(prev => prev.includes(eq) ? prev.filter(e => e !== eq) : [...prev, eq])}
+                  />
+                ))}
+              </div>
+            </Field>
+          )}
 
           <Field label={`Workout days — ${workoutDaysPerWeek} per week`}>
             <input
