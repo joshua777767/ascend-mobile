@@ -30,10 +30,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceMono_700Bold",
   },
   action: {
     fontSize: 14,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceMono_400Regular",
   },
 });

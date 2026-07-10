@@ -19,7 +19,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 10,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceMono_700Bold",
     letterSpacing: 0.8,
   },
 });

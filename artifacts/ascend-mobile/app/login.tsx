@@ -176,18 +176,18 @@ const styles = StyleSheet.create({
   },
   appName: {
     fontSize: 32,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceMono_700Bold",
     letterSpacing: -0.5,
     marginBottom: 6,
   },
-  tagline: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center" },
+  tagline: { fontSize: 14, fontFamily: "SpaceMono_400Regular", textAlign: "center" },
   card: {
     borderRadius: 20,
     borderWidth: 1,
     padding: 24,
     gap: 20,
   },
-  title: { fontSize: 22, fontFamily: "Inter_700Bold" },
+  title: { fontSize: 22, fontFamily: "SpaceMono_700Bold" },
   errorBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
   },
-  errorText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 },
+  errorText: { fontSize: 13, fontFamily: "SpaceMono_400Regular", flex: 1 },
   fields: { gap: 12 },
   inputWrapper: {
     flexDirection: "row",
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceMono_400Regular",
   },
   eyeBtn: { padding: 4 },
   primaryBtn: {
@@ -221,15 +221,15 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceMono_700Bold",
   },
   forgotRow: { alignItems: "center", paddingVertical: 4 },
-  forgotText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  forgotText: { fontSize: 13, fontFamily: "SpaceMono_400Regular" },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
     marginTop: 24,
   },
-  footerText: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  footerLink: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  footerText: { fontSize: 14, fontFamily: "SpaceMono_400Regular" },
+  footerLink: { fontSize: 14, fontFamily: "SpaceMono_700Bold" },
 });

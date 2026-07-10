@@ -139,7 +139,7 @@ export default function SignupScreen() {
           <View style={[styles.disclaimerBox, { backgroundColor: colors.amber + "10", borderColor: colors.amber + "44" }]}>
             <Feather name="alert-triangle" size={13} color={colors.amber} style={{ marginTop: 1 }} />
             <Text style={[styles.disclaimerText, { color: colors.mutedForeground }]}>
-              <Text style={{ color: colors.amber, fontFamily: "Inter_600SemiBold" }}>Health Notice: </Text>
+              <Text style={{ color: colors.amber, fontFamily: "SpaceMono_700Bold" }}>Health Notice: </Text>
               Ascend Fit provides general fitness and nutrition guidance only. It is not medical advice. Consult a healthcare professional before starting any diet or exercise program, especially if you have a medical condition or history of eating disorders.
             </Text>
           </View>
@@ -263,38 +263,38 @@ const styles = StyleSheet.create({
     width: 72, height: 72, borderRadius: 20, borderWidth: 1.5,
     alignItems: "center", justifyContent: "center", marginBottom: 16,
   },
-  appName: { fontSize: 32, fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginBottom: 6 },
-  tagline: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center" },
+  appName: { fontSize: 32, fontFamily: "SpaceMono_700Bold", letterSpacing: -0.5, marginBottom: 6 },
+  tagline: { fontSize: 14, fontFamily: "SpaceMono_400Regular", textAlign: "center" },
   disclaimerBox: {
     flexDirection: "row", alignItems: "flex-start", gap: 8,
     borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 16,
   },
-  disclaimerText: { fontSize: 12, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 },
+  disclaimerText: { fontSize: 12, fontFamily: "SpaceMono_400Regular", flex: 1, lineHeight: 18 },
   card: { borderRadius: 20, borderWidth: 1, padding: 24, gap: 16 },
-  title: { fontSize: 22, fontFamily: "Inter_700Bold" },
+  title: { fontSize: 22, fontFamily: "SpaceMono_700Bold" },
   errorBox: {
     flexDirection: "row", alignItems: "center", gap: 8,
     padding: 12, borderRadius: 10, borderWidth: 1,
   },
-  errorText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 },
+  errorText: { fontSize: 13, fontFamily: "SpaceMono_400Regular", flex: 1 },
   fields: { gap: 12 },
   inputWrapper: {
     flexDirection: "row", alignItems: "center", borderRadius: 12,
     borderWidth: 1, paddingHorizontal: 14, height: 52,
   },
   inputIcon: { marginRight: 10 },
-  input: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular" },
+  input: { flex: 1, fontSize: 15, fontFamily: "SpaceMono_400Regular" },
   eyeBtn: { padding: 4 },
   checkRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   checkBox: {
     width: 20, height: 20, borderRadius: 5, borderWidth: 1.5,
     alignItems: "center", justifyContent: "center", marginTop: 1,
   },
-  checkLabel: { fontSize: 12, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 },
-  checkLink: { fontFamily: "Inter_600SemiBold" },
+  checkLabel: { fontSize: 12, fontFamily: "SpaceMono_400Regular", flex: 1, lineHeight: 18 },
+  checkLink: { fontFamily: "SpaceMono_700Bold" },
   primaryBtn: { height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  primaryBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  primaryBtnText: { fontSize: 16, fontFamily: "SpaceMono_700Bold" },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 24 },
-  footerText: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  footerLink: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  footerText: { fontSize: 14, fontFamily: "SpaceMono_400Regular" },
+  footerLink: { fontSize: 14, fontFamily: "SpaceMono_700Bold" },
 });

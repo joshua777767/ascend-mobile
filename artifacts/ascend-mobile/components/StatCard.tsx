@@ -33,15 +33,15 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 22,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceMono_700Bold",
   },
   unit: {
     fontSize: 12,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceMono_400Regular",
   },
   label: {
     fontSize: 11,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceMono_400Regular",
     textAlign: "center",
   },
 });

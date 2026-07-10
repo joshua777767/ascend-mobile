@@ -105,8 +105,8 @@ function ScoreRing({ score, size = 80, borderColor, mutedColor }: {
           strokeLinecap="round"
         />
       </Svg>
-      <Text style={{ fontSize: 20, fontFamily: "Inter_700Bold", color: ringColor, lineHeight: 22 }}>{score}</Text>
-      <Text style={{ fontSize: 7, fontFamily: "Inter_500Medium", color: mutedColor, marginTop: 1 }}>Score</Text>
+      <Text style={{ fontSize: 20, fontFamily: "SpaceMono_700Bold", color: ringColor, lineHeight: 22 }}>{score}</Text>
+      <Text style={{ fontSize: 7, fontFamily: "SpaceMono_400Regular", color: mutedColor, marginTop: 1 }}>Score</Text>
     </View>
   );
 }
@@ -145,10 +145,10 @@ const ib = StyleSheet.create({
   card: { flex: 1, borderRadius: 16, borderWidth: 1, padding: 14 },
   top: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
   iconWrap: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  label: { flex: 1, fontSize: 10, fontFamily: "Inter_500Medium" },
-  pct: { fontSize: 10, fontFamily: "Inter_400Regular" },
-  value: { fontSize: 18, fontFamily: "Inter_700Bold", lineHeight: 22, marginBottom: 10 },
-  unit: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  label: { flex: 1, fontSize: 10, fontFamily: "SpaceMono_400Regular" },
+  pct: { fontSize: 10, fontFamily: "SpaceMono_400Regular" },
+  value: { fontSize: 18, fontFamily: "SpaceMono_700Bold", lineHeight: 22, marginBottom: 10 },
+  unit: { fontSize: 12, fontFamily: "SpaceMono_400Regular" },
   track: { height: 6, borderRadius: 3, overflow: "hidden" },
   fill: { height: 6, borderRadius: 3 },
 });
@@ -176,9 +176,9 @@ function MetricCard({ icon, value, unit, label, color, cardBg, cardBorder }: {
 const mc = StyleSheet.create({
   card: { flex: 1, borderRadius: 16, borderWidth: 1, padding: 14, gap: 8 },
   iconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  value: { fontSize: 18, fontFamily: "Inter_700Bold", lineHeight: 22 },
-  unit: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  label: { fontSize: 10, fontFamily: "Inter_500Medium" },
+  value: { fontSize: 18, fontFamily: "SpaceMono_700Bold", lineHeight: 22 },
+  unit: { fontSize: 12, fontFamily: "SpaceMono_400Regular" },
+  label: { fontSize: 10, fontFamily: "SpaceMono_400Regular" },
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -994,36 +994,36 @@ const s = StyleSheet.create({
   heroCard: { borderRadius: 20, borderWidth: 1, padding: 20 },
   heroRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   heroLeft: { flex: 1, gap: 4 },
-  heroDate: { fontSize: 10, fontFamily: "Inter_500Medium", marginBottom: 2 },
+  heroDate: { fontSize: 10, fontFamily: "SpaceMono_400Regular", marginBottom: 2 },
   heroNameRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  heroName: { fontSize: 30, fontFamily: "Inter_700Bold", lineHeight: 34 },
-  heroPhase: { fontSize: 11, fontFamily: "Inter_500Medium", marginTop: 2 },
+  heroName: { fontSize: 30, fontFamily: "SpaceMono_700Bold", lineHeight: 34 },
+  heroPhase: { fontSize: 11, fontFamily: "SpaceMono_400Regular", marginTop: 2 },
   statusBadge: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginTop: 6 },
-  statusBadgeText: { fontSize: 9, fontFamily: "Inter_500Medium" },
+  statusBadgeText: { fontSize: 9, fontFamily: "SpaceMono_400Regular" },
   streakRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 6 },
-  streakText: { fontSize: 11, fontFamily: "Inter_700Bold" },
+  streakText: { fontSize: 11, fontFamily: "SpaceMono_700Bold" },
   heroRight: { alignItems: "center", gap: 4, paddingTop: 2 },
-  heroScoreLabel: { fontSize: 8, fontFamily: "Inter_500Medium", letterSpacing: 0.3 },
+  heroScoreLabel: { fontSize: 8, fontFamily: "SpaceMono_400Regular", letterSpacing: 0.3 },
 
   // Mission link
   missionLink: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 16, borderWidth: 1, padding: 14 },
   missionLinkIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   missionLinkText: { flex: 1 },
-  missionLinkLabel: { fontSize: 9, fontFamily: "Inter_500Medium", marginBottom: 2 },
-  missionLinkTitle: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  missionLinkLabel: { fontSize: 9, fontFamily: "SpaceMono_400Regular", marginBottom: 2 },
+  missionLinkTitle: { fontSize: 14, fontFamily: "SpaceMono_700Bold" },
 
   // Proof / Consistency
   proofCard: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
   proofTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
   proofLeft: { flex: 1, gap: 4 },
   proofMetricRow: { flexDirection: "row", alignItems: "baseline", gap: 2 },
-  proofBigNum: { fontSize: 24, fontFamily: "Inter_700Bold", lineHeight: 28 },
-  proofUnit: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  proofEmpty: { fontSize: 14, fontFamily: "Inter_500Medium" },
-  proofSub: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  proofLink: { fontSize: 12, fontFamily: "Inter_700Bold" },
+  proofBigNum: { fontSize: 24, fontFamily: "SpaceMono_700Bold", lineHeight: 28 },
+  proofUnit: { fontSize: 11, fontFamily: "SpaceMono_400Regular" },
+  proofEmpty: { fontSize: 14, fontFamily: "SpaceMono_400Regular" },
+  proofSub: { fontSize: 11, fontFamily: "SpaceMono_400Regular" },
+  proofLink: { fontSize: 12, fontFamily: "SpaceMono_700Bold" },
   proofBarWrap: { gap: 4 },
-  barLabel: { fontSize: 9, fontFamily: "Inter_400Regular" },
+  barLabel: { fontSize: 9, fontFamily: "SpaceMono_400Regular" },
 
   // Shared progress bar
   track: { height: 6, borderRadius: 3, overflow: "hidden" },
@@ -1033,48 +1033,48 @@ const s = StyleSheet.create({
   missionCompleteCard: { flexDirection: "row", alignItems: "flex-start", gap: 12, borderRadius: 16, borderWidth: 1, padding: 16 },
   missionCompleteIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   missionCompleteText: { flex: 1, gap: 4 },
-  missionCompleteTitle: { fontSize: 9, fontFamily: "Inter_500Medium" },
-  missionCompleteBody: { fontSize: 14, fontFamily: "Inter_700Bold" },
-  missionCompleteSub: { fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 16 },
+  missionCompleteTitle: { fontSize: 9, fontFamily: "SpaceMono_400Regular" },
+  missionCompleteBody: { fontSize: 14, fontFamily: "SpaceMono_700Bold" },
+  missionCompleteSub: { fontSize: 11, fontFamily: "SpaceMono_400Regular", lineHeight: 16 },
   missionActiveCard: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 10 },
   missionActiveDot: { flexDirection: "row", alignItems: "center", gap: 6 },
   pulseDot: { width: 6, height: 6, borderRadius: 3 },
-  missionActiveLabel: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
-  missionActiveBody: { fontSize: 13, fontFamily: "Inter_500Medium", lineHeight: 20 },
-  missionActiveNext: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  missionActiveLabel: { fontSize: 9, fontFamily: "SpaceMono_700Bold", letterSpacing: 0.5 },
+  missionActiveBody: { fontSize: 13, fontFamily: "SpaceMono_400Regular", lineHeight: 20 },
+  missionActiveNext: { fontSize: 11, fontFamily: "SpaceMono_700Bold" },
 
   // Score Breakdown
   scoreCard: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
   scoreCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  scoreCardHeaderVal: { fontSize: 10, fontFamily: "Inter_700Bold" },
+  scoreCardHeaderVal: { fontSize: 10, fontFamily: "SpaceMono_700Bold" },
   scoreBarsRow: { flexDirection: "row", gap: 8 },
   scoreBarCol: { flex: 1, alignItems: "center", gap: 6 },
   scoreBarTrack: { width: "100%", height: 64, borderRadius: 8, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   scoreBarFill: { position: "absolute", bottom: 0, left: 0, right: 0, borderRadius: 8 },
-  scoreBarNum: { fontSize: 12, fontFamily: "Inter_700Bold", zIndex: 1 },
-  scoreBarLabel: { fontSize: 8, fontFamily: "Inter_500Medium", textAlign: "center" },
+  scoreBarNum: { fontSize: 12, fontFamily: "SpaceMono_700Bold", zIndex: 1 },
+  scoreBarLabel: { fontSize: 8, fontFamily: "SpaceMono_400Regular", textAlign: "center" },
 
   // Shared caps label
-  capLabel: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.8 },
+  capLabel: { fontSize: 9, fontFamily: "SpaceMono_700Bold", letterSpacing: 0.8 },
 
   // Emergency Coach
   emergencyGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   emergencyBtn: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10, minWidth: "30%", flexGrow: 1 },
   emergencyIconWrap: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  emergencyLabel: { fontSize: 11, fontFamily: "Inter_500Medium", flex: 1, lineHeight: 14 },
+  emergencyLabel: { fontSize: 11, fontFamily: "SpaceMono_400Regular", flex: 1, lineHeight: 14 },
 
   // Daily Mission Checklist
   missionChecklistHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
   missionChecklistRight: { flexDirection: "row", alignItems: "center", gap: 8 },
   missionCompleteBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  missionCompleteBadgeText: { fontSize: 8, fontFamily: "Inter_500Medium" },
-  missionCount: { fontSize: 10, fontFamily: "Inter_400Regular", fontVariant: ["tabular-nums"] },
+  missionCompleteBadgeText: { fontSize: 8, fontFamily: "SpaceMono_400Regular" },
+  missionCount: { fontSize: 10, fontFamily: "SpaceMono_400Regular", fontVariant: ["tabular-nums"] },
   checklistCard: { borderRadius: 16, borderWidth: 1, overflow: "hidden" },
   checklistRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
   checkCircle: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: "center", justifyContent: "center" },
-  checkLabel: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
-  checkDoneTag: { fontSize: 8, fontFamily: "Inter_500Medium" },
-  missionAllDoneNote: { fontSize: 10, fontFamily: "Inter_500Medium", textAlign: "center", marginTop: 8 },
+  checkLabel: { flex: 1, fontSize: 14, fontFamily: "SpaceMono_400Regular", lineHeight: 20 },
+  checkDoneTag: { fontSize: 8, fontFamily: "SpaceMono_400Regular" },
+  missionAllDoneNote: { fontSize: 10, fontFamily: "SpaceMono_400Regular", textAlign: "center", marginTop: 8 },
 
   // Fuel
   fuelRow: { flexDirection: "row", gap: 12 },
@@ -1083,19 +1083,19 @@ const s = StyleSheet.create({
   waterCard: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
   waterTop: { flexDirection: "row", alignItems: "center", gap: 8 },
   waterIconWrap: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  waterLabelText: { flex: 1, fontSize: 10, fontFamily: "Inter_500Medium" },
+  waterLabelText: { flex: 1, fontSize: 10, fontFamily: "SpaceMono_400Regular" },
   waterMetBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  waterMetText: { fontSize: 8, fontFamily: "Inter_500Medium" },
-  waterOzBig: { fontSize: 24, fontFamily: "Inter_700Bold", lineHeight: 28 },
-  waterOzUnit: { fontSize: 12, fontFamily: "Inter_500Medium" },
-  waterOzTarget: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  waterMetText: { fontSize: 8, fontFamily: "SpaceMono_400Regular" },
+  waterOzBig: { fontSize: 24, fontFamily: "SpaceMono_700Bold", lineHeight: 28 },
+  waterOzUnit: { fontSize: 12, fontFamily: "SpaceMono_400Regular" },
+  waterOzTarget: { fontSize: 14, fontFamily: "SpaceMono_400Regular" },
   waterBtns: { flexDirection: "row", gap: 8 },
   waterBtn: { flex: 1, paddingVertical: 8, borderRadius: 12, borderWidth: 1, alignItems: "center" },
-  waterBtnText: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  waterBtnText: { fontSize: 12, fontFamily: "SpaceMono_400Regular" },
   customWaterRow: { flexDirection: "row", gap: 8 },
-  customWaterInput: { flex: 1, height: 40, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 14, fontFamily: "Inter_400Regular" },
+  customWaterInput: { flex: 1, height: 40, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 14, fontFamily: "SpaceMono_400Regular" },
   customWaterBtn: { width: 64, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  customWaterBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  customWaterBtnText: { fontSize: 14, fontFamily: "SpaceMono_700Bold", color: "#fff" },
 
   // Targets
   targetsRow: { flexDirection: "row", gap: 10 },
@@ -1104,19 +1104,19 @@ const s = StyleSheet.create({
   trainingCard: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 16, borderWidth: 1, padding: 16 },
   trainingIconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   trainingInfo: { flex: 1 },
-  trainingCaption: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.5, marginBottom: 2 },
-  trainingName: { fontSize: 14, fontFamily: "Inter_700Bold" },
-  trainingMeta: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  trainingCaption: { fontSize: 9, fontFamily: "SpaceMono_700Bold", letterSpacing: 0.5, marginBottom: 2 },
+  trainingName: { fontSize: 14, fontFamily: "SpaceMono_700Bold" },
+  trainingMeta: { fontSize: 12, fontFamily: "SpaceMono_400Regular", marginTop: 2 },
 
   // Objectives
   goalsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   goalChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
-  goalChipText: { fontSize: 10, fontFamily: "Inter_500Medium", textTransform: "capitalize" },
+  goalChipText: { fontSize: 10, fontFamily: "SpaceMono_400Regular", textTransform: "capitalize" },
 
   // Quick Links
   quickLinksRow: { flexDirection: "row", gap: 10 },
   quickLink: { flex: 1, borderRadius: 16, borderWidth: 1, paddingVertical: 16, alignItems: "center", gap: 6 },
-  quickLinkLabel: { fontSize: 10, fontFamily: "Inter_500Medium" },
+  quickLinkLabel: { fontSize: 10, fontFamily: "SpaceMono_400Regular" },
 
   // Next Mission
   nextMissionCard: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
@@ -1124,24 +1124,24 @@ const s = StyleSheet.create({
   nextMissionItems: { gap: 10 },
   nextMissionRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   nextMissionBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  nextMissionBadgeText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
+  nextMissionBadgeText: { fontSize: 10, fontFamily: "SpaceMono_700Bold" },
   nextMissionTextWrap: { flex: 1, gap: 2 },
-  nextMissionText: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 16, textTransform: "capitalize" },
-  nextMissionGoal: { fontSize: 10, fontFamily: "Inter_400Regular", textTransform: "capitalize" },
-  nextMissionNote: { fontSize: 10, fontFamily: "Inter_400Regular", lineHeight: 14 },
+  nextMissionText: { fontSize: 12, fontFamily: "SpaceMono_400Regular", lineHeight: 16, textTransform: "capitalize" },
+  nextMissionGoal: { fontSize: 10, fontFamily: "SpaceMono_400Regular", textTransform: "capitalize" },
+  nextMissionNote: { fontSize: 10, fontFamily: "SpaceMono_400Regular", lineHeight: 14 },
 
   // Weekly Goals
   weeklyCard: { borderRadius: 16, borderWidth: 1, overflow: "hidden" },
   weeklyRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
   weeklyCircle: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: "center", justifyContent: "center" },
-  weeklyLabel: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  weeklyLabel: { flex: 1, fontSize: 14, fontFamily: "SpaceMono_400Regular", lineHeight: 20 },
   weeklyCounter: { flexDirection: "row", alignItems: "center", gap: 8 },
   weeklyCountBtn: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  weeklyCountBtnText: { fontSize: 14, fontFamily: "Inter_700Bold", lineHeight: 18 },
-  weeklyCountNum: { fontSize: 13, fontFamily: "Inter_700Bold", textAlign: "center", minWidth: 32, fontVariant: ["tabular-nums"] },
+  weeklyCountBtnText: { fontSize: 14, fontFamily: "SpaceMono_700Bold", lineHeight: 18 },
+  weeklyCountNum: { fontSize: 13, fontFamily: "SpaceMono_700Bold", textAlign: "center", minWidth: 32, fontVariant: ["tabular-nums"] },
 
   // Trial Nudge
   trialNudge: { flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 16, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12 },
   trialNudgeText: { flex: 1 },
-  trialNudgeTitle: { fontSize: 12, fontFamily: "Inter_700Bold", lineHeight: 16 },
+  trialNudgeTitle: { fontSize: 12, fontFamily: "SpaceMono_700Bold", lineHeight: 16 },
 });

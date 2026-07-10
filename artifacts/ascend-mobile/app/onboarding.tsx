@@ -371,7 +371,7 @@ export default function OnboardingScreen() {
               <View style={[styles.disclaimer, { backgroundColor: colors.amber + "12", borderColor: colors.amber + "44" }]}>
                 <Feather name="alert-triangle" size={14} color={colors.amber} style={{ marginTop: 1 }} />
                 <Text style={[styles.disclaimerText, { color: colors.mutedForeground }]}>
-                  <Text style={{ color: colors.foreground, fontFamily: "Inter_600SemiBold" }}>Not medical advice. </Text>
+                  <Text style={{ color: colors.foreground, fontFamily: "SpaceMono_700Bold" }}>Not medical advice. </Text>
                   Consult a healthcare professional before starting any diet or exercise program.
                 </Text>
               </View>
@@ -443,27 +443,27 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { paddingHorizontal: 24, paddingBottom: 16 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  brand: { fontSize: 16, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
-  stepLabel: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  brand: { fontSize: 16, fontFamily: "SpaceMono_700Bold", letterSpacing: -0.5 },
+  stepLabel: { fontSize: 13, fontFamily: "SpaceMono_400Regular" },
   progressTrack: { height: 6, borderRadius: 3, overflow: "hidden" },
   progressFill: { height: "100%", borderRadius: 3 },
   scroll: { paddingHorizontal: 24, paddingTop: 12, gap: 8 },
-  title: { fontSize: 24, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20, marginBottom: 12 },
+  title: { fontSize: 24, fontFamily: "SpaceMono_700Bold", letterSpacing: -0.5 },
+  subtitle: { fontSize: 14, fontFamily: "SpaceMono_400Regular", lineHeight: 20, marginBottom: 12 },
   goalGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 4 },
   goalCard: {
     width: "47%", flexGrow: 1, alignItems: "center", justifyContent: "center",
     gap: 10, borderRadius: 18, borderWidth: 1.5, paddingVertical: 22,
   },
   goalEmoji: { fontSize: 30 },
-  goalLabel: { fontSize: 14, fontFamily: "Inter_600SemiBold", textAlign: "center" },
-  fieldLabel: { fontSize: 14, fontFamily: "Inter_600SemiBold", marginTop: 12, marginBottom: 6 },
+  goalLabel: { fontSize: 14, fontFamily: "SpaceMono_700Bold", textAlign: "center" },
+  fieldLabel: { fontSize: 14, fontFamily: "SpaceMono_700Bold", marginTop: 12, marginBottom: 6 },
   inputRow: { position: "relative", justifyContent: "center" },
   numInput: {
     height: 68, borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 18,
-    fontSize: 28, fontFamily: "Inter_700Bold", textAlign: "center",
+    fontSize: 28, fontFamily: "SpaceMono_700Bold", textAlign: "center",
   },
-  unit: { position: "absolute", right: 18, fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  unit: { position: "absolute", right: 18, fontSize: 16, fontFamily: "SpaceMono_700Bold" },
   heightRow: { flexDirection: "row", gap: 12, marginTop: 8 },
   wakeList: { gap: 12, marginTop: 4 },
   wakeRow: {
@@ -471,16 +471,16 @@ const styles = StyleSheet.create({
     borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 18, paddingVertical: 16,
   },
   wakeEmoji: { fontSize: 22 },
-  wakeLabel: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  error: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 10 },
+  wakeLabel: { fontSize: 16, fontFamily: "SpaceMono_700Bold" },
+  error: { fontSize: 13, fontFamily: "SpaceMono_400Regular", marginTop: 10 },
   disclaimer: {
     flexDirection: "row", alignItems: "flex-start", gap: 10,
     borderRadius: 14, borderWidth: 1, padding: 14, marginTop: 16,
   },
-  disclaimerText: { fontSize: 12, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 },
+  disclaimerText: { fontSize: 12, fontFamily: "SpaceMono_400Regular", flex: 1, lineHeight: 18 },
   navRow: { flexDirection: "row", gap: 12, marginTop: 20 },
   primaryBtn: { height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  primaryText: { fontSize: 16, fontFamily: "Inter_700Bold" },
+  primaryText: { fontSize: 16, fontFamily: "SpaceMono_700Bold" },
   backBtn: { height: 56, paddingHorizontal: 22, borderRadius: 16, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
-  backText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  backText: { fontSize: 15, fontFamily: "SpaceMono_700Bold" },
 });

@@ -112,14 +112,14 @@ export default function IntroScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   skip: { position: "absolute", top: 0, right: 20, zIndex: 10, paddingHorizontal: 4, paddingVertical: 8 },
-  skipText: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  skipText: { fontSize: 14, fontFamily: "SpaceMono_400Regular" },
   body: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 24 },
   iconRing: { width: 120, height: 120, borderRadius: 32, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 28, fontFamily: "Inter_700Bold", textAlign: "center", lineHeight: 34 },
-  bodyText: { fontSize: 16, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 24 },
+  title: { fontSize: 28, fontFamily: "SpaceMono_700Bold", textAlign: "center", lineHeight: 34 },
+  bodyText: { fontSize: 16, fontFamily: "SpaceMono_400Regular", textAlign: "center", lineHeight: 24 },
   footer: { paddingHorizontal: 24, gap: 24 },
   dots: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
   dot: { height: 8, borderRadius: 4 },
   nextBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 56, borderRadius: 16 },
-  nextBtnText: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
+  nextBtnText: { fontSize: 17, fontFamily: "SpaceMono_700Bold" },
 });

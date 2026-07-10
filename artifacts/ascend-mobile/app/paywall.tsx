@@ -252,7 +252,7 @@ export default function PaywallScreen() {
                   {
                     color: colors.mutedForeground,
                     textAlign: "left",
-                    fontFamily: "Inter_400Regular",
+                    fontFamily: "SpaceMono_400Regular",
                     fontSize: 11,
                   },
                 ]}
@@ -264,7 +264,7 @@ export default function PaywallScreen() {
               <Text
                 style={[
                   styles.priceNote,
-                  { color: colors.primary, fontFamily: "Inter_600SemiBold" },
+                  { color: colors.primary, fontFamily: "SpaceMono_700Bold" },
                 ]}
               >
                 Tap to retry
@@ -395,14 +395,14 @@ const styles = StyleSheet.create({
   },
   headline: {
     fontSize: 28,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceMono_700Bold",
     letterSpacing: -0.5,
     marginBottom: 10,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 15,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceMono_400Regular",
     textAlign: "center",
     lineHeight: 22,
   },
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   },
   featureLabel: {
     fontSize: 15,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceMono_400Regular",
     flex: 1,
   },
   priceCard: {
@@ -437,15 +437,15 @@ const styles = StyleSheet.create({
   },
   trialBadgeText: {
     fontSize: 11,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceMono_700Bold",
     letterSpacing: 0.8,
   },
   priceRow: { flexDirection: "row", alignItems: "baseline" },
-  price: { fontSize: 36, fontFamily: "Inter_700Bold" },
-  pricePer: { fontSize: 16, fontFamily: "Inter_400Regular" },
+  price: { fontSize: 36, fontFamily: "SpaceMono_700Bold" },
+  pricePer: { fontSize: 16, fontFamily: "SpaceMono_400Regular" },
   priceNote: {
     fontSize: 12,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceMono_400Regular",
     marginTop: 8,
     textAlign: "center",
     lineHeight: 18,
@@ -458,18 +458,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 16,
   },
-  ctaBtnText: { fontSize: 17, fontFamily: "Inter_700Bold" },
+  ctaBtnText: { fontSize: 17, fontFamily: "SpaceMono_700Bold" },
   restoreBtn: { paddingVertical: 12 },
-  restoreText: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  restoreText: { fontSize: 14, fontFamily: "SpaceMono_400Regular" },
   legalRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
   },
-  legalText: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  legalText: { fontSize: 12, fontFamily: "SpaceMono_400Regular" },
   signOutBtn: { paddingVertical: 8 },
-  signOutText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  signOutText: { fontSize: 13, fontFamily: "SpaceMono_400Regular" },
   debugBtn: { paddingVertical: 4 },
-  debugText: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  debugText: { fontSize: 11, fontFamily: "SpaceMono_400Regular" },
 });

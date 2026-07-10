@@ -80,7 +80,7 @@ function WeightChart({ data, colors }: { data: { label: string; weight: number }
         return (
           <React.Fragment key={i}>
             <Line x1={pad.left} y1={y} x2={width - pad.right} y2={y} stroke={colors.border} strokeWidth={1} strokeDasharray="4,4" />
-            <SvgText x={pad.left - 6} y={y + 4} fontSize={10} fill={colors.mutedForeground} textAnchor="end" fontFamily="Inter_400Regular">
+            <SvgText x={pad.left - 6} y={y + 4} fontSize={10} fill={colors.mutedForeground} textAnchor="end" fontFamily="SpaceMono_400Regular">
               {v.toFixed(0)}
             </SvgText>
           </React.Fragment>
@@ -91,7 +91,7 @@ function WeightChart({ data, colors }: { data: { label: string; weight: number }
         <Circle key={i} cx={toX(i)} cy={toY(d.weight)} r={4} fill={colors.primary} stroke={colors.background} strokeWidth={2} />
       ))}
       {data.length <= 8 && data.map((d, i) => (
-        <SvgText key={`lbl-${i}`} x={toX(i)} y={height - 6} fontSize={9} fill={colors.mutedForeground} textAnchor="middle" fontFamily="Inter_400Regular">
+        <SvgText key={`lbl-${i}`} x={toX(i)} y={height - 6} fontSize={9} fill={colors.mutedForeground} textAnchor="middle" fontFamily="SpaceMono_400Regular">
           {d.label}
         </SvgText>
       ))}
@@ -121,7 +121,7 @@ function ScoreChart({ data, colors }: { data: ScorePoint[]; colors: any }) {
         return (
           <React.Fragment key={i}>
             <Line x1={pad.left} y1={y} x2={width - pad.right} y2={y} stroke={colors.border} strokeWidth={1} strokeDasharray="4,4" />
-            <SvgText x={pad.left - 6} y={y + 4} fontSize={9} fill={colors.mutedForeground} textAnchor="end" fontFamily="Inter_400Regular">
+            <SvgText x={pad.left - 6} y={y + 4} fontSize={9} fill={colors.mutedForeground} textAnchor="end" fontFamily="SpaceMono_400Regular">
               {v}
             </SvgText>
           </React.Fragment>
@@ -716,38 +716,38 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { paddingHorizontal: 20 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
-  pageTitle: { fontSize: 26, fontFamily: "Inter_700Bold" },
+  pageTitle: { fontSize: 26, fontFamily: "SpaceMono_700Bold" },
   headerBtns: { flexDirection: "row", alignItems: "center", gap: 8 },
   checkInBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 20, borderWidth: 1 },
-  checkInBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  checkInBtnText: { fontSize: 13, fontFamily: "SpaceMono_700Bold" },
   addBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   heroCard: { borderRadius: 20, borderWidth: 1, padding: 24, marginBottom: 16 },
-  heroLabel: { fontSize: 13, fontFamily: "Inter_500Medium", marginBottom: 6 },
+  heroLabel: { fontSize: 13, fontFamily: "SpaceMono_400Regular", marginBottom: 6 },
   heroRow: { flexDirection: "row", alignItems: "baseline", gap: 8, flexWrap: "wrap" },
-  heroWeight: { fontSize: 52, fontFamily: "Inter_700Bold" },
-  heroUnit: { fontSize: 20, fontFamily: "Inter_400Regular" },
+  heroWeight: { fontSize: 52, fontFamily: "SpaceMono_700Bold" },
+  heroUnit: { fontSize: 20, fontFamily: "SpaceMono_400Regular" },
   diffBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  diffText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  heroDate: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 6 },
+  diffText: { fontSize: 13, fontFamily: "SpaceMono_700Bold" },
+  heroDate: { fontSize: 12, fontFamily: "SpaceMono_400Regular", marginTop: 6 },
   statsRow: { flexDirection: "row", gap: 8, marginBottom: 20, flexWrap: "wrap" },
   statChip: { flex: 1, minWidth: "22%", borderRadius: 14, borderWidth: 1, padding: 12, alignItems: "center", gap: 2 },
-  statValue: { fontSize: 20, fontFamily: "Inter_700Bold" },
-  statLabel: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center" },
+  statValue: { fontSize: 20, fontFamily: "SpaceMono_700Bold" },
+  statLabel: { fontSize: 11, fontFamily: "SpaceMono_400Regular", textAlign: "center" },
   chartCard: { borderRadius: 16, borderWidth: 1, padding: 12, marginBottom: 20, overflow: "hidden" },
   aiCard: { flexDirection: "row", gap: 12, padding: 16, borderRadius: 14, borderWidth: 1, marginBottom: 24, alignItems: "flex-start" },
-  aiCardText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  aiCardText: { flex: 1, fontSize: 14, fontFamily: "SpaceMono_400Regular", lineHeight: 20 },
   reviewStatusBadge: { flexDirection: "row", alignItems: "center", gap: 8, padding: 10, borderRadius: 10, borderWidth: 1, marginBottom: 4 },
-  reviewStatusText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  reviewStatusText: { fontSize: 13, fontFamily: "SpaceMono_700Bold" },
   consistencyRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  consistencyLabel: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular" },
-  consistencyValue: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  consistencyLabel: { flex: 1, fontSize: 14, fontFamily: "SpaceMono_400Regular" },
+  consistencyValue: { fontSize: 14, fontFamily: "SpaceMono_700Bold" },
   recapCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 20, gap: 10 },
   recapRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  recapLabel: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular" },
-  recapValue: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  recapLabel: { flex: 1, fontSize: 14, fontFamily: "SpaceMono_400Regular" },
+  recapValue: { fontSize: 14, fontFamily: "SpaceMono_700Bold" },
   recapFix: { flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 10, borderRadius: 10, borderWidth: 1 },
-  recapFixText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 },
-  recapSummary: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20, marginTop: 4 },
+  recapFixText: { fontSize: 13, fontFamily: "SpaceMono_400Regular", flex: 1, lineHeight: 18 },
+  recapSummary: { fontSize: 13, fontFamily: "SpaceMono_400Regular", lineHeight: 20, marginTop: 4 },
   goalReachedCard: { borderRadius: 20, borderWidth: 1, padding: 24, marginBottom: 16, alignItems: "center", gap: 8 },
   goalReachedEmoji: { fontSize: 40, marginBottom: 4 },
   goalReachedTitle: { fontSize: 22, fontFamily: "SpaceMono", fontWeight: "700" },
@@ -755,48 +755,48 @@ const styles = StyleSheet.create({
   goalReachedBtn: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12, marginTop: 4 },
   goalReachedBtnText: { fontSize: 14, fontWeight: "600" },
   goalSetForm: { width: "100%", gap: 8, marginTop: 4 },
-  goalSetFormLabel: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  goalSetFormLabel: { fontSize: 12, fontFamily: "SpaceMono_400Regular" },
   goalTypeRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
   goalTypeChip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
-  goalTypeChipText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  goalTypeChipText: { fontSize: 12, fontFamily: "SpaceMono_700Bold" },
   goalSetRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   goalSetInput: { flex: 1, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, fontSize: 15 },
   predictorCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16, gap: 10 },
   predictorRow: { flexDirection: "row", gap: 16 },
   predictorCol: { flex: 1, gap: 4 },
-  predictorSub: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  predictorValue: { fontSize: 18, fontFamily: "Inter_700Bold" },
+  predictorSub: { fontSize: 12, fontFamily: "SpaceMono_400Regular" },
+  predictorValue: { fontSize: 18, fontFamily: "SpaceMono_700Bold" },
   predictorBar: { height: 6, borderRadius: 3, overflow: "hidden" },
   predictorFill: { height: 6, borderRadius: 3 },
-  predictorStatus: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  predictorStatus: { fontSize: 13, fontFamily: "SpaceMono_400Regular" },
   milestonesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 },
   milestonePill: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, maxWidth: "47%" },
   milestoneIcon: { fontSize: 16 },
   milestoneLabel: { fontSize: 12, fontWeight: "600", flexShrink: 1 },
   checkInRow: { flexDirection: "row", alignItems: "center", borderRadius: 12, borderWidth: 1, padding: 14, gap: 12, marginBottom: 8 },
   checkInDot: { width: 8, height: 8, borderRadius: 4 },
-  checkInMetric: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  checkInNote: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
-  checkInDate: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  checkInMetric: { fontSize: 15, fontFamily: "SpaceMono_700Bold" },
+  checkInNote: { fontSize: 12, fontFamily: "SpaceMono_400Regular", marginTop: 2 },
+  checkInDate: { fontSize: 12, fontFamily: "SpaceMono_400Regular" },
   emptyState: { alignItems: "center", paddingTop: 60, gap: 12 },
-  emptyTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold" },
-  emptyText: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
+  emptyTitle: { fontSize: 18, fontFamily: "SpaceMono_700Bold" },
+  emptyText: { fontSize: 14, fontFamily: "SpaceMono_400Regular", textAlign: "center", lineHeight: 20 },
   emptyBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, marginTop: 8 },
-  emptyBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  emptyBtnText: { fontSize: 15, fontFamily: "SpaceMono_700Bold" },
   historyRow: { flexDirection: "row", alignItems: "center", borderRadius: 12, borderWidth: 1, padding: 14, gap: 12, marginBottom: 8 },
   historyDot: { width: 8, height: 8, borderRadius: 4 },
   historyInfo: { flex: 1 },
-  historyWeight: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  historyNotes: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
-  historyDate: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  historyWeight: { fontSize: 16, fontFamily: "SpaceMono_700Bold" },
+  historyNotes: { fontSize: 12, fontFamily: "SpaceMono_400Regular", marginTop: 2 },
+  historyDate: { fontSize: 12, fontFamily: "SpaceMono_400Regular" },
   modalRoot: { flex: 1 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1 },
-  modalCancel: { fontSize: 16, fontFamily: "Inter_400Regular" },
-  modalTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
-  modalSave: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  modalCancel: { fontSize: 16, fontFamily: "SpaceMono_400Regular" },
+  modalTitle: { fontSize: 17, fontFamily: "SpaceMono_700Bold" },
+  modalSave: { fontSize: 16, fontFamily: "SpaceMono_700Bold" },
   modalContent: { padding: 20, gap: 8 },
-  fieldLabel: { fontSize: 12, fontFamily: "Inter_500Medium", marginBottom: 6, marginTop: 8, textTransform: "uppercase", letterSpacing: 0.5 },
-  inputField: { borderRadius: 12, borderWidth: 1, padding: 14, fontSize: 15, fontFamily: "Inter_400Regular" },
+  fieldLabel: { fontSize: 12, fontFamily: "SpaceMono_400Regular", marginBottom: 6, marginTop: 8, textTransform: "uppercase", letterSpacing: 0.5 },
+  inputField: { borderRadius: 12, borderWidth: 1, padding: 14, fontSize: 15, fontFamily: "SpaceMono_400Regular" },
   checkInHero: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14, borderRadius: 12, borderWidth: 1 },
-  checkInHeroText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 20 },
+  checkInHeroText: { fontSize: 13, fontFamily: "SpaceMono_400Regular", flex: 1, lineHeight: 20 },
 });
