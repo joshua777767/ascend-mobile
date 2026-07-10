@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
+  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -11,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { StatCard } from "@/components/StatCard";
@@ -22,6 +24,8 @@ import {
   useGetStreak,
   useListMeals,
   useGetWaterToday,
+  useLogWater,
+  getGetWaterTodayQueryKey,
 } from "@workspace/api-client-react";
 
 export default function HomeScreen() {
@@ -30,11 +34,13 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { isPro } = useSubscription();
+  const queryClient = useQueryClient();
 
   const { data: plan, isLoading: planLoading, refetch: refetchPlan } = useGetCurrentPlan();
   const { data: streak, refetch: refetchStreak } = useGetStreak();
   const { data: mealsData, refetch: refetchMeals } = useListMeals();
   const { data: waterData, refetch: refetchWater } = useGetWaterToday();
+  const logWater = useLogWater();
 
   const recentMeals = (mealsData as any) ?? [];
   const isLoading = planLoading;
@@ -52,7 +58,24 @@ export default function HomeScreen() {
   const todayProtein = recentMeals
     .filter((m: any) => isToday(m.createdAt))
     .reduce((sum: number, m: any) => sum + (m.protein ?? 0), 0);
-  const waterGlasses = (waterData as any)?.glasses ?? (waterData as any)?.count ?? 0;
+
+  const waterTotalOz: number = (waterData as any)?.totalOz ?? 0;
+  const waterTargetOz: number = (waterData as any)?.targetOz ?? 64;
+  const waterGlasses = Math.round(waterTotalOz / 8);
+  const waterTargetGlasses = Math.round(waterTargetOz / 8);
+
+  const handleLogWater = async (amountOz: number) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      const updated = await logWater.mutateAsync({ data: { amountOz } });
+      // Write the mutation response straight into the query cache so the
+      // displayed total updates immediately without a separate network request.
+      queryClient.setQueryData(getGetWaterTodayQueryKey(), updated);
+    } catch {
+      // Silently ignore — a background refetch will correct the state.
+      refetchWater();
+    }
+  };
 
   return (
     <ScrollView
@@ -118,7 +141,73 @@ export default function HomeScreen() {
               unit={`/ ${(plan as any).dailyProteinTarget ?? "—"}g`}
               color={colors.blue}
             />
-            <StatCard label="Water" value={waterGlasses} unit="glasses" color={colors.blue} />
+          </View>
+
+          {/* Water tracker card */}
+          <View style={[styles.waterCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.waterCardTop}>
+              <View style={styles.waterCardLabel}>
+                <View style={[styles.waterIcon, { backgroundColor: colors.blue + "22" }]}>
+                  <Feather name="droplet" size={16} color={colors.blue} />
+                </View>
+                <View>
+                  <Text style={[styles.waterTitle, { color: colors.foreground }]}>Water Intake</Text>
+                  <Text style={[styles.waterSub, { color: colors.mutedForeground }]}>
+                    {waterGlasses} / {waterTargetGlasses} glasses · {waterTotalOz} / {waterTargetOz} oz
+                  </Text>
+                </View>
+              </View>
+              {logWater.isPending && (
+                <ActivityIndicator size="small" color={colors.blue} />
+              )}
+            </View>
+
+            {/* Progress bar */}
+            <View style={[styles.waterTrack, { backgroundColor: colors.muted }]}>
+              <View
+                style={[
+                  styles.waterFill,
+                  {
+                    backgroundColor: colors.blue,
+                    width: `${Math.min(100, Math.round((waterTotalOz / waterTargetOz) * 100))}%` as any,
+                  },
+                ]}
+              />
+            </View>
+
+            {/* Quick-add buttons */}
+            <View style={styles.waterBtns}>
+              <TouchableOpacity
+                style={[styles.waterBtn, { backgroundColor: colors.blue + "18", borderColor: colors.blue + "44" }]}
+                onPress={() => handleLogWater(8)}
+                disabled={logWater.isPending}
+                activeOpacity={0.75}
+              >
+                <Feather name="plus" size={14} color={colors.blue} />
+                <Text style={[styles.waterBtnText, { color: colors.blue }]}>1 glass</Text>
+                <Text style={[styles.waterBtnSub, { color: colors.blue + "99" }]}>8 oz</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.waterBtn, { backgroundColor: colors.blue + "18", borderColor: colors.blue + "44" }]}
+                onPress={() => handleLogWater(16)}
+                disabled={logWater.isPending}
+                activeOpacity={0.75}
+              >
+                <Feather name="plus" size={14} color={colors.blue} />
+                <Text style={[styles.waterBtnText, { color: colors.blue }]}>2 glasses</Text>
+                <Text style={[styles.waterBtnSub, { color: colors.blue + "99" }]}>16 oz</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.waterBtn, { backgroundColor: colors.blue + "18", borderColor: colors.blue + "44" }]}
+                onPress={() => handleLogWater(24)}
+                disabled={logWater.isPending}
+                activeOpacity={0.75}
+              >
+                <Feather name="plus" size={14} color={colors.blue} />
+                <Text style={[styles.waterBtnText, { color: colors.blue }]}>3 glasses</Text>
+                <Text style={[styles.waterBtnSub, { color: colors.blue + "99" }]}>24 oz</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </>
       )}
@@ -244,7 +333,19 @@ const styles = StyleSheet.create({
   streakBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 12, borderWidth: 1, marginBottom: 24 },
   streakText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   streakSub: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  statsRow: { flexDirection: "row", gap: 10, marginBottom: 28 },
+  statsRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+  waterCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 28, gap: 12 },
+  waterCardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  waterCardLabel: { flexDirection: "row", alignItems: "center", gap: 10 },
+  waterIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  waterTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  waterSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
+  waterTrack: { height: 6, borderRadius: 3, overflow: "hidden" },
+  waterFill: { height: 6, borderRadius: 3 },
+  waterBtns: { flexDirection: "row", gap: 8 },
+  waterBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 10, borderWidth: 1, paddingVertical: 10 },
+  waterBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  waterBtnSub: { fontSize: 11, fontFamily: "Inter_400Regular" },
   section: { marginBottom: 28 },
   actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   actionCard: { width: "47%", borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
