@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -17,6 +18,12 @@ import {
   useListWorkouts,
   useCreateWorkout,
 } from "@workspace/api-client-react";
+
+// AsyncStorage key scoped to today's date — auto-resets next day
+function getTodayProgressKey(): string {
+  const d = new Date();
+  return `workout-progress-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 type Exercise = {
   name: string;
@@ -61,11 +68,29 @@ export default function WorkoutsScreen() {
   const isLoading = loadingToday || loadingHistory;
   const refetch = () => { refetchToday(); refetchHistory(); };
 
+  // Load persisted progress for today on mount
+  useEffect(() => {
+    AsyncStorage.getItem(getTodayProgressKey()).then(raw => {
+      if (raw) {
+        try {
+          const indices: number[] = JSON.parse(raw);
+          setCompletedExercises(new Set(indices));
+        } catch {}
+      }
+    });
+  }, []);
+
+  // Persist progress whenever completedExercises changes
+  const saveProgress = useCallback((next: Set<number>) => {
+    AsyncStorage.setItem(getTodayProgressKey(), JSON.stringify([...next])).catch(() => {});
+  }, []);
+
   const toggleExercise = async (idx: number) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCompletedExercises(prev => {
       const next = new Set(prev);
       if (next.has(idx)) next.delete(idx); else next.add(idx);
+      saveProgress(next);
       return next;
     });
   };

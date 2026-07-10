@@ -599,7 +599,17 @@ export function getTodayWorkout(profile: UserProfile, plan: Plan, timeZone?: str
   }
 
   const match = workoutList.find(w => w.day === today);
-  if (match) return match;
+  if (match) {
+    // Filter out equipment-requiring exercises for no-gym users even in pre-defined lists
+    if (isNoGymAccess(gymAccess)) {
+      const filtered = match.exercises.filter(ex => !needsGymEquipment(ex.name));
+      return {
+        ...match,
+        exercises: filtered.length > 0 ? filtered : match.exercises,
+      };
+    }
+    return match;
+  }
 
   return {
     day: today,

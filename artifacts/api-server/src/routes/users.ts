@@ -113,6 +113,19 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
     setValues.goals = JSON.stringify(goals);
   }
 
+  // When gymAccess changes, clear any stored custom workout schedule so the
+  // new access level takes effect immediately on the next workout fetch.
+  if (rest.gymAccess !== undefined) {
+    const [existing] = await db.select({ gymAccess: userProfilesTable.gymAccess })
+      .from(userProfilesTable)
+      .where(eq(userProfilesTable.userId, userId));
+    if (existing && existing.gymAccess !== rest.gymAccess) {
+      setValues.customWorkoutSchedule = null;
+      setValues.ownSchedule = null;
+      setValues.hasOwnSchedule = null;
+    }
+  }
+
   const [profile] = await db
     .update(userProfilesTable)
     .set(setValues as any)
