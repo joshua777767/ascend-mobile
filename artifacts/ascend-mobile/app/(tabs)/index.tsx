@@ -28,12 +28,17 @@ import {
   useGetWaterToday,
   useLogWater,
   useGetDailyScore,
-  useListWeighIns,
   useGetTodayWorkout,
   useGetProgressSummary,
   useGetUserProfile,
   getGetWaterTodayQueryKey,
 } from "@workspace/api-client-react";
+
+// ─── Web-exact color palette ──────────────────────────────────────────────────
+// These match dashboard.tsx precisely so mobile and web are visually identical.
+const BLUE   = "#6B8BAE";  // web primary / mission / water accent
+const GREEN  = "#4A9B78";  // web success / protein / weight-loss
+const AMBER  = "#C89A3E";  // web amber / streak / emergency
 
 // ─── Habit deduplication / prioritization ─────────────────────────────────────
 
@@ -77,18 +82,21 @@ function prioritizeHabits(rawHabits: string[]): string[] {
     .slice(0, 5);
 }
 
-// ─── Score Ring (SVG, matches web conic-gradient intent) ──────────────────────
+// ─── Score Ring ───────────────────────────────────────────────────────────────
+// Uses web-exact color thresholds: ≥80 green, ≥50 blue, <50 amber.
 
-function ScoreRing({ score, size = 80, colors }: { score: number; size?: number; colors: any }) {
+function ScoreRing({ score, size = 80, borderColor, mutedColor }: {
+  score: number; size?: number; borderColor: string; mutedColor: string;
+}) {
   const r = (size - 10) / 2;
   const circumference = 2 * Math.PI * r;
   const pct = Math.min(Math.max(score, 0), 100) / 100;
   const offset = circumference * (1 - pct);
-  const ringColor = score >= 80 ? colors.green : score >= 50 ? colors.blue : colors.amber;
+  const ringColor = score >= 80 ? GREEN : score >= 50 ? BLUE : AMBER;
   return (
     <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
       <Svg width={size} height={size} style={{ position: "absolute", transform: [{ rotate: "-90deg" }] }}>
-        <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.border} strokeWidth={6} fill="none" />
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={borderColor} strokeWidth={6} fill="none" />
         <Circle
           cx={size / 2} cy={size / 2} r={r}
           stroke={ringColor} strokeWidth={6} fill="none"
@@ -97,33 +105,35 @@ function ScoreRing({ score, size = 80, colors }: { score: number; size?: number;
         />
       </Svg>
       <Text style={{ fontSize: 20, fontFamily: "Inter_700Bold", color: ringColor, lineHeight: 22 }}>{score}</Text>
-      <Text style={{ fontSize: 7, fontFamily: "Inter_500Medium", color: colors.mutedForeground, marginTop: 1 }}>Score</Text>
+      <Text style={{ fontSize: 7, fontFamily: "Inter_500Medium", color: mutedColor, marginTop: 1 }}>Score</Text>
     </View>
   );
 }
 
-// ─── Intake Bar (matches web IntakeBar component) ──────────────────────────────
+// ─── Intake Bar ───────────────────────────────────────────────────────────────
+// Matches web IntakeBar: icon + label + pct + value/target + progress bar.
 
-function IntakeBar({ icon, label, eaten, target, unit, color, colors }: {
-  icon: string; label: string; eaten: number; target: number; unit?: string; color: string; colors: any;
+function IntakeBar({ icon, label, eaten, target, unit, color, cardBg, cardBorder }: {
+  icon: string; label: string; eaten: number; target: number;
+  unit?: string; color: string; cardBg: string; cardBorder: string;
 }) {
   const pct = target > 0 ? Math.min(100, Math.round((eaten / target) * 100)) : 0;
   return (
-    <View style={[ib.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[ib.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
       <View style={ib.top}>
         <View style={[ib.iconWrap, { backgroundColor: color + "22" }]}>
           <Feather name={icon as any} size={14} color={color} />
         </View>
-        <Text style={[ib.label, { color: colors.mutedForeground }]}>{label}</Text>
-        <Text style={[ib.pct, { color: colors.mutedForeground }]}>{pct}%</Text>
+        <Text style={[ib.label, { color: "#64748B" }]}>{label}</Text>
+        <Text style={[ib.pct, { color: "#64748B" }]}>{pct}%</Text>
       </View>
-      <Text style={[ib.value, { color: colors.foreground }]}>
+      <Text style={[ib.value, { color: "#F8FAFC" }]}>
         {eaten.toLocaleString()}
-        <Text style={[ib.unit, { color: colors.mutedForeground }]}>
+        <Text style={[ib.unit, { color: "#64748B" }]}>
           {unit ?? ""} / {target.toLocaleString()}{unit ?? ""}
         </Text>
       </Text>
-      <View style={[ib.track, { backgroundColor: colors.muted }]}>
+      <View style={[ib.track, { backgroundColor: "#1E2A3A" }]}>
         <View style={[ib.fill, { backgroundColor: color, width: `${pct}%` as any }]} />
       </View>
     </View>
@@ -142,21 +152,22 @@ const ib = StyleSheet.create({
   fill: { height: 6, borderRadius: 3 },
 });
 
-// ─── Metric Card (web MetricCard, used in Targets row) ────────────────────────
+// ─── Metric Card ──────────────────────────────────────────────────────────────
 
-function MetricCard({ icon, value, unit, label, color, colors }: {
-  icon: string; value: string | number; unit?: string; label: string; color: string; colors: any;
+function MetricCard({ icon, value, unit, label, color, cardBg, cardBorder }: {
+  icon: string; value: string | number; unit?: string; label: string;
+  color: string; cardBg: string; cardBorder: string;
 }) {
   return (
-    <View style={[mc.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[mc.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
       <View style={[mc.iconWrap, { backgroundColor: color + "22" }]}>
         <Feather name={icon as any} size={14} color={color} />
       </View>
-      <Text style={[mc.value, { color: colors.foreground }]}>
+      <Text style={[mc.value, { color: "#F8FAFC" }]}>
         {value}
-        {unit ? <Text style={[mc.unit, { color: colors.mutedForeground }]}>{unit}</Text> : null}
+        {unit ? <Text style={[mc.unit, { color: "#64748B" }]}>{unit}</Text> : null}
       </Text>
-      <Text style={[mc.label, { color: colors.mutedForeground }]}>{label}</Text>
+      <Text style={[mc.label, { color: "#64748B" }]}>{label}</Text>
     </View>
   );
 }
@@ -171,9 +182,9 @@ const mc = StyleSheet.create({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getGreeting() {
-  const h = new Date().getHours();
-  return h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
+function getChecklistKey() {
+  const d = new Date();
+  return `ascend.checklist.${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function isToday(dateStr?: string) {
@@ -186,14 +197,8 @@ function isToday(dateStr?: string) {
 function getPhaseLabel(goalType?: string) {
   if (goalType === "fat_loss") return "Cut Phase";
   if (goalType === "muscle_gain") return "Build Phase";
-  if (goalType === "maintain") return "Maintenance";
   if (goalType === "recomp") return "Recomp Phase";
   return "Maintenance";
-}
-
-function getChecklistKey() {
-  const d = new Date();
-  return `ascend.checklist.${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 // ─── Main Screen ───────────────────────────────────────────────────────────────
@@ -219,40 +224,41 @@ export default function HomeScreen() {
   const profile = profileData as any;
   const todayWorkout = todayWorkoutData as any;
   const progress = progressData as any;
+  const planAny = plan as any;
 
   const recentMeals = (mealsData as any) ?? [];
-  const isLoading = planLoading;
-  const dailyScore = (dailyScoreData as any)?.totalScore ?? 0;
+  const scoreBreakdown = dailyScoreData as any;
+  const dailyScore: number = scoreBreakdown?.totalScore ?? 0;
+  const hasScoreBreakdown = scoreBreakdown && typeof scoreBreakdown.totalScore === "number";
 
-  // Derive plan fields
-  const planAny = plan as any;
-  const goalType = planAny?.goalType;
+  // Goal type flags
+  const goalType: string | undefined = planAny?.goalType;
   const isMaintenance = goalType === "maintain";
   const isBulking = goalType === "muscle_gain";
   const isCutting = goalType === "fat_loss";
-  const dayNumber = Math.max(1, Math.floor((Date.now() - new Date((profile?.createdAt ?? Date.now())).getTime()) / 86400000) + 1);
+  const dayNumber = Math.max(1, Math.floor((Date.now() - new Date(profile?.createdAt ?? Date.now()).getTime()) / 86400000) + 1);
 
-  // Habits from plan.keyHabits (already deduped + prioritized)
+  // Habits
   const rawKeyHabits: string[] = planAny && Array.isArray(planAny.keyHabits) ? planAny.keyHabits : [];
   const habits = prioritizeHabits(rawKeyHabits);
 
-  // Today's macro totals from meals
+  // Today's meals / macros
   const todayMeals = recentMeals.filter((m: any) => isToday(m.loggedAt));
-  const todayCalories = todayMeals.reduce((s: number, m: any) => s + (m.calories ?? 0), 0);
-  const todayProtein = todayMeals.reduce((s: number, m: any) => s + (m.protein ?? 0), 0);
+  const todayCalories: number = todayMeals.reduce((s: number, m: any) => s + (m.calories ?? 0), 0);
+  const todayProtein: number = todayMeals.reduce((s: number, m: any) => s + (m.protein ?? 0), 0);
 
   // Water
   const waterTotalOz: number = (waterData as any)?.totalOz ?? 0;
   const waterTargetOz: number = (waterData as any)?.targetOz ?? 64;
 
-  // Daily checklist state — persisted via AsyncStorage keyed by today's date
+  // Daily checklist — persisted via AsyncStorage keyed by today
   const checklistKeyRef = useRef(getChecklistKey());
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [checklistLoaded, setChecklistLoaded] = useState(false);
 
   useEffect(() => {
     const key = checklistKeyRef.current;
-    AsyncStorage.getItem(key).then(raw => {
+    AsyncStorage.getItem(key).then((raw) => {
       if (raw) { try { setDone(JSON.parse(raw)); } catch {} }
       setChecklistLoaded(true);
     });
@@ -264,44 +270,38 @@ export default function HomeScreen() {
 
   const toggleHabit = async (habit: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setDone(prev => {
+    setDone((prev) => {
       const next = { ...prev, [habit]: !prev[habit] };
       saveChecklist(next);
       return next;
     });
   };
 
-  const checklistCompleted = habits.filter(h => done[h]).length;
+  const checklistCompleted = habits.filter((h) => done[h]).length;
   const missionComplete = habits.length > 0 && checklistCompleted === habits.length;
 
-  // Water: auto-check water habit when target met
+  // Auto-check water / calorie / protein habits when met
   useEffect(() => {
+    if (!checklistLoaded) return;
     if (waterTotalOz > 0 && waterTargetOz > 0 && waterTotalOz >= waterTargetOz) {
-      const waterHabit = habits.find(h => h.toLowerCase().includes("water"));
-      if (waterHabit && !done[waterHabit] && checklistLoaded) {
-        setDone(prev => {
-          const next = { ...prev, [waterHabit]: true };
-          saveChecklist(next);
-          return next;
-        });
-      }
+      const h = habits.find((h) => h.toLowerCase().includes("water"));
+      if (h && !done[h]) setDone((prev) => { const n = { ...prev, [h]: true }; saveChecklist(n); return n; });
     }
   }, [waterTotalOz, waterTargetOz, checklistLoaded]); // eslint-disable-line
 
-  // Calorie/protein auto-check
   useEffect(() => {
     if (!planAny || !checklistLoaded) return;
     if (todayCalories > 0 && todayCalories >= planAny.calorieTarget) {
-      const h = habits.find(h => ["calorie", "caloric", "deficit", "kcal"].some(k => h.toLowerCase().includes(k)));
-      if (h && !done[h]) setDone(prev => { const n = { ...prev, [h]: true }; saveChecklist(n); return n; });
+      const h = habits.find((h) => ["calorie", "caloric", "deficit", "kcal"].some((k) => h.toLowerCase().includes(k)));
+      if (h && !done[h]) setDone((prev) => { const n = { ...prev, [h]: true }; saveChecklist(n); return n; });
     }
     if (todayProtein > 0 && todayProtein >= planAny.proteinTargetG) {
-      const h = habits.find(h => ["protein", "macro"].some(k => h.toLowerCase().includes(k)));
-      if (h && !done[h]) setDone(prev => { const n = { ...prev, [h]: true }; saveChecklist(n); return n; });
+      const h = habits.find((h) => ["protein", "macro"].some((k) => h.toLowerCase().includes(k)));
+      if (h && !done[h]) setDone((prev) => { const n = { ...prev, [h]: true }; saveChecklist(n); return n; });
     }
   }, [todayCalories, todayProtein, checklistLoaded]); // eslint-disable-line
 
-  // Custom water input
+  // Custom water
   const [customWaterOz, setCustomWaterOz] = useState("");
   const [showCustomWater, setShowCustomWater] = useState(false);
 
@@ -325,22 +325,26 @@ export default function HomeScreen() {
     handleLogWater(oz);
   };
 
-  const refetch = () => { refetchPlan(); refetchStreak(); refetchMeals(); refetchWater(); refetchScore(); refetchWorkout(); refetchProfile(); };
+  const refetch = () => {
+    refetchPlan(); refetchStreak(); refetchMeals();
+    refetchWater(); refetchScore(); refetchWorkout(); refetchProfile();
+  };
 
-  // Status badge
+  // Status badge (web-exact thresholds + colors)
   const hasAnyData = todayCalories > 0 || todayProtein > 0 || waterTotalOz > 0 || checklistCompleted > 0;
   const statusBadge = (() => {
     if (!hasAnyData) return null;
-    if (dailyScore >= 90) return { text: "Perfect Day", color: colors.green, bg: colors.green + "1A" };
-    if (dailyScore >= 65) return { text: "Locked In", color: colors.blue, bg: colors.blue + "1A" };
-    if (dailyScore >= 30) return { text: "Building Momentum", color: colors.amber, bg: colors.amber + "1A" };
-    return { text: "Comeback Day", color: colors.amber, bg: colors.amber + "15" };
+    if (dailyScore >= 90) return { text: "Perfect Day",       color: GREEN,  bg: GREEN  + "1F", border: GREEN  + "4C" };
+    if (dailyScore >= 65) return { text: "Locked In",         color: BLUE,   bg: BLUE   + "1F", border: BLUE   + "4C" };
+    if (dailyScore >= 30) return { text: "Building Momentum", color: AMBER,  bg: AMBER  + "1F", border: AMBER  + "4C" };
+    return                       { text: "Comeback Day",      color: AMBER,  bg: AMBER  + "1A", border: AMBER  + "40" };
   })();
 
-  // Coach message (mirrors web buildMission)
-  const firstName = (profile?.name ?? user?.username ?? "")?.split(" ")[0] || "Coach";
+  // Names + coach message (mirrors web buildMission)
+  const firstName = profile?.name?.split(" ")?.[0] ?? user?.username ?? "Coach";
   const calorieDeficit = planAny ? planAny.calorieTarget - todayCalories : 0;
   const proteinDeficit = planAny ? planAny.proteinTargetG - todayProtein : 0;
+
   const coachMessage = (() => {
     if (missionComplete) return "Day stacked. Every choice you made today built something real.";
     if (isMaintenance && planAny) {
@@ -361,7 +365,7 @@ export default function HomeScreen() {
     return "Next: hit tomorrow's plan";
   })();
 
-  // Proof of Change data
+  // Proof of Change
   const startKg = progress?.startWeightKg ?? profile?.currentWeightKg ?? 0;
   const currentKg = progress?.currentWeightKg ?? profile?.currentWeightKg ?? 0;
   const goalKg = progress?.goalWeightKg ?? profile?.goalWeightKg ?? 0;
@@ -371,7 +375,7 @@ export default function HomeScreen() {
   const totalChange = Math.round((currentKg - startKg) * 2.2046 * 10) / 10;
   const hasChange = Math.abs(totalChange) > 0;
   const isWeightLoss = totalChange < 0;
-  const changeColor = isWeightLoss ? colors.green : totalChange > 0 ? colors.amber : colors.blue;
+  const changeColor = isWeightLoss ? GREEN : totalChange > 0 ? AMBER : BLUE;
   const progressPct = goalLbs > 0 && startLbs !== goalLbs
     ? Math.max(0, Math.min(100, Math.round(Math.abs(startLbs - currentLbs) / Math.abs(startLbs - goalLbs) * 100)))
     : 0;
@@ -379,165 +383,168 @@ export default function HomeScreen() {
   // Goals chips
   const goals: string[] = Array.isArray(profile?.goals) ? profile.goals : [];
 
-  // Score breakdown
-  const scoreBreakdown = dailyScoreData as any;
-  const hasScoreBreakdown = scoreBreakdown && typeof scoreBreakdown.totalScore === "number";
-
   const dayStr = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+
+  // Shared card style tokens
+  const CARD_BG     = colors.card;    // #141B27
+  const CARD_BORDER = colors.border;  // #1E2A3A
+  const MUTED_BG    = "#1E2A3A";
+  const MUTED_FG    = "#64748B";
+  const FG          = "#F8FAFC";
 
   return (
     <ScrollView
       style={[s.root, { backgroundColor: colors.background }]}
       contentContainerStyle={[s.content, { paddingTop: insets.top + 16, paddingBottom: 100 }]}
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.primary} />}
+      refreshControl={<RefreshControl refreshing={planLoading} onRefresh={refetch} tintColor={BLUE} />}
     >
 
       {/* ── Hero card ─────────────────────────────────────────────────────── */}
-      <View style={[s.heroCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[s.heroCard, { backgroundColor: CARD_BG, borderColor: CARD_BORDER }]}>
         <View style={s.heroRow}>
           <View style={s.heroLeft}>
-            <Text style={[s.heroDate, { color: colors.mutedForeground }]}>{dayStr}</Text>
+            <Text style={[s.heroDate, { color: MUTED_FG }]}>{dayStr}</Text>
             <View style={s.heroNameRow}>
-              <Text style={[s.heroName, { color: colors.foreground }]}>{user?.username ?? firstName}</Text>
+              <Text style={[s.heroName, { color: FG }]}>{firstName}</Text>
               {isPro && <ProBadge />}
             </View>
-            <Text style={[s.heroPhase, { color: colors.mutedForeground }]}>
+            <Text style={[s.heroPhase, { color: MUTED_FG }]}>
               Day {dayNumber} — {getPhaseLabel(goalType)}
             </Text>
             {statusBadge && (
-              <View style={[s.statusBadge, { backgroundColor: statusBadge.bg }]}>
+              <View style={[s.statusBadge, { backgroundColor: statusBadge.bg, borderColor: statusBadge.border, borderWidth: 1 }]}>
                 <Text style={[s.statusBadgeText, { color: statusBadge.color }]}>{statusBadge.text}</Text>
               </View>
             )}
             {streak && (streak as any).currentStreak > 0 && (
               <View style={s.streakRow}>
-                <Feather name="zap" size={13} color={colors.amber} />
-                <Text style={[s.streakText, { color: colors.amber }]}>
+                <Feather name="zap" size={13} color={AMBER} />
+                <Text style={[s.streakText, { color: AMBER }]}>
                   {(streak as any).currentStreak}-day streak
                 </Text>
               </View>
             )}
           </View>
           <View style={s.heroRight}>
-            <ScoreRing score={dailyScore} colors={colors} />
-            <Text style={[s.heroScoreLabel, { color: colors.mutedForeground }]}>Ascend Score</Text>
+            <ScoreRing score={dailyScore} borderColor={CARD_BORDER} mutedColor={MUTED_FG} />
+            <Text style={[s.heroScoreLabel, { color: MUTED_FG }]}>Ascend Score</Text>
           </View>
         </View>
       </View>
 
-      {/* ── Today's Mission link → schedule ─────────────────────────────── */}
+      {/* ── Today's Mission → /schedule ──────────────────────────────────── */}
       <TouchableOpacity
-        style={[s.missionLink, { backgroundColor: colors.blue + "12", borderColor: colors.blue + "33" }]}
+        style={[s.missionLink, { backgroundColor: BLUE + "14", borderColor: BLUE + "38" }]}
         onPress={() => router.push("/(tabs)/schedule" as any)}
         activeOpacity={0.85}
       >
-        <View style={[s.missionLinkIcon, { backgroundColor: colors.blue + "22" }]}>
-          <Feather name="target" size={18} color={colors.blue} />
+        <View style={[s.missionLinkIcon, { backgroundColor: BLUE + "1F" }]}>
+          <Feather name="target" size={18} color={BLUE} />
         </View>
         <View style={s.missionLinkText}>
-          <Text style={[s.missionLinkLabel, { color: colors.blue }]}>Today's Mission</Text>
-          <Text style={[s.missionLinkTitle, { color: colors.foreground }]}>Hit the plan. Keep the streak alive.</Text>
+          <Text style={[s.missionLinkLabel, { color: BLUE }]}>Today's Mission</Text>
+          <Text style={[s.missionLinkTitle, { color: FG }]}>Hit the plan. Keep the streak alive.</Text>
         </View>
-        <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        <Feather name="chevron-right" size={18} color={MUTED_FG} />
       </TouchableOpacity>
 
-      {/* ── Proof of Change / Consistency ───────────────────────────────── */}
+      {/* ── Proof of Change / Consistency ────────────────────────────────── */}
       {planAny && (
-        <View style={[s.proofCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[s.proofCard, { backgroundColor: CARD_BG, borderColor: CARD_BORDER }]}>
           <View style={s.proofTop}>
             <View style={s.proofLeft}>
-              <Text style={[s.proofSectionLabel, { color: colors.mutedForeground }]}>
+              <Text style={[s.capLabel, { color: MUTED_FG }]}>
                 {isMaintenance ? "CONSISTENCY" : "PROOF OF CHANGE"}
               </Text>
               {isMaintenance ? (
                 <View style={s.proofMetricRow}>
-                  <Text style={[s.proofBigNum, { color: checklistCompleted > 0 ? colors.green : colors.blue }]}>
+                  <Text style={[s.proofBigNum, { color: checklistCompleted > 0 ? GREEN : BLUE }]}>
                     {checklistCompleted > 0 ? `${Math.round((checklistCompleted / Math.max(1, habits.length)) * 100)}%` : "0%"}
                   </Text>
-                  <Text style={[s.proofUnit, { color: colors.mutedForeground }]}> daily mission today</Text>
+                  <Text style={[s.proofUnit, { color: MUTED_FG }]}> daily mission today</Text>
                 </View>
               ) : hasChange ? (
                 <View style={s.proofMetricRow}>
                   <Text style={[s.proofBigNum, { color: changeColor }]}>
                     {isWeightLoss ? "" : "+"}{totalChange}
                   </Text>
-                  <Text style={[s.proofUnit, { color: colors.mutedForeground }]}> lbs since starting</Text>
+                  <Text style={[s.proofUnit, { color: MUTED_FG }]}> lbs since starting</Text>
                 </View>
               ) : (
-                <Text style={[s.proofEmpty, { color: colors.mutedForeground }]}>Log a weigh-in to see your change.</Text>
+                <Text style={[s.proofEmpty, { color: MUTED_FG }]}>Log a weigh-in to see your change.</Text>
               )}
-              <Text style={[s.proofSub, { color: colors.mutedForeground }]}>
+              <Text style={[s.proofSub, { color: MUTED_FG }]}>
                 {isMaintenance
                   ? `${(streak as any)?.currentStreak > 0 ? `${(streak as any).currentStreak}-day streak · ` : ""}Stay fit by showing up daily.`
                   : `${startLbs} lbs${hasChange ? ` → ${currentLbs} lbs` : ""}${goalLbs > 0 ? ` → ${goalLbs} goal` : ""}`}
               </Text>
             </View>
             <TouchableOpacity onPress={() => router.push("/(tabs)/progress")}>
-              <Text style={[s.proofLink, { color: colors.primary }]}>{hasChange ? "Track" : "Weigh In"}</Text>
+              <Text style={[s.proofLink, { color: BLUE }]}>{hasChange ? "Track" : "Weigh In"}</Text>
             </TouchableOpacity>
           </View>
           {!isMaintenance && goalLbs > 0 && startLbs !== goalLbs && (
             <View style={s.proofBarWrap}>
-              <View style={[s.proofTrack, { backgroundColor: colors.muted }]}>
-                <View style={[s.proofFill, { width: `${progressPct}%` as any, backgroundColor: changeColor }]} />
+              <View style={[s.track, { backgroundColor: MUTED_BG }]}>
+                <View style={[s.fill, { width: `${progressPct}%` as any, backgroundColor: changeColor }]} />
               </View>
-              <Text style={[s.proofBarLabel, { color: colors.mutedForeground }]}>{progressPct}% of the way to goal</Text>
+              <Text style={[s.barLabel, { color: MUTED_FG }]}>{progressPct}% of the way to goal</Text>
             </View>
           )}
         </View>
       )}
 
-      {/* ── Mission Active / Complete card ──────────────────────────────── */}
+      {/* ── Mission Active / Complete ─────────────────────────────────────── */}
       {planAny && (
         missionComplete ? (
-          <View style={[s.missionCompleteCard, { backgroundColor: colors.green + "1A", borderColor: colors.green + "44" }]}>
-            <View style={[s.missionCompleteIcon, { backgroundColor: colors.green + "22" }]}>
-              <Feather name="check-circle" size={16} color={colors.green} />
+          <View style={[s.missionCompleteCard, { backgroundColor: GREEN + "1A", borderColor: GREEN + "40" }]}>
+            <View style={[s.missionCompleteIcon, { backgroundColor: GREEN + "1F" }]}>
+              <Feather name="check-circle" size={16} color={GREEN} />
             </View>
             <View style={s.missionCompleteText}>
-              <Text style={[s.missionCompleteTitle, { color: colors.green }]}>Mission Complete</Text>
-              <Text style={[s.missionCompleteBody, { color: colors.foreground }]}>You kept the promise today.</Text>
-              <Text style={[s.missionCompleteSub, { color: colors.green }]}>
+              <Text style={[s.missionCompleteTitle, { color: GREEN }]}>Mission Complete</Text>
+              <Text style={[s.missionCompleteBody, { color: FG }]}>You kept the promise today.</Text>
+              <Text style={[s.missionCompleteSub, { color: GREEN }]}>
                 Stack another win tomorrow. Don't break the chain.
               </Text>
             </View>
           </View>
         ) : (
-          <View style={[s.missionActiveCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[s.missionActiveCard, { backgroundColor: CARD_BG, borderColor: CARD_BORDER }]}>
             <View style={s.missionActiveDot}>
-              <View style={[s.pulseDot, { backgroundColor: colors.blue }]} />
-              <Text style={[s.missionActiveLabel, { color: colors.blue }]}>Mission Active</Text>
+              <View style={[s.pulseDot, { backgroundColor: BLUE }]} />
+              <Text style={[s.missionActiveLabel, { color: BLUE }]}>Mission Active</Text>
             </View>
-            <Text style={[s.missionActiveBody, { color: colors.foreground }]}>{coachMessage}</Text>
-            <Text style={[s.missionActiveNext, { color: colors.primary }]}>{nextAction}</Text>
+            <Text style={[s.missionActiveBody, { color: FG }]}>{coachMessage}</Text>
+            <Text style={[s.missionActiveNext, { color: AMBER }]}>{nextAction}</Text>
           </View>
         )
       )}
 
-      {/* ── Score Breakdown ──────────────────────────────────────────────── */}
+      {/* ── Score Breakdown ───────────────────────────────────────────────── */}
       {hasScoreBreakdown && (
-        <View style={[s.scoreCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[s.scoreCard, { backgroundColor: CARD_BG, borderColor: CARD_BORDER }]}>
           <View style={s.scoreCardHeader}>
-            <Text style={[s.scoreCardHeaderLabel, { color: colors.mutedForeground }]}>SCORE BREAKDOWN</Text>
-            <Text style={[s.scoreCardHeaderVal, { color: colors.mutedForeground }]}>{scoreBreakdown.totalScore}/100</Text>
+            <Text style={[s.capLabel, { color: MUTED_FG }]}>SCORE BREAKDOWN</Text>
+            <Text style={[s.scoreCardHeaderVal, { color: MUTED_FG }]}>{scoreBreakdown.totalScore}/100</Text>
           </View>
           <View style={s.scoreBarsRow}>
             {[
-              { label: "Calories", score: scoreBreakdown.caloriesScore, max: 25, color: colors.blue },
-              { label: "Protein", score: scoreBreakdown.proteinScore, max: 25, color: colors.green },
-              { label: "Water", score: scoreBreakdown.waterScore, max: 20, color: colors.blue },
-              { label: "Workout", score: scoreBreakdown.workoutScore, max: 20, color: colors.amber },
-              { label: "Sleep", score: scoreBreakdown.sleepScore, max: 10, color: colors.blue },
+              { label: "Calories", score: scoreBreakdown.caloriesScore, max: 25, color: BLUE  },
+              { label: "Protein",  score: scoreBreakdown.proteinScore,  max: 25, color: GREEN },
+              { label: "Water",    score: scoreBreakdown.waterScore,    max: 20, color: BLUE  },
+              { label: "Workout",  score: scoreBreakdown.workoutScore,  max: 20, color: AMBER },
+              { label: "Sleep",    score: scoreBreakdown.sleepScore,    max: 10, color: BLUE  },
             ].map((item) => {
               const pct = item.max > 0 ? Math.round((item.score / item.max) * 100) : 0;
               return (
                 <View key={item.label} style={s.scoreBarCol}>
-                  <View style={[s.scoreBarTrack, { backgroundColor: colors.muted }]}>
+                  <View style={[s.scoreBarTrack, { backgroundColor: MUTED_BG }]}>
                     <View style={[s.scoreBarFill, { height: `${pct}%` as any, backgroundColor: item.color }]} />
-                    <Text style={[s.scoreBarNum, { color: colors.foreground }]}>{item.score}</Text>
+                    <Text style={[s.scoreBarNum, { color: FG }]}>{item.score}</Text>
                   </View>
-                  <Text style={[s.scoreBarLabel, { color: colors.mutedForeground }]}>{item.label}</Text>
+                  <Text style={[s.scoreBarLabel, { color: MUTED_FG }]}>{item.label}</Text>
                 </View>
               );
             })}
@@ -545,49 +552,47 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* ── Emergency Coach buttons ──────────────────────────────────────── */}
+      {/* ── Emergency Coach ───────────────────────────────────────────────── */}
       <View>
-        <Text style={[s.sectionLabel, { color: colors.mutedForeground }]}>EMERGENCY COACH</Text>
+        <Text style={[s.capLabel, { color: MUTED_FG, marginBottom: 10 }]}>EMERGENCY COACH</Text>
         <View style={s.emergencyGrid}>
           {([
-            { icon: "coffee", label: "Craving junk" },
-            { icon: "activity", label: "Missed workout" },
-            { icon: "scissors", label: "Overate today" },
-            { icon: "frown", label: "Unmotivated" },
-            { icon: "alert-triangle", label: "What to eat?" },
+            { icon: "coffee",         label: "Craving junk"   },
+            { icon: "activity",       label: "Missed workout" },
+            { icon: "scissors",       label: "Overate today"  },
+            { icon: "frown",          label: "Unmotivated"    },
+            { icon: "alert-triangle", label: "What to eat?"   },
           ] as const).map(({ icon, label }) => (
             <TouchableOpacity
               key={label}
-              style={[s.emergencyBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[s.emergencyBtn, { backgroundColor: CARD_BG, borderColor: CARD_BORDER }]}
               onPress={() => router.push("/(tabs)/coach" as any)}
               activeOpacity={0.8}
             >
-              <View style={[s.emergencyIconWrap, { backgroundColor: colors.amber + "1A" }]}>
-                <Feather name={icon} size={13} color={colors.amber} />
+              <View style={[s.emergencyIconWrap, { backgroundColor: AMBER + "1F" }]}>
+                <Feather name={icon} size={13} color={AMBER} />
               </View>
-              <Text style={[s.emergencyLabel, { color: colors.mutedForeground }]}>{label}</Text>
+              <Text style={[s.emergencyLabel, { color: MUTED_FG }]}>{label}</Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
-      {/* ── Daily Mission Checklist ──────────────────────────────────────── */}
+      {/* ── Daily Mission Checklist ───────────────────────────────────────── */}
       {habits.length > 0 && (
         <View>
           <View style={s.missionChecklistHeader}>
-            <Text style={[s.sectionLabel, { color: colors.mutedForeground }]}>DAILY MISSION</Text>
+            <Text style={[s.capLabel, { color: MUTED_FG }]}>DAILY MISSION</Text>
             <View style={s.missionChecklistRight}>
               {missionComplete && (
-                <View style={[s.missionCompleteBadge, { backgroundColor: colors.green + "22" }]}>
-                  <Text style={[s.missionCompleteBadgeText, { color: colors.green }]}>Complete</Text>
+                <View style={[s.missionCompleteBadge, { backgroundColor: GREEN + "22" }]}>
+                  <Text style={[s.missionCompleteBadgeText, { color: GREEN }]}>Complete</Text>
                 </View>
               )}
-              <Text style={[s.missionCount, { color: colors.mutedForeground }]}>
-                {checklistCompleted}/{habits.length}
-              </Text>
+              <Text style={[s.missionCount, { color: MUTED_FG }]}>{checklistCompleted}/{habits.length}</Text>
             </View>
           </View>
-          <View style={[s.checklistCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[s.checklistCard, { backgroundColor: CARD_BG, borderColor: CARD_BORDER }]}>
             {habits.map((habit, idx) => {
               const isDone = !!done[habit];
               return (
@@ -595,7 +600,7 @@ export default function HomeScreen() {
                   key={habit}
                   style={[
                     s.checklistRow,
-                    { borderBottomColor: colors.border },
+                    { borderBottomColor: CARD_BORDER },
                     idx === habits.length - 1 && { borderBottomWidth: 0 },
                   ]}
                   onPress={() => toggleHabit(habit)}
@@ -603,44 +608,45 @@ export default function HomeScreen() {
                 >
                   <View style={[
                     s.checkCircle,
-                    isDone ? { backgroundColor: colors.green, borderColor: colors.green } : { borderColor: colors.border },
+                    isDone
+                      ? { backgroundColor: GREEN, borderColor: GREEN }
+                      : { borderColor: CARD_BORDER },
                   ]}>
                     {isDone && <Feather name="check" size={11} color="#fff" />}
                   </View>
                   <Text style={[
                     s.checkLabel,
-                    { color: isDone ? colors.mutedForeground : colors.foreground,
+                    { color: isDone ? MUTED_FG : FG,
                       textDecorationLine: isDone ? "line-through" : "none" },
                   ]}>
                     {habit}
                   </Text>
-                  {isDone && (
-                    <Text style={[s.checkDoneTag, { color: colors.green }]}>Done</Text>
-                  )}
+                  {isDone && <Text style={[s.checkDoneTag, { color: GREEN }]}>Done</Text>}
                 </TouchableOpacity>
               );
             })}
           </View>
           {missionComplete && (
-            <Text style={[s.missionAllDoneNote, { color: colors.mutedForeground }]}>
+            <Text style={[s.missionAllDoneNote, { color: MUTED_FG }]}>
               All done. You're building the habit. Keep the streak going.
             </Text>
           )}
         </View>
       )}
 
-      {/* ── Fuel (Calories + Protein intake bars) ───────────────────────── */}
+      {/* ── Fuel — Calories (blue) + Protein (green) ─────────────────────── */}
       {planAny && (
         <View>
-          <Text style={[s.sectionLabel, { color: colors.mutedForeground }]}>FUEL</Text>
+          <Text style={[s.capLabel, { color: MUTED_FG, marginBottom: 10 }]}>FUEL</Text>
           <View style={s.fuelRow}>
             <IntakeBar
               icon="zap"
               label="Calories"
               eaten={todayCalories}
               target={planAny.calorieTarget ?? 0}
-              color={colors.amber}
-              colors={colors}
+              color={BLUE}
+              cardBg={CARD_BG}
+              cardBorder={CARD_BORDER}
             />
             <IntakeBar
               icon="activity"
@@ -648,36 +654,37 @@ export default function HomeScreen() {
               eaten={todayProtein}
               target={planAny.proteinTargetG ?? 0}
               unit="g"
-              color={colors.green}
-              colors={colors}
+              color={GREEN}
+              cardBg={CARD_BG}
+              cardBorder={CARD_BORDER}
             />
           </View>
         </View>
       )}
 
-      {/* ── Water Tracker ────────────────────────────────────────────────── */}
+      {/* ── Water Tracker ─────────────────────────────────────────────────── */}
       {planAny && (
-        <View style={[s.waterCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[s.waterCard, { backgroundColor: CARD_BG, borderColor: CARD_BORDER }]}>
           <View style={s.waterTop}>
-            <View style={[s.waterIconWrap, { backgroundColor: colors.blue + "22" }]}>
-              <Feather name="droplet" size={14} color={colors.blue} />
+            <View style={[s.waterIconWrap, { backgroundColor: BLUE + "1F" }]}>
+              <Feather name="droplet" size={14} color={BLUE} />
             </View>
-            <Text style={[s.waterLabelText, { color: colors.mutedForeground }]}>Hydration</Text>
+            <Text style={[s.waterLabelText, { color: MUTED_FG }]}>Hydration</Text>
             {waterTotalOz >= waterTargetOz && waterTargetOz > 0 && (
-              <View style={[s.waterMetBadge, { backgroundColor: colors.green + "22" }]}>
-                <Text style={[s.waterMetText, { color: colors.green }]}>Target Met ✓</Text>
+              <View style={[s.waterMetBadge, { backgroundColor: GREEN + "22" }]}>
+                <Text style={[s.waterMetText, { color: GREEN }]}>Target Met ✓</Text>
               </View>
             )}
-            {logWater.isPending && <ActivityIndicator size="small" color={colors.blue} />}
+            {logWater.isPending && <ActivityIndicator size="small" color={BLUE} />}
           </View>
-          <Text style={[s.waterOzBig, { color: colors.foreground }]}>
+          <Text style={[s.waterOzBig, { color: FG }]}>
             {waterTotalOz}
-            <Text style={[s.waterOzUnit, { color: colors.mutedForeground }]}> oz</Text>
-            <Text style={[s.waterOzTarget, { color: colors.mutedForeground }]}> / {waterTargetOz} oz</Text>
+            <Text style={[s.waterOzUnit, { color: MUTED_FG }]}> oz</Text>
+            <Text style={[s.waterOzTarget, { color: MUTED_FG }]}> / {waterTargetOz} oz</Text>
           </Text>
-          <View style={[s.waterTrack, { backgroundColor: colors.muted }]}>
-            <View style={[s.waterFill, {
-              backgroundColor: waterTotalOz >= waterTargetOz ? colors.green : colors.blue,
+          <View style={[s.track, { backgroundColor: MUTED_BG }]}>
+            <View style={[s.fill, {
+              backgroundColor: waterTotalOz >= waterTargetOz ? GREEN : BLUE,
               width: `${Math.min(100, waterTargetOz > 0 ? Math.round((waterTotalOz / waterTargetOz) * 100) : 0)}%` as any,
             }]} />
           </View>
@@ -685,125 +692,132 @@ export default function HomeScreen() {
             {[8, 16, 24].map((oz) => (
               <TouchableOpacity
                 key={oz}
-                style={[s.waterBtn, { backgroundColor: colors.blue + "18", borderColor: colors.blue + "33" }]}
+                style={[s.waterBtn, { backgroundColor: BLUE + "1A", borderColor: BLUE + "38" }]}
                 onPress={() => handleLogWater(oz)}
                 disabled={logWater.isPending}
                 activeOpacity={0.75}
               >
-                <Text style={[s.waterBtnText, { color: colors.blue }]}>+{oz} oz</Text>
+                <Text style={[s.waterBtnText, { color: BLUE }]}>+{oz} oz</Text>
               </TouchableOpacity>
             ))}
             <TouchableOpacity
-              style={[s.waterBtn, { backgroundColor: colors.muted, borderColor: colors.border }]}
-              onPress={() => setShowCustomWater(v => !v)}
+              style={[s.waterBtn, { backgroundColor: MUTED_BG, borderColor: CARD_BORDER }]}
+              onPress={() => setShowCustomWater((v) => !v)}
               activeOpacity={0.75}
             >
-              <Text style={[s.waterBtnText, { color: colors.mutedForeground }]}>Custom</Text>
+              <Text style={[s.waterBtnText, { color: MUTED_FG }]}>Custom</Text>
             </TouchableOpacity>
           </View>
           {showCustomWater && (
             <View style={s.customWaterRow}>
               <TextInput
-                style={[s.customWaterInput, { color: colors.foreground, backgroundColor: colors.muted, borderColor: colors.border }]}
-                placeholder="oz" placeholderTextColor={colors.mutedForeground}
+                style={[s.customWaterInput, { color: FG, backgroundColor: MUTED_BG, borderColor: CARD_BORDER }]}
+                placeholder="oz" placeholderTextColor={MUTED_FG}
                 value={customWaterOz} onChangeText={setCustomWaterOz}
                 keyboardType="decimal-pad" autoFocus
               />
-              <TouchableOpacity style={[s.customWaterBtn, { backgroundColor: colors.blue }]} onPress={handleCustomWater} activeOpacity={0.85}>
-                <Text style={[s.customWaterBtnText, { color: "#fff" }]}>Add</Text>
+              <TouchableOpacity
+                style={[s.customWaterBtn, { backgroundColor: BLUE }]}
+                onPress={handleCustomWater}
+                activeOpacity={0.85}
+              >
+                <Text style={s.customWaterBtnText}>Add</Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
       )}
 
-      {/* ── Targets ─────────────────────────────────────────────────────── */}
+      {/* ── Targets: Steps (green) · Sleep (blue) · Workouts (amber) ─────── */}
       {planAny && (
         <View>
-          <Text style={[s.sectionLabel, { color: colors.mutedForeground }]}>TARGETS</Text>
+          <Text style={[s.capLabel, { color: MUTED_FG, marginBottom: 10 }]}>TARGETS</Text>
           <View style={s.targetsRow}>
             <MetricCard
               icon="trending-up"
               value={(planAny.stepsTarget ?? 0).toLocaleString()}
               label="Steps"
-              color={colors.green}
-              colors={colors}
+              color={GREEN}
+              cardBg={CARD_BG}
+              cardBorder={CARD_BORDER}
             />
             <MetricCard
               icon="moon"
               value={planAny.sleepTargetHours ?? 8}
               unit="h"
               label="Sleep"
-              color={colors.blue}
-              colors={colors}
+              color={BLUE}
+              cardBg={CARD_BG}
+              cardBorder={CARD_BORDER}
             />
             <MetricCard
               icon="zap"
               value={profile?.workoutDaysPerWeek ?? planAny.workoutDaysPerWeek ?? 3}
               unit="x"
               label="Workouts/wk"
-              color={colors.amber}
-              colors={colors}
+              color={AMBER}
+              cardBg={CARD_BG}
+              cardBorder={CARD_BORDER}
             />
           </View>
         </View>
       )}
 
-      {/* ── Today's Training ─────────────────────────────────────────────── */}
+      {/* ── Today's Training ──────────────────────────────────────────────── */}
       <TouchableOpacity
-        style={[s.trainingCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={[s.trainingCard, { backgroundColor: CARD_BG, borderColor: CARD_BORDER }]}
         onPress={() => router.push("/(tabs)/workouts")}
         activeOpacity={0.85}
       >
-        <View style={[s.trainingIconWrap, { backgroundColor: colors.blue + "22" }]}>
-          <Feather name="activity" size={20} color={colors.blue} />
+        <View style={[s.trainingIconWrap, { backgroundColor: BLUE + "1F" }]}>
+          <Feather name="activity" size={20} color={BLUE} />
         </View>
         <View style={s.trainingInfo}>
-          <Text style={[s.trainingCaption, { color: colors.mutedForeground }]}>TRAINING</Text>
-          <Text style={[s.trainingName, { color: colors.foreground }]} numberOfLines={1}>
+          <Text style={[s.trainingCaption, { color: MUTED_FG }]}>TRAINING</Text>
+          <Text style={[s.trainingName, { color: FG }]} numberOfLines={1}>
             {todayWorkout?.name ?? "View Training Plan"}
           </Text>
           {todayWorkout && (
-            <Text style={[s.trainingMeta, { color: colors.mutedForeground }]}>
+            <Text style={[s.trainingMeta, { color: MUTED_FG }]}>
               {todayWorkout.type} · {todayWorkout.exercises?.length ?? 0} exercises
             </Text>
           )}
         </View>
-        <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        <Feather name="chevron-right" size={18} color={MUTED_FG} />
       </TouchableOpacity>
 
-      {/* ── Objectives (goals chips) ─────────────────────────────────────── */}
+      {/* ── Objectives chips ──────────────────────────────────────────────── */}
       {goals.length > 0 && (
         <View>
-          <Text style={[s.sectionLabel, { color: colors.mutedForeground }]}>OBJECTIVES</Text>
+          <Text style={[s.capLabel, { color: MUTED_FG, marginBottom: 10 }]}>OBJECTIVES</Text>
           <View style={s.goalsWrap}>
             {goals.map((g: string) => (
-              <View key={g} style={[s.goalChip, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-                <Text style={[s.goalChipText, { color: colors.mutedForeground }]}>{g}</Text>
+              <View key={g} style={[s.goalChip, { backgroundColor: MUTED_BG, borderColor: CARD_BORDER }]}>
+                <Text style={[s.goalChipText, { color: MUTED_FG }]}>{g}</Text>
               </View>
             ))}
           </View>
         </View>
       )}
 
-      {/* ── Quick Links (4-col, matches web) ────────────────────────────── */}
+      {/* ── Quick Links 4-col ─────────────────────────────────────────────── */}
       <View>
-        <Text style={[s.sectionLabel, { color: colors.mutedForeground }]}>QUICK LINKS</Text>
+        <Text style={[s.capLabel, { color: MUTED_FG, marginBottom: 10 }]}>QUICK LINKS</Text>
         <View style={s.quickLinksRow}>
           {([
-            { icon: "coffee", label: "Meal", path: "/(tabs)/meals" },
-            { icon: "message-square", label: "Coach", path: "/(tabs)/coach" },
-            { icon: "book-open", label: "Journal", path: "/(tabs)/journal" },
-            { icon: "activity", label: "Train", path: "/(tabs)/workouts" },
+            { icon: "coffee",         label: "Meal",    path: "/(tabs)/meals"    },
+            { icon: "message-square", label: "Coach",   path: "/(tabs)/coach"   },
+            { icon: "book-open",      label: "Journal", path: "/(tabs)/journal" },
+            { icon: "activity",       label: "Train",   path: "/(tabs)/workouts"},
           ] as const).map(({ icon, label, path }) => (
             <TouchableOpacity
               key={label}
-              style={[s.quickLink, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[s.quickLink, { backgroundColor: CARD_BG, borderColor: CARD_BORDER }]}
               onPress={() => router.push(path as any)}
               activeOpacity={0.75}
             >
-              <Feather name={icon} size={18} color={colors.mutedForeground} />
-              <Text style={[s.quickLinkLabel, { color: colors.mutedForeground }]}>{label}</Text>
+              <Feather name={icon} size={18} color={MUTED_FG} />
+              <Text style={[s.quickLinkLabel, { color: MUTED_FG }]}>{label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -841,11 +855,10 @@ const s = StyleSheet.create({
   missionLinkLabel: { fontSize: 9, fontFamily: "Inter_500Medium", marginBottom: 2 },
   missionLinkTitle: { fontSize: 14, fontFamily: "Inter_700Bold" },
 
-  // Proof of Change
+  // Proof / Consistency
   proofCard: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
   proofTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
   proofLeft: { flex: 1, gap: 4 },
-  proofSectionLabel: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
   proofMetricRow: { flexDirection: "row", alignItems: "baseline", gap: 2 },
   proofBigNum: { fontSize: 24, fontFamily: "Inter_700Bold", lineHeight: 28 },
   proofUnit: { fontSize: 11, fontFamily: "Inter_400Regular" },
@@ -853,9 +866,11 @@ const s = StyleSheet.create({
   proofSub: { fontSize: 11, fontFamily: "Inter_400Regular" },
   proofLink: { fontSize: 12, fontFamily: "Inter_700Bold" },
   proofBarWrap: { gap: 4 },
-  proofTrack: { height: 6, borderRadius: 3, overflow: "hidden" },
-  proofFill: { height: 6, borderRadius: 3 },
-  proofBarLabel: { fontSize: 9, fontFamily: "Inter_400Regular" },
+  barLabel: { fontSize: 9, fontFamily: "Inter_400Regular" },
+
+  // Shared progress bar
+  track: { height: 6, borderRadius: 3, overflow: "hidden" },
+  fill: { height: 6, borderRadius: 3 },
 
   // Mission Active / Complete
   missionCompleteCard: { flexDirection: "row", alignItems: "flex-start", gap: 12, borderRadius: 16, borderWidth: 1, padding: 16 },
@@ -874,7 +889,6 @@ const s = StyleSheet.create({
   // Score Breakdown
   scoreCard: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
   scoreCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  scoreCardHeaderLabel: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
   scoreCardHeaderVal: { fontSize: 10, fontFamily: "Inter_700Bold" },
   scoreBarsRow: { flexDirection: "row", gap: 8 },
   scoreBarCol: { flex: 1, alignItems: "center", gap: 6 },
@@ -883,17 +897,17 @@ const s = StyleSheet.create({
   scoreBarNum: { fontSize: 12, fontFamily: "Inter_700Bold", zIndex: 1 },
   scoreBarLabel: { fontSize: 8, fontFamily: "Inter_500Medium", textAlign: "center" },
 
-  // Section label
-  sectionLabel: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.8, marginBottom: 4 },
+  // Shared caps label
+  capLabel: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.8 },
 
   // Emergency Coach
   emergencyGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  emergencyBtn: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10, width: "30%" as any, flexGrow: 1 },
+  emergencyBtn: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10, minWidth: "30%", flexGrow: 1 },
   emergencyIconWrap: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   emergencyLabel: { fontSize: 11, fontFamily: "Inter_500Medium", flex: 1, lineHeight: 14 },
 
   // Daily Mission Checklist
-  missionChecklistHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
+  missionChecklistHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
   missionChecklistRight: { flexDirection: "row", alignItems: "center", gap: 8 },
   missionCompleteBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   missionCompleteBadgeText: { fontSize: 8, fontFamily: "Inter_500Medium" },
@@ -905,7 +919,7 @@ const s = StyleSheet.create({
   checkDoneTag: { fontSize: 8, fontFamily: "Inter_500Medium" },
   missionAllDoneNote: { fontSize: 10, fontFamily: "Inter_500Medium", textAlign: "center", marginTop: 8 },
 
-  // Fuel (intake bars)
+  // Fuel
   fuelRow: { flexDirection: "row", gap: 12 },
 
   // Water Tracker
@@ -918,15 +932,13 @@ const s = StyleSheet.create({
   waterOzBig: { fontSize: 24, fontFamily: "Inter_700Bold", lineHeight: 28 },
   waterOzUnit: { fontSize: 12, fontFamily: "Inter_500Medium" },
   waterOzTarget: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  waterTrack: { height: 6, borderRadius: 3, overflow: "hidden" },
-  waterFill: { height: 6, borderRadius: 3 },
   waterBtns: { flexDirection: "row", gap: 8 },
   waterBtn: { flex: 1, paddingVertical: 8, borderRadius: 12, borderWidth: 1, alignItems: "center" },
   waterBtnText: { fontSize: 12, fontFamily: "Inter_500Medium" },
   customWaterRow: { flexDirection: "row", gap: 8 },
   customWaterInput: { flex: 1, height: 40, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 14, fontFamily: "Inter_400Regular" },
   customWaterBtn: { width: 64, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  customWaterBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  customWaterBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
 
   // Targets
   targetsRow: { flexDirection: "row", gap: 10 },
