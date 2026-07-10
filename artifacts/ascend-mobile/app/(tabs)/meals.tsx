@@ -27,13 +27,19 @@ import {
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
 
+const GOAL_OPTIONS = [
+  { value: "fat_loss", label: "Lose Weight" },
+  { value: "maintain", label: "Maintain" },
+  { value: "muscle_gain", label: "Gain Weight / Muscle" },
+];
+
 const PREFERENCES = [
-  { label: "High Protein", value: "high protein" },
+  { label: "High Protein", value: "high_protein" },
   { label: "Cheap", value: "cheap" },
   { label: "Quick", value: "quick" },
-  { label: "No Cooking", value: "no cooking" },
-  { label: "School Friendly", value: "school friendly" },
-  { label: "Athlete Friendly", value: "athlete friendly" },
+  { label: "No Cooking", value: "no_cooking" },
+  { label: "School Friendly", value: "school_friendly" },
+  { label: "Athlete Friendly", value: "athlete_friendly" },
 ];
 
 type MealEntry = {
@@ -72,6 +78,7 @@ export default function MealsScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Generator form
+  const [genGoal, setGenGoal] = useState("fat_loss");
   const [genMealType, setGenMealType] = useState("breakfast");
   const [genPreference, setGenPreference] = useState("");
   const [genAvailableFoods, setGenAvailableFoods] = useState("");
@@ -128,8 +135,9 @@ export default function MealsScreen() {
     try {
       const result = await generateMeals.mutateAsync({
         data: {
-          mealType: genMealType,
-          ...(genPreference ? { preference: genPreference } : {}),
+          goal: genGoal as any,
+          mealType: genMealType as any,
+          ...(genPreference ? { preference: genPreference as any } : {}),
           ...(genAvailableFoods.trim() ? { availableFoods: genAvailableFoods.trim() } : {}),
         },
       } as any);
@@ -315,6 +323,19 @@ export default function MealsScreen() {
               <Text style={[styles.genHeroText, { color: colors.foreground }]}>
                 Your AI coach will generate a meal plan tailored to your goals and macro targets.
               </Text>
+            </View>
+
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Goal</Text>
+            <View style={styles.chipRow}>
+              {GOAL_OPTIONS.map((g) => (
+                <TouchableOpacity
+                  key={g.value}
+                  style={[styles.chipBtn, { backgroundColor: genGoal === g.value ? colors.primary : colors.card, borderColor: genGoal === g.value ? colors.primary : colors.border }]}
+                  onPress={() => setGenGoal(g.value)}
+                >
+                  <Text style={[styles.chipBtnText, { color: genGoal === g.value ? colors.primaryForeground : colors.mutedForeground }]}>{g.label}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
 
             <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Meal Type</Text>

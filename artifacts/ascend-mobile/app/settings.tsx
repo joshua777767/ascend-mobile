@@ -149,6 +149,15 @@ export default function SettingsScreen() {
           </Text>
         </View>
 
+        <Section title="Profile">
+          <Row
+            icon="user"
+            label="Edit Profile"
+            sublabel="Update goals, body stats, training & more"
+            onPress={() => router.push("/edit-profile")}
+          />
+        </Section>
+
         <Section title="Legal">
           <Row
             icon="file-text"

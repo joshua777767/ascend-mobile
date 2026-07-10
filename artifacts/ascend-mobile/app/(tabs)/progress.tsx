@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Modal,
   RefreshControl,
@@ -16,6 +17,7 @@ import Svg, { Circle, Polyline, Line, Text as SvgText } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { SectionHeader } from "@/components/SectionHeader";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useListWeighIns,
   useCreateWeighIn,
@@ -25,6 +27,10 @@ import {
   useGetDailyScoreHistory,
   useListGoalCheckIns,
   useCreateGoalCheckIn,
+  useGetMilestones,
+  useUpdateGoal,
+  getGetProgressSummaryQueryKey,
+  getGetUserProfileQueryKey,
 } from "@workspace/api-client-react";
 
 // ─── Unit conversion helpers ───────────────────────────────────────────────────
@@ -135,14 +141,17 @@ export default function ProgressScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
+  const queryClient = useQueryClient();
   const { data: weighInsData, isLoading, refetch } = useListWeighIns();
   const { data: progressData, refetch: refetchProgress } = useGetProgressSummary();
   const { data: weeklyRecapData, refetch: refetchRecap } = useGetWeeklyRecap();
   const { data: weeklyReviewData, refetch: refetchReview } = useGetWeeklyReview();
   const { data: scoreHistoryData, refetch: refetchScoreHistory } = useGetDailyScoreHistory();
   const { data: checkInsData, refetch: refetchCheckIns } = useListGoalCheckIns();
+  const { data: milestonesData } = useGetMilestones();
   const addWeighIn = useCreateWeighIn();
   const addCheckIn = useCreateGoalCheckIn();
+  const updateGoal = useUpdateGoal();
 
   const rawWeighIns: WeighIn[] = (weighInsData as any) ?? [];
   const progress = progressData as any;
@@ -153,6 +162,9 @@ export default function ProgressScreen() {
 
   const [showWeighModal, setShowWeighModal] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [newGoalWeightLbs, setNewGoalWeightLbs] = useState("");
+  const [showGoalSet, setShowGoalSet] = useState(false);
+  const [isSettingGoal, setIsSettingGoal] = useState(false);
   const [weight, setWeight] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -187,6 +199,23 @@ export default function ProgressScreen() {
       refetchCheckIns();
     } catch {}
     finally { setIsSubmitting(false); }
+  };
+
+  const handleSetNewGoal = async () => {
+    const val = parseFloat(newGoalWeightLbs);
+    if (!newGoalWeightLbs || isNaN(val)) return;
+    setIsSettingGoal(true);
+    try {
+      await updateGoal.mutateAsync({ data: { goalWeightKg: lbsToKg(val), goals: ["fat loss"] as any } });
+      queryClient.invalidateQueries({ queryKey: getGetProgressSummaryQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetUserProfileQueryKey() });
+      setNewGoalWeightLbs("");
+      setShowGoalSet(false);
+    } catch {
+      Alert.alert("Error", "Could not update goal. Please try again.");
+    } finally {
+      setIsSettingGoal(false);
+    }
   };
 
   const refetchAll = () => { refetch(); refetchProgress(); refetchRecap(); refetchReview(); refetchCheckIns(); refetchScoreHistory(); };
@@ -276,6 +305,44 @@ export default function ProgressScreen() {
               <View style={[styles.statChip, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <Text style={[styles.statValue, { color: colors.green }]}>{Math.round(progress.avgDailyScore)}</Text>
                 <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>avg score</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {progress?.goalReached && progress?.goalWeightKg && (
+          <View style={[styles.goalReachedCard, { backgroundColor: colors.amber + "18", borderColor: colors.amber + "55" }]}>
+            <Text style={styles.goalReachedEmoji}>🏆</Text>
+            <Text style={[styles.goalReachedTitle, { color: colors.amber }]}>Goal Reached!</Text>
+            <Text style={[styles.goalReachedSub, { color: colors.mutedForeground }]}>
+              You hit your goal weight of {kgToLbs(progress.goalWeightKg)} lbs. Time to set a new one!
+            </Text>
+            {!showGoalSet ? (
+              <TouchableOpacity
+                style={[styles.goalReachedBtn, { backgroundColor: colors.primary }]}
+                onPress={() => setShowGoalSet(true)}
+              >
+                <Text style={[styles.goalReachedBtnText, { color: colors.primaryForeground }]}>Set New Goal</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.goalSetRow}>
+                <TextInput
+                  style={[styles.goalSetInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground }]}
+                  placeholder="New goal (lbs)"
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType="numeric"
+                  value={newGoalWeightLbs}
+                  onChangeText={setNewGoalWeightLbs}
+                />
+                <TouchableOpacity
+                  style={[styles.goalReachedBtn, { backgroundColor: colors.primary, opacity: isSettingGoal ? 0.6 : 1 }]}
+                  onPress={handleSetNewGoal}
+                  disabled={isSettingGoal}
+                >
+                  <Text style={[styles.goalReachedBtnText, { color: colors.primaryForeground }]}>
+                    {isSettingGoal ? "Saving…" : "Save"}
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -433,6 +500,46 @@ export default function ProgressScreen() {
           </>
         )}
 
+        {milestonesData && (Array.isArray(milestonesData) ? milestonesData : (milestonesData as any)?.milestones ?? []).length > 0 && (() => {
+          const milestones: any[] = Array.isArray(milestonesData) ? milestonesData : (milestonesData as any)?.milestones ?? [];
+          const unlocked = milestones.filter((m: any) => m.unlockedAt);
+          const locked = milestones.filter((m: any) => !m.unlockedAt);
+          const MILESTONE_COLORS: Record<string, string> = {
+            streak: colors.amber,
+            weight: colors.green,
+            meals: colors.blue,
+            consistency: "#a855f7",
+          };
+          const MILESTONE_ICONS: Record<string, string> = {
+            streak: "🔥",
+            weight: "⚖️",
+            meals: "🥗",
+            consistency: "📓",
+          };
+          return (
+            <>
+              <SectionHeader title={`Milestones · ${unlocked.length} unlocked`} />
+              <View style={styles.milestonesGrid}>
+                {unlocked.map((m: any, i: number) => {
+                  const cat = m.category ?? "streak";
+                  return (
+                    <View key={m.id ?? i} style={[styles.milestonePill, { backgroundColor: MILESTONE_COLORS[cat] + "22", borderColor: MILESTONE_COLORS[cat] + "55" }]}>
+                      <Text style={styles.milestoneIcon}>{MILESTONE_ICONS[cat] ?? "🏅"}</Text>
+                      <Text style={[styles.milestoneLabel, { color: MILESTONE_COLORS[cat] }]} numberOfLines={2}>{m.label ?? m.name ?? m.type}</Text>
+                    </View>
+                  );
+                })}
+                {locked.map((m: any, i: number) => (
+                  <View key={`locked-${i}`} style={[styles.milestonePill, { backgroundColor: colors.card, borderColor: colors.border, opacity: 0.45 }]}>
+                    <Text style={styles.milestoneIcon}>🔒</Text>
+                    <Text style={[styles.milestoneLabel, { color: colors.mutedForeground }]} numberOfLines={2}>{m.label ?? m.name ?? m.type}</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          );
+        })()}
+
         {rawWeighIns.length === 0 ? (
           <View style={styles.emptyState}>
             <Feather name="activity" size={44} color={colors.mutedForeground} />
@@ -580,6 +687,18 @@ const styles = StyleSheet.create({
   recapFix: { flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 10, borderRadius: 10, borderWidth: 1 },
   recapFixText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 },
   recapSummary: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20, marginTop: 4 },
+  goalReachedCard: { borderRadius: 20, borderWidth: 1, padding: 24, marginBottom: 16, alignItems: "center", gap: 8 },
+  goalReachedEmoji: { fontSize: 40, marginBottom: 4 },
+  goalReachedTitle: { fontSize: 22, fontFamily: "SpaceMono", fontWeight: "700" },
+  goalReachedSub: { fontSize: 14, textAlign: "center", lineHeight: 20 },
+  goalReachedBtn: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12, marginTop: 4 },
+  goalReachedBtnText: { fontSize: 14, fontWeight: "600" },
+  goalSetRow: { flexDirection: "row", gap: 8, alignItems: "center", marginTop: 4 },
+  goalSetInput: { flex: 1, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, fontSize: 15 },
+  milestonesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 },
+  milestonePill: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, maxWidth: "47%" },
+  milestoneIcon: { fontSize: 16 },
+  milestoneLabel: { fontSize: 12, fontWeight: "600", flexShrink: 1 },
   checkInRow: { flexDirection: "row", alignItems: "center", borderRadius: 12, borderWidth: 1, padding: 14, gap: 12, marginBottom: 8 },
   checkInDot: { width: 8, height: 8, borderRadius: 4 },
   checkInMetric: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
