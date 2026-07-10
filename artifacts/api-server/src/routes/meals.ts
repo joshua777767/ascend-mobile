@@ -13,8 +13,8 @@ interface DetectedFood {
   serving: string;
   calories: number;
   protein: number;
-  carbs?: number;
-  fat?: number;
+  carbs: number;
+  fat: number;
 }
 
 interface MealFeedback {
@@ -619,8 +619,8 @@ Examples:
         serving: String(f.serving ?? ""),
         calories: typeof f.calories === "number" ? Math.round(f.calories) : 0,
         protein: typeof f.protein === "number" ? Math.round(f.protein) : 0,
-        ...(typeof f.carbs === "number" ? { carbs: Math.round(f.carbs) } : {}),
-        ...(typeof f.fat === "number" ? { fat: Math.round(f.fat) } : {}),
+        carbs: typeof f.carbs === "number" ? Math.round(f.carbs) : 0,
+        fat: typeof f.fat === "number" ? Math.round(f.fat) : 0,
       }));
     }
 
@@ -720,6 +720,12 @@ router.post("/meals", async (req, res): Promise<void> => {
       : null,
     protein: feedback.detectedFoods
       ? feedback.detectedFoods.reduce((s, f) => s + f.protein, 0)
+      : null,
+    carbs: feedback.detectedFoods
+      ? feedback.detectedFoods.reduce((s, f) => s + f.carbs, 0)
+      : null,
+    fat: feedback.detectedFoods
+      ? feedback.detectedFoods.reduce((s, f) => s + f.fat, 0)
       : null,
   }).returning();
 

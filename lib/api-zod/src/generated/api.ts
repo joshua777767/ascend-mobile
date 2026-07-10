@@ -500,7 +500,9 @@ export const ListMealsResponseItem = zod.object({
   "whatToFixNext": zod.string().nullish(),
   "detectedFoodsJson": zod.string().nullish(),
   "calories": zod.number().nullish(),
-  "protein": zod.number().nullish()
+  "protein": zod.number().nullish(),
+  "carbs": zod.number().nullish(),
+  "fat": zod.number().nullish()
 })
 export const ListMealsResponse = zod.array(ListMealsResponseItem)
 
@@ -531,7 +533,9 @@ export const GetTodayMealsResponseItem = zod.object({
   "whatToFixNext": zod.string().nullish(),
   "detectedFoodsJson": zod.string().nullish(),
   "calories": zod.number().nullish(),
-  "protein": zod.number().nullish()
+  "protein": zod.number().nullish(),
+  "carbs": zod.number().nullish(),
+  "fat": zod.number().nullish()
 })
 export const GetTodayMealsResponse = zod.array(GetTodayMealsResponseItem)
 
@@ -826,7 +830,9 @@ export const GetProgressSummaryResponse = zod.object({
   "whatToFixNext": zod.string().nullish(),
   "detectedFoodsJson": zod.string().nullish(),
   "calories": zod.number().nullish(),
-  "protein": zod.number().nullish()
+  "protein": zod.number().nullish(),
+  "carbs": zod.number().nullish(),
+  "fat": zod.number().nullish()
 }))
 })
 

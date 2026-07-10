@@ -1515,6 +1515,10 @@ components:
           type: ["integer", "null"]
         protein:
           type: ["integer", "null"]
+        carbs:
+          type: ["integer", "null"]
+        fat:
+          type: ["integer", "null"]
 
     MealInput:
       type: object

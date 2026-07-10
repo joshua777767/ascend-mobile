@@ -1,5 +1,4 @@
 import { Feather } from "@expo/vector-icons";
-import { fetch } from "expo/fetch";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
@@ -67,55 +66,19 @@ export default function CoachScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const assistantId = (Date.now() + 1).toString();
-    setLocalMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
+    setLocalMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "…" }]);
 
     try {
-      const base = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
-      const res = await fetch(`${base}/api/chat`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: currentInput }),
-      });
-
-      let full = "";
-      if (res.ok && res.body) {
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          for (const line of chunk.split("\n")) {
-            if (line.startsWith("data: ")) {
-              const txt = line.slice(6);
-              if (txt === "[DONE]") continue;
-              try {
-                const delta = JSON.parse(txt)?.choices?.[0]?.delta?.content ?? "";
-                if (delta) {
-                  full += delta;
-                  setLocalMessages((prev) =>
-                    prev.map((m) => (m.id === assistantId ? { ...m, content: full } : m))
-                  );
-                }
-              } catch {}
-            }
-          }
-        }
-      }
-
-      if (!full) {
-        const result = await sendMessage.mutateAsync({ data: { message: currentInput } });
-        const reply = (result as any)?.message ?? (result as any)?.response ?? "I'm here to help!";
-        setLocalMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, content: reply } : m))
-        );
-      }
+      const result = await sendMessage.mutateAsync({ data: { message: currentInput } });
+      const reply = (result as any)?.reply ?? (result as any)?.message ?? "Couldn't respond — tap to retry";
+      setLocalMessages((prev) =>
+        prev.map((m) => (m.id === assistantId ? { ...m, content: reply } : m))
+      );
     } catch {
       setLocalMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? { ...m, content: "Sorry, I couldn't respond right now. Please try again." }
+            ? { ...m, content: "Couldn't respond — tap to retry" }
             : m
         )
       );

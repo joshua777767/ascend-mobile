@@ -320,7 +320,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     calorieTarget = Math.max(calorieFloor, tdee - deficit);
     // Protein from the lower of current or goal weight, capped at 2.2g/kg (1.0g/lb)
     const proteinBaseKg = Math.min(weightKg, profile.goalWeightKg);
-    proteinTargetG = Math.round(proteinBaseKg * 2.2);
+    proteinTargetG = Math.min(Math.round(proteinBaseKg * 2.2), 250);
 
     const actualLbsPerWeek = deficit / 500;
     const paceStr = actualLbsPerWeek >= 1.85 ? "~2 lb / week"
@@ -352,7 +352,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
 
     calorieTarget = tdee + surplus;
     // Protein from goal weight, capped at 2.2g/kg (1.0g/lb)
-    proteinTargetG = Math.round(profile.goalWeightKg * 2.2);
+    proteinTargetG = Math.min(Math.round(profile.goalWeightKg * 2.2), 250);
 
     const actualLbsPerWeek = surplus / 500;
     const paceStr = actualLbsPerWeek >= 0.85 ? "~1 lb / week (lean bulk)"
@@ -368,11 +368,11 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     const surplus = isCasual ? 75 : 100;
     calorieTarget = tdee + surplus;
     // High protein drives recomp — use current weight at 2.2g/kg
-    proteinTargetG = Math.round(weightKg * 2.2);
+    proteinTargetG = Math.min(Math.round(weightKg * 2.2), 250);
     weeklyPace = "Recomp: build muscle & reduce body fat simultaneously";
   } else {
     calorieTarget = tdee;
-    proteinTargetG = Math.round(weightKg * 2.0);
+    proteinTargetG = Math.min(Math.round(weightKg * 2.0), 250);
     weeklyPace = "Maintain current weight";
   }
 

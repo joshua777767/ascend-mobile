@@ -319,6 +319,10 @@ export interface Meal {
   calories?: number | null;
   /** @nullable */
   protein?: number | null;
+  /** @nullable */
+  carbs?: number | null;
+  /** @nullable */
+  fat?: number | null;
 }
 
 /**

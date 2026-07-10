@@ -17,6 +17,8 @@ export const mealsTable = pgTable("meals", {
   detectedFoodsJson: text("detected_foods_json"),
   calories: integer("calories"),
   protein: integer("protein"),
+  carbs: integer("carbs"),
+  fat: integer("fat"),
 });
 
 export const insertMealSchema = createInsertSchema(mealsTable).omit({ id: true });

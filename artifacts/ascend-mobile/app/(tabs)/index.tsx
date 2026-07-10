@@ -153,12 +153,11 @@ export default function HomeScreen() {
 
   const refetch = () => { refetchPlan(); refetchStreak(); refetchMeals(); refetchWater(); refetchScore(); };
 
-  const todayCalories = recentMeals
-    .filter((m: any) => isToday(m.createdAt))
-    .reduce((sum: number, m: any) => sum + (m.calories ?? 0), 0);
-  const todayProtein = recentMeals
-    .filter((m: any) => isToday(m.createdAt))
-    .reduce((sum: number, m: any) => sum + (m.protein ?? 0), 0);
+  const todayMeals = recentMeals.filter((m: any) => isToday(m.loggedAt));
+  const todayCalories = todayMeals.reduce((sum: number, m: any) => sum + (m.calories ?? 0), 0);
+  const todayProtein = todayMeals.reduce((sum: number, m: any) => sum + (m.protein ?? 0), 0);
+  const todayCarbs = todayMeals.reduce((sum: number, m: any) => sum + (m.carbs ?? 0), 0);
+  const todayFat = todayMeals.reduce((sum: number, m: any) => sum + (m.fat ?? 0), 0);
 
   const waterTotalOz: number = (waterData as any)?.totalOz ?? 0;
   const waterTargetOz: number = (waterData as any)?.targetOz ?? 64;
@@ -290,6 +289,20 @@ export default function HomeScreen() {
               value={`${todayProtein}g`}
               unit={`/ ${(plan as any).dailyProteinTarget ?? "—"}g`}
               color={colors.blue}
+            />
+          </View>
+          <View style={styles.statsRow}>
+            <StatCard
+              label="Carbs"
+              value={`${todayCarbs}g`}
+              unit="today"
+              color={colors.green}
+            />
+            <StatCard
+              label="Fat"
+              value={`${todayFat}g`}
+              unit="today"
+              color={colors.purple}
             />
           </View>
 

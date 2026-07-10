@@ -19,10 +19,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useListMeals,
   useCreateMeal,
   useGenerateMeals,
+  getListMealsQueryKey,
 } from "@workspace/api-client-react";
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
@@ -64,6 +66,7 @@ export default function MealsScreen() {
   const insets = useSafeAreaInsets();
   const { isPro } = useSubscription();
 
+  const queryClient = useQueryClient();
   const { data: mealsData, isLoading, refetch } = useListMeals();
   const meals: MealEntry[] = (mealsData as any) ?? [];
   const logMeal = useCreateMeal();
@@ -132,7 +135,7 @@ export default function MealsScreen() {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowLogModal(false);
       setDescription(""); setImageUri(null); setImageDataUri(null);
-      refetch();
+      await queryClient.invalidateQueries({ queryKey: getListMealsQueryKey() });
     } catch (e: any) {
       Alert.alert("Error", e?.message ?? "Failed to log meal");
     } finally {

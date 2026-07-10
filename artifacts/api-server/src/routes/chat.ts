@@ -422,6 +422,25 @@ function heuristicReply(message: string, ctx: ChatContext): string {
     return "Motivation comes and goes — that's normal, don't wait for it. Do the next small action: one meal, one workout, one early night. Action creates momentum, not the other way around. Keep stacking small wins.";
   }
 
+  // 17b. Profile stats — weight, protein target, calorie target
+  if (has(m, ["how much do i weigh", "what is my weight", "what's my weight", "what do i weigh", "how heavy am i", "tell me my weight", "my current weight"])) {
+    if (ctx.profile) {
+      const currentLbs = Math.round(ctx.profile.currentWeightKg * 2.2);
+      const goalLbs = Math.round(ctx.profile.goalWeightKg * 2.2);
+      return `Based on your profile: ${currentLbs} lbs (${ctx.profile.currentWeightKg} kg). Your goal weight is ${goalLbs} lbs. Log a weigh-in on the Progress tab to keep this current.`;
+    }
+  }
+  if (has(m, ["how much protein", "protein target", "protein goal", "what is my protein", "protein should i eat", "protein should i have", "my protein"])) {
+    if (ctx.proteinTarget) {
+      return `Your protein target is ${ctx.proteinTarget}g per day. ${ctx.calorieTarget ? `Your calorie target is ${ctx.calorieTarget} cal/day.` : ""} Hit protein every meal — it's the most important number on your plan.`;
+    }
+  }
+  if (has(m, ["how many calories", "calorie target", "calorie goal", "what is my calorie", "calories should i eat", "calories should i have", "my calories", "daily calories", "daily calorie"])) {
+    if (ctx.calorieTarget) {
+      return `Your daily calorie target is ${ctx.calorieTarget} cal. ${ctx.proteinTarget ? `Within that, prioritise ${ctx.proteinTarget}g protein.` : ""} Log every meal to stay on track.`;
+    }
+  }
+
   // 18. Default — reference the user's actual selected goals and combine them
   //     into one mission, mirroring the system-prompt behavior.
   if (ctx.goals.length > 0) {
@@ -755,6 +774,11 @@ Always reference weight in lbs. Never kg.`;
     reply = response.choices[0]?.message?.content?.trim() || heuristicReply(parsed.data.message, ctx);
   } catch (err) {
     logger.warn({ err }, "AI coach chat unavailable, using heuristic fallback");
+    reply = heuristicReply(parsed.data.message, ctx);
+  }
+
+  // Post-process: reject generic opener phrases — they mean the AI gave a non-answer
+  if (/i'?m here to help/i.test(reply)) {
     reply = heuristicReply(parsed.data.message, ctx);
   }
 

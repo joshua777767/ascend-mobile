@@ -47,11 +47,27 @@ router.get("/users/profile", async (req, res): Promise<void> => {
   res.json(parseProfileArrays(profile));
 });
 
+function validateWeights(body: any): string | null {
+  if (body.currentWeightKg !== undefined && (body.currentWeightKg < 20 || body.currentWeightKg > 300)) {
+    return "Current weight must be between 20 and 300 kg. Please verify your entry.";
+  }
+  if (body.goalWeightKg !== undefined && (body.goalWeightKg < 20 || body.goalWeightKg > 300)) {
+    return "Goal weight must be between 20 and 300 kg. Please verify your entry.";
+  }
+  return null;
+}
+
 router.post("/users/profile", async (req, res): Promise<void> => {
   const userId = getUserId(req);
   const parsed = CreateUserProfileBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const weightError = validateWeights(parsed.data);
+  if (weightError) {
+    res.status(400).json({ error: weightError });
     return;
   }
 
@@ -82,6 +98,12 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
   const parsed = UpdateUserProfileBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const weightError = validateWeights(parsed.data);
+  if (weightError) {
+    res.status(400).json({ error: weightError });
     return;
   }
 
