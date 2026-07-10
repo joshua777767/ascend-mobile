@@ -325,6 +325,19 @@ export function SubscriptionProvider({
           console.log("[RC:purchase] cancelled by user");
           return false;
         }
+        const code = e?.code ?? e?.errorCode ?? "";
+        const msg = e?.message ?? "";
+        // Apple says the subscription is already owned (previous purchase from
+        // another TestFlight build). Auto-restore so the user isn't stuck.
+        if (
+          code === "6" ||
+          code === "PRODUCT_ALREADY_OWNED" ||
+          msg.includes("already own") ||
+          msg.includes("already purchased")
+        ) {
+          console.log("[RC:purchase] already owned — auto-restoring …");
+          return await restore();
+        }
         console.error("[RC:purchase] failed:", e?.message ?? e);
         throw e;
       }
