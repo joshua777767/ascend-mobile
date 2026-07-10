@@ -286,6 +286,78 @@ export function SubscriptionProvider({
     return () => sub.remove();
   }, [refresh]);
 
+  // restore is defined before purchase so purchase can reference it in its
+  // dependency array without hitting a temporal dead zone error.
+  const restore = useCallback(async (): Promise<boolean> => {
+    console.log("[RC:restore] starting restore …");
+    try {
+      // Ensure the user is identified before restoring so the same App User ID
+      // is used consistently (matches the ID active at purchase time).
+      if (userId) {
+        try {
+          const { customerInfo: loginInfo } = await Purchases.logIn(
+            String(userId)
+          );
+          console.log(
+            "[RC:restore] logIn OK — userId:",
+            userId,
+            "| entitlements:",
+            Object.keys(loginInfo.entitlements.active)
+          );
+        } catch (e: any) {
+          console.error("[RC:restore] logIn FAILED:", e?.message ?? e);
+        }
+      }
+
+      // restorePurchases() returns the updated CustomerInfo directly.
+      // We log every entitlement it reports before any further polling.
+      const restoredInfo = await Purchases.restorePurchases();
+      console.log(
+        "[RC:restore] restorePurchases() returned — all active entitlements:",
+        Object.keys(restoredInfo.entitlements.active)
+      );
+      setCustomerInfo(restoredInfo);
+
+      const active =
+        restoredInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+      console.log("[RC:restore] entitlement check (restorePurchases) — isPro:", active);
+      if (active) return true;
+
+      // If the immediate result is not active, poll getCustomerInfo()
+      // up to 5 times with longer delays (Apple sandbox is slower).
+      let info: CustomerInfo | null = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        if (attempt > 0) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+        info = await Purchases.getCustomerInfo();
+        const attemptActive =
+          info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+        console.log(
+          "[RC:restore] entitlement check attempt",
+          attempt + 1,
+          "— isPro:",
+          attemptActive,
+          "| all active:",
+          Object.keys(info.entitlements.active)
+        );
+        if (attemptActive) {
+          setCustomerInfo(info);
+          return true;
+        }
+      }
+      if (info) setCustomerInfo(info);
+      console.log(
+        "[RC:restore] complete — isPro: false after retries. all active:",
+        Object.keys(info?.entitlements.active ?? {})
+      );
+      return false;
+    } catch (e: any) {
+      console.error("[RC:restore] failed:", e?.message ?? e);
+      return false;
+    }
+  }, [userId]);
+
   const purchase = useCallback(
     async (pkg: PurchasesPackage): Promise<boolean> => {
       const productId =
@@ -381,78 +453,8 @@ export function SubscriptionProvider({
         throw e;
       }
     },
-    []
+    [userId, restore]
   );
-
-  const restore = useCallback(async (): Promise<boolean> => {
-    console.log("[RC:restore] starting restore …");
-    try {
-      // Ensure the user is identified before restoring so the same App User ID
-      // is used consistently (matches the ID active at purchase time).
-      if (userId) {
-        try {
-          const { customerInfo: loginInfo } = await Purchases.logIn(
-            String(userId)
-          );
-          console.log(
-            "[RC:restore] logIn OK — userId:",
-            userId,
-            "| entitlements:",
-            Object.keys(loginInfo.entitlements.active)
-          );
-        } catch (e: any) {
-          console.error("[RC:restore] logIn FAILED:", e?.message ?? e);
-        }
-      }
-
-      // restorePurchases() returns the updated CustomerInfo directly.
-      // We log every entitlement it reports before any further polling.
-      const restoredInfo = await Purchases.restorePurchases();
-      console.log(
-        "[RC:restore] restorePurchases() returned — all active entitlements:",
-        Object.keys(restoredInfo.entitlements.active)
-      );
-      setCustomerInfo(restoredInfo);
-
-      const active =
-        restoredInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
-      console.log("[RC:restore] entitlement check (restorePurchases) — isPro:", active);
-      if (active) return true;
-
-      // If the immediate result is not active, poll getCustomerInfo()
-      // up to 5 times with longer delays (Apple sandbox is slower).
-      let info: CustomerInfo | null = null;
-      for (let attempt = 0; attempt < 5; attempt++) {
-        if (attempt > 0) {
-          await new Promise((r) => setTimeout(r, 2000));
-        }
-        info = await Purchases.getCustomerInfo();
-        const attemptActive =
-          info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
-        console.log(
-          "[RC:restore] entitlement check attempt",
-          attempt + 1,
-          "— isPro:",
-          attemptActive,
-          "| all active:",
-          Object.keys(info.entitlements.active)
-        );
-        if (attemptActive) {
-          setCustomerInfo(info);
-          return true;
-        }
-      }
-      if (info) setCustomerInfo(info);
-      console.log(
-        "[RC:restore] complete — isPro: false after retries. all active:",
-        Object.keys(info?.entitlements.active ?? {})
-      );
-      return false;
-    } catch (e: any) {
-      console.error("[RC:restore] failed:", e?.message ?? e);
-      return false;
-    }
-  }, [userId]);
 
   return (
     <SubscriptionContext.Provider

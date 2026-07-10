@@ -29,6 +29,7 @@ import {
   useGetWaterToday,
   useLogWater,
   useGetDailyScore,
+  useListWeighIns,
   getGetWaterTodayQueryKey,
 } from "@workspace/api-client-react";
 
@@ -134,9 +135,13 @@ export default function HomeScreen() {
   const { data: dailyScoreData, refetch: refetchScore } = useGetDailyScore();
   const logWater = useLogWater();
 
+  const { data: weighInsData } = useListWeighIns();
+  const rawWeighIns: any[] = (weighInsData as any) ?? [];
+
   const [missionDone, setMissionDone] = useState<Record<string, boolean>>({});
   const [customWaterOz, setCustomWaterOz] = useState("");
   const [showCustomWater, setShowCustomWater] = useState(false);
+  const [weighInBannerDismissed, setWeighInBannerDismissed] = useState(false);
 
   const recentMeals = (mealsData as any) ?? [];
   const isLoading = planLoading;
@@ -189,6 +194,17 @@ export default function HomeScreen() {
 
   const missionDoneCount = missionItems.filter(h => missionDone[h]).length;
 
+  // Weekly weigh-in reminder — show when last log is 6+ days ago (matches web)
+  const lastWeighIn = rawWeighIns.length > 0
+    ? rawWeighIns.slice().sort((a: any, b: any) =>
+        new Date(b.loggedAt ?? b.createdAt ?? 0).getTime() - new Date(a.loggedAt ?? a.createdAt ?? 0).getTime()
+      )[0]
+    : null;
+  const daysSinceLastWeighIn = lastWeighIn
+    ? (Date.now() - new Date(lastWeighIn.loggedAt ?? lastWeighIn.createdAt).getTime()) / 86_400_000
+    : Infinity;
+  const showWeighInBanner = !weighInBannerDismissed && daysSinceLastWeighIn >= 6;
+
   return (
     <ScrollView
       style={[styles.root, { backgroundColor: colors.background }]}
@@ -220,6 +236,25 @@ export default function HomeScreen() {
           Chest pain, dizziness, or trouble breathing? Stop and call emergency services immediately.
         </Text>
       </TouchableOpacity>
+
+      {/* Weekly weigh-in reminder banner */}
+      {showWeighInBanner && (
+        <View style={[styles.weighInBanner, { backgroundColor: colors.primary + "15", borderColor: colors.primary + "40" }]}>
+          <Feather name="activity" size={16} color={colors.primary} style={{ marginTop: 1 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.weighInBannerTitle, { color: colors.foreground }]}>Time for your weekly weigh-in</Text>
+            <Text style={[styles.weighInBannerSub, { color: colors.mutedForeground }]}>
+              Update your weight so your coach can adjust your plan.
+            </Text>
+          </View>
+          <TouchableOpacity onPress={() => router.push("/(tabs)/progress")} style={[styles.weighInBannerBtn, { backgroundColor: colors.primary }]}>
+            <Text style={[styles.weighInBannerBtnText, { color: colors.primaryForeground }]}>Log →</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setWeighInBannerDismissed(true)} style={styles.weighInBannerClose}>
+            <Feather name="x" size={14} color={colors.mutedForeground} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Daily Score + Streak Row */}
       <View style={styles.scoreRow}>
@@ -458,8 +493,14 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   name: { fontSize: 22, fontFamily: "Inter_700Bold" },
   settingsBtn: { padding: 8 },
-  emergencyBanner: { flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 10, borderWidth: 1, padding: 10, marginBottom: 20 },
+  emergencyBanner: { flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 10, borderWidth: 1, padding: 10, marginBottom: 12 },
   emergencyText: { fontSize: 11, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 16 },
+  weighInBanner: { flexDirection: "row", alignItems: "flex-start", gap: 10, borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 16 },
+  weighInBannerTitle: { fontSize: 13, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
+  weighInBannerSub: { fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 16 },
+  weighInBannerBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, alignSelf: "center" },
+  weighInBannerBtnText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  weighInBannerClose: { padding: 4, alignSelf: "flex-start" },
   scoreRow: { flexDirection: "row", gap: 12, marginBottom: 24 },
   scoreCard: { borderRadius: 16, borderWidth: 1, padding: 14, alignItems: "center", gap: 6 },
   scoreCardLabel: { fontSize: 11, fontFamily: "Inter_500Medium" },

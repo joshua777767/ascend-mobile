@@ -163,6 +163,7 @@ export default function ProgressScreen() {
   const [showWeighModal, setShowWeighModal] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [newGoalWeightLbs, setNewGoalWeightLbs] = useState("");
+  const [newGoalType, setNewGoalType] = useState("lose weight");
   const [showGoalSet, setShowGoalSet] = useState(false);
   const [isSettingGoal, setIsSettingGoal] = useState(false);
   const [weight, setWeight] = useState("");
@@ -206,7 +207,7 @@ export default function ProgressScreen() {
     if (!newGoalWeightLbs || isNaN(val)) return;
     setIsSettingGoal(true);
     try {
-      await updateGoal.mutateAsync({ data: { goalWeightKg: lbsToKg(val), goals: ["fat loss"] as any } });
+      await updateGoal.mutateAsync({ data: { goalWeightKg: lbsToKg(val), goals: [newGoalType] as any } });
       queryClient.invalidateQueries({ queryKey: getGetProgressSummaryQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetUserProfileQueryKey() });
       setNewGoalWeightLbs("");
@@ -325,24 +326,48 @@ export default function ProgressScreen() {
                 <Text style={[styles.goalReachedBtnText, { color: colors.primaryForeground }]}>Set New Goal</Text>
               </TouchableOpacity>
             ) : (
-              <View style={styles.goalSetRow}>
-                <TextInput
-                  style={[styles.goalSetInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground }]}
-                  placeholder="New goal (lbs)"
-                  placeholderTextColor={colors.mutedForeground}
-                  keyboardType="numeric"
-                  value={newGoalWeightLbs}
-                  onChangeText={setNewGoalWeightLbs}
-                />
-                <TouchableOpacity
-                  style={[styles.goalReachedBtn, { backgroundColor: colors.primary, opacity: isSettingGoal ? 0.6 : 1 }]}
-                  onPress={handleSetNewGoal}
-                  disabled={isSettingGoal}
-                >
-                  <Text style={[styles.goalReachedBtnText, { color: colors.primaryForeground }]}>
-                    {isSettingGoal ? "Saving…" : "Save"}
-                  </Text>
-                </TouchableOpacity>
+              <View style={styles.goalSetForm}>
+                <Text style={[styles.goalSetFormLabel, { color: colors.mutedForeground }]}>What's your new goal?</Text>
+                <View style={styles.goalTypeRow}>
+                  {[
+                    { value: "lose weight", label: "Lose Weight" },
+                    { value: "maintain", label: "Maintain" },
+                    { value: "gain weight and muscle", label: "Gain Muscle" },
+                  ].map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[styles.goalTypeChip, {
+                        backgroundColor: newGoalType === opt.value ? colors.primary : colors.background,
+                        borderColor: newGoalType === opt.value ? colors.primary : colors.border,
+                      }]}
+                      onPress={() => setNewGoalType(opt.value)}
+                    >
+                      <Text style={[styles.goalTypeChipText, {
+                        color: newGoalType === opt.value ? colors.primaryForeground : colors.mutedForeground,
+                      }]}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={[styles.goalSetFormLabel, { color: colors.mutedForeground }]}>Target weight (lbs)</Text>
+                <View style={styles.goalSetRow}>
+                  <TextInput
+                    style={[styles.goalSetInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground }]}
+                    placeholder="e.g. 165"
+                    placeholderTextColor={colors.mutedForeground}
+                    keyboardType="numeric"
+                    value={newGoalWeightLbs}
+                    onChangeText={setNewGoalWeightLbs}
+                  />
+                  <TouchableOpacity
+                    style={[styles.goalReachedBtn, { backgroundColor: colors.primary, opacity: isSettingGoal ? 0.6 : 1 }]}
+                    onPress={handleSetNewGoal}
+                    disabled={isSettingGoal}
+                  >
+                    <Text style={[styles.goalReachedBtnText, { color: colors.primaryForeground }]}>
+                      {isSettingGoal ? "Saving…" : "Save"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
           </View>
@@ -693,7 +718,12 @@ const styles = StyleSheet.create({
   goalReachedSub: { fontSize: 14, textAlign: "center", lineHeight: 20 },
   goalReachedBtn: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12, marginTop: 4 },
   goalReachedBtnText: { fontSize: 14, fontWeight: "600" },
-  goalSetRow: { flexDirection: "row", gap: 8, alignItems: "center", marginTop: 4 },
+  goalSetForm: { width: "100%", gap: 8, marginTop: 4 },
+  goalSetFormLabel: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  goalTypeRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+  goalTypeChip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
+  goalTypeChipText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  goalSetRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   goalSetInput: { flex: 1, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, fontSize: 15 },
   milestonesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 },
   milestonePill: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, maxWidth: "47%" },
