@@ -342,9 +342,30 @@ export default function HomeScreen() {
     return                       { text: "Comeback Day",      color: AMBER,  bg: AMBER  + "1A", border: AMBER  + "40" };
   })();
 
+  // Detect today's sport day type to show the right calorie target
+  const todaySportInfo = (() => {
+    if (!planAny?.restDayCalorieTarget || !planAny?.practiceDayCalorieTarget) return null;
+    const raw = profile?.sportSchedule;
+    if (!raw) return null;
+    try {
+      const schedule = JSON.parse(raw);
+      const todayFull = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase(); // "monday"
+      const todayShort = todayFull.slice(0, 3); // "mon"
+      const match = (arr: string[]) => arr.map(d => d.toLowerCase().trim()).some(d => d.startsWith(todayShort) || todayFull.startsWith(d.slice(0, 3)));
+      const gameDays: string[] = schedule.gameDays ?? [];
+      const practiceDays: string[] = schedule.days ?? [];
+      if (gameDays.length > 0 && planAny.gameDayCalorieTarget && match(gameDays)) {
+        return { target: planAny.gameDayCalorieTarget as number, label: "Game Day" };
+      }
+      if (match(practiceDays)) return { target: planAny.practiceDayCalorieTarget as number, label: "Practice Day" };
+      return { target: planAny.restDayCalorieTarget as number, label: "Rest Day" };
+    } catch { return null; }
+  })();
+  const effectiveCalorieTarget: number = todaySportInfo?.target ?? (planAny?.calorieTarget ?? 0);
+
   // Names + coach message (mirrors web buildMission)
   const firstName = profile?.name?.split(" ")?.[0] ?? user?.username ?? "Coach";
-  const calorieDeficit = planAny ? planAny.calorieTarget - todayCalories : 0;
+  const calorieDeficit = planAny ? effectiveCalorieTarget - todayCalories : 0;
   const proteinDeficit = planAny ? planAny.proteinTargetG - todayProtein : 0;
 
   const coachMessage = (() => {
@@ -777,9 +798,9 @@ export default function HomeScreen() {
           <View style={s.fuelRow}>
             <IntakeBar
               icon="zap"
-              label="Calories"
+              label={todaySportInfo ? `Calories (${todaySportInfo.label})` : "Calories"}
               eaten={todayCalories}
-              target={planAny.calorieTarget ?? 0}
+              target={effectiveCalorieTarget}
               color={BLUE}
               cardBg={CARD_BG}
               cardBorder={CARD_BORDER}

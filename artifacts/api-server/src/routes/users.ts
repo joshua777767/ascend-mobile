@@ -146,12 +146,13 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
   ] as const;
   const triggerRegen = PLAN_RELEVANT_FIELDS.some(f => f in setValues);
 
+  let updatedPlan: (typeof plansTable.$inferSelect) | null = null;
   if (triggerRegen) {
     try {
       const [existingPlan] = await db.select().from(plansTable).where(eq(plansTable.userId, userId));
       if (existingPlan) {
         const newPlan = generatePlan(profile as any);
-        await db.update(plansTable).set({
+        const [saved] = await db.update(plansTable).set({
           goalType: newPlan.goalType,
           calorieTarget: newPlan.calorieTarget,
           proteinTargetG: newPlan.proteinTargetG,
@@ -166,14 +167,22 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
           restDayCalorieTarget: newPlan.restDayCalorieTarget,
           practiceDayCalorieTarget: newPlan.practiceDayCalorieTarget,
           gameDayCalorieTarget: newPlan.gameDayCalorieTarget,
-        }).where(eq(plansTable.userId, userId));
+        }).where(eq(plansTable.userId, userId)).returning();
+        updatedPlan = saved ?? null;
+        // Also clear custom workout schedule so next fetch uses new profile settings
+        if (rest.gymAccess !== undefined || rest.equipment !== undefined) {
+          await db.update(userProfilesTable)
+            .set({ customWorkoutSchedule: null, ownSchedule: null })
+            .where(eq(userProfilesTable.userId, userId));
+        }
       }
     } catch (err) {
       req.log.warn({ err }, "Plan regen after profile patch failed; continuing");
     }
   }
 
-  res.json(parseProfileArrays(profile));
+  const profileOut = parseProfileArrays(profile);
+  res.json(updatedPlan ? { ...profileOut, plan: updatedPlan } : profileOut);
 });
 
 // Update goal: set a new goal weight and reset goal tracking

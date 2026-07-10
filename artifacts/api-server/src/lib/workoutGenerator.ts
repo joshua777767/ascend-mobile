@@ -455,67 +455,65 @@ function parseEquipment(json: string | null | undefined): string[] {
   }
 }
 
-/** Exercises requiring commercial gym machines/cables — blocked for all home users. */
-const MACHINE_TERMS = [
-  "Cable", "Leg Press", "Leg Curl", "Leg Extension", "Lat Pulldown",
-  "Smith", "Sled", "Prowler", "Battle Ropes", "Row Ergometer",
-  "Glute Ham Raise", "Nordic Curl", "Chest-Supported Row",
-  "Tricep Pushdown", "Face Pull", "Pallof Press",
-];
+// ---------------------------------------------------------------------------
+// Equipment requirement mapping — true allowlist approach
+// ---------------------------------------------------------------------------
 
-/** Exercises requiring a barbell. */
-const BARBELL_TERMS = [
-  "Barbell", "Back Squat", "Front Squat", "Pause Squat", "Deadlift",
-  "Bench Press", "Close-Grip Bench", "Overhead Press", "Hip Thrust",
-  "Power Clean", "Hang Clean", "Trap Bar",
-];
-
-/** Exercises requiring dumbbells. */
-const DUMBBELL_TERMS = ["Dumbbell", "Goblet Squat", "Farmer Carry"];
-
-/** Exercises requiring a pull-up bar. */
-const PULLUP_TERMS = ["Pull-Up", "Chin-Up", "Hanging Knee", "Hanging Leg"];
-
-/** Exercises requiring a kettlebell. */
-const KETTLEBELL_TERMS = ["Kettlebell"];
-
-/** Exercises requiring an ab wheel. */
-const ABWHEEL_TERMS = ["Ab Wheel"];
-
-/** Exercises requiring weighted equipment (dip belt, vest, etc.) */
-const WEIGHTED_TERMS = ["Weighted Dip", "Weighted Pull"];
-
-function needsMachine(name: string): boolean {
-  return MACHINE_TERMS.some(t => name.includes(t));
-}
-function needsBarbell(name: string): boolean {
-  return BARBELL_TERMS.some(t => name.includes(t));
-}
-function needsDumbbells(name: string): boolean {
-  return DUMBBELL_TERMS.some(t => name.includes(t));
-}
-function needsPullUpBar(name: string): boolean {
-  return PULLUP_TERMS.some(t => name.includes(t));
-}
-function needsKettlebell(name: string): boolean {
-  return KETTLEBELL_TERMS.some(t => name.includes(t));
+/**
+ * Maps each exercise name to a single equipment key (lowercase, matching the
+ * values produced by parseEquipment from the user's equipment JSON array).
+ * Returns null for bodyweight exercises (always allowed).
+ * Returns "__full_gym__" for exercises that require a commercial gym.
+ */
+function getEquipmentRequirement(name: string): string | null {
+  const n = name.toLowerCase();
+  // Commercial gym / machine — never allowed in home gym
+  if (/\bcable\b|leg press|leg curl|leg extension|lat pulldown|\bsmith\b|\bsled\b|prowler|battle rope|row ergometer|glute ham|nordic curl|chest.supported row|tricep pushdown|face pull|pallof press|pec deck|hack squat|hip abduct|adduct/.test(n)) return "__full_gym__";
+  // Weighted accessories — need dip belt / vest; treat as full gym
+  if (/\bweighted dip\b|\bweighted pull/.test(n)) return "__full_gym__";
+  // Ab wheel
+  if (/\bab wheel\b|\bab roller\b/.test(n)) return "__full_gym__";
+  // Barbell (before bench to catch "Barbell Bench Press")
+  if (/\bbarbell\b|back squat|front squat|pause squat|\bdeadlift\b|bench press|close.grip bench|overhead press barbell|hip thrust barbell|power clean|hang clean|trap bar|sumo deadlift|romanian deadlift/.test(n)) return "barbell & plates";
+  // Squat rack (exercises that explicitly name the rack)
+  if (/squat rack|power rack/.test(n)) return "squat rack";
+  // Dumbbells
+  if (/\bdumbbell\b|\bdb\b|goblet squat|farmer carry|farmer.s carry/.test(n)) return "dumbbells";
+  // Pull-up bar
+  if (/pull.up|chin.up|hanging knee|hanging leg raise|toes.to.bar/.test(n)) return "pull-up bar";
+  // Kettlebell
+  if (/\bkettlebell\b|\bkb\b/.test(n)) return "kettlebells";
+  // Bench (flat/incline/decline work requiring a bench)
+  if (/\bbench\b(?!.*push.?up)/.test(n)) return "bench";
+  // Resistance bands
+  if (/resistance band|band pull|band face|\bbanded\b/.test(n)) return "resistance bands";
+  // Jump rope
+  if (/jump rope|skipping rope/.test(n)) return "jump rope";
+  return null; // bodyweight — no equipment needed
 }
 
-/** Check if exercise is allowed given the user's home gym equipment list. */
-function isAllowedForHomeGym(name: string, equipment: string[]): boolean {
-  if (needsMachine(name)) return false;
-  if (WEIGHTED_TERMS.some(t => name.includes(t))) return false;
-  if (needsBarbell(name) && !equipment.some(e => e.includes("barbell"))) return false;
-  if (needsDumbbells(name) && !equipment.some(e => e.includes("dumbbell"))) return false;
-  if (needsPullUpBar(name) && !equipment.some(e => e.includes("pull"))) return false;
-  if (needsKettlebell(name) && !equipment.some(e => e.includes("kettlebell"))) return false;
-  if (ABWHEEL_TERMS.some(t => name.includes(t)) && !equipment.some(e => e.includes("ab wheel") || e.includes("ab roller"))) return false;
-  return true;
+/** Returns true if exercise is bodyweight-only (no equipment required). */
+function isBodyweightOnly(name: string): boolean {
+  return getEquipmentRequirement(name) === null;
 }
 
-/** @deprecated Use isNoGymAccess / isHomeGym instead. */
+/** Returns true if exercise requires any equipment at all (blocks no-gym users). */
 function needsGymEquipment(name: string): boolean {
-  return needsMachine(name) || needsBarbell(name) || needsDumbbells(name) || needsPullUpBar(name) || needsKettlebell(name);
+  const req = getEquipmentRequirement(name);
+  return req !== null; // any equipment requirement blocks no-gym users
+}
+
+/**
+ * True allowlist: an exercise is permitted for home gym iff
+ * - it needs no equipment (bodyweight), OR
+ * - the user has the required equipment in their list.
+ * Commercial-gym-only exercises are always blocked.
+ */
+function isAllowedForHomeGym(name: string, equipment: string[]): boolean {
+  const req = getEquipmentRequirement(name);
+  if (req === null) return true; // bodyweight
+  if (req === "__full_gym__") return false;
+  return equipment.includes(req);
 }
 
 function buildCustomWorkout(

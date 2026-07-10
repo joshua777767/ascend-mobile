@@ -547,21 +547,33 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
   }
 
-  // Sport day calorie targets — derived from BMR × activity-factor tiers
-  // Rest=1.3, Light practice=1.5, Moderate/Hard practice=1.7, Game day=1.9
-  // Then apply the same goal-based adjustment (deficit / surplus) that produced calorieTarget.
+  // Sport day calorie targets — MET-based burn using actual session duration + intensity
+  // Rest day = base calorie target (no practice burn)
+  // Practice day = base + MET-estimated calories burned during the session
+  // Game day = base + game session burn (25% longer, hard intensity = explicit game premium)
   let restDayCalorieTarget: number | null = null;
   let practiceDayCalorieTarget: number | null = null;
   let gameDayCalorieTarget: number | null = null;
 
   const sportEntry = parseSportSchedule(profile);
   if (sportEntry) {
-    const goalDelta = calorieTarget - tdee; // negative for deficit, positive for surplus
-    const practiceFactor = sportEntry.intensity === "light" ? 1.5 : 1.7;
-    restDayCalorieTarget     = Math.max(calorieFloor, Math.round(bmr * 1.3) + goalDelta);
-    practiceDayCalorieTarget = Math.max(calorieFloor, Math.round(bmr * practiceFactor) + goalDelta);
+    const practiceBurn = estimateSportCalBurn(
+      sportEntry.sport,
+      sportEntry.durationMinutes,
+      sportEntry.intensity,
+      profile.currentWeightKg,
+    );
+    restDayCalorieTarget     = calorieTarget;
+    practiceDayCalorieTarget = Math.max(calorieFloor, calorieTarget + practiceBurn);
     if (sportEntry.gameDays && sportEntry.gameDays.length > 0) {
-      gameDayCalorieTarget   = Math.max(calorieFloor, Math.round(bmr * 1.9) + goalDelta);
+      // Game sessions: 25% longer duration, always at hard intensity → explicit premium over practice
+      const gameBurn = estimateSportCalBurn(
+        sportEntry.sport,
+        Math.round(sportEntry.durationMinutes * 1.25),
+        "hard",
+        profile.currentWeightKg,
+      );
+      gameDayCalorieTarget = Math.max(calorieFloor, calorieTarget + gameBurn);
     }
   }
 
