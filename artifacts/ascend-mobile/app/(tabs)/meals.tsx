@@ -50,9 +50,11 @@ type MealEntry = {
   description: string;
   calories?: number;
   protein?: number;
+  carbs?: number;
+  fat?: number;
   coachFeedback?: string;
   quality?: string;
-  createdAt?: string;
+  loggedAt?: string;
 };
 
 const QUALITY_CONFIG: Record<string, { color: string; icon: string; label: string }> = {
@@ -213,7 +215,7 @@ export default function MealsScreen() {
             {meals.map((meal, i) => {
               const dotColor = MEAL_COLORS[meal.mealType?.toLowerCase()] ?? colors.primary;
               const qualityCfg = meal.quality ? QUALITY_CONFIG[meal.quality] : null;
-              const ageMs = meal.createdAt ? Date.now() - new Date(meal.createdAt).getTime() : Infinity;
+              const ageMs = meal.loggedAt ? Date.now() - new Date(meal.loggedAt).getTime() : Infinity;
               const timedOut = ageMs > 25_000;
               return (
                 <View key={meal.id ?? i} style={[styles.mealCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -221,21 +223,44 @@ export default function MealsScreen() {
                     <View style={[styles.typeBadge, { backgroundColor: dotColor + "22" }]}>
                       <Text style={[styles.typeText, { color: dotColor }]}>{meal.mealType}</Text>
                     </View>
-                    <View style={styles.mealCardMeta}>
-                      {meal.calories && (
-                        <Text style={[styles.calsText, { color: colors.mutedForeground }]}>{meal.calories} kcal</Text>
-                      )}
-                      {qualityCfg && (
-                        <View style={[styles.qualityBadge, { backgroundColor: qualityCfg.color + "20" }]}>
-                          <Feather name={qualityCfg.icon as any} size={11} color={qualityCfg.color} />
-                          <Text style={[styles.qualityText, { color: qualityCfg.color }]}>{qualityCfg.label}</Text>
-                        </View>
-                      )}
-                    </View>
+                    {qualityCfg && (
+                      <View style={[styles.qualityBadge, { backgroundColor: qualityCfg.color + "20" }]}>
+                        <Feather name={qualityCfg.icon as any} size={11} color={qualityCfg.color} />
+                        <Text style={[styles.qualityText, { color: qualityCfg.color }]}>{qualityCfg.label}</Text>
+                      </View>
+                    )}
                   </View>
                   <Text style={[styles.mealDesc, { color: colors.foreground }]} numberOfLines={2}>
                     {meal.description}
                   </Text>
+                  {(meal.calories || meal.protein || meal.carbs || meal.fat) && (
+                    <View style={styles.macroRow}>
+                      {meal.calories != null && (
+                        <View style={styles.macroChip}>
+                          <Text style={[styles.macroValue, { color: colors.amber }]}>{meal.calories}</Text>
+                          <Text style={[styles.macroLabel, { color: colors.mutedForeground }]}>kcal</Text>
+                        </View>
+                      )}
+                      {meal.protein != null && (
+                        <View style={styles.macroChip}>
+                          <Text style={[styles.macroValue, { color: colors.blue }]}>{meal.protein}g</Text>
+                          <Text style={[styles.macroLabel, { color: colors.mutedForeground }]}>protein</Text>
+                        </View>
+                      )}
+                      {meal.carbs != null && (
+                        <View style={styles.macroChip}>
+                          <Text style={[styles.macroValue, { color: colors.green }]}>{meal.carbs}g</Text>
+                          <Text style={[styles.macroLabel, { color: colors.mutedForeground }]}>carbs</Text>
+                        </View>
+                      )}
+                      {meal.fat != null && (
+                        <View style={styles.macroChip}>
+                          <Text style={[styles.macroValue, { color: colors.purple }]}>{meal.fat}g</Text>
+                          <Text style={[styles.macroLabel, { color: colors.mutedForeground }]}>fat</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
                   {meal.coachFeedback ? (
                     <View style={[styles.feedbackBox, { backgroundColor: colors.green + "15", borderColor: colors.green + "44" }]}>
                       <Feather name="cpu" size={12} color={colors.green} />
@@ -430,6 +455,10 @@ const styles = StyleSheet.create({
   qualityBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   qualityText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
   mealDesc: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22 },
+  macroRow: { flexDirection: "row", gap: 12, flexWrap: "wrap" },
+  macroChip: { flexDirection: "row", alignItems: "baseline", gap: 3 },
+  macroValue: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  macroLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
   feedbackBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 10, borderRadius: 10, borderWidth: 1 },
   feedbackText: { fontSize: 12, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 },
   modalRoot: { flex: 1 },

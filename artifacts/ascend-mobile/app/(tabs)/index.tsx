@@ -281,28 +281,14 @@ export default function HomeScreen() {
             <StatCard
               label="Calories"
               value={`${todayCalories}`}
-              unit={`/ ${(plan as any).dailyCalorieTarget ?? "—"}`}
+              unit={`/ ${(plan as any).calorieTarget ?? "—"}`}
               color={colors.amber}
             />
             <StatCard
               label="Protein"
               value={`${todayProtein}g`}
-              unit={`/ ${(plan as any).dailyProteinTarget ?? "—"}g`}
+              unit={`/ ${(plan as any).proteinTargetG ?? "—"}g`}
               color={colors.blue}
-            />
-          </View>
-          <View style={styles.statsRow}>
-            <StatCard
-              label="Carbs"
-              value={`${todayCarbs}g`}
-              unit="today"
-              color={colors.green}
-            />
-            <StatCard
-              label="Fat"
-              value={`${todayFat}g`}
-              unit="today"
-              color={colors.purple}
             />
           </View>
 
