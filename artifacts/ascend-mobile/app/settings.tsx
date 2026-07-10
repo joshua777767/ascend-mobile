@@ -18,7 +18,7 @@ import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useResetUserProfile } from "@workspace/api-client-react";
-import RevenueCatUI from "react-native-purchases-ui";
+import Purchases from "react-native-purchases";
 
 const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN ?? "";
 
@@ -81,7 +81,7 @@ export default function SettingsScreen() {
 
   const handleOpenCustomerCenter = async () => {
     try {
-      await RevenueCatUI.presentCustomerCenter();
+      await Purchases.showManageSubscriptions();
     } catch (e: any) {
       Alert.alert("Error", e?.message ?? "Could not open subscription management.");
     }
