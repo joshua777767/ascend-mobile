@@ -6,6 +6,7 @@ import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,9 +16,19 @@ import {
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
-import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useGetChatHistory, useSendChatMessage } from "@workspace/api-client-react";
+
+const SUGGESTED_CHIPS = [
+  "What should I eat for dinner?",
+  "How do I boost energy after lunch?",
+  "Should I skip today's workout?",
+  "Why am I not losing weight?",
+  "How much water should I drink?",
+  "Give me a quick 10-min workout",
+  "What's a high-protein breakfast?",
+  "How do I sleep better?",
+];
 
 type Message = {
   id: string;
@@ -46,9 +57,9 @@ export default function CoachScreen() {
 
   const allMessages: Message[] = localMessages.length > 0 ? localMessages : history;
 
-  const send = useCallback(async () => {
-    if (!input.trim() || isStreaming) return;
-    const currentInput = input.trim();
+  const sendText = useCallback(async (text: string) => {
+    if (!text.trim() || isStreaming) return;
+    const currentInput = text.trim();
     const userMsg: Message = { id: Date.now().toString(), role: "user", content: currentInput };
     setInput("");
     setLocalMessages((prev) => [...(prev.length > 0 ? prev : history), userMsg]);
@@ -63,28 +74,24 @@ export default function CoachScreen() {
       const res = await fetch(`${base}/api/chat`, {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: currentInput }),
       });
 
       let full = "";
-
       if (res.ok && res.body) {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
           for (const line of chunk.split("\n")) {
             if (line.startsWith("data: ")) {
-              const text = line.slice(6);
-              if (text === "[DONE]") continue;
+              const txt = line.slice(6);
+              if (txt === "[DONE]") continue;
               try {
-                const delta = JSON.parse(text)?.choices?.[0]?.delta?.content ?? "";
+                const delta = JSON.parse(txt)?.choices?.[0]?.delta?.content ?? "";
                 if (delta) {
                   full += delta;
                   setLocalMessages((prev) =>
@@ -115,7 +122,9 @@ export default function CoachScreen() {
     } finally {
       setIsStreaming(false);
     }
-  }, [input, isStreaming, history, sendMessage]);
+  }, [isStreaming, history, sendMessage]);
+
+  const send = useCallback(() => sendText(input), [input, sendText]);
 
   if (!isPro) {
     return (
@@ -139,8 +148,6 @@ export default function CoachScreen() {
     );
   }
 
-  // Tab bar is position:absolute (overlay). Standard iOS tab bar = 49pt.
-  // Add it to bottom offset so input clears the bar with or without keyboard.
   const TAB_BAR_HEIGHT = 49;
 
   return (
@@ -209,6 +216,26 @@ export default function CoachScreen() {
         }
       />
 
+      {allMessages.length === 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+          keyboardShouldPersistTaps="handled"
+        >
+          {SUGGESTED_CHIPS.map((chip) => (
+            <TouchableOpacity
+              key={chip}
+              style={[styles.chip, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => sendText(chip)}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.chipText, { color: colors.foreground }]}>{chip}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
       <View style={[styles.inputBar, { borderTopColor: colors.border, paddingBottom: insets.bottom + TAB_BAR_HEIGHT + 12 }]}>
         <TextInput
           style={[
@@ -266,6 +293,9 @@ const styles = StyleSheet.create({
   typingBubble: { borderRadius: 16, padding: 14, alignSelf: "flex-start", marginBottom: 10 },
   emptyChat: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80 },
   emptyChatText: { fontSize: 15, fontFamily: "Inter_400Regular" },
+  chipsRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8, flexDirection: "row" },
+  chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, borderWidth: 1 },
+  chipText: { fontSize: 13, fontFamily: "Inter_400Regular" },
   inputBar: { flexDirection: "row", alignItems: "flex-end", gap: 10, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1 },
   chatInput: { flex: 1, borderRadius: 20, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, fontFamily: "Inter_400Regular", maxHeight: 100 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },

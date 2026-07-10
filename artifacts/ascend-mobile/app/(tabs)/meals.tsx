@@ -22,6 +22,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
   useListMeals,
   useCreateMeal,
+  useGenerateMeals,
 } from "@workspace/api-client-react";
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
@@ -33,7 +34,14 @@ type MealEntry = {
   calories?: number;
   protein?: number;
   aiFeedback?: string;
+  quality?: string;
   createdAt?: string;
+};
+
+const QUALITY_CONFIG: Record<string, { color: string; icon: string; label: string }> = {
+  good: { color: "#22C55E", icon: "thumbs-up", label: "Good" },
+  neutral: { color: "#F59E0B", icon: "minus", label: "OK" },
+  bad: { color: "#EF4444", icon: "thumbs-down", label: "Improve" },
 };
 
 export default function MealsScreen() {
@@ -44,8 +52,10 @@ export default function MealsScreen() {
   const { data: mealsData, isLoading, refetch } = useListMeals();
   const meals: MealEntry[] = (mealsData as any) ?? [];
   const logMeal = useCreateMeal();
+  const generateMeals = useGenerateMeals();
 
-  const [showModal, setShowModal] = useState(false);
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [showGenModal, setShowGenModal] = useState(false);
   const [mealType, setMealType] = useState("breakfast");
   const [description, setDescription] = useState("");
   const [calories, setCalories] = useState("");
@@ -53,59 +63,41 @@ export default function MealsScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [genGoal, setGenGoal] = useState("");
+  const [genType, setGenType] = useState("breakfast");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
+
+  const MEAL_COLORS: Record<string, string> = {
+    breakfast: colors.amber,
+    lunch: colors.green,
+    dinner: colors.blue,
+    snack: colors.purple,
+  };
+
   const openCamera = async () => {
-    if (Platform.OS === "web") {
-      Alert.alert("Camera not available on web");
-      return;
-    }
+    if (Platform.OS === "web") { Alert.alert("Camera not available on web"); return; }
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Camera permission required", "Please allow camera access to take meal photos.");
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: [4, 3],
-    });
+    if (status !== "granted") { Alert.alert("Camera permission required"); return; }
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.8, allowsEditing: true, aspect: [4, 3] });
     if (!result.canceled) setImageUri(result.assets[0].uri);
   };
 
   const openGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Photo library permission required");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: [4, 3],
-    });
+    if (status !== "granted") { Alert.alert("Photo library permission required"); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8, allowsEditing: true, aspect: [4, 3] });
     if (!result.canceled) setImageUri(result.assets[0].uri);
   };
 
   const handleSubmit = async () => {
-    if (!description.trim()) {
-      Alert.alert("Description required", "Please describe what you ate.");
-      return;
-    }
+    if (!description.trim()) { Alert.alert("Description required", "Please describe what you ate."); return; }
     setIsSubmitting(true);
     try {
-      await logMeal.mutateAsync({
-        data: {
-          description: `[${mealType}] ${description.trim()}`,
-        },
-      });
+      await logMeal.mutateAsync({ data: { description: `[${mealType}] ${description.trim()}` } });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setShowModal(false);
-      setDescription("");
-      setCalories("");
-      setProtein("");
-      setImageUri(null);
-      setMealType("breakfast");
+      setShowLogModal(false);
+      setDescription(""); setCalories(""); setProtein(""); setImageUri(null); setMealType("breakfast");
       refetch();
     } catch (e: any) {
       Alert.alert("Error", e?.message ?? "Failed to log meal");
@@ -114,11 +106,20 @@ export default function MealsScreen() {
     }
   };
 
-  const MEAL_COLORS: Record<string, string> = {
-    breakfast: colors.amber,
-    lunch: colors.green,
-    dinner: colors.blue,
-    snack: colors.purple,
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    setGeneratedPlan(null);
+    try {
+      const result = await generateMeals.mutateAsync({
+        data: { goal: genGoal.trim() || "balanced nutrition", mealType: genType },
+      } as any);
+      const plan = (result as any)?.plan ?? (result as any)?.meals ?? JSON.stringify(result);
+      setGeneratedPlan(typeof plan === "string" ? plan : JSON.stringify(plan, null, 2));
+    } catch (e: any) {
+      Alert.alert("Error", e?.message ?? "Could not generate meal plan");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -131,19 +132,29 @@ export default function MealsScreen() {
       >
         <View style={styles.headerRow}>
           <Text style={[styles.pageTitle, { color: colors.foreground }]}>Meals</Text>
-          <TouchableOpacity
-            style={[styles.addBtn, { backgroundColor: colors.primary }]}
-            onPress={() => setShowModal(true)}
-            activeOpacity={0.85}
-          >
-            <Feather name="plus" size={18} color={colors.primaryForeground} />
-          </TouchableOpacity>
+          <View style={styles.headerBtns}>
+            {isPro && (
+              <TouchableOpacity
+                style={[styles.genBtn, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "44" }]}
+                onPress={() => setShowGenModal(true)}
+                activeOpacity={0.85}
+              >
+                <Feather name="cpu" size={14} color={colors.primary} />
+                <Text style={[styles.genBtnText, { color: colors.primary }]}>AI Plan</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.addBtn, { backgroundColor: colors.primary }]}
+              onPress={() => setShowLogModal(true)}
+              activeOpacity={0.85}
+            >
+              <Feather name="plus" size={18} color={colors.primaryForeground} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {isLoading ? (
-          <View style={styles.centerState}>
-            <ActivityIndicator color={colors.primary} size="large" />
-          </View>
+          <View style={styles.centerState}><ActivityIndicator color={colors.primary} size="large" /></View>
         ) : meals.length === 0 ? (
           <View style={styles.emptyState}>
             <Feather name="coffee" size={44} color={colors.mutedForeground} />
@@ -151,10 +162,7 @@ export default function MealsScreen() {
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
               Tap + to log your first meal and get AI feedback
             </Text>
-            <TouchableOpacity
-              style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
-              onPress={() => setShowModal(true)}
-            >
+            <TouchableOpacity style={[styles.emptyBtn, { backgroundColor: colors.primary }]} onPress={() => setShowLogModal(true)}>
               <Text style={[styles.emptyBtnText, { color: colors.primaryForeground }]}>Log a meal</Text>
             </TouchableOpacity>
           </View>
@@ -162,15 +170,26 @@ export default function MealsScreen() {
           <View style={styles.mealList}>
             {meals.map((meal, i) => {
               const dotColor = MEAL_COLORS[meal.mealType?.toLowerCase()] ?? colors.primary;
+              const qualityCfg = meal.quality ? QUALITY_CONFIG[meal.quality] : null;
+              const ageMs = meal.createdAt ? Date.now() - new Date(meal.createdAt).getTime() : Infinity;
+              const timedOut = ageMs > 25_000;
               return (
                 <View key={meal.id ?? i} style={[styles.mealCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <View style={styles.mealCardHeader}>
                     <View style={[styles.typeBadge, { backgroundColor: dotColor + "22" }]}>
                       <Text style={[styles.typeText, { color: dotColor }]}>{meal.mealType}</Text>
                     </View>
-                    {meal.calories && (
-                      <Text style={[styles.calsText, { color: colors.mutedForeground }]}>{meal.calories} kcal</Text>
-                    )}
+                    <View style={styles.mealCardMeta}>
+                      {meal.calories && (
+                        <Text style={[styles.calsText, { color: colors.mutedForeground }]}>{meal.calories} kcal</Text>
+                      )}
+                      {qualityCfg && (
+                        <View style={[styles.qualityBadge, { backgroundColor: qualityCfg.color + "20" }]}>
+                          <Feather name={qualityCfg.icon as any} size={11} color={qualityCfg.color} />
+                          <Text style={[styles.qualityText, { color: qualityCfg.color }]}>{qualityCfg.label}</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                   <Text style={[styles.mealDesc, { color: colors.foreground }]} numberOfLines={2}>
                     {meal.description}
@@ -182,14 +201,8 @@ export default function MealsScreen() {
                         {meal.aiFeedback}
                       </Text>
                     </View>
-                  ) : isPro ? (() => {
-                    // Only show spinner for meals logged in the last 20 seconds.
-                    // After that, AI feedback timed out — show a clear error instead.
-                    const ageMs = meal.createdAt
-                      ? Date.now() - new Date(meal.createdAt).getTime()
-                      : Infinity;
-                    const timedOut = ageMs > 20_000;
-                    return timedOut ? (
+                  ) : isPro ? (
+                    timedOut ? (
                       <View style={[styles.feedbackBox, { backgroundColor: colors.muted, borderColor: colors.border }]}>
                         <Feather name="alert-circle" size={12} color={colors.mutedForeground} />
                         <Text style={[styles.feedbackText, { color: colors.mutedForeground }]}>
@@ -199,12 +212,10 @@ export default function MealsScreen() {
                     ) : (
                       <View style={[styles.feedbackBox, { backgroundColor: colors.muted, borderColor: colors.border }]}>
                         <ActivityIndicator size="small" color={colors.mutedForeground} />
-                        <Text style={[styles.feedbackText, { color: colors.mutedForeground }]}>
-                          AI is analyzing…
-                        </Text>
+                        <Text style={[styles.feedbackText, { color: colors.mutedForeground }]}>AI is analyzing…</Text>
                       </View>
-                    );
-                  })() : null}
+                    )
+                  ) : null}
                 </View>
               );
             })}
@@ -212,49 +223,31 @@ export default function MealsScreen() {
         )}
       </ScrollView>
 
-      <Modal
-        visible={showModal}
-        animationType="slide"
-        presentationStyle="formSheet"
-        onRequestClose={() => setShowModal(false)}
-      >
+      {/* Log Meal Modal */}
+      <Modal visible={showLogModal} animationType="slide" presentationStyle="formSheet" onRequestClose={() => setShowLogModal(false)}>
         <View style={[styles.modalRoot, { backgroundColor: colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={() => setShowModal(false)}>
+            <TouchableOpacity onPress={() => setShowLogModal(false)}>
               <Text style={[styles.modalCancel, { color: colors.mutedForeground }]}>Cancel</Text>
             </TouchableOpacity>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>Log Meal</Text>
             <TouchableOpacity onPress={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <ActivityIndicator color={colors.primary} />
-              ) : (
-                <Text style={[styles.modalSave, { color: colors.primary }]}>Save</Text>
-              )}
+              {isSubmitting ? <ActivityIndicator color={colors.primary} /> : <Text style={[styles.modalSave, { color: colors.primary }]}>Save</Text>}
             </TouchableOpacity>
           </View>
-
           <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
             <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Meal Type</Text>
             <View style={styles.mealTypeRow}>
               {MEAL_TYPES.map((t) => (
                 <TouchableOpacity
                   key={t}
-                  style={[
-                    styles.mealTypeBtn,
-                    {
-                      backgroundColor: mealType === t ? colors.primary : colors.card,
-                      borderColor: mealType === t ? colors.primary : colors.border,
-                    },
-                  ]}
+                  style={[styles.mealTypeBtn, { backgroundColor: mealType === t ? colors.primary : colors.card, borderColor: mealType === t ? colors.primary : colors.border }]}
                   onPress={() => setMealType(t)}
                 >
-                  <Text style={[styles.mealTypeBtnText, { color: mealType === t ? colors.primaryForeground : colors.mutedForeground }]}>
-                    {t}
-                  </Text>
+                  <Text style={[styles.mealTypeBtnText, { color: mealType === t ? colors.primaryForeground : colors.mutedForeground }]}>{t}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-
             <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>What did you eat?</Text>
             <TextInput
               style={[styles.textArea, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]}
@@ -265,7 +258,6 @@ export default function MealsScreen() {
               multiline
               numberOfLines={4}
             />
-
             <View style={styles.row}>
               <View style={styles.halfField}>
                 <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Calories</Text>
@@ -290,41 +282,82 @@ export default function MealsScreen() {
                 />
               </View>
             </View>
-
-            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Photo (optional)</Text>
             <View style={[styles.aiDisclaimer, { backgroundColor: colors.amber + "10", borderColor: colors.amber + "33" }]}>
               <Feather name="info" size={12} color={colors.amber} />
               <Text style={[styles.aiDisclaimerText, { color: colors.mutedForeground }]}>
                 AI food estimates may be inaccurate. Always verify nutrition information when accuracy matters.
               </Text>
             </View>
-
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Photo (optional)</Text>
             {imageUri ? (
               <View style={styles.imagePreviewContainer}>
                 <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-                <TouchableOpacity
-                  style={[styles.removeImageBtn, { backgroundColor: colors.card }]}
-                  onPress={() => setImageUri(null)}
-                >
+                <TouchableOpacity style={[styles.removeImageBtn, { backgroundColor: colors.card }]} onPress={() => setImageUri(null)}>
                   <Feather name="x" size={14} color={colors.foreground} />
                 </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.photoRow}>
-                <TouchableOpacity
-                  style={[styles.photoBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-                  onPress={openCamera}
-                >
+                <TouchableOpacity style={[styles.photoBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={openCamera}>
                   <Feather name="camera" size={20} color={colors.blue} />
                   <Text style={[styles.photoBtnText, { color: colors.foreground }]}>Camera</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.photoBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-                  onPress={openGallery}
-                >
+                <TouchableOpacity style={[styles.photoBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={openGallery}>
                   <Feather name="image" size={20} color={colors.purple} />
                   <Text style={[styles.photoBtnText, { color: colors.foreground }]}>Gallery</Text>
                 </TouchableOpacity>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* AI Meal Generator Modal */}
+      <Modal visible={showGenModal} animationType="slide" presentationStyle="formSheet" onRequestClose={() => setShowGenModal(false)}>
+        <View style={[styles.modalRoot, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <TouchableOpacity onPress={() => { setShowGenModal(false); setGeneratedPlan(null); }}>
+              <Text style={[styles.modalCancel, { color: colors.mutedForeground }]}>Close</Text>
+            </TouchableOpacity>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>AI Meal Generator</Text>
+            <TouchableOpacity onPress={handleGenerate} disabled={isGenerating}>
+              {isGenerating ? <ActivityIndicator color={colors.primary} /> : <Text style={[styles.modalSave, { color: colors.primary }]}>Generate</Text>}
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+            <View style={[styles.genHero, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "33" }]}>
+              <Feather name="cpu" size={20} color={colors.primary} />
+              <Text style={[styles.genHeroText, { color: colors.foreground }]}>
+                Your AI coach will generate a meal plan tailored to your goals and macro targets.
+              </Text>
+            </View>
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Meal Type</Text>
+            <View style={styles.mealTypeRow}>
+              {MEAL_TYPES.map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  style={[styles.mealTypeBtn, { backgroundColor: genType === t ? colors.primary : colors.card, borderColor: genType === t ? colors.primary : colors.border }]}
+                  onPress={() => setGenType(t)}
+                >
+                  <Text style={[styles.mealTypeBtnText, { color: genType === t ? colors.primaryForeground : colors.mutedForeground }]}>{t}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Specific Goal (optional)</Text>
+            <TextInput
+              style={[styles.inputField, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]}
+              placeholder="e.g. high protein, low carb, quick to make"
+              placeholderTextColor={colors.mutedForeground}
+              value={genGoal}
+              onChangeText={setGenGoal}
+            />
+            {generatedPlan && (
+              <View style={[styles.genResult, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={styles.genResultHeader}>
+                  <Feather name="check-circle" size={16} color={colors.green} />
+                  <Text style={[styles.genResultTitle, { color: colors.green }]}>Meal Plan Ready</Text>
+                </View>
+                <Text style={[styles.genResultText, { color: colors.foreground }]}>{generatedPlan}</Text>
               </View>
             )}
           </ScrollView>
@@ -339,6 +372,9 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
   pageTitle: { fontSize: 26, fontFamily: "Inter_700Bold" },
+  headerBtns: { flexDirection: "row", alignItems: "center", gap: 8 },
+  genBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 20, borderWidth: 1 },
+  genBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   addBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   centerState: { paddingTop: 80, alignItems: "center" },
   emptyState: { alignItems: "center", paddingTop: 80, gap: 12 },
@@ -349,9 +385,12 @@ const styles = StyleSheet.create({
   mealList: { gap: 12 },
   mealCard: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 10 },
   mealCardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  mealCardMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
   typeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   typeText: { fontSize: 12, fontFamily: "Inter_600SemiBold", textTransform: "capitalize" },
   calsText: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  qualityBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  qualityText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
   mealDesc: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22 },
   feedbackBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 10, borderRadius: 10, borderWidth: 1 },
   feedbackText: { fontSize: 12, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 },
@@ -377,4 +416,10 @@ const styles = StyleSheet.create({
   removeImageBtn: { position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   aiDisclaimer: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 10, borderWidth: 1, padding: 10 },
   aiDisclaimerText: { fontSize: 11, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 16 },
+  genHero: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14, borderRadius: 12, borderWidth: 1 },
+  genHeroText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 20 },
+  genResult: { borderRadius: 14, borderWidth: 1, padding: 16, gap: 10, marginTop: 8 },
+  genResultHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  genResultTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  genResultText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 },
 });
