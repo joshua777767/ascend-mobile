@@ -62,6 +62,7 @@ function AppGate({ children }: { children: React.ReactNode }) {
 
     const onOnboarding = seg0 === "onboarding";
     const onPaywall = seg0 === "paywall";
+    const onDebug = seg0 === "debug-subscription";
 
     // No profile yet → onboarding.
     if (!hasProfile && profile404) {
@@ -83,8 +84,9 @@ function AppGate({ children }: { children: React.ReactNode }) {
     }
 
     // Has profile but not Pro → hard paywall gate.
+    // Allow debug-subscription through so we can diagnose subscription issues.
     if (!isPro) {
-      if (!onPaywall) router.replace("/paywall");
+      if (!onPaywall && !onDebug) router.replace("/paywall");
       return;
     }
 
