@@ -348,6 +348,15 @@ export default function PaywallScreen() {
         </View>
 
         <TouchableOpacity
+          style={styles.debugBtn}
+          onPress={() => router.push("/debug-subscription")}
+        >
+          <Text style={[styles.debugText, { color: colors.mutedForeground }]}>
+            Debug Subscription
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={styles.signOutBtn}
           onPress={handleSignOut}
           disabled={busy}
@@ -461,4 +470,6 @@ const styles = StyleSheet.create({
   legalText: { fontSize: 12, fontFamily: "Inter_400Regular" },
   signOutBtn: { paddingVertical: 8 },
   signOutText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  debugBtn: { paddingVertical: 4 },
+  debugText: { fontSize: 11, fontFamily: "Inter_400Regular" },
 });

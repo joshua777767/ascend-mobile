@@ -129,6 +129,7 @@ function RootLayoutNav() {
             options={{ headerShown: false, gestureEnabled: false }}
           />
           <Stack.Screen name="settings" options={{ headerShown: false, presentation: "modal" }} />
+          <Stack.Screen name="debug-subscription" options={{ headerShown: false, presentation: "modal" }} />
           <Stack.Screen name="+not-found" />
         </Stack>
       </AppGate>
