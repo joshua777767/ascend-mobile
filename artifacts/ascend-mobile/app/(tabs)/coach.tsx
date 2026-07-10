@@ -139,74 +139,99 @@ export default function CoachScreen() {
         </View>
       </View>
 
-      <FlatList
-        data={[...allMessages].reverse()}
-        keyExtractor={(item) => item.id}
-        inverted
-        contentContainerStyle={[styles.list, { paddingBottom: 16 }]}
-        keyboardDismissMode="interactive"
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          isStreaming && allMessages[allMessages.length - 1]?.role !== "assistant" ? (
-            <View style={[styles.typingBubble, { backgroundColor: colors.card }]}>
-              <ActivityIndicator size="small" color={colors.primary} />
-            </View>
-          ) : null
-        }
-        renderItem={({ item }) => (
-          <View style={[styles.bubbleRow, item.role === "user" ? styles.userRow : styles.assistantRow]}>
-            {item.role === "assistant" && (
-              <View style={[styles.avatarSmall, { backgroundColor: colors.primary + "22" }]}>
-                <Feather name="cpu" size={12} color={colors.primary} />
-              </View>
-            )}
-            <View
-              style={[
-                styles.bubble,
-                item.role === "user"
-                  ? { backgroundColor: colors.primary }
-                  : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
-              ]}
+      {allMessages.length === 0 ? (
+        /* ── Empty state: vertical "Common Questions" list ── */
+        <ScrollView
+          contentContainerStyle={styles.emptyScroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.avatarEmpty, { backgroundColor: colors.primary + "22" }]}>
+            <Feather name="cpu" size={32} color={colors.primary} />
+          </View>
+          <Text style={[styles.emptyChatTitle, { color: colors.foreground }]}>Your AI Coach</Text>
+          <Text style={[styles.emptyChatSub, { color: colors.mutedForeground }]}>
+            Ask me anything about your plan, food, workouts, or energy.
+          </Text>
+          <Text style={[styles.commonQLabel, { color: colors.mutedForeground }]}>Common Questions</Text>
+          {SUGGESTED_CHIPS.map((chip) => (
+            <TouchableOpacity
+              key={chip}
+              style={[styles.questionRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => sendText(chip)}
+              activeOpacity={0.75}
             >
-              <Text
+              <Text style={[styles.questionText, { color: colors.foreground }]}>{chip}</Text>
+              <Feather name="chevron-right" size={14} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      ) : (
+        /* ── Chat view ── */
+        <FlatList
+          data={[...allMessages].reverse()}
+          keyExtractor={(item) => item.id}
+          inverted
+          contentContainerStyle={[styles.list, { paddingBottom: 16 }]}
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            isStreaming && allMessages[allMessages.length - 1]?.role !== "assistant" ? (
+              <View style={[styles.typingBubble, { backgroundColor: colors.card }]}>
+                <ActivityIndicator size="small" color={colors.primary} />
+              </View>
+            ) : null
+          }
+          renderItem={({ item }) => (
+            <View style={[styles.bubbleRow, item.role === "user" ? styles.userRow : styles.assistantRow]}>
+              {item.role === "assistant" && (
+                <View style={[styles.avatarSmall, { backgroundColor: colors.primary + "22" }]}>
+                  <Feather name="cpu" size={12} color={colors.primary} />
+                </View>
+              )}
+              <View
                 style={[
-                  styles.bubbleText,
-                  { color: item.role === "user" ? colors.primaryForeground : colors.foreground },
+                  styles.bubble,
+                  item.role === "user"
+                    ? { backgroundColor: colors.primary }
+                    : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
                 ]}
               >
-                {item.content || (isStreaming ? "…" : "")}
-              </Text>
+                <Text
+                  style={[
+                    styles.bubbleText,
+                    { color: item.role === "user" ? colors.primaryForeground : colors.foreground },
+                  ]}
+                >
+                  {item.content || (isStreaming ? "…" : "")}
+                </Text>
+              </View>
             </View>
-          </View>
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyChat}>
-            <Text style={[styles.emptyChatText, { color: colors.mutedForeground }]}>
-              Say hello to your AI coach
-            </Text>
-          </View>
-        }
-      />
+          )}
+        />
+      )}
 
-      {/* Suggested chips — shown both on empty state and during conversation */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
-        keyboardShouldPersistTaps="handled"
-      >
-        {SUGGESTED_CHIPS.map((chip) => (
-          <TouchableOpacity
-            key={chip}
-            style={[styles.chip, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => sendText(chip)}
-            activeOpacity={0.75}
-          >
-            <Text style={[styles.chipText, { color: colors.foreground }]}>{chip}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {/* Suggested chips — horizontal scroll, shown only during conversation */}
+      {allMessages.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+          keyboardShouldPersistTaps="handled"
+        >
+          {SUGGESTED_CHIPS.map((chip) => (
+            <TouchableOpacity
+              key={chip}
+              style={[styles.chip, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => sendText(chip)}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.chipText, { color: colors.foreground }]}>{chip}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       <View style={[styles.inputBar, { borderTopColor: colors.border, paddingBottom: insets.bottom + TAB_BAR_HEIGHT + 12 }]}>
         <TextInput
@@ -263,6 +288,13 @@ const styles = StyleSheet.create({
   bubble: { maxWidth: "78%", borderRadius: 16, padding: 12 },
   bubbleText: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22 },
   typingBubble: { borderRadius: 16, padding: 14, alignSelf: "flex-start", marginBottom: 10 },
+  emptyScroll: { paddingHorizontal: 24, paddingTop: 40, paddingBottom: 24, alignItems: "center", gap: 0 },
+  avatarEmpty: { width: 72, height: 72, borderRadius: 20, alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  emptyChatTitle: { fontSize: 22, fontFamily: "Inter_700Bold", marginBottom: 8 },
+  emptyChatSub: { fontSize: 15, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22, marginBottom: 24 },
+  commonQLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.8, textTransform: "uppercase", alignSelf: "flex-start", marginBottom: 10 },
+  questionRow: { width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12, borderWidth: 1, marginBottom: 8 },
+  questionText: { fontSize: 14, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 20 },
   emptyChat: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80 },
   emptyChatText: { fontSize: 15, fontFamily: "Inter_400Regular" },
   chipsRow: { paddingHorizontal: 16, paddingVertical: 8, gap: 8, flexDirection: "row" },

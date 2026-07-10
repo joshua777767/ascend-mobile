@@ -93,7 +93,18 @@ export default function MealsScreen() {
   const [genPreference, setGenPreference] = useState("");
   const [genAvailableFoods, setGenAvailableFoods] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
+  type MealOption = {
+    name: string;
+    calories: number;
+    protein: number;
+    carbs?: number;
+    fat?: number;
+    ingredients?: string[];
+    instructions?: string;
+    substitutions?: string;
+  };
+  const [generatedOptions, setGeneratedOptions] = useState<MealOption[] | null>(null);
+  const [generatedTotals, setGeneratedTotals] = useState<{ calories: number; protein: number } | null>(null);
 
   const MEAL_COLORS: Record<string, string> = {
     breakfast: colors.amber,
@@ -158,7 +169,8 @@ export default function MealsScreen() {
 
   const handleGenerate = async () => {
     setIsGenerating(true);
-    setGeneratedPlan(null);
+    setGeneratedOptions(null);
+    setGeneratedTotals(null);
     try {
       const result = await generateMeals.mutateAsync({
         data: {
@@ -168,8 +180,12 @@ export default function MealsScreen() {
           ...(genAvailableFoods.trim() ? { availableFoods: genAvailableFoods.trim() } : {}),
         },
       } as any);
-      const plan = (result as any)?.plan ?? (result as any)?.meals ?? JSON.stringify(result);
-      setGeneratedPlan(typeof plan === "string" ? plan : JSON.stringify(plan, null, 2));
+      const options = (result as any)?.options ?? [];
+      setGeneratedOptions(options);
+      setGeneratedTotals({
+        calories: (result as any)?.totalCalories ?? 0,
+        protein: (result as any)?.totalProtein ?? 0,
+      });
     } catch (e: any) {
       Alert.alert("Error", e?.message ?? "Could not generate meal plan");
     } finally {
@@ -386,7 +402,7 @@ export default function MealsScreen() {
       <Modal visible={showGenModal} animationType="slide" presentationStyle="formSheet" onRequestClose={() => setShowGenModal(false)}>
         <View style={[styles.modalRoot, { backgroundColor: colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={() => { setShowGenModal(false); setGeneratedPlan(null); }}>
+            <TouchableOpacity onPress={() => { setShowGenModal(false); setGeneratedOptions(null); setGeneratedTotals(null); }}>
               <Text style={[styles.modalCancel, { color: colors.mutedForeground }]}>Close</Text>
             </TouchableOpacity>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>AI Meal Generator</Text>
@@ -452,13 +468,53 @@ export default function MealsScreen() {
               numberOfLines={3}
             />
 
-            {generatedPlan && (
-              <View style={[styles.genResult, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {generatedOptions && generatedOptions.length > 0 && (
+              <View style={styles.genResultWrap}>
                 <View style={styles.genResultHeader}>
                   <Feather name="check-circle" size={16} color={colors.green} />
-                  <Text style={[styles.genResultTitle, { color: colors.green }]}>Meal Plan Ready</Text>
+                  <Text style={[styles.genResultTitle, { color: colors.green }]}>Meal Options Ready</Text>
+                  {generatedTotals && generatedTotals.calories > 0 && (
+                    <Text style={[styles.genResultSub, { color: colors.mutedForeground }]}>
+                      {generatedTotals.calories} cal · {generatedTotals.protein}g protein
+                    </Text>
+                  )}
                 </View>
-                <Text style={[styles.genResultText, { color: colors.foreground }]}>{generatedPlan}</Text>
+                {generatedOptions.map((opt, idx) => (
+                  <View key={idx} style={[styles.genOptionCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <Text style={[styles.genOptionName, { color: colors.foreground }]}>{opt.name}</Text>
+                    <View style={styles.genOptionMacros}>
+                      <View style={[styles.genMacroChip, { backgroundColor: colors.amber + "18" }]}>
+                        <Text style={[styles.genMacroVal, { color: colors.amber }]}>{opt.calories} kcal</Text>
+                      </View>
+                      <View style={[styles.genMacroChip, { backgroundColor: colors.blue + "18" }]}>
+                        <Text style={[styles.genMacroVal, { color: colors.blue }]}>{opt.protein}g protein</Text>
+                      </View>
+                      {opt.carbs != null && (
+                        <View style={[styles.genMacroChip, { backgroundColor: colors.green + "18" }]}>
+                          <Text style={[styles.genMacroVal, { color: colors.green }]}>{opt.carbs}g carbs</Text>
+                        </View>
+                      )}
+                    </View>
+                    {opt.ingredients && opt.ingredients.length > 0 && (
+                      <View style={styles.genSection}>
+                        <Text style={[styles.genSectionLabel, { color: colors.mutedForeground }]}>INGREDIENTS</Text>
+                        <Text style={[styles.genSectionText, { color: colors.foreground }]}>{opt.ingredients.join(", ")}</Text>
+                      </View>
+                    )}
+                    {opt.instructions ? (
+                      <View style={styles.genSection}>
+                        <Text style={[styles.genSectionLabel, { color: colors.mutedForeground }]}>HOW TO MAKE IT</Text>
+                        <Text style={[styles.genSectionText, { color: colors.foreground }]}>{opt.instructions}</Text>
+                      </View>
+                    ) : null}
+                    {opt.substitutions ? (
+                      <View style={styles.genSection}>
+                        <Text style={[styles.genSectionLabel, { color: colors.primary }]}>SUBSTITUTIONS</Text>
+                        <Text style={[styles.genSectionText, { color: colors.foreground }]}>{opt.substitutions}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                ))}
               </View>
             )}
           </ScrollView>
@@ -527,8 +583,16 @@ const styles = StyleSheet.create({
   chipBtnText: { fontSize: 13, fontFamily: "Inter_500Medium", textTransform: "capitalize" },
   genHero: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14, borderRadius: 12, borderWidth: 1 },
   genHeroText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 20 },
-  genResult: { borderRadius: 14, borderWidth: 1, padding: 16, gap: 10, marginTop: 8 },
-  genResultHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  genResultWrap: { gap: 12, marginTop: 8 },
+  genResultHeader: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
   genResultTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  genResultText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 },
+  genResultSub: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  genOptionCard: { borderRadius: 14, borderWidth: 1, padding: 14, gap: 10 },
+  genOptionName: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  genOptionMacros: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  genMacroChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  genMacroVal: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  genSection: { gap: 3 },
+  genSectionLabel: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.8 },
+  genSectionText: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
 });

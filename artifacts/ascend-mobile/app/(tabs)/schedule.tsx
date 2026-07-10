@@ -232,34 +232,29 @@ export default function ScheduleScreen() {
 
         {plan && (
           <View style={styles.dailyTargets}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.targetsRow}>
-              {plan.dailyCalorieTarget && (
-                <View style={[styles.targetChip, { backgroundColor: colors.amber + "18", borderColor: colors.amber + "44" }]}>
+            <View style={styles.targetsGrid}>
+              {(plan.calorieTarget ?? plan.dailyCalorieTarget) ? (
+                <View style={[styles.targetChip, styles.targetChipThird, { backgroundColor: colors.amber + "18", borderColor: colors.amber + "44" }]}>
                   <Feather name="zap" size={12} color={colors.amber} />
-                  <Text style={[styles.targetChipText, { color: colors.amber }]}>{plan.dailyCalorieTarget} cal</Text>
+                  <Text style={[styles.targetChipText, { color: colors.amber }]}>{plan.calorieTarget ?? plan.dailyCalorieTarget} cal</Text>
                 </View>
-              )}
-              {plan.dailyProteinTarget && (
-                <View style={[styles.targetChip, { backgroundColor: colors.blue + "18", borderColor: colors.blue + "44" }]}>
+              ) : null}
+              {(plan.proteinTargetG ?? plan.dailyProteinTarget) ? (
+                <View style={[styles.targetChip, styles.targetChipThird, { backgroundColor: colors.blue + "18", borderColor: colors.blue + "44" }]}>
                   <Feather name="activity" size={12} color={colors.blue} />
-                  <Text style={[styles.targetChipText, { color: colors.blue }]}>{plan.dailyProteinTarget}g protein</Text>
+                  <Text style={[styles.targetChipText, { color: colors.blue }]}>{plan.proteinTargetG ?? plan.dailyProteinTarget}g protein</Text>
                 </View>
-              )}
-              {(plan.waterTargetL ?? plan.waterTargetOz) && (
-                <View style={[styles.targetChip, { backgroundColor: "#06B6D4" + "18", borderColor: "#06B6D4" + "44" }]}>
+              ) : null}
+              {(plan.waterTargetL ?? plan.waterTargetOz) ? (
+                <View style={[styles.targetChip, styles.targetChipThird, { backgroundColor: "#06B6D4" + "18", borderColor: "#06B6D4" + "44" }]}>
                   <Feather name="droplet" size={12} color="#06B6D4" />
                   <Text style={[styles.targetChipText, { color: "#06B6D4" }]}>
                     {plan.waterTargetL ? `${plan.waterTargetL}L water` : `${plan.waterTargetOz}oz water`}
                   </Text>
                 </View>
-              )}
-              {plan.weeklyWorkoutDays && (
-                <View style={[styles.targetChip, { backgroundColor: "#1E8BFF" + "18", borderColor: "#1E8BFF" + "44" }]}>
-                  <Feather name="award" size={12} color="#1E8BFF" />
-                  <Text style={[styles.targetChipText, { color: "#1E8BFF" }]}>{plan.weeklyWorkoutDays}x/wk workouts</Text>
-                </View>
-              )}
-            </ScrollView>
+              ) : null}
+            </View>
+            <Text style={[styles.scheduleHint, { color: colors.mutedForeground }]}>Tap ±15m to adjust time</Text>
           </View>
         )}
 
@@ -461,9 +456,11 @@ const styles = StyleSheet.create({
   missionBannerLabel: { fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 0.7, marginBottom: 3 },
   missionBannerText: { fontSize: 14, fontFamily: "Inter_500Medium", lineHeight: 20 },
   dailyTargets: { marginBottom: 16 },
-  targetsRow: { gap: 8, flexDirection: "row" },
-  targetChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
-  targetChipText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  targetsGrid: { flexDirection: "row", gap: 8 },
+  targetChipThird: { flex: 1 },
+  targetChip: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingHorizontal: 8, paddingVertical: 8, borderRadius: 12, borderWidth: 1 },
+  targetChipText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  scheduleHint: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 8, textAlign: "center" },
   progressBar: { height: 4, borderRadius: 2, overflow: "hidden", marginBottom: 6 },
   progressFill: { height: 4, borderRadius: 2 },
   progressLabel: { fontSize: 12, fontFamily: "Inter_400Regular", marginBottom: 16 },
