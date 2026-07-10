@@ -432,6 +432,28 @@ const BODY_PART_EXERCISES: Record<string, Record<string, { name: string; sets: n
   },
 };
 
+/** Returns true for any "no gym / no equipment" variant stored in the DB. */
+export function isNoGymAccess(gymAccess: string | null | undefined): boolean {
+  const val = (gymAccess ?? "").toLowerCase().trim().replace(/[-_]/g, " ");
+  return ["no gym", "no equipment", "no", "home", "home gym"].includes(val);
+}
+
+/** Exercise keywords that require gym equipment — used to filter for home users. */
+const GYM_EQUIPMENT_TERMS = [
+  "Dumbbell", "Barbell", "Farmer Carry", "Goblet Squat",
+  "Cable", "Bench Press", "Weighted", "Leg Press",
+  "Lat Pulldown", "Face Pull", "Pallof", "Prowler",
+  "Skullcrusher", "Tricep Pushdown", "Overhead Press",
+  "Hanging Knee", "Hanging Leg", "Ab Wheel",
+  "Chest-Supported", "Glute Ham", "Romanian Deadlift",
+  "Hip Thrust", "Nordic", "Kettlebell", "Sled",
+  "Battle", "Power Clean", "Trap Bar",
+];
+
+function needsGymEquipment(name: string): boolean {
+  return GYM_EQUIPMENT_TERMS.some(term => name.includes(term));
+}
+
 function buildCustomWorkout(
   focus: string,
   level: string,
@@ -465,18 +487,15 @@ function buildCustomWorkout(
     for (const ex of partExercises) {
       const key = ex.name.toLowerCase();
       if (!seen.has(key)) {
+        // Skip gym-equipment exercises for no-gym users entirely
+        if (isNoGymAccess(gymAccess) && needsGymEquipment(ex.name)) continue;
         seen.add(key);
-        // Adjust for gym access
-        if (gymAccess === "no gym" && (ex.name.includes("Dumbbell") || ex.name.includes("Barbell"))) {
-          collected.push({ ...ex, name: ex.name.replace("Dumbbell ", "").replace("Barbell ", "Bodyweight "), coachTip: "Use bodyweight or bands. " + ex.coachTip });
-        } else {
-          collected.push(ex);
-        }
+        collected.push(ex);
       }
     }
   }
 
-  // If not enough exercises, add from core and conditioning
+  // If not enough exercises, add from core and conditioning (all bodyweight)
   for (const fillPart of fillParts) {
     if (collected.length >= targetCount) break;
     const partExercises = BODY_PART_EXERCISES[levelKey][fillPart];
@@ -484,12 +503,9 @@ function buildCustomWorkout(
     for (const ex of partExercises) {
       const key = ex.name.toLowerCase();
       if (!seen.has(key)) {
+        if (isNoGymAccess(gymAccess) && needsGymEquipment(ex.name)) continue;
         seen.add(key);
-        if (gymAccess === "no gym" && (ex.name.includes("Dumbbell") || ex.name.includes("Barbell"))) {
-          collected.push({ ...ex, name: ex.name.replace("Dumbbell ", "").replace("Barbell ", "Bodyweight "), coachTip: "Use bodyweight or bands. " + ex.coachTip });
-        } else {
-          collected.push(ex);
-        }
+        collected.push(ex);
       }
     }
   }
@@ -566,7 +582,7 @@ export function getTodayWorkout(profile: UserProfile, plan: Plan, timeZone?: str
 
   let workoutList: PlannedWorkout[];
 
-  if (gymAccess === "no gym") {
+  if (isNoGymAccess(gymAccess)) {
     workoutList = homeWorkouts;
   } else if (workoutFocus === "strength") {
     workoutList = strengthWorkouts;

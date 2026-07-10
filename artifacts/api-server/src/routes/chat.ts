@@ -469,6 +469,14 @@ function heuristicReply(message: string, ctx: ChatContext): string {
 
 // ---------------------------------------------------------------------------
 
+function normalizeGymAccessLabel(gymAccess: string | null | undefined): string {
+  const val = (gymAccess ?? "").toLowerCase().trim().replace(/[-_]/g, " ");
+  if (["no gym", "no equipment", "no", "home"].includes(val)) return "no gym (home only, no equipment)";
+  if (val === "home gym") return "home gym (some basic equipment)";
+  if (["full gym", "gym", "yes"].includes(val)) return "full gym access";
+  return gymAccess ?? "unknown";
+}
+
 function buildContextSummary(
   profile: Profile | undefined,
   plan: Plan | undefined,
@@ -510,7 +518,7 @@ function buildContextSummary(
     parts.push(
       `PROFILE: ${profile.name}, ${profile.age}yo ${profile.gender}. ` +
         `${currentLbs} lbs now → ${goalLbs} lbs goal (${direction} ${absDiff} lbs). ` +
-        `Fitness level: ${profile.fitnessLevel}. Gym access: ${profile.gymAccess}. ` +
+        `Fitness level: ${profile.fitnessLevel}. Gym access: ${normalizeGymAccessLabel(profile.gymAccess)}. ` +
         `Trains ${profile.workoutDaysPerWeek}x/week. Wake ${profile.wakeTime}, sleep ${profile.sleepTime}. ` +
         `Sleep quality ${profile.sleepQuality}/10, energy ${profile.energyLevel}/10, stress ${profile.stressLevel}/10. ` +
         (sportDisplay ? `Sport: ${sportDisplay}. ` : "") +
@@ -655,6 +663,7 @@ VOICE: Warm, direct, scientifically grounded. Like a coach who actually knows wh
 
 LENGTH: 80 words max. Hard cap. No exceptions.
 FORMAT: One clear reason → 2–3 specific actions. Write like a person. No headers. No bullet walls.
+OPENER RULE: Never start with "I'm here to help", "I can help you", "I'd be happy to", "Of course!", "Great question", "As your coach", or any generic greeting. Jump immediately into the specific answer, insight, or next action. Every response must reference something from the user's actual data above.
 
 ---
 

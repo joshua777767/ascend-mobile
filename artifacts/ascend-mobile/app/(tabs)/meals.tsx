@@ -48,7 +48,7 @@ type MealEntry = {
   description: string;
   calories?: number;
   protein?: number;
-  aiFeedback?: string;
+  coachFeedback?: string;
   quality?: string;
   createdAt?: string;
 };
@@ -233,11 +233,11 @@ export default function MealsScreen() {
                   <Text style={[styles.mealDesc, { color: colors.foreground }]} numberOfLines={2}>
                     {meal.description}
                   </Text>
-                  {meal.aiFeedback ? (
+                  {meal.coachFeedback ? (
                     <View style={[styles.feedbackBox, { backgroundColor: colors.green + "15", borderColor: colors.green + "44" }]}>
                       <Feather name="cpu" size={12} color={colors.green} />
                       <Text style={[styles.feedbackText, { color: colors.green }]} numberOfLines={3}>
-                        {meal.aiFeedback}
+                        {meal.coachFeedback}
                       </Text>
                     </View>
                   ) : isPro ? (
