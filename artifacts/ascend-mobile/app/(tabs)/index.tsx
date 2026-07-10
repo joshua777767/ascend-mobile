@@ -31,6 +31,7 @@ import {
   useGetTodayWorkout,
   useGetProgressSummary,
   useGetUserProfile,
+  useListGoalCheckIns,
   getGetWaterTodayQueryKey,
 } from "@workspace/api-client-react";
 
@@ -219,6 +220,7 @@ export default function HomeScreen() {
   const { data: dailyScoreData, refetch: refetchScore } = useGetDailyScore();
   const { data: todayWorkoutData, refetch: refetchWorkout } = useGetTodayWorkout();
   const { data: progressData } = useGetProgressSummary();
+  const { data: goalCheckInsData } = useListGoalCheckIns();
   const logWater = useLogWater();
 
   const profile = profileData as any;
@@ -383,6 +385,55 @@ export default function HomeScreen() {
   // Goals chips
   const goals: string[] = Array.isArray(profile?.goals) ? profile.goals : [];
 
+  // Weekly habits (separate from daily mission habits)
+  const WEEKLY_KEYWORDS = /\b(this week|weekly|x\/week|per week|days\/week|times a week|times per week)\b/i;
+  const weeklyHabits: string[] = rawKeyHabits.filter((h) => WEEKLY_KEYWORDS.test(h));
+
+  // Weekly goal counts — persisted per month via AsyncStorage
+  const weeklyMonthKey = `ascend.weekly.${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+  const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    AsyncStorage.getItem(weeklyMonthKey).then((raw) => {
+      if (raw) { try { setWeeklyCounts(JSON.parse(raw)); } catch {} }
+    });
+  }, [weeklyMonthKey]);
+
+  const updateWeeklyCount = useCallback((habit: string, delta: number) => {
+    setWeeklyCounts((prev) => {
+      const next = { ...prev, [habit]: Math.max(0, (prev[habit] ?? 0) + delta) };
+      AsyncStorage.setItem(weeklyMonthKey, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, [weeklyMonthKey]);
+
+  // Next Mission — derived from goal check-in history
+  const goalCheckIns = (goalCheckInsData as any[]) ?? [];
+  const nextMissionItems: Array<{ type: "fix" | "keep"; text: string; goal: string }> = (() => {
+    const sorted = [...goalCheckIns].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    const items: Array<{ type: "fix" | "keep"; text: string; goal: string }> = [];
+    const seen = new Set<string>();
+    for (const c of sorted) {
+      if (c.whatHardened && !seen.has(c.whatHardened)) {
+        seen.add(c.whatHardened);
+        items.push({ type: "fix", text: c.whatHardened, goal: c.goal });
+      }
+      if (c.whatHelped && !seen.has(c.whatHelped)) {
+        seen.add(c.whatHelped);
+        items.push({ type: "keep", text: c.whatHelped, goal: c.goal });
+      }
+      if (items.length >= 3) break;
+    }
+    return items;
+  })();
+
+  // Trial nudge
+  const trialDay = Math.max(1, Math.floor((Date.now() - new Date(profile?.createdAt ?? Date.now()).getTime()) / 86400000) + 1);
+  const daysLeft = Math.max(0, 7 - trialDay + 1);
+  const showTrialNudge = !isPro && trialDay >= 5 && trialDay <= 7;
+
   const dayStr = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   // Shared card style tokens
@@ -492,6 +543,34 @@ export default function HomeScreen() {
               <Text style={[s.barLabel, { color: MUTED_FG }]}>{progressPct}% of the way to goal</Text>
             </View>
           )}
+        </View>
+      )}
+
+      {/* ── Next Mission ─────────────────────────────────────────────────── */}
+      {nextMissionItems.length > 0 && (
+        <View style={[s.nextMissionCard, { backgroundColor: BLUE + "0D", borderColor: BLUE + "26" }]}>
+          <View style={s.nextMissionHeader}>
+            <Feather name="target" size={14} color={BLUE} />
+            <Text style={[s.capLabel, { color: BLUE }]}>NEXT MISSION</Text>
+          </View>
+          <View style={s.nextMissionItems}>
+            {nextMissionItems.map((item, i) => (
+              <View key={i} style={s.nextMissionRow}>
+                <View style={[s.nextMissionBadge, {
+                  backgroundColor: item.type === "fix" ? AMBER + "26" : GREEN + "26",
+                }]}>
+                  <Text style={[s.nextMissionBadgeText, { color: item.type === "fix" ? AMBER : GREEN }]}>
+                    {item.type === "fix" ? "Reduce" : "Keep"}
+                  </Text>
+                </View>
+                <View style={s.nextMissionTextWrap}>
+                  <Text style={[s.nextMissionText, { color: FG }]}>{item.text}</Text>
+                  <Text style={[s.nextMissionGoal, { color: MUTED_FG }]}>{item.goal}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+          <Text style={[s.nextMissionNote, { color: MUTED_FG }]}>Based on your last check-in — track the pattern.</Text>
         </View>
       )}
 
@@ -631,6 +710,65 @@ export default function HomeScreen() {
               All done. You're building the habit. Keep the streak going.
             </Text>
           )}
+        </View>
+      )}
+
+      {/* ── Weekly Goals ──────────────────────────────────────────────────── */}
+      {weeklyHabits.length > 0 && (
+        <View>
+          <Text style={[s.capLabel, { color: MUTED_FG, marginBottom: 10 }]}>WEEKLY GOALS</Text>
+          <View style={[s.weeklyCard, { backgroundColor: CARD_BG, borderColor: CARD_BORDER }]}>
+            {weeklyHabits.map((habit, idx) => {
+              const isWorkoutFreq = /\b(train|workout|strength|gym|exercise|lift|cardio|run|sport|practice)\b/i.test(habit) && WEEKLY_KEYWORDS.test(habit);
+              const liveDays = profile?.workoutDaysPerWeek ?? 3;
+              const targetCount = isWorkoutFreq && liveDays > 0 ? liveDays : 1;
+              const count = weeklyCounts[habit] ?? 0;
+              const isDone = count >= targetCount;
+              const displayHabit = isWorkoutFreq && liveDays > 0 ? `Train ${liveDays}x this week` : habit;
+              return (
+                <View
+                  key={habit}
+                  style={[
+                    s.weeklyRow,
+                    { borderBottomColor: CARD_BORDER },
+                    idx === weeklyHabits.length - 1 && { borderBottomWidth: 0 },
+                  ]}
+                >
+                  <TouchableOpacity
+                    style={[
+                      s.weeklyCircle,
+                      isDone ? { backgroundColor: GREEN, borderColor: GREEN } : { borderColor: CARD_BORDER },
+                    ]}
+                    onPress={() => updateWeeklyCount(habit, isDone ? -1 : 1)}
+                    activeOpacity={0.7}
+                  >
+                    {isDone && <Feather name="check" size={11} color="#fff" />}
+                  </TouchableOpacity>
+                  <Text style={[
+                    s.weeklyLabel,
+                    { color: isDone ? MUTED_FG : FG, textDecorationLine: isDone ? "line-through" : "none" },
+                  ]}>{displayHabit}</Text>
+                  <View style={s.weeklyCounter}>
+                    <TouchableOpacity
+                      style={[s.weeklyCountBtn, { borderColor: CARD_BORDER }]}
+                      onPress={() => updateWeeklyCount(habit, -1)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[s.weeklyCountBtnText, { color: MUTED_FG }]}>−</Text>
+                    </TouchableOpacity>
+                    <Text style={[s.weeklyCountNum, { color: FG }]}>{count}/{targetCount}</Text>
+                    <TouchableOpacity
+                      style={[s.weeklyCountBtn, { borderColor: CARD_BORDER }]}
+                      onPress={() => updateWeeklyCount(habit, 1)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[s.weeklyCountBtnText, { color: FG }]}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
         </View>
       )}
 
@@ -785,6 +923,25 @@ export default function HomeScreen() {
         </View>
         <Feather name="chevron-right" size={18} color={MUTED_FG} />
       </TouchableOpacity>
+
+      {/* ── Trial Nudge (days 5-7) ───────────────────────────────────────── */}
+      {showTrialNudge && (
+        <TouchableOpacity
+          style={[s.trialNudge, { backgroundColor: AMBER + "12", borderColor: AMBER + "38" }]}
+          onPress={() => router.push("/(tabs)/coach" as any)}
+          activeOpacity={0.85}
+        >
+          <Feather name="zap" size={14} color={AMBER} />
+          <View style={s.trialNudgeText}>
+            <Text style={[s.trialNudgeTitle, { color: FG }]}>
+              {daysLeft === 1
+                ? "Last day of your trial. See what you've built."
+                : `Day ${trialDay} of 7 — ${daysLeft} days left in your free trial`}
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={14} color={MUTED_FG} />
+        </TouchableOpacity>
+      )}
 
       {/* ── Objectives chips ──────────────────────────────────────────────── */}
       {goals.length > 0 && (
@@ -960,4 +1117,31 @@ const s = StyleSheet.create({
   quickLinksRow: { flexDirection: "row", gap: 10 },
   quickLink: { flex: 1, borderRadius: 16, borderWidth: 1, paddingVertical: 16, alignItems: "center", gap: 6 },
   quickLinkLabel: { fontSize: 10, fontFamily: "Inter_500Medium" },
+
+  // Next Mission
+  nextMissionCard: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
+  nextMissionHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
+  nextMissionItems: { gap: 10 },
+  nextMissionRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  nextMissionBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  nextMissionBadgeText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
+  nextMissionTextWrap: { flex: 1, gap: 2 },
+  nextMissionText: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 16, textTransform: "capitalize" },
+  nextMissionGoal: { fontSize: 10, fontFamily: "Inter_400Regular", textTransform: "capitalize" },
+  nextMissionNote: { fontSize: 10, fontFamily: "Inter_400Regular", lineHeight: 14 },
+
+  // Weekly Goals
+  weeklyCard: { borderRadius: 16, borderWidth: 1, overflow: "hidden" },
+  weeklyRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  weeklyCircle: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  weeklyLabel: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  weeklyCounter: { flexDirection: "row", alignItems: "center", gap: 8 },
+  weeklyCountBtn: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  weeklyCountBtnText: { fontSize: 14, fontFamily: "Inter_700Bold", lineHeight: 18 },
+  weeklyCountNum: { fontSize: 13, fontFamily: "Inter_700Bold", textAlign: "center", minWidth: 32, fontVariant: ["tabular-nums"] },
+
+  // Trial Nudge
+  trialNudge: { flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 16, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12 },
+  trialNudgeText: { flex: 1 },
+  trialNudgeTitle: { fontSize: 12, fontFamily: "Inter_700Bold", lineHeight: 16 },
 });
