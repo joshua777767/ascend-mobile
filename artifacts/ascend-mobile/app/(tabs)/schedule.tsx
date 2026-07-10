@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
@@ -6,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,6 +34,7 @@ const BLOCK_COLORS: Record<string, string> = {
 export default function ScheduleScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { data, isLoading, refetch } = useGetTodaySchedule();
 
   const blocks: ScheduleBlock[] = (data as any)?.blocks ?? (Array.isArray(data) ? data : []);
@@ -58,8 +61,15 @@ export default function ScheduleScreen() {
           <Feather name="calendar" size={44} color={colors.mutedForeground} />
           <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No schedule yet</Text>
           <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-            Complete your profile to generate your daily schedule
+            Complete your profile so we can build your personalized daily schedule.
           </Text>
+          <TouchableOpacity
+            style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
+            onPress={() => router.push("/onboarding")}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.emptyBtnText, { color: "#080D12" }]}>Complete Profile</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.timeline}>
@@ -108,6 +118,8 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: "center", paddingTop: 80, gap: 12 },
   emptyTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold" },
   emptyText: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
+  emptyBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, marginTop: 8 },
+  emptyBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   timeline: { gap: 0 },
   blockRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 8 },
   timeCol: { width: 56, paddingTop: 14 },

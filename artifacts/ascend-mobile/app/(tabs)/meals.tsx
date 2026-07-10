@@ -182,14 +182,29 @@ export default function MealsScreen() {
                         {meal.aiFeedback}
                       </Text>
                     </View>
-                  ) : isPro ? (
-                    <View style={[styles.feedbackBox, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-                      <ActivityIndicator size="small" color={colors.mutedForeground} />
-                      <Text style={[styles.feedbackText, { color: colors.mutedForeground }]}>
-                        AI is analyzing…
-                      </Text>
-                    </View>
-                  ) : null}
+                  ) : isPro ? (() => {
+                    // Only show spinner for meals logged in the last 20 seconds.
+                    // After that, AI feedback timed out — show a clear error instead.
+                    const ageMs = meal.createdAt
+                      ? Date.now() - new Date(meal.createdAt).getTime()
+                      : Infinity;
+                    const timedOut = ageMs > 20_000;
+                    return timedOut ? (
+                      <View style={[styles.feedbackBox, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                        <Feather name="alert-circle" size={12} color={colors.mutedForeground} />
+                        <Text style={[styles.feedbackText, { color: colors.mutedForeground }]}>
+                          AI feedback unavailable for this meal.
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={[styles.feedbackBox, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                        <ActivityIndicator size="small" color={colors.mutedForeground} />
+                        <Text style={[styles.feedbackText, { color: colors.mutedForeground }]}>
+                          AI is analyzing…
+                        </Text>
+                      </View>
+                    );
+                  })() : null}
                 </View>
               );
             })}

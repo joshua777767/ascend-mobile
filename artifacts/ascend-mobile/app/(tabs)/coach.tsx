@@ -139,11 +139,15 @@ export default function CoachScreen() {
     );
   }
 
+  // Tab bar is position:absolute (overlay). Standard iOS tab bar = 49pt.
+  // Add it to bottom offset so input clears the bar with or without keyboard.
+  const TAB_BAR_HEIGHT = 49;
+
   return (
     <KeyboardAvoidingView
       style={[styles.root, { backgroundColor: colors.background }]}
       behavior="padding"
-      keyboardVerticalOffset={0}
+      keyboardVerticalOffset={TAB_BAR_HEIGHT}
     >
       <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: colors.border }]}>
         <View style={[styles.avatarDot, { backgroundColor: colors.primary + "22" }]}>
@@ -205,7 +209,7 @@ export default function CoachScreen() {
         }
       />
 
-      <View style={[styles.inputBar, { borderTopColor: colors.border, paddingBottom: insets.bottom + 12 }]}>
+      <View style={[styles.inputBar, { borderTopColor: colors.border, paddingBottom: insets.bottom + TAB_BAR_HEIGHT + 12 }]}>
         <TextInput
           style={[
             styles.chatInput,
