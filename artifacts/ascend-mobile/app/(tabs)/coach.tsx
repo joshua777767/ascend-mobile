@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -53,8 +53,18 @@ export default function CoachScreen() {
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const { message: emergencyMessage } = useLocalSearchParams<{ message?: string }>();
+  const hasSentEmergency = React.useRef(false);
 
   const allMessages: Message[] = localMessages.length > 0 ? localMessages : history;
+
+  useEffect(() => {
+    if (emergencyMessage && isPro && !hasSentEmergency.current) {
+      hasSentEmergency.current = true;
+      sendText(emergencyMessage);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emergencyMessage, isPro]);
 
   const sendText = useCallback(async (text: string) => {
     if (!text.trim() || isStreaming) return;

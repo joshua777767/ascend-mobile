@@ -49,6 +49,23 @@ const TASK_TYPES = ["focus", "meal", "workout", "rest", "water", "custom"];
 
 // ─── Time helpers ──────────────────────────────────────────────────────────────
 
+function addMinsToTime(timeStr: string, delta: number): string {
+  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!match) return timeStr;
+  let hours = parseInt(match[1]);
+  const minutes = parseInt(match[2]);
+  const ampm = match[3].toUpperCase();
+  if (ampm === "PM" && hours !== 12) hours += 12;
+  if (ampm === "AM" && hours === 12) hours = 0;
+  const totalMins = hours * 60 + minutes;
+  const newTotal = ((totalMins + delta) + 1440) % 1440;
+  const h24 = Math.floor(newTotal / 60);
+  const m = newTotal % 60;
+  const newAmpm = h24 >= 12 ? "PM" : "AM";
+  const h12 = h24 % 12 || 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${newAmpm}`;
+}
+
 function parseTimeToMinutes(timeStr: string): number {
   if (!timeStr) return -1;
   const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
@@ -141,6 +158,20 @@ export default function ScheduleScreen() {
       Alert.alert("Error", e?.message ?? "Couldn't add task");
     } finally {
       setIsAdding(false);
+    }
+  };
+
+  const handleTimeAdjust = async (item: ScheduleItem, delta: number) => {
+    const newTime = addMinsToTime(item.time, delta);
+    if (newTime === item.time) return;
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await updateItem.mutateAsync({
+        data: { activity: item.activity, type: item.type, time: newTime } as any,
+      });
+      refetch();
+    } catch {
+      Alert.alert("Error", "Couldn't update time");
     }
   };
 
@@ -326,6 +357,18 @@ export default function ScheduleScreen() {
                           <Feather name="trash-2" size={12} color={colors.mutedForeground} />
                         </TouchableOpacity>
                       )}
+                      <TouchableOpacity
+                        style={[styles.timeAdjBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                        onPress={() => handleTimeAdjust(block, -15)}
+                      >
+                        <Text style={[styles.timeAdjText, { color: colors.mutedForeground }]}>−15</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.timeAdjBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                        onPress={() => handleTimeAdjust(block, 15)}
+                      >
+                        <Text style={[styles.timeAdjText, { color: colors.mutedForeground }]}>+15</Text>
+                      </TouchableOpacity>
                     </View>
                     <Text style={[styles.blockTitle, { color: isDone ? colors.green : missed ? colors.destructive : colors.foreground, textDecorationLine: isSkipped ? "line-through" : "none" }]}>
                       {block.activity}
@@ -457,4 +500,6 @@ const styles = StyleSheet.create({
   inputField: { borderRadius: 12, borderWidth: 1, padding: 14, fontSize: 15, fontFamily: "Inter_400Regular" },
   typeBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, borderWidth: 1 },
   typeBtnText: { fontSize: 13, fontFamily: "Inter_500Medium", textTransform: "capitalize" },
+  timeAdjBtn: { paddingHorizontal: 7, height: 30, borderRadius: 8, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  timeAdjText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
 });

@@ -52,6 +52,10 @@ type MealEntry = {
   protein?: number;
   carbs?: number;
   fat?: number;
+  score?: number;
+  whatWasGood?: string;
+  whatWasBad?: string;
+  whatToFixNext?: string;
   coachFeedback?: string;
   quality?: string;
   loggedAt?: string;
@@ -96,6 +100,13 @@ export default function MealsScreen() {
     lunch: colors.green,
     dinner: colors.blue,
     snack: colors.purple,
+  };
+
+  const mealScoreColor = (score?: number) => {
+    if (!score) return colors.mutedForeground;
+    if (score >= 75) return colors.green;
+    if (score >= 50) return colors.amber;
+    return colors.destructive;
   };
 
   const setPickerResult = (asset: ImagePicker.ImagePickerAsset) => {
@@ -229,6 +240,12 @@ export default function MealsScreen() {
                         <Text style={[styles.qualityText, { color: qualityCfg.color }]}>{qualityCfg.label}</Text>
                       </View>
                     )}
+                    {meal.score != null && (
+                      <View style={[styles.scoreBadge, { backgroundColor: mealScoreColor(meal.score) + "20" }]}>
+                        <Text style={[styles.scoreValue, { color: mealScoreColor(meal.score) }]}>{meal.score}</Text>
+                        <Text style={[styles.scoreDenom, { color: mealScoreColor(meal.score) + "AA" }]}>/100</Text>
+                      </View>
+                    )}
                   </View>
                   <Text style={[styles.mealDesc, { color: colors.foreground }]} numberOfLines={2}>
                     {meal.description}
@@ -261,7 +278,28 @@ export default function MealsScreen() {
                       )}
                     </View>
                   )}
-                  {meal.coachFeedback ? (
+                  {(meal.whatWasGood || meal.whatWasBad || meal.whatToFixNext) ? (
+                    <View style={[styles.structuredFeedback, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                      {meal.whatWasGood && (
+                        <View style={styles.feedbackSection}>
+                          <Text style={[styles.feedbackSectionLabel, { color: colors.green }]}>GOOD</Text>
+                          <Text style={[styles.feedbackSectionText, { color: colors.foreground }]}>{meal.whatWasGood}</Text>
+                        </View>
+                      )}
+                      {meal.whatWasBad && (
+                        <View style={styles.feedbackSection}>
+                          <Text style={[styles.feedbackSectionLabel, { color: colors.amber }]}>WATCH</Text>
+                          <Text style={[styles.feedbackSectionText, { color: colors.foreground }]}>{meal.whatWasBad}</Text>
+                        </View>
+                      )}
+                      {meal.whatToFixNext && (
+                        <View style={styles.feedbackSection}>
+                          <Text style={[styles.feedbackSectionLabel, { color: colors.blue }]}>NEXT</Text>
+                          <Text style={[styles.feedbackSectionText, { color: colors.foreground }]}>{meal.whatToFixNext}</Text>
+                        </View>
+                      )}
+                    </View>
+                  ) : meal.coachFeedback ? (
                     <View style={[styles.feedbackBox, { backgroundColor: colors.green + "15", borderColor: colors.green + "44" }]}>
                       <Feather name="cpu" size={12} color={colors.green} />
                       <Text style={[styles.feedbackText, { color: colors.green }]} numberOfLines={3}>
@@ -459,6 +497,13 @@ const styles = StyleSheet.create({
   macroChip: { flexDirection: "row", alignItems: "baseline", gap: 3 },
   macroValue: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   macroLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  scoreBadge: { flexDirection: "row", alignItems: "baseline", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  scoreValue: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  scoreDenom: { fontSize: 10, fontFamily: "Inter_400Regular" },
+  structuredFeedback: { borderRadius: 10, borderWidth: 1, padding: 10, gap: 8 },
+  feedbackSection: { gap: 2 },
+  feedbackSectionLabel: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.8 },
+  feedbackSectionText: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 17 },
   feedbackBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 10, borderRadius: 10, borderWidth: 1 },
   feedbackText: { fontSize: 12, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 },
   modalRoot: { flex: 1 },

@@ -228,6 +228,11 @@ export default function JournalScreen() {
                   <View style={[styles.reviewScoreBadge, { backgroundColor: reviewScoreColor + "22" }]}>
                     <Text style={[styles.reviewScoreText, { color: reviewScoreColor }]}>{todayReview.dailyScore}/100</Text>
                   </View>
+                  {todayReview.dailyScore >= 80 && (
+                    <View style={[styles.perfectDayBadge, { backgroundColor: colors.green + "20", borderColor: colors.green + "44" }]}>
+                      <Text style={[styles.perfectDayText, { color: colors.green }]}>🏆 Perfect Day!</Text>
+                    </View>
+                  )}
                 </View>
 
                 {todayReview.onPace !== undefined && (
@@ -467,4 +472,6 @@ const styles = StyleSheet.create({
   ratingPill: { width: 34, height: 34, borderRadius: 8, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   ratingNum: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   textArea: { borderRadius: 12, borderWidth: 1, padding: 14, fontSize: 15, fontFamily: "Inter_400Regular", textAlignVertical: "top", minHeight: 72 },
+  perfectDayBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
+  perfectDayText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
 });

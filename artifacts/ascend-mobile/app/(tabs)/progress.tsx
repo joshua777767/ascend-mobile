@@ -459,6 +459,42 @@ export default function ProgressScreen() {
           </>
         )}
 
+        {/* Goal Pace Predictor */}
+        {weeklyReview?.currentPace != null && (
+          <>
+            <SectionHeader title="Goal Pace Predictor" />
+            <View style={[styles.predictorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.predictorRow}>
+                <View style={styles.predictorCol}>
+                  <Text style={[styles.predictorSub, { color: colors.mutedForeground }]}>Current pace</Text>
+                  <Text style={[styles.predictorValue, { color: colors.foreground }]}>
+                    {weeklyReview.currentPace > 0 ? "+" : ""}{weeklyReview.currentPace.toFixed(2)} lbs/wk
+                  </Text>
+                </View>
+                <View style={styles.predictorCol}>
+                  <Text style={[styles.predictorSub, { color: colors.mutedForeground }]}>Target pace</Text>
+                  <Text style={[styles.predictorValue, { color: colors.foreground }]}>
+                    {weeklyReview.goalPace?.includes("gain") ? "+0.4" : "-1.0"} lbs/wk
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.predictorBar, { backgroundColor: colors.muted }]}>
+                <View style={[styles.predictorFill, {
+                  backgroundColor: weeklyReview.status === "ahead" ? colors.green : weeklyReview.status === "on_track" ? colors.primary : colors.amber,
+                  width: `${Math.min(Math.abs(weeklyReview.currentPace || 0) / (weeklyReview.goalPace?.includes("gain") ? 0.4 : 1.0) * 100, 100)}%` as any,
+                }]} />
+              </View>
+              <Text style={[styles.predictorStatus, {
+                color: weeklyReview.status === "ahead" || weeklyReview.status === "on_track" ? colors.green : colors.amber,
+              }]}>
+                {weeklyReview.status === "on_track" ? "Right on pace. Stay consistent." :
+                 weeklyReview.status === "ahead" ? "Ahead of pace — great work!" :
+                 "Behind pace — push harder this week."}
+              </Text>
+            </View>
+          </>
+        )}
+
         {/* Weekly Recap (summary stats) */}
         {recap && (
           <>
@@ -725,6 +761,14 @@ const styles = StyleSheet.create({
   goalTypeChipText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
   goalSetRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   goalSetInput: { flex: 1, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, fontSize: 15 },
+  predictorCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16, gap: 10 },
+  predictorRow: { flexDirection: "row", gap: 16 },
+  predictorCol: { flex: 1, gap: 4 },
+  predictorSub: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  predictorValue: { fontSize: 18, fontFamily: "Inter_700Bold" },
+  predictorBar: { height: 6, borderRadius: 3, overflow: "hidden" },
+  predictorFill: { height: 6, borderRadius: 3 },
+  predictorStatus: { fontSize: 13, fontFamily: "Inter_500Medium" },
   milestonesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 },
   milestonePill: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, maxWidth: "47%" },
   milestoneIcon: { fontSize: 16 },
