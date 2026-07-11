@@ -343,6 +343,7 @@ function ProtectedApp() {
           setShowWeeklyCheckIn(false);
         }}
         goals={userGoals}
+        isProUser={isPro || nativeProConfirmed}
       />
       <WeeklyReviewModal
         open={showWeeklyReview}

@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import {
   useCreateGoalCheckIn,
   useCreateWeighIn,
+  useLogout,
   getListGoalCheckInsQueryKey,
   getListWeighInsQueryKey,
   getGetProgressSummaryQueryKey,
@@ -20,6 +21,7 @@ import {
   Star,
   CheckCircle,
 } from "lucide-react";
+import { isNative, sendToNative } from "@/lib/native-bridge";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const LOSE_FAT_GOALS = ["lose fat", "lose weight"];
@@ -56,6 +58,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   goals: string[];
+  isProUser?: boolean;
 }
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
@@ -512,20 +515,21 @@ function computeScore(goal: string, ans: GoalAnswers): number {
 }
 
 // ── Main modal ────────────────────────────────────────────────────────────────
-export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
+export function WeeklyCheckInModal({ open, onClose, goals, isProUser = false }: Props) {
   const queryClient = useQueryClient();
   const createGoalCheckIn = useCreateGoalCheckIn();
   const createWeighIn = useCreateWeighIn();
+  const logout = useLogout();
 
   const { trialDay } = useTrialDay();
   const isDay6Warning = trialDay === 6;
-  const isTrialEnded = trialDay >= 7;
+  // Only lock non-Pro users; Pro users (web or native RC) skip straight to check-in.
+  const isTrialEnded = trialDay >= 7 && !isProUser;
 
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, GoalAnswers>>({});
   const [submitting, setSubmitting] = useState(false);
   const [results, setResults] = useState<CheckInResult[]>([]);
-  const [trialContinue, setTrialContinue] = useState(false);
 
   const activeGoals = goals.filter((g) => typeof g === "string" && g.trim().length > 0);
   const totalSteps = activeGoals.length;
@@ -620,17 +624,12 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
   if (!open) return null;
 
   // ── Trial ended screen ─────────────────────────────────────────────────────
-  if (isTrialEnded && !trialContinue && step === 0) {
+  // Hard-locked: no dismiss, no bypass. Only Upgrade, Restore, or Log Out.
+  if (isTrialEnded && step === 0) {
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col">
-        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border">
+        <div className="flex items-center px-5 pt-4 pb-3 border-b border-border">
           <p className="text-[10px] tracking-wide text-muted-foreground">Ascend</p>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center text-muted-foreground"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-8 flex flex-col items-center justify-center text-center space-y-6 max-w-sm mx-auto w-full">
           <div className="w-16 h-16 rounded-2xl bg-primary/15 flex items-center justify-center">
@@ -660,16 +659,28 @@ export function WeeklyCheckInModal({ open, onClose, goals }: Props) {
             ))}
           </div>
           <div className="w-full space-y-3 pt-2">
-            <Link href="/pricing" onClick={onClose}>
+            <Link href="/pricing">
               <button className="w-full h-12 rounded-2xl bg-primary text-primary-foreground text-sm font-bold tracking-wide">
                 Upgrade to Ascend Pro
               </button>
             </Link>
+            {isNative && (
+              <button
+                onClick={() => sendToNative("REQUEST_RESTORE")}
+                className="w-full h-11 rounded-2xl border border-border text-sm font-medium text-foreground"
+              >
+                Restore Purchases
+              </button>
+            )}
             <button
-              onClick={() => setTrialContinue(true)}
+              onClick={async () => {
+                try { await logout.mutateAsync(); } catch { /* ignore */ }
+                window.location.replace("/login");
+              }}
+              disabled={logout.isPending}
               className="w-full text-xs text-muted-foreground underline underline-offset-2 py-1"
             >
-              Continue without upgrading
+              {logout.isPending ? "Logging out…" : "Log Out"}
             </button>
           </div>
         </div>
