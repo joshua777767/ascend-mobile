@@ -659,7 +659,7 @@ export function WeeklyCheckInModal({ open, onClose, goals, isProUser = false }: 
             ))}
           </div>
           <div className="w-full space-y-3 pt-2">
-            <Link href="/pricing">
+            <Link href="/pricing" onClick={onClose}>
               <button className="w-full h-12 rounded-2xl bg-primary text-primary-foreground text-sm font-bold tracking-wide">
                 Upgrade to Ascend Pro
               </button>
