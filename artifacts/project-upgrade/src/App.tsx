@@ -49,6 +49,34 @@ const queryClient = new QueryClient({
   },
 });
 
+// ── Native subscription state (module-level external store) ───────────────────
+// NativeBridge and ProtectedApp are not in a direct parent-child relationship,
+// so we share state via a module-level store instead of prop drilling or context.
+//
+// The resolved flag starts false on every page load. ProtectedApp spins while
+// resolved=false for an expired-trial user so it never acts on a stale value.
+// NativeBridge calls _setNativeSub() when native posts SUBSCRIPTION_STATUS,
+// which updates the store and re-renders all subscribers.
+let _nativeIsPro = false;
+let _nativeSubResolved = false;
+const _nativeSubListeners = new Set<() => void>();
+
+function _setNativeSub(isPro: boolean): void {
+  _nativeIsPro = isPro;
+  _nativeSubResolved = true;
+  _nativeSubListeners.forEach((fn) => fn());
+}
+
+function useNativeSub(): { isPro: boolean; resolved: boolean } {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const listener = () => tick((n) => n + 1);
+    _nativeSubListeners.add(listener);
+    return () => { _nativeSubListeners.delete(listener); };
+  }, []);
+  return { isPro: _nativeIsPro, resolved: _nativeSubResolved };
+}
+
 // ── Error Boundary ────────────────────────────────────────────────────────────
 interface EBState { hasError: boolean; message: string }
 
@@ -183,6 +211,10 @@ function ProtectedApp() {
   const [showWeeklyReview, setShowWeeklyReview] = useState(false);
   const { trialDay, isPro, trialExpired, hasAccess } = useTrialDay();
 
+  // Live native subscription state — resolved only after native posts
+  // SUBSCRIPTION_STATUS. Never reads stale localStorage for gate decisions.
+  const { isPro: nativeIsPro, resolved: nativeSubResolved } = useNativeSub();
+
   // Check if weekly check-in is due after profile has loaded.
   // Fires on the normal 7-day cadence, OR on the last day of the free trial
   // so users always get a weigh-in before the trial ends.
@@ -253,10 +285,17 @@ function ProtectedApp() {
   const FREE_ROUTES = ["/privacy", "/terms", "/support", "/marketing", "/delete-account", "/data-export"];
   const isFreeRoute = typeof window !== "undefined" && FREE_ROUTES.some((r) => window.location.pathname.includes(r));
 
-  // nativePro persists in localStorage so it survives WebView reloads.
-  // It is set when native posts SUBSCRIPTION_STATUS { isPro: true } and
-  // cleared when native posts { isPro: false } or the user logs out.
-  const nativeProConfirmed = isNative && localStorage.getItem("ascend.nativePro") === "1";
+  // In the native WebView, the trial gate must use the live RC status from
+  // the native shell — never a potentially stale localStorage value. While
+  // native hasn't confirmed RC state yet (resolved=false) and the trial is
+  // expired, we hold on a spinner to avoid a false lockout for active Pro users.
+  if (isNative && expired && !nativeSubResolved) {
+    return <FullScreenSpinner />;
+  }
+
+  // For native: gate on live RC confirmation only (not localStorage).
+  // For web: no native gate applies.
+  const nativeProConfirmed = isNative && nativeIsPro;
   if (expired && !isFreeRoute && !nativeProConfirmed) {
     return <Redirect to="/pricing?expired=1" />;
   }
@@ -400,20 +439,30 @@ function NativeBridge() {
   // Listen for subscription status from native.
   // Native broadcasts this on launch (after RC resolves), on purchase, and on
   // app resume — so we always have an up-to-date entitlement state in the web.
+  //
+  // We update the module-level native sub store (_setNativeSub) so ProtectedApp
+  // can read the live value without relying on potentially stale localStorage.
+  // The localStorage flag is kept only for the pricing-page redirect path, which
+  // is a navigation convenience, not a security gate.
   useEffect(() => {
     if (!isNative) return;
     return onFromNative("SUBSCRIPTION_STATUS", (payload) => {
       const p = payload as { isPro?: boolean } | null;
-      if (p?.isPro) {
+      const isPro = !!p?.isPro;
+
+      // Update live module state — ProtectedApp reads this instead of localStorage.
+      _setNativeSub(isPro);
+
+      if (isPro) {
         localStorage.setItem("ascend.nativePro", "1");
-        // Only hard-navigate if we're not already on the dashboard or a
-        // free-only route — avoids a jarring reload mid-session.
+        // If the user is on a paywall/utility page and Pro just confirmed,
+        // navigate them to the dashboard.
         const path = window.location.pathname;
         const isFreeRoute = ["/pricing", "/privacy", "/terms", "/support", "/marketing"].some(r => path.startsWith(r));
         if (isFreeRoute) window.location.href = "/dashboard";
       } else {
         // Pro not confirmed (expired, cancelled, never subscribed).
-        // Clear the flag so the trial gate fires on next render.
+        // Clear the flag so it cannot be accidentally read as Pro.
         localStorage.removeItem("ascend.nativePro");
       }
     });

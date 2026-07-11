@@ -50,8 +50,15 @@ export function useTrialDay(): TrialInfo {
   // Supplement with RevenueCat for native iOS
   const backendHasAccess = !!me?.hasAccess;
   const hasAccess = backendHasAccess || isRevenueCatPro;
-  // Trial is only "expired with no access" if backend says expired AND no access at all
-  const backendTrialExpired = !!me?.trialExpired;
+
+  // Use the exact trialEndDate timestamp for precise expiry detection rather
+  // than the backend boolean, which may lag by a request cycle.
+  const trialEndDate = me?.trialEndDate ? new Date(me.trialEndDate) : null;
+  const backendTrialExpired = trialEndDate
+    ? Date.now() > trialEndDate.getTime()
+    : !!me?.trialExpired;
+
+  // Trial is only "expired with no access" if expired AND no access at all
   const trialExpired = backendTrialExpired && !hasAccess;
 
   if (!profile?.createdAt) {

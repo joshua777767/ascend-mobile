@@ -9,6 +9,7 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { View } from "react-native";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { UserProvider, useUser } from "@/contexts/UserContext";
@@ -19,12 +20,23 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 /**
- * Subscription context is still needed for RC configuration and purchase
- * triggering, but routing is handled entirely by the website. The WebView
- * manages its own loading overlay — no native loading screen blocks here.
+ * Wait until the persisted userId has been read from AsyncStorage before
+ * mounting SubscriptionProvider. Without this guard, UserContext starts with
+ * userId=null on every relaunch and SubscriptionProvider immediately calls
+ * Purchases.logOut(), stripping RC entitlements until AUTH_STATE fires from
+ * the WebView — causing a window where an active Pro user appears to have no
+ * access.
  */
 function RootLayoutNav() {
-  const { userId } = useUser();
+  const { userId, isLoaded } = useUser();
+
+  if (!isLoaded) {
+    // AsyncStorage resolves in <10 ms; show the app background while we wait
+    // so there is no visible flash. SplashScreen is already down at this point
+    // only when fonts finished loading, but in practice isLoaded is true first.
+    return <View style={{ flex: 1, backgroundColor: "#080D12" }} />;
+  }
+
   return (
     <SubscriptionProvider userId={userId}>
       <Stack screenOptions={{ headerShown: false }}>
