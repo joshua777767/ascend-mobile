@@ -37,7 +37,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGetUserProfile, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useTrialDay } from "@/hooks/use-trial";
 import { initializeRevenueCat, Purchases } from "@/lib/revenuecat";
-import { isNative, sendToNative, onFromNative } from "@/lib/native-bridge";
+import { isNative, sendToNative, onFromNative, _setNativeSub, useNativeSub } from "@/lib/native-bridge";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,30 +52,8 @@ const queryClient = new QueryClient({
 // ── Native subscription state (module-level external store) ───────────────────
 // NativeBridge and ProtectedApp are not in a direct parent-child relationship,
 // so we share state via a module-level store instead of prop drilling or context.
-//
-// The resolved flag starts false on every page load. ProtectedApp spins while
-// resolved=false for an expired-trial user so it never acts on a stale value.
-// NativeBridge calls _setNativeSub() when native posts SUBSCRIPTION_STATUS,
-// which updates the store and re-renders all subscribers.
-let _nativeIsPro = false;
-let _nativeSubResolved = false;
-const _nativeSubListeners = new Set<() => void>();
-
-function _setNativeSub(isPro: boolean): void {
-  _nativeIsPro = isPro;
-  _nativeSubResolved = true;
-  _nativeSubListeners.forEach((fn) => fn());
-}
-
-function useNativeSub(): { isPro: boolean; resolved: boolean } {
-  const [, tick] = useState(0);
-  useEffect(() => {
-    const listener = () => tick((n) => n + 1);
-    _nativeSubListeners.add(listener);
-    return () => { _nativeSubListeners.delete(listener); };
-  }, []);
-  return { isPro: _nativeIsPro, resolved: _nativeSubResolved };
-}
+// _setNativeSub and useNativeSub live in native-bridge.ts so any component
+// (Layout, AuthenticatedGate, etc.) can subscribe to the same shared state.
 
 // ── Error Boundary ────────────────────────────────────────────────────────────
 interface EBState { hasError: boolean; message: string }

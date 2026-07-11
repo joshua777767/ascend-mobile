@@ -13,6 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useTrialDay } from "@/hooks/use-trial";
+import { isNative, useNativeSub } from "@/lib/native-bridge";
 
 const ALL_NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -116,7 +117,11 @@ function TrialPill() {
 }
 
 function MobileTrialBadge() {
-  const { trialDay, trialComplete, isPro, isLoading } = useTrialDay();
+  const { isPro: trialIsPro, isLoading } = useTrialDay();
+  // Fast-path: same shared state as AuthenticatedGate — immediately true when
+  // native posts SUBSCRIPTION_STATUS{isPro:true}, no RC query delay.
+  const { isPro: nativeIsPro } = useNativeSub();
+  const isPro = trialIsPro || (isNative && nativeIsPro);
 
   if (isLoading) {
     return (
@@ -141,10 +146,9 @@ function MobileTrialBadge() {
     );
   }
 
-  const href = trialComplete ? "/trial-review" : "/pricing";
-  const label = trialComplete ? "Review" : `Day ${trialDay}/7`;
+  // Active trial — expired non-Pro users are already blocked at the gate
   return (
-    <Link href={href}>
+    <Link href="/pricing">
       <span
         className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold cursor-pointer"
         style={{
@@ -154,7 +158,7 @@ function MobileTrialBadge() {
         }}
       >
         <Zap className="w-3 h-3" strokeWidth={2.5} />
-        {label}
+        Trial
       </span>
     </Link>
   );
