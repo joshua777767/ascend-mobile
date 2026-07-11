@@ -59,6 +59,7 @@
     "@expo-google-fonts/space-mono": "^0.4.2",
     "expo-updates": "~29.0.18",
     "react-native-purchases": "10.4.0",
-    "react-native-purchases-ui": "10.4.0"
+    "react-native-purchases-ui": "10.4.0",
+    "react-native-webview": "^13.15.0"
   }
 }

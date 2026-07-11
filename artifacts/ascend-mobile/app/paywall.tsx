@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useUser } from "@/contexts/UserContext";
 import { useColors } from "@/hooks/useColors";
 
 const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN ?? "";
@@ -42,14 +42,14 @@ export default function PaywallScreen() {
   const router = useRouter();
   const { isPro, isLoading, packages, offeringsError, offeringsDiagnostic, purchase, restore, refresh } =
     useSubscription();
-  const { logout } = useAuth();
+  const { setUserId } = useUser();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
   // Auto-navigate away from paywall once Pro is active (handles listener path).
   useEffect(() => {
     if (isPro) {
-      router.replace("/(tabs)");
+      router.replace("/webview");
     }
   }, [isPro]);
 
@@ -83,7 +83,7 @@ export default function PaywallScreen() {
       const granted = await purchase(pkg);
       if (granted) {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.replace("/(tabs)");
+        router.replace("/webview");
       } else {
         // purchase() returned false without throwing = user cancelled
         // Stay on paywall, no alert needed.
@@ -106,7 +106,7 @@ export default function PaywallScreen() {
       if (restored) {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert("Restored!", "Your subscription has been restored.", [
-          { text: "Continue", onPress: () => router.replace("/(tabs)") },
+          { text: "Continue", onPress: () => router.replace("/webview") },
         ]);
       } else {
         Alert.alert(
@@ -129,7 +129,7 @@ export default function PaywallScreen() {
   const handleSignOut = () => {
     Alert.alert("Sign out?", "You can sign back in anytime.", [
       { text: "Cancel", style: "cancel" },
-      { text: "Sign out", style: "destructive", onPress: () => logout() },
+      { text: "Sign out", style: "destructive", onPress: () => setUserId(null) },
     ]);
   };
 
@@ -147,7 +147,7 @@ export default function PaywallScreen() {
       {isPro && (
         <TouchableOpacity
           style={[styles.closeBtn, { top: insets.top + 8 }]}
-          onPress={() => router.replace("/(tabs)")}
+          onPress={() => router.replace("/webview")}
         >
           <Feather name="x" size={20} color={colors.mutedForeground} />
         </TouchableOpacity>

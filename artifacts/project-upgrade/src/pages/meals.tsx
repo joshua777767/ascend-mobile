@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetTodayMeals, useListMeals, useCreateMeal, useGenerateMeals, useGetUserProfile, useLogWater, getGetTodayMealsQueryKey, getListMealsQueryKey, getGetWaterTodayQueryKey } from "@workspace/api-client-react";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { isNative, sendToNative, onFromNative } from "@/lib/native-bridge";
 import { Utensils, CheckCircle, XCircle, AlertCircle, Camera, X, ChefHat, Sparkles, ArrowLeft, Droplets, Flame } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -100,6 +101,15 @@ export default function MealsPage() {
   const [waterConfirm, setWaterConfirm] = useState<{ oz: number } | null>(null);
   const [waterAlsoDetected, setWaterAlsoDetected] = useState<{ oz: number; autoLogged?: boolean; needsConfirm?: boolean } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Native WebView camera bridge: native shell opens the camera and posts back a dataUrl.
+  useEffect(() => {
+    if (!isNative) return;
+    return onFromNative("CAMERA_RESULT", (payload) => {
+      const p = payload as { dataUrl?: string } | null;
+      if (p?.dataUrl) setImageData(p.dataUrl);
+    });
+  }, []);
 
   // Meal generator state
   const [showGenerator, setShowGenerator] = useState(false);
@@ -440,7 +450,7 @@ export default function MealsPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => isNative ? sendToNative("REQUEST_CAMERA") : fileInputRef.current?.click()}
                     className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-medium tracking-wide rounded-full px-3 py-1.5 hover:bg-black/90"
                     data-testid="button-change-photo"
                   >
@@ -450,7 +460,7 @@ export default function MealsPage() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => isNative ? sendToNative("REQUEST_CAMERA") : fileInputRef.current?.click()}
                   disabled={processing}
                   className="w-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 py-8 text-primary hover:bg-primary/10 transition-colors disabled:opacity-60"
                   data-testid="button-upload-photo"

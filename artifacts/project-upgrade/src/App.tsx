@@ -37,6 +37,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGetUserProfile, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useTrialDay } from "@/hooks/use-trial";
 import { initializeRevenueCat } from "@/lib/revenuecat";
+import { isNative, sendToNative, onFromNative } from "@/lib/native-bridge";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -252,7 +253,10 @@ function ProtectedApp() {
   const FREE_ROUTES = ["/privacy", "/terms", "/support", "/marketing", "/delete-account", "/data-export"];
   const isFreeRoute = typeof window !== "undefined" && FREE_ROUTES.some((r) => window.location.pathname.includes(r));
 
-  if (expired && !isFreeRoute) {
+  // In the native WebView the native paywall is the subscription gate.
+  // Skip the web trial-expiry redirect so the web app never hijacks the flow.
+  const nativeProConfirmed = isNative && sessionStorage.getItem("ascend.nativePro") === "1";
+  if (expired && !isFreeRoute && !isNative && !nativeProConfirmed) {
     return <Redirect to="/pricing?expired=1" />;
   }
 
@@ -353,6 +357,7 @@ function App() {
   return (
     <AppErrorBoundary>
       <QueryClientProvider client={queryClient}>
+        <NativeBridge />
         <RevenueCatInit />
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AppRouter />
@@ -367,12 +372,38 @@ function RevenueCatInit() {
   const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false } });
 
   useEffect(() => {
+    if (isNative) return; // native RC handles this; skip web init to avoid conflicts
     if (me?.id) {
-      initializeRevenueCat(me.id).catch(() => {
-        // RevenueCat is optional; if it fails, the app continues as web
-      });
+      initializeRevenueCat(me.id).catch(() => {});
     }
   }, [me?.id]);
+
+  return null;
+}
+
+/**
+ * Bridges the web app's auth/subscription state to the native iOS shell.
+ * Only active when running inside the Ascend native WebView (isNative=true).
+ */
+function NativeBridge() {
+  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false } });
+
+  // Notify native of the logged-in user ID so RevenueCat can identify them.
+  useEffect(() => {
+    if (!isNative) return;
+    if (me?.id) {
+      sendToNative("AUTH_STATE", { userId: String(me.id) });
+    }
+  }, [me?.id]);
+
+  // Listen for Pro-confirmed signal from native (e.g. after IAP on paywall).
+  useEffect(() => {
+    if (!isNative) return;
+    return onFromNative("SUBSCRIPTION_STATUS", (payload) => {
+      const p = payload as { isPro?: boolean } | null;
+      if (p?.isPro) sessionStorage.setItem("ascend.nativePro", "1");
+    });
+  }, []);
 
   return null;
 }

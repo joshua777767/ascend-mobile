@@ -10,14 +10,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Purchases from "react-native-purchases";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useUser } from "@/contexts/UserContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function DebugSubscriptionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuth();
+  const { userId } = useUser();
   const { customerInfo, isPro, refresh } = useSubscription();
   const [restoreResult, setRestoreResult] = useState<string>("Not run yet");
   const [isRestoring, setIsRestoring] = useState(false);
@@ -50,7 +50,7 @@ export default function DebugSubscriptionScreen() {
   const diagnostic = {
     appUserId: (customerInfo as any)?.appUserId ?? null,
     originalAppUserId: (customerInfo as any)?.originalAppUserId ?? null,
-    ascendUserId: user?.id ?? null,
+    ascendUserId: userId ?? null,
     entitlementId: "Ascend: AI Fitness Pro",
     allActiveEntitlementKeys: customerInfo
       ? Object.keys((customerInfo as any).entitlements?.active ?? {})

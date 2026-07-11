@@ -18,3 +18,4 @@
 - [Coach fetch fallback field name](coach-fetch-fallback.md) — coach.tsx once tried SSE streaming from a JSON endpoint (always empty `full`), then called sendMessage as fallback but read `result.message` not `result.reply`. Remove streaming logic; API returns `{ reply, timestamp }`.
 - [Protein cap + weight validation](protein-cap-weight-validation.md) — planGenerator has no protein ceiling by default; add Math.min(calc, 250) for all 4 goal types. users.ts POST/PATCH profile should reject weights outside 20–300 kg.
 - [ASC p8 key PEM format for eas submit](asc-p8-pem-format.md) — secret stored as raw base64 (no headers, spaces instead of newlines); must reformat with python before use.
+- [WebView shell architecture](webview-shell.md) — native app is a WebView wrapper around ascendfit.fitness; bridge via __ascendBridge / CustomEvent; key patterns documented.
