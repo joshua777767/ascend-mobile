@@ -322,7 +322,21 @@ export function SubscriptionProvider({
     try {
       console.log("[RC:refresh] app foregrounded — refreshing CustomerInfo …");
       const info = await Purchases.getCustomerInfo();
-      applyCustomerInfo(info);
+      const stillPro = applyCustomerInfo(info);
+
+      // If the cached CustomerInfo says not-Pro, silently restore before
+      // telling the web — this re-links any Apple receipt that got attached
+      // to a different RC App User ID (anonymous ID from an earlier build, etc.)
+      if (!stillPro) {
+        console.log("[RC:refresh] not Pro after getCustomerInfo — auto-restoring on foreground …");
+        try {
+          const restored = await Purchases.restorePurchases();
+          const restoredPro = applyCustomerInfo(restored);
+          console.log("[RC:refresh] foreground restore — isPro:", restoredPro, "| entitlements:", Object.keys(restored.entitlements.active));
+        } catch (restoreErr) {
+          console.warn("[RC:refresh] foreground auto-restore failed (non-fatal):", restoreErr);
+        }
+      }
     } catch (e) {
       console.error("[RC:refresh] failed:", e);
     }
