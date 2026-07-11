@@ -14,7 +14,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ascendfit.app",
-      "buildNumber": "26",
+      "buildNumber": "27",
       "minimumOsVersion": "15.1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
