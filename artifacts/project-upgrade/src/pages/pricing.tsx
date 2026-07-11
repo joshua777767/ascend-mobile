@@ -82,10 +82,20 @@ export default function PricingPage() {
 
   const handleRestore = () => {
     if (isNative) {
-      sendToNative("REQUEST_PAYWALL");
+      setError("");
+      sendToNative("REQUEST_RESTORE");
       return;
     }
   };
+
+  // Listen for restore failure from the native shell.
+  useEffect(() => {
+    if (!isNative) return;
+    return onFromNative("RESTORE_FAILED", (payload) => {
+      const p = payload as { message?: string } | null;
+      setError(p?.message ?? "Restore failed. Please try again.");
+    });
+  }, [isNative]);
 
   const trialEndDate = getTrialEndDate();
 
