@@ -281,6 +281,9 @@ const BODY_PART_EXERCISES: Record<string, Record<string, { name: string; sets: n
       { name: "Push-Up", sets: 3, reps: "10-15", restSeconds: 60, coachTip: "Chest to floor. No half reps." },
       { name: "Incline Push-Up", sets: 3, reps: "12", restSeconds: 60, coachTip: "Hands on a bench or table. Lower slow." },
       { name: "Dumbbell Floor Press", sets: 3, reps: "10-12", restSeconds: 60, coachTip: "Elbows 45 degrees. Press to lockout." },
+      { name: "Wide Push-Up", sets: 3, reps: "12", restSeconds: 60, coachTip: "Hands wider than shoulders. Feel the chest stretch at the bottom." },
+      { name: "Decline Push-Up", sets: 3, reps: "10-12", restSeconds: 60, coachTip: "Feet on a chair. Targets upper chest. Control the descent." },
+      { name: "Slow Eccentric Push-Up", sets: 3, reps: "8", restSeconds: 75, coachTip: "3 seconds down. Pause 1 second at the bottom. Explode up." },
     ],
     back: [
       { name: "Dumbbell Row", sets: 3, reps: "12 each", restSeconds: 60, coachTip: "Pull to hip. Don't swing." },
@@ -294,11 +297,17 @@ const BODY_PART_EXERCISES: Record<string, Record<string, { name: string; sets: n
     triceps: [
       { name: "Diamond Push-Up", sets: 3, reps: "8-12", restSeconds: 60, coachTip: "Hands close together. Elbows stay tucked." },
       { name: "Tricep Dip (Bench)", sets: 3, reps: "10-12", restSeconds: 60, coachTip: "Elbows back. Lower until upper arms are parallel." },
+      { name: "Close-Grip Push-Up", sets: 3, reps: "10-12", restSeconds: 60, coachTip: "Hands shoulder-width. Elbows track back, not out." },
+      { name: "Elevated Pike Push-Up", sets: 3, reps: "8-10", restSeconds: 60, coachTip: "Feet on a chair. Hips high. Lower head toward floor." },
+      { name: "Decline Push-Up", sets: 3, reps: "8-10", restSeconds: 60, coachTip: "Feet elevated. Elbows tight to body. Emphasises triceps." },
     ],
     shoulders: [
       { name: "Pike Push-Up", sets: 3, reps: "8-12", restSeconds: 60, coachTip: "Hips high. Head between arms. Press through shoulders." },
       { name: "Dumbbell Lateral Raise", sets: 3, reps: "12", restSeconds: 60, coachTip: "Lead with elbows. Light weight. No swing." },
       { name: "Front Raise", sets: 3, reps: "12", restSeconds: 60, coachTip: "Arms straight. Raise to eye level." },
+      { name: "Elevated Pike Push-Up", sets: 3, reps: "10-12", restSeconds: 60, coachTip: "Feet on a chair. Hips high. Press through the shoulders." },
+      { name: "Plank Shoulder Tap", sets: 3, reps: "10 each side", restSeconds: 45, coachTip: "Hips still. Touch the opposite shoulder. Brace the core." },
+      { name: "Wide Push-Up", sets: 3, reps: "12", restSeconds: 60, coachTip: "Elbows flare slightly. Focuses on front deltoids." },
     ],
     legs: [
       { name: "Bodyweight Squat", sets: 3, reps: "15", restSeconds: 60, coachTip: "Sit back. Break parallel. Stay controlled." },
@@ -330,6 +339,10 @@ const BODY_PART_EXERCISES: Record<string, Record<string, { name: string; sets: n
       { name: "Dumbbell Bench Press", sets: 3, reps: "10-12", restSeconds: 90, coachTip: "Full range. Don't bounce off chest." },
       { name: "Push-Up", sets: 3, reps: "15-20", restSeconds: 60, coachTip: "Chest to floor. Explode up." },
       { name: "Cable Crossover", sets: 3, reps: "12-15", restSeconds: 60, coachTip: "Squeeze chest at center. Control the return." },
+      { name: "Incline Push-Up", sets: 3, reps: "15-20", restSeconds: 60, coachTip: "Hands on a bench. Lower chest to surface. Control the descent." },
+      { name: "Decline Push-Up", sets: 3, reps: "12-15", restSeconds: 60, coachTip: "Feet elevated. Upper chest emphasis. Elbows 45 degrees." },
+      { name: "Wide Push-Up", sets: 3, reps: "15", restSeconds: 60, coachTip: "Hands wider than shoulders. Chest stretch at the bottom." },
+      { name: "Slow Eccentric Push-Up", sets: 3, reps: "10", restSeconds: 75, coachTip: "3-4 seconds down. Pause at the bottom. Explosive concentric." },
     ],
     back: [
       { name: "Lat Pulldown", sets: 3, reps: "10-12", restSeconds: 90, coachTip: "Pull to chest. Squeeze lats at bottom." },
@@ -345,11 +358,17 @@ const BODY_PART_EXERCISES: Record<string, Record<string, { name: string; sets: n
       { name: "Tricep Pushdown", sets: 3, reps: "12-15", restSeconds: 60, coachTip: "Lock upper arms. Full extension." },
       { name: "Overhead Tricep Extension", sets: 3, reps: "12-15", restSeconds: 60, coachTip: "Keep elbows close. Full extension overhead." },
       { name: "Skullcrusher", sets: 3, reps: "10-12", restSeconds: 60, coachTip: "Elbows stay back. Lower to forehead." },
+      { name: "Diamond Push-Up", sets: 3, reps: "12-15", restSeconds: 60, coachTip: "Hands form a diamond. Elbows tight to torso. Full range." },
+      { name: "Close-Grip Push-Up", sets: 3, reps: "12-15", restSeconds: 60, coachTip: "Hands shoulder-width. Elbows track straight back." },
+      { name: "Decline Push-Up", sets: 3, reps: "10-12", restSeconds: 60, coachTip: "Feet elevated. Elbows tight to body. Triceps-focused." },
     ],
     shoulders: [
       { name: "Overhead Press", sets: 3, reps: "10-12", restSeconds: 90, coachTip: "Brace core. Press overhead. No arching." },
       { name: "Lateral Raise", sets: 3, reps: "12-15", restSeconds: 60, coachTip: "Lead with elbows. Slight forward lean." },
       { name: "Face Pull", sets: 3, reps: "15", restSeconds: 60, coachTip: "External rotate at the top. Don't cheat." },
+      { name: "Pike Push-Up", sets: 3, reps: "12-15", restSeconds: 60, coachTip: "Hips high. Head between arms. Press through shoulders." },
+      { name: "Elevated Pike Push-Up", sets: 3, reps: "10-12", restSeconds: 60, coachTip: "Feet on a bench. Hips high. Full shoulder press range." },
+      { name: "Plank Shoulder Tap", sets: 3, reps: "12 each side", restSeconds: 45, coachTip: "Hips completely still. Touch opposite shoulder. Core tight." },
     ],
     legs: [
       { name: "Goblet Squat", sets: 3, reps: "12", restSeconds: 90, coachTip: "Drive through heels. Keep chest up." },
@@ -533,14 +552,21 @@ function buildCustomWorkout(
   const exercises: Exercise[] = [];
   const seen = new Set<string>();
 
-  // Target exercise count based on level and number of body parts
-  const targetMin = levelKey === "advanced" ? 6 : levelKey === "intermediate" ? 5 : 4;
-  const targetMax = levelKey === "advanced" ? 8 : levelKey === "intermediate" ? 7 : 5;
-  const targetCount = Math.max(targetMin, Math.min(targetMax, parts.length * 2 + 2));
+  // Always target 5–7 exercises regardless of level or number of body parts
+  const targetCount = Math.min(7, Math.max(5, parts.length * 2 + 1));
 
   // Determine which body parts to use for filling
   const primaryParts = parts.filter(p => p !== "rest");
-  const fillParts = ["core", "conditioning"].filter(p => !primaryParts.includes(p));
+
+  // Only use conditioning as filler when the day itself is explicitly a
+  // conditioning/cardio day. Muscle-group days (chest, triceps, shoulders, etc.)
+  // must never be padded with burpees, jump squats, or mountain climbers.
+  const isConditioningDay = primaryParts.some(p =>
+    ["conditioning", "cardio", "hiit", "cardio conditioning"].includes(p)
+  );
+  const fillParts = ["core", ...(isConditioningDay ? ["conditioning"] : [])].filter(
+    p => !primaryParts.includes(p)
+  );
 
   // Collect exercises from each part
   const collected: Exercise[] = [];
