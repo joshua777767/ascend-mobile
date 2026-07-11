@@ -267,7 +267,25 @@ export function SubscriptionProvider({
         if (cancelled) return;
 
         // applyCustomerInfo broadcasts the final authoritative state.
-        applyCustomerInfo(info);
+        const isPro = applyCustomerInfo(info);
+
+        // If getCustomerInfo shows no Pro, auto-restore immediately.
+        // This covers the case where the Apple receipt exists on a different
+        // RC App User ID (e.g. anonymous ID from an earlier build, or a prior
+        // user account). restorePurchases() re-links the receipt to the current
+        // identity without requiring the user to tap "Restore".
+        if (!isPro && !cancelled) {
+          console.log("[RC:startup] not Pro after getCustomerInfo — auto-restoring to re-link Apple receipt …");
+          try {
+            const restored = await Purchases.restorePurchases();
+            if (!cancelled) {
+              const restoredPro = applyCustomerInfo(restored);
+              console.log("[RC:startup] restore result — isPro:", restoredPro, "| entitlements:", Object.keys(restored.entitlements.active));
+            }
+          } catch (restoreErr) {
+            console.warn("[RC:startup] auto-restore failed (non-fatal):", restoreErr);
+          }
+        }
 
         const { packages: pkgs, diagnostic } = diagnoseOfferings(offerings);
         setPackages(pkgs);
