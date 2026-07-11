@@ -8,7 +8,7 @@ export function useSubscription() {
   const isFreePro = !!me?.isFreePro;
   const isPaidSubscriber = !!me?.isPaidSubscriber;
 
-  const isNative = typeof window !== "undefined" && (window as any).Capacitor !== undefined;
+  const isNative = typeof window !== "undefined" && !!(window as any).__ascendNative;
 
   const { data: customerInfo, isLoading: isLoadingCustomerInfo } = useQuery({
     queryKey: ["revenuecat", "customer-info"],

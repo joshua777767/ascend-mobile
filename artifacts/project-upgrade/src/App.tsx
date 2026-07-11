@@ -401,7 +401,10 @@ function NativeBridge() {
     if (!isNative) return;
     return onFromNative("SUBSCRIPTION_STATUS", (payload) => {
       const p = payload as { isPro?: boolean } | null;
-      if (p?.isPro) sessionStorage.setItem("ascend.nativePro", "1");
+      if (p?.isPro) {
+        sessionStorage.setItem("ascend.nativePro", "1");
+        window.location.href = "/dashboard";
+      }
     });
   }, []);
 

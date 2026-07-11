@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Loader2, AlertTriangle } from "lucide-react";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useGetMe } from "@workspace/api-client-react";
-import { purchasePackage, restorePurchases } from "@/lib/revenuecat";
+import { sendToNative, onFromNative } from "@/lib/native-bridge";
 
 const PRO_FEATURES = [
   "Personalized daily schedule built around your real life",
@@ -41,25 +41,31 @@ export default function PricingPage() {
     }
   }, [isPro]);
 
-  const handleSubscribe = async (trial = false) => {
-    setLoading(true);
-    setError("");
-    try {
-      if (isNative && currentPackage) {
-        const customerInfo = await purchasePackage(currentPackage);
-        if (customerInfo && customerInfo.entitlements.active["pro"] !== undefined) {
-          window.location.href = "/dashboard";
-          return;
-        }
-        setError("Purchase failed. Please try again.");
-        return;
+  // Listen for Pro confirmation from the native paywall and redirect.
+  useEffect(() => {
+    if (!isNative) return;
+    return onFromNative("SUBSCRIPTION_STATUS", (payload) => {
+      const p = payload as { isPro?: boolean } | null;
+      if (p?.isPro) {
+        window.location.href = "/dashboard";
       }
+    });
+  }, [isNative]);
 
+  const handleSubscribe = async (_trial = false) => {
+    setError("");
+    if (isNative) {
+      // Hand off entirely to the native RevenueCat paywall.
+      sendToNative("REQUEST_PAYWALL");
+      return;
+    }
+    setLoading(true);
+    try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ trial }),
+        body: JSON.stringify({ trial: _trial }),
       });
       const data = await res.json();
       if (data.url) {
@@ -74,20 +80,10 @@ export default function PricingPage() {
     }
   };
 
-  const handleRestore = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const customerInfo = await restorePurchases();
-      if (customerInfo && customerInfo.entitlements.active["pro"] !== undefined) {
-        window.location.href = "/dashboard";
-        return;
-      }
-      setError("No previous purchase found.");
-    } catch (e: any) {
-      setError(e?.message || "Failed to restore purchases.");
-    } finally {
-      setLoading(false);
+  const handleRestore = () => {
+    if (isNative) {
+      sendToNative("REQUEST_PAYWALL");
+      return;
     }
   };
 
