@@ -13,8 +13,12 @@ import Purchases, {
   type PurchasesPackage,
 } from "react-native-purchases";
 import { Platform, AppState } from "react-native";
+import { postToWebFromNative } from "./webview-bridge";
 
-const ENTITLEMENT_ID =
+// The entitlement identifier configured in RevenueCat dashboard.
+// Must match exactly — RC uses the identifier (not the display name) as the
+// key in customerInfo.entitlements.active.
+export const ENTITLEMENT_ID =
   process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID ?? "Ascend: AI Fitness Pro";
 
 function getApiKey(): string {
@@ -35,44 +39,28 @@ function getApiKey(): string {
   return process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY ?? "";
 }
 
-/**
- * Inspect a raw PurchasesOfferings object and return a human-readable
- * diagnostic string plus the resolved packages.
- *
- * Three distinct failure modes:
- * A) offerings.all is empty  → RC has no offerings at all for this app/API key
- * B) offerings.current is null but offerings.all has entries
- *    → Offerings exist but none is marked "Current" in RC dashboard
- * C) offerings.current exists but availablePackages is empty
- *    → Offering is current but has no packages / product not approved in ASC
- */
 function diagnoseOfferings(offerings: PurchasesOfferings): {
   packages: PurchasesPackage[];
   diagnostic: string | null;
 } {
   const allKeys = Object.keys(offerings.all ?? {});
-
   console.log("[RC:diagnose] offerings.all keys:", allKeys.length === 0 ? "(none)" : allKeys.join(", "));
   console.log("[RC:diagnose] offerings.current:", offerings.current ? `"${offerings.current.identifier}"` : "null");
 
   if (allKeys.length === 0) {
     const msg =
-      "RC returned zero offerings. Possible causes:\n" +
-      "1) Wrong API key (check EXPO_PUBLIC_REVENUECAT_IOS_API_KEY)\n" +
-      "2) Bundle ID mismatch between app and RC app settings\n" +
-      "3) No offerings created in RC dashboard yet";
+      "RC returned zero offerings.\n" +
+      "1) Wrong API key  2) Bundle ID mismatch  3) No offerings in RC dashboard";
     console.error("[RC:diagnose]", msg);
     return { packages: [], diagnostic: msg };
   }
-
   if (!offerings.current) {
     const msg =
       `RC has offerings [${allKeys.join(", ")}] but none is marked "Current".\n` +
-      'Fix: RevenueCat dashboard → Offerings → select an offering → "Make Current".';
+      'Fix: RC dashboard → Offerings → select one → "Make Current".';
     console.error("[RC:diagnose]", msg);
     return { packages: [], diagnostic: msg };
   }
-
   const pkgs = offerings.current.availablePackages ?? [];
   console.log(
     `[RC:diagnose] current offering "${offerings.current.identifier}" has ${pkgs.length} package(s):`,
@@ -80,25 +68,23 @@ function diagnoseOfferings(offerings: PurchasesOfferings): {
       ? "(none)"
       : pkgs.map((p) => `${p.identifier} → ${(p.product as any).identifier ?? (p.product as any).productIdentifier ?? "?"}`).join(", ")
   );
-
   if (pkgs.length === 0) {
     const msg =
       `Offering "${offerings.current.identifier}" has no packages.\n` +
-      "Possible causes:\n" +
-      "1) Product not attached to offering in RC dashboard\n" +
-      "2) Product ID in RC doesn't match App Store Connect exactly\n" +
-      "3) Subscription not in 'Ready to Submit' or 'Approved' state in ASC\n" +
-      "4) Paid Applications Agreement not signed in App Store Connect";
+      "1) Product not attached in RC dashboard  2) Product ID mismatch  " +
+      "3) Product not approved in ASC  4) Paid Applications Agreement unsigned";
     console.error("[RC:diagnose]", msg);
     return { packages: [], diagnostic: msg };
   }
-
   return { packages: pkgs, diagnostic: null };
 }
 
 type SubscriptionContextValue = {
   isPro: boolean;
   isLoading: boolean;
+  /** True once the first CustomerInfo has been applied after startup logIn. */
+  subscriptionResolved: boolean;
+  appUserId: string | null;
   customerInfo: CustomerInfo | null;
   packages: PurchasesPackage[];
   offeringsError: string | null;
@@ -108,9 +94,7 @@ type SubscriptionContextValue = {
   refresh: () => Promise<void>;
 };
 
-const SubscriptionContext = createContext<SubscriptionContextValue | null>(
-  null
-);
+const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
 
 export function SubscriptionProvider({
   children,
@@ -122,28 +106,67 @@ export function SubscriptionProvider({
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [subscriptionResolved, setSubscriptionResolved] = useState(false);
+  const [appUserId, setAppUserId] = useState<string | null>(null);
   const [offeringsError, setOfferingsError] = useState<string | null>(null);
   const [offeringsDiagnostic, setOfferingsDiagnostic] = useState<string | null>(null);
 
-  // Track whether Purchases.configure() has been called so we never call it
-  // more than once (the SDK throws if configured twice).
   const configured = useRef(false);
+  // Ref so applyCustomerInfo can include the current appUserId in the broadcast
+  // without being invalidated by every render.
+  const appUserIdRef = useRef<string | null>(null);
 
-  const isPro =
-    customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+  const isPro = customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
 
-  // Keep customerInfo in sync via the native listener (fires after purchases,
-  // restores, and webhook-driven status changes).
+  // ── applyCustomerInfo ─────────────────────────────────────────────────────
+  // THE single source of truth for all CustomerInfo state changes.
+  //
+  // 1. Checks the exact configured Pro entitlement.
+  // 2. Updates React state (customerInfo, subscriptionResolved).
+  // 3. Immediately posts SUBSCRIPTION_STATUS to the WebView via the module-level
+  //    bridge — no React cycle delay. If the WebView isn't ready yet, the post
+  //    is a no-op; handleLoadEnd and REQUEST_SUBSCRIPTION_STATUS cover that case.
+  // 4. Returns whether Pro is currently active.
+  const applyCustomerInfo = useCallback((info: CustomerInfo): boolean => {
+    const active = info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+    setCustomerInfo(info);
+    setSubscriptionResolved(true);
+
+    const payload = { isPro: active, appUserId: appUserIdRef.current };
+    postToWebFromNative("SUBSCRIPTION_STATUS", payload);
+
+    console.log(
+      "[RC:apply] entitlement:", ENTITLEMENT_ID,
+      "| isPro:", active,
+      "| active entitlements:", Object.keys(info.entitlements.active),
+      "| appUserId:", appUserIdRef.current,
+      "| subscriptionResolved: true"
+    );
+    return active;
+  }, []);
+
+  // ── CustomerInfo update listener ──────────────────────────────────────────
+  // Fires when Apple/RC server pushes a new subscription state (renewal,
+  // refund, expiry, etc.). Calls applyCustomerInfo immediately so the gate
+  // re-evaluates with the latest state.
   useEffect(() => {
-    const listener = (info: CustomerInfo) => setCustomerInfo(info);
+    const listener = (info: CustomerInfo) => {
+      console.log(
+        "[RC:listener] CustomerInfo pushed — active entitlements:",
+        Object.keys(info.entitlements.active)
+      );
+      applyCustomerInfo(info);
+    };
     Purchases.addCustomerInfoUpdateListener(listener);
     return () => {
       Purchases.removeCustomerInfoUpdateListener(listener);
     };
-  }, []);
+  }, [applyCustomerInfo]);
 
-  // Configure once, then identify the user and load entitlements + offerings.
-  // Single effect so configure() always completes before logIn() fires.
+  // ── Startup: configure → logIn → getCustomerInfo → applyCustomerInfo ──────
+  // Runs whenever userId changes (login / logout / account switch).
+  // Never evaluates the web gate before this completes (subscriptionResolved
+  // stays false until applyCustomerInfo is called below).
   useEffect(() => {
     let cancelled = false;
 
@@ -152,30 +175,24 @@ export function SubscriptionProvider({
       setOfferingsError(null);
       setOfferingsDiagnostic(null);
 
-      // --- Step 1: Configure the SDK (only once ever) ---
+      // Step 1: Configure the SDK exactly once per process lifetime.
       if (!configured.current) {
         const apiKey = getApiKey();
         if (!apiKey) {
-          const msg =
-            "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY is not set. " +
-            "IAP will not work.";
+          const msg = "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY is not set. IAP will not work.";
           console.error("[RC:configure] ERROR:", msg);
           if (!cancelled) {
             setOfferingsError("Subscription configuration error. Please restart the app.");
             setOfferingsDiagnostic(msg);
             setIsLoading(false);
+            setSubscriptionResolved(true);
+            postToWebFromNative("SUBSCRIPTION_STATUS", { isPro: false, appUserId: null });
           }
           return;
         }
-
-        // Enable verbose RC SDK logging in dev/TestFlight so reviewers'
-        // crashes produce usable output in Xcode / Console.app.
         try {
           Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO);
-        } catch {
-          // setLogLevel may not be available on all RN versions — safe to ignore
-        }
-
+        } catch {}
         try {
           Purchases.configure({ apiKey });
           configured.current = true;
@@ -191,69 +208,71 @@ export function SubscriptionProvider({
             setOfferingsError("Subscription service unavailable. Please restart the app.");
             setOfferingsDiagnostic(msg);
             setIsLoading(false);
+            setSubscriptionResolved(true);
+            postToWebFromNative("SUBSCRIPTION_STATUS", { isPro: false, appUserId: null });
           }
           return;
         }
       }
 
-      // --- Step 2: Identify the user (optional — offerings load regardless) ---
+      // Step 2: Identify the Ascend user in RevenueCat.
+      // logIn() migrates any anonymous RC purchases to this user's canonical ID
+      // and returns the CustomerInfo immediately — so the gate can open before
+      // getCustomerInfo() below even completes.
       if (userId) {
+        let preLoginId = "(unknown)";
+        try { preLoginId = await Purchases.getAppUserID(); } catch {}
+        console.log(
+          "[RC:logIn] Ascend userId:", userId,
+          "| RC App User ID before logIn:", preLoginId
+        );
+
         try {
-          // Log the anonymous/prior RC App User ID before logIn so we can confirm
-          // which identity was active before and verify it matches after logIn.
-          let preLoginId = "(unknown)";
-          try {
-            preLoginId = await Purchases.getAppUserID();
-          } catch {}
-          console.log(
-            "[RC:logIn] Ascend userId:", userId,
-            "| RC App User ID before logIn:", preLoginId
-          );
+          const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
+          if (cancelled) return;
 
-          const { customerInfo: info } = await Purchases.logIn(String(userId));
-          if (!cancelled) setCustomerInfo(info);
+          const postLoginId = await Purchases.getAppUserID().catch(() => String(userId));
+          appUserIdRef.current = postLoginId;
+          if (!cancelled) setAppUserId(postLoginId);
 
-          const postLoginId = await Purchases.getAppUserID();
           console.log(
             "[RC:logIn] OK — RC App User ID after logIn:", postLoginId,
-            "| active entitlements:", Object.keys(info.entitlements.active)
+            "| active entitlements:", Object.keys(loginInfo.entitlements.active)
           );
+
+          // Apply immediately — gate can open here for returning Pro users
+          // before the slower getCustomerInfo() completes.
+          if (!cancelled) applyCustomerInfo(loginInfo);
         } catch (e) {
-          // logIn failure is non-fatal; we can still fetch offerings
           console.error("[RC:logIn] failed (non-fatal):", e);
         }
       } else {
-        try {
-          await Purchases.logOut();
-        } catch {
-          // logOut throws if no user was logged in — safe to ignore
+        // Explicit logout path — clear RC identity so the next user starts clean.
+        // Never called during normal app backgrounding or closing.
+        try { await Purchases.logOut(); } catch {}
+        appUserIdRef.current = null;
+        if (!cancelled) {
+          setAppUserId(null);
+          setCustomerInfo(null);
+          setSubscriptionResolved(true);
+          postToWebFromNative("SUBSCRIPTION_STATUS", { isPro: false, appUserId: null });
         }
-        if (!cancelled) setCustomerInfo(null);
-        // Do NOT return early — always fetch offerings so the paywall
-        // shows packages even before the user is fully identified.
       }
 
-      // --- Step 3: Load entitlements + offerings ---
+      // Step 3: Fresh getCustomerInfo (authoritative) + load purchase packages.
       try {
         console.log("[RC:fetch] calling getCustomerInfo + getOfferings …");
         const [info, offerings] = await Promise.all([
           Purchases.getCustomerInfo(),
           Purchases.getOfferings(),
         ]);
-
         if (cancelled) return;
 
-        console.log(
-          "[RC:fetch] getCustomerInfo returned — active entitlements:",
-          Object.keys(info.entitlements.active),
-          "| isPro (", ENTITLEMENT_ID, "):",
-          info.entitlements.active[ENTITLEMENT_ID]?.isActive === true
-        );
-        setCustomerInfo(info);
+        // applyCustomerInfo broadcasts the final authoritative state.
+        applyCustomerInfo(info);
 
         const { packages: pkgs, diagnostic } = diagnoseOfferings(offerings);
         setPackages(pkgs);
-
         if (pkgs.length === 0) {
           setOfferingsError("No subscription package found. Tap to retry.");
           setOfferingsDiagnostic(diagnostic);
@@ -262,44 +281,36 @@ export function SubscriptionProvider({
           setOfferingsDiagnostic(null);
         }
       } catch (e: any) {
-        const msg = `getOfferings() threw: ${e?.message ?? String(e)} (code ${e?.code ?? "?"})`;
+        const msg = `getCustomerInfo/getOfferings threw: ${e?.message ?? String(e)} (code ${e?.code ?? "?"})`;
         console.error("[RC:fetch] ERROR:", msg);
         if (!cancelled) {
           setOfferingsError("Could not load subscription. Check your connection.");
           setOfferingsDiagnostic(msg);
+          // Always resolve so the gate doesn't spin forever on a network error.
+          setSubscriptionResolved(true);
+          postToWebFromNative("SUBSCRIPTION_STATUS", { isPro: false, appUserId: appUserIdRef.current });
         }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
     })();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
+    return () => { cancelled = true; };
+  }, [userId, applyCustomerInfo]);
 
-  // Refresh when app returns to foreground
+  // ── App foreground refresh ────────────────────────────────────────────────
+  // Re-fetches CustomerInfo whenever the app returns to the foreground.
+  // Covers subscription changes made while the app was backgrounded
+  // (cancellation, renewal failure, family sharing, etc.).
   const refresh = useCallback(async () => {
     try {
-      console.log("[RC:refresh] refreshing offerings …");
-      const [info, offerings] = await Promise.all([
-        Purchases.getCustomerInfo(),
-        Purchases.getOfferings(),
-      ]);
-      setCustomerInfo(info);
-      const { packages: pkgs, diagnostic } = diagnoseOfferings(offerings);
-      setPackages(pkgs);
-      if (pkgs.length > 0) {
-        setOfferingsError(null);
-        setOfferingsDiagnostic(null);
-      } else {
-        setOfferingsError("No subscription package found. Tap to retry.");
-        setOfferingsDiagnostic(diagnostic);
-      }
+      console.log("[RC:refresh] app foregrounded — refreshing CustomerInfo …");
+      const info = await Purchases.getCustomerInfo();
+      applyCustomerInfo(info);
     } catch (e) {
       console.error("[RC:refresh] failed:", e);
     }
-  }, []);
+  }, [applyCustomerInfo]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
@@ -308,160 +319,110 @@ export function SubscriptionProvider({
     return () => sub.remove();
   }, [refresh]);
 
-  // restore is defined before purchase so purchase can reference it in its
-  // dependency array without hitting a temporal dead zone error.
+  // ── Restore ───────────────────────────────────────────────────────────────
   const restore = useCallback(async (): Promise<boolean> => {
-    console.log("[RC:restore] starting restore …");
+    console.log("[RC:restore] starting …");
     try {
-      // Ensure the user is identified before restoring so the same App User ID
-      // is used consistently (matches the ID active at purchase time).
+      // Re-identify before restoring so purchases link to the current user.
       if (userId) {
         try {
-          const { customerInfo: loginInfo } = await Purchases.logIn(
-            String(userId)
-          );
+          const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
           console.log(
-            "[RC:restore] logIn OK — userId:",
-            userId,
-            "| entitlements:",
+            "[RC:restore] logIn OK | active entitlements:",
             Object.keys(loginInfo.entitlements.active)
           );
         } catch (e: any) {
-          console.error("[RC:restore] logIn FAILED:", e?.message ?? e);
+          console.error("[RC:restore] logIn failed (non-fatal):", e?.message ?? e);
         }
       }
 
-      // restorePurchases() returns the updated CustomerInfo directly.
-      // We log every entitlement it reports before any further polling.
       const restoredInfo = await Purchases.restorePurchases();
+      const active = applyCustomerInfo(restoredInfo);
+
       console.log(
-        "[RC:restore] restorePurchases() returned — all active entitlements:",
-        Object.keys(restoredInfo.entitlements.active)
+        "[RC:restore] complete — isPro:", active,
+        "| active entitlements:", Object.keys(restoredInfo.entitlements.active)
       );
-      setCustomerInfo(restoredInfo);
 
-      const active =
-        restoredInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
-      console.log("[RC:restore] entitlement check (restorePurchases) — isPro:", active);
-      if (active) return true;
-
-      // If the immediate result is not active, poll getCustomerInfo()
-      // up to 5 times with longer delays (Apple sandbox is slower).
-      let info: CustomerInfo | null = null;
-      for (let attempt = 0; attempt < 5; attempt++) {
-        if (attempt > 0) {
-          await new Promise((r) => setTimeout(r, 2000));
-        }
-        info = await Purchases.getCustomerInfo();
-        const attemptActive =
-          info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
-        console.log(
-          "[RC:restore] entitlement check attempt",
-          attempt + 1,
-          "— isPro:",
-          attemptActive,
-          "| all active:",
-          Object.keys(info.entitlements.active)
-        );
-        if (attemptActive) {
-          setCustomerInfo(info);
-          return true;
-        }
+      if (active) {
+        // PURCHASE_CONFIRMED is the signal web uses to navigate after unlock.
+        postToWebFromNative("PURCHASE_CONFIRMED", { isPro: true });
       }
-      if (info) setCustomerInfo(info);
-      console.log(
-        "[RC:restore] complete — isPro: false after retries. all active:",
-        Object.keys(info?.entitlements.active ?? {})
-      );
-      return false;
+      return active;
     } catch (e: any) {
       console.error("[RC:restore] failed:", e?.message ?? e);
       return false;
     }
-  }, [userId]);
+  }, [userId, applyCustomerInfo]);
 
+  // ── Purchase ──────────────────────────────────────────────────────────────
   const purchase = useCallback(
     async (pkg: PurchasesPackage): Promise<boolean> => {
       const productId =
         (pkg.product as any).identifier ??
         (pkg.product as any).productIdentifier ??
         pkg.identifier;
-      console.log("[RC:purchase] starting purchase for:", productId);
+      console.log("[RC:purchase] starting for:", productId);
 
-      // Ensure the user is identified before purchasing so the same App User ID
-      // is used consistently across purchase and restore.
+      // Re-identify before purchasing so the receipt attaches to the current
+      // Ascend user, not an anonymous RC ID.
       if (userId) {
         try {
-          const { customerInfo: loginInfo } = await Purchases.logIn(
-            String(userId)
-          );
+          const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
           console.log(
-            "[RC:purchase] logIn OK — userId:",
-            userId,
-            "| entitlements:",
+            "[RC:purchase] logIn OK | active entitlements:",
             Object.keys(loginInfo.entitlements.active)
           );
         } catch (e: any) {
-          console.error("[RC:purchase] logIn FAILED:", e?.message ?? e);
+          console.error("[RC:purchase] logIn failed (non-fatal):", e?.message ?? e);
         }
       }
 
       try {
         const purchaseResult = await Purchases.purchasePackage(pkg);
-        // purchasePackage returns a MakePurchaseResult with customerInfo
         const info = purchaseResult?.customerInfo ?? null;
+
         if (info) {
           console.log(
-            "[RC:purchase] purchasePackage returned — all active entitlements:",
+            "[RC:purchase] purchasePackage returned | active entitlements:",
             Object.keys(info.entitlements.active)
           );
-          setCustomerInfo(info);
-          const active =
-            info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+          const active = applyCustomerInfo(info);
           if (active) {
-            console.log("[RC:purchase] entitlement active immediately");
+            postToWebFromNative("PURCHASE_CONFIRMED", { isPro: true });
+            console.log("[RC:purchase] entitlement active immediately — app unlocked");
             return true;
           }
         }
-        // Sandbox/TestFlight entitlements can lag 1–3 s behind the Apple
-        // transaction completion. Poll getCustomerInfo() up to 5 times.
-        let polledInfo: CustomerInfo | null = null;
+
+        // Sandbox/TestFlight entitlements can take 1–3 s to propagate.
+        // Poll getCustomerInfo() up to 5 times before giving up.
         for (let attempt = 0; attempt < 5; attempt++) {
-          if (attempt > 0) {
-            await new Promise((r) => setTimeout(r, 2000));
-          }
-          polledInfo = await Purchases.getCustomerInfo();
-          const active =
-            polledInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+          if (attempt > 0) await new Promise((r) => setTimeout(r, 2000));
+          const polledInfo = await Purchases.getCustomerInfo();
+          const active = polledInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
           console.log(
-            "[RC:purchase] entitlement check attempt",
-            attempt + 1,
-            "— isPro:",
-            active,
-            "| all active:",
-            Object.keys(polledInfo.entitlements.active)
+            "[RC:purchase] poll attempt", attempt + 1, "— isPro:", active,
+            "| active entitlements:", Object.keys(polledInfo.entitlements.active)
           );
           if (active) {
-            setCustomerInfo(polledInfo);
+            applyCustomerInfo(polledInfo);
+            postToWebFromNative("PURCHASE_CONFIRMED", { isPro: true });
             return true;
           }
         }
-        // Not active after retries — still set the latest info and return false
-        if (polledInfo) setCustomerInfo(polledInfo);
-        console.log(
-          "[RC:purchase] complete — isPro: false after retries. all active:",
-          Object.keys(polledInfo?.entitlements.active ?? {})
-        );
+
+        console.log("[RC:purchase] entitlement not active after retries");
         return false;
       } catch (e: any) {
         if (e?.userCancelled) {
           console.log("[RC:purchase] cancelled by user");
+          postToWebFromNative("PURCHASE_CANCELLED", {});
           return false;
         }
         const code = e?.code ?? e?.errorCode ?? "";
         const msg = e?.message ?? "";
-        // Apple says the subscription is already owned (previous purchase from
-        // another TestFlight build). Auto-restore so the user isn't stuck.
+        // Already owned — auto-restore so the user isn't left stuck.
         if (
           code === "6" ||
           code === "PRODUCT_ALREADY_OWNED" ||
@@ -475,7 +436,7 @@ export function SubscriptionProvider({
         throw e;
       }
     },
-    [userId, restore]
+    [userId, restore, applyCustomerInfo]
   );
 
   return (
@@ -483,6 +444,8 @@ export function SubscriptionProvider({
       value={{
         isPro,
         isLoading,
+        subscriptionResolved,
+        appUserId,
         customerInfo,
         packages,
         offeringsError,

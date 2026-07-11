@@ -1,0 +1,210 @@
+FIX THE REVENUECAT SUBSCRIPTION SYSTEM END-TO-END. Do not change the working expired-trial hard lock, app design, login persistence, saved user data, meals, workouts, coach, or unrelated features.
+
+CONFIRMED BUG:
+The user successfully purchases Ascend Pro and Apple confirms they are subscribed, but:
+- the locked paywall sometimes remains after purchase
+- force-closing/reopening loses Pro access
+- Restore Purchases does nothing
+- the header may show Review instead of Pro
+
+This means RevenueCat identity, CustomerInfo, native state, and WebView state are not synchronized correctly.
+
+IMPLEMENT ONE SHARED SUBSCRIPTION SOURCE OF TRUTH.
+
+ENTITLEMENT:
+Read the exact entitlement identifier from the RevenueCat dashboard/configuration already used by this project. Do not guess or create another entitlement. All Pro checks must use:
+
+customerInfo.entitlements.active[PRO_ENTITLEMENT_ID]?.isActive === true
+
+NATIVE STARTUP ORDER:
+
+1. Restore the logged-in Ascend user and stable user ID.
+2. Configure RevenueCat exactly once.
+3. Call and await:
+   Purchases.logIn(String(currentUser.id))
+4. Call and await:
+   Purchases.getCustomerInfo()
+5. Apply CustomerInfo to one shared native subscription state.
+6. Mark subscriptionResolved=true only after this finishes.
+7. Send the result to the WebView:
+   {
+     type: "SUBSCRIPTION_STATUS",
+     payload: {
+       isPro: true/false,
+       appUserId: currentRevenueCatAppUserId
+     }
+   }
+
+Never evaluate the web access gate before RevenueCat identity and CustomerInfo resolve.
+
+Create one shared function:
+
+applyCustomerInfo(customerInfo):
+- checks the exact active Pro entitlement
+- updates native isPro
+- stores the latest CustomerInfo in memory
+- posts SUBSCRIPTION_STATUS to the WebView
+- returns whether Pro is active
+
+CUSTOMERINFO LISTENER:
+
+Register Purchases.addCustomerInfoUpdateListener once.
+
+Whenever CustomerInfo changes:
+- call applyCustomerInfo(customerInfo)
+- immediately notify the WebView
+
+Remove the listener only when the subscription provider unmounts.
+
+WEBVIEW BRIDGE:
+
+Keep a persistent WebView ref.
+
+The WebView must have an onMessage handler.
+
+Support these web-to-native messages:
+- REQUEST_PURCHASE
+- REQUEST_RESTORE
+- REQUEST_SUBSCRIPTION_STATUS
+
+After the WebView finishes loading, resend the latest SUBSCRIPTION_STATUS so a page reload never loses Pro state.
+
+When the app returns to the foreground:
+- call Purchases.getCustomerInfo()
+- call applyCustomerInfo()
+- resend SUBSCRIPTION_STATUS
+
+PURCHASE FLOW:
+
+Before purchasing, confirm RevenueCat is logged into the current Ascend user ID.
+
+1. Fetch Purchases.getOfferings()
+2. Select the existing $19.99 monthly package from the current offering.
+3. Call Purchases.purchasePackage(selectedPackage).
+4. Read result.customerInfo.
+5. Call applyCustomerInfo(result.customerInfo).
+6. Unlock only if the exact Pro entitlement is active.
+
+If Pro is active:
+- send SUBSCRIPTION_STATUS {isPro:true}
+- send PURCHASE_CONFIRMED {isPro:true}
+- allow the root gate to replace LockedPaywall with AppRouter immediately
+
+Do not manually navigate Home before entitlement confirmation.
+
+If cancelled:
+- remain locked
+- send PURCHASE_CANCELLED
+- do not show an error
+
+If failed:
+- remain locked
+- send PAYWALL_ERROR with the actual message
+
+RESTORE FLOW:
+
+When Restore Purchases is tapped:
+
+1. Confirm RevenueCat is logged into the current Ascend user ID.
+2. Call Purchases.restorePurchases().
+3. Call applyCustomerInfo(returnedCustomerInfo).
+4. If Pro is active, immediately unlock the app.
+5. If no Pro entitlement exists, display:
+   "No active Ascend Pro subscription was found."
+6. If restoration fails, display the actual error.
+
+Never fail silently.
+
+LOGOUT AND ACCOUNT SWITCHING:
+
+Call Purchases.logOut() only when the user explicitly logs out of Ascend.
+
+Never call Purchases.logOut():
+- when the app backgrounds
+- when the app closes
+- when the WebView reloads
+- during normal startup
+
+When switching accounts:
+- clear the previous native subscription state
+- call Purchases.logIn(newUserId)
+- fetch fresh CustomerInfo
+- never transfer temporary Pro state between accounts
+
+WEB ROOT ACCESS GATE:
+
+The authenticated root must wait for:
+- authenticationResolved
+- trialResolved
+- nativeSubscriptionResolved
+
+While unresolved, render only FullScreenLoading.
+
+Then calculate:
+
+isTrialActive =
+  trialEndsAt exists &&
+  Date.now() < new Date(trialEndsAt).getTime()
+
+hasAccess =
+  isTrialActive ||
+  nativeSubscriptionStatus.isPro === true
+
+If hasAccess is false:
+- render only LockedPaywall
+- do not mount AppRouter, tabs, navigation, dashboard, meals, coach, settings, workouts, weekly check-in, or protected modals
+
+If SUBSCRIPTION_STATUS changes to isPro:true:
+- update the shared subscription context
+- re-render the root gate
+- immediately replace LockedPaywall with AppRouter
+
+Do not use:
+- backendIsFreePro
+- review mode
+- demo mode
+- localStorage Pro flags
+- stale nativeProConfirmed values
+- previous account state
+- PURCHASE_CONFIRMED alone without active entitlement
+
+HEADER BADGE:
+
+Use the same shared subscription state:
+- active Pro entitlement → “Pro”
+- active free trial → “Trial”
+- expired non-Pro → no header because LockedPaywall is rendered
+
+REQUIRED LOGS:
+
+Log these in development:
+- Ascend user ID
+- RevenueCat App User ID before logIn
+- RevenueCat App User ID after logIn
+- entitlement identifier checked
+- active entitlements
+- subscriptionResolved
+- isPro
+- trialEndsAt
+- isTrialActive
+- hasAccess
+- purchase result
+- restore result
+
+ACCEPTANCE TESTS:
+
+1. Expired non-Pro → locked paywall only.
+2. Buy Pro → Apple confirms purchase → app unlocks immediately.
+3. Force-close/reopen → remains Pro and enters the app.
+4. Log out/log back into the same account → remains Pro.
+5. Restore Purchases → immediately restores access.
+6. Cancel purchase → remains locked.
+7. Different non-Pro account → does not inherit Pro.
+8. Pro badge displays correctly.
+9. Login and saved data remain unchanged.
+
+Show the exact RevenueCat App User IDs and active entitlements before and after purchase/relaunch.
+
+Republish ascendfit.fitness after web changes.
+
+Because RevenueCat initialization, identity restoration, CustomerInfo listeners, WebView messaging, and app-resume handling are native changes, create one new TestFlight build after all typechecks pass. Do not make unrelated edits.

@@ -136,8 +136,9 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
   }
 }
 
-// The entitlement key in RevenueCat — must match REVENUECAT_ENTITLEMENT in revenuecat.ts.
-const RC_PRO_ENTITLEMENT = "pro";
+// The entitlement identifier in RevenueCat — must match ENTITLEMENT_ID in SubscriptionContext.tsx.
+// Used for the web (non-native) Capacitor RC path only; native uses the same key directly.
+const RC_PRO_ENTITLEMENT = "Ascend: AI Fitness Pro";
 
 // ── Locked paywall ────────────────────────────────────────────────────────────
 // Rendered inline (not via redirect) when hasAccess === false.
@@ -147,14 +148,14 @@ function LockedPaywall() {
   const [error, setError] = useState("");
   const qc = useQueryClient();
 
-  // After a confirmed purchase or restore, invalidate the RC access-gate query.
-  // AuthenticatedGate will refetch fresh CustomerInfo; if the entitlement is now
-  // active, hasAccess becomes true and the gate opens without a page reload.
+  // PURCHASE_CONFIRMED arrives after a successful purchase or restore.
+  // The gate re-evaluates automatically because SUBSCRIPTION_STATUS{isPro:true}
+  // was already posted by applyCustomerInfo() before PURCHASE_CONFIRMED.
+  // No manual query invalidation needed — nativeIsPro drives the gate now.
   useEffect(() => {
     if (!isNative) return;
-    return onFromNative("PURCHASE_CONFIRMED", () => {
-      qc.invalidateQueries({ queryKey: ["revenuecat", "access-gate"] });
-    });
+    // No-op listener: kept so pricing.tsx navigation on PURCHASE_CONFIRMED still works.
+    return onFromNative("PURCHASE_CONFIRMED", () => {});
   }, [qc]);
 
   useEffect(() => {
@@ -187,7 +188,7 @@ function LockedPaywall() {
   function handleBuyPro() {
     setError("");
     if (isNative) {
-      sendToNative("REQUEST_PAYWALL");
+      sendToNative("REQUEST_PURCHASE");
     } else {
       window.location.href = "/pricing";
     }
@@ -582,15 +583,15 @@ function AuthenticatedGate() {
     query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false },
   });
 
-  // Fast-path: immediately true when native bridge posts SUBSCRIPTION_STATUS{isPro:true}.
-  // NativeBridge handles the event and calls _setNativeSub(isPro), which notifies all
-  // useNativeSub() subscribers and triggers a re-render here.
-  const { isPro: nativeIsPro } = useNativeSub();
-  const nativeProConfirmed = isNative && nativeIsPro;
+  // Subscription state from the native bridge (module-level, survives re-renders).
+  // isPro  → native RC confirms an active Pro entitlement.
+  // resolved → at least one SUBSCRIPTION_STATUS has been received from native
+  //            (set by _setNativeSub in NativeBridge's SUBSCRIPTION_STATUS handler).
+  const { isPro: nativeIsPro, resolved: nativeSubResolved } = useNativeSub();
 
-  // Persistent-path: fresh RC CustomerInfo — staleTime:0 so every mount fetches live.
-  // enabled only after me.id is known (RC is identified by NativeBridge/RevenueCatInit).
-  // refetchOnWindowFocus:true rechecks on app resume and WebView foreground events.
+  // Non-native (browser/dev) path: Capacitor RC query.
+  // In the native WKWebView, Capacitor is not available so this always returns
+  // null — it is disabled with enabled:!isNative to avoid the useless network round-trip.
   const { data: rcInfo, isLoading: rcLoading } = useQuery({
     queryKey: ["revenuecat", "access-gate", me?.id ?? 0],
     queryFn: async () => {
@@ -601,35 +602,52 @@ function AuthenticatedGate() {
         return null;
       }
     },
-    enabled: !!me?.id,
+    enabled: !isNative && !!me?.id,
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
     retry: false,
     refetchOnWindowFocus: true,
   });
 
-  // Spin until /auth/me and RC resolve. Never fall through to app as a fallback.
-  // nativeProConfirmed can short-circuit the RC wait after a purchase.
+  // ── Spinner conditions ────────────────────────────────────────────────────
+  // Always wait for /auth/me first.
   if (meLoading) return <FullScreenSpinner />;
-  if (me?.id && rcLoading && !nativeProConfirmed) return <FullScreenSpinner />;
+
+  if (isNative) {
+    // In native: spin until native RC resolves and posts SUBSCRIPTION_STATUS.
+    // NativeBridge sends REQUEST_SUBSCRIPTION_STATUS after registering its
+    // listener, so this always resolves — never spins forever.
+    if (me?.id && !nativeSubResolved) return <FullScreenSpinner />;
+  } else {
+    // In browser: spin until Capacitor RC query completes.
+    if (me?.id && rcLoading) return <FullScreenSpinner />;
+  }
 
   // ── Access decision ───────────────────────────────────────────────────────
   const trialEndDate = me?.trialEndDate ? new Date(me.trialEndDate) : null;
   const isTrialActive = trialEndDate ? Date.now() < trialEndDate.getTime() : false;
-  const hasActiveProEntitlement =
-    rcInfo?.entitlements?.active?.[RC_PRO_ENTITLEMENT] != null;
-  const hasAccess = isTrialActive || hasActiveProEntitlement || nativeProConfirmed;
+
+  let hasAccess: boolean;
+  if (isNative) {
+    // Native: the ONLY valid Pro signals are trial and nativeIsPro (from RC via bridge).
+    hasAccess = isTrialActive || nativeIsPro;
+  } else {
+    // Browser: use Capacitor RC entitlement query.
+    const hasActiveProEntitlement =
+      rcInfo?.entitlements?.active?.[RC_PRO_ENTITLEMENT] != null;
+    hasAccess = isTrialActive || hasActiveProEntitlement;
+  }
 
   // DEV: log every evaluation so runtime values are visible in the browser console.
   if (import.meta.env.DEV) {
     console.debug("[AuthenticatedGate]", {
       trialEndsAt: me?.trialEndDate ?? null,
-      now: new Date().toISOString(),
       isTrialActive,
+      isNative,
+      nativeIsPro,
+      nativeSubResolved,
       rcAppUserId: rcInfo?.originalAppUserId ?? null,
       activeEntitlements: rcInfo ? Object.keys(rcInfo.entitlements.active) : [],
-      hasActiveProEntitlement,
-      nativeProConfirmed,
       hasAccess,
     });
   }
@@ -722,12 +740,9 @@ function NativeBridge() {
     const unsub = onFromNative("SUBSCRIPTION_STATUS", (payload) => {
       const p = payload as { isPro?: boolean } | null;
       const isPro = !!p?.isPro;
+      // Update module-level store — triggers useNativeSub() re-renders
+      // in AuthenticatedGate and MobileTrialBadge.
       _setNativeSub(isPro);
-      if (isPro) {
-        localStorage.setItem("ascend.nativePro", "1");
-      } else {
-        localStorage.removeItem("ascend.nativePro");
-      }
     });
     // Request current state now that the listener is registered.
     // If native already resolved RC, it responds immediately.

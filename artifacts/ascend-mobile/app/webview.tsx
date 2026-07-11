@@ -3,12 +3,13 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Linking, Platform, StatusBar, StyleSheet, View } from "react-native";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { registerPostToWeb } from "@/contexts/webview-bridge";
 import { useUser } from "@/contexts/UserContext";
 
 const BASE_URL = `https://${process.env.EXPO_PUBLIC_DOMAIN ?? "ascendfit.fitness"}`;
 // Versioned so each native build fetches a fresh entry from WKWebView's cache.
 // Bump _v whenever the web app has meaningful changes that must bypass stale cache.
-const LAUNCH_URL = `${BASE_URL}/dashboard?_v=30`;
+const LAUNCH_URL = `${BASE_URL}/dashboard?_v=31`;
 
 // Injected on every page load — sets up the bidirectional bridge
 const BRIDGE_JS = `
@@ -39,23 +40,25 @@ true;
 export default function WebViewScreen() {
   const webviewRef = useRef<WebView>(null);
   const { setUserId } = useUser();
-  const { isPro, isLoading: rcLoading, packages, purchase, restore } = useSubscription();
+  const { isPro, subscriptionResolved, appUserId, packages, purchase, restore } = useSubscription();
 
   // True once the WebView has fired onLoadEnd for the first page load.
   const [webviewLoaded, setWebviewLoaded] = useState(false);
 
-  // Refs so event handlers always read the latest values without stale closures.
+  // Refs so callbacks always read latest values without stale closures.
   const isProRef = useRef(isPro);
   isProRef.current = isPro;
-  const rcLoadingRef = useRef(rcLoading);
-  rcLoadingRef.current = rcLoading;
+  const appUserIdRef = useRef(appUserId);
+  appUserIdRef.current = appUserId;
+  const subscriptionResolvedRef = useRef(subscriptionResolved);
+  subscriptionResolvedRef.current = subscriptionResolved;
 
-  // The native loading overlay hides only when BOTH conditions are met:
+  // The native overlay hides only when BOTH conditions are met:
   //   1. The WebView has finished loading the first page (onLoadEnd fired).
-  //   2. RevenueCat has resolved (rcLoading is false).
-  // This ensures the user never sees a blank WebView or a page that hasn't
-  // yet received the SUBSCRIPTION_STATUS broadcast.
-  const showOverlay = !webviewLoaded || rcLoading;
+  //   2. RevenueCat has resolved — subscriptionResolved is true, meaning
+  //      applyCustomerInfo() has been called at least once after logIn().
+  // This ensures the web gate never evaluates before native RC is ready.
+  const showOverlay = !webviewLoaded || !subscriptionResolved;
 
   const postToWeb = useCallback((type: string, payload: unknown) => {
     if (!webviewRef.current) return;
@@ -64,22 +67,24 @@ export default function WebViewScreen() {
     );
   }, []);
 
-  // Broadcast RC entitlement status to the web whenever RC resolves or changes.
-  // Uses refs inside to get the latest isPro without a stale closure;
-  // handleLoadEnd also re-posts after page load to cover the timing race where
-  // RC resolves before the page is ready to receive events.
+  // Keep the module-level bridge current so SubscriptionContext.applyCustomerInfo()
+  // can call postToWeb immediately (no React cycle delay) from the CustomerInfo
+  // listener and from purchase/restore flows.
   useEffect(() => {
-    if (rcLoading) return;
-    postToWeb("SUBSCRIPTION_STATUS", { isPro });
-  }, [rcLoading, isPro, postToWeb]);
+    registerPostToWeb(postToWeb);
+    return () => registerPostToWeb(null);
+  }, [postToWeb]);
 
   // Called when the WebView finishes loading a page.
-  // Re-posts SUBSCRIPTION_STATUS using refs so the web always gets an authoritative
-  // answer even if RC resolved before the page was ready to listen.
+  // Re-broadcasts the latest SUBSCRIPTION_STATUS so a page reload never loses
+  // Pro state. Uses refs to read fresh values inside a stable callback.
   const handleLoadEnd = useCallback(() => {
     setWebviewLoaded(true);
-    if (!rcLoadingRef.current) {
-      postToWeb("SUBSCRIPTION_STATUS", { isPro: isProRef.current });
+    if (subscriptionResolvedRef.current) {
+      postToWeb("SUBSCRIPTION_STATUS", {
+        isPro: isProRef.current,
+        appUserId: appUserIdRef.current,
+      });
     }
   }, [postToWeb]);
 
@@ -100,13 +105,17 @@ export default function WebViewScreen() {
 
       case "REQUEST_SUBSCRIPTION_STATUS": {
         // Web's NativeBridge sends this immediately after registering its
-        // SUBSCRIPTION_STATUS listener to handle the race where native already
-        // broadcast before the listener was registered.
-        // Respond immediately if RC is already resolved; otherwise the existing
-        // useEffect([rcLoading, isPro]) will broadcast when it settles.
-        if (!rcLoadingRef.current) {
-          postToWeb("SUBSCRIPTION_STATUS", { isPro: isProRef.current });
+        // SUBSCRIPTION_STATUS listener to handle any timing race where native
+        // already resolved before the listener was registered.
+        // Respond with the current state if RC has already resolved.
+        if (subscriptionResolvedRef.current) {
+          postToWeb("SUBSCRIPTION_STATUS", {
+            isPro: isProRef.current,
+            appUserId: appUserIdRef.current,
+          });
         }
+        // If RC is still resolving, the startup effect in SubscriptionContext
+        // will call applyCustomerInfo() and post SUBSCRIPTION_STATUS when done.
         break;
       }
 
@@ -152,31 +161,24 @@ export default function WebViewScreen() {
         break;
       }
 
+      // REQUEST_PURCHASE is the canonical message name (spec-aligned).
+      // REQUEST_PAYWALL is kept as a backward-compatible alias.
+      case "REQUEST_PURCHASE":
       case "REQUEST_PAYWALL": {
-        // Trigger the RevenueCat purchase inline — Apple's StoreKit sheet
-        // appears modally over the WebView. The website /pricing page is the
-        // only visible paywall UI; no native screen is shown.
         const pkg = packages[0];
         if (!pkg) {
-          // RC packages not loaded yet — tell the web so it can show a retry.
           postToWeb("PAYWALL_ERROR", {
-            message: "Subscription unavailable. Please check your connection and try again.",
+            message:
+              "Subscription unavailable. Please check your connection and try again.",
           });
           break;
         }
         try {
-          const granted = await purchase(pkg);
-          if (granted) {
-            // Update gate state, then signal the web to navigate.
-            // PURCHASE_CONFIRMED is only ever posted after a verified purchase —
-            // never from the launch broadcast — so pricing.tsx can safely
-            // navigate on it without false positives.
-            postToWeb("SUBSCRIPTION_STATUS", { isPro: true });
-            postToWeb("PURCHASE_CONFIRMED", {});
-          }
-          // If not granted (user cancelled) → stay on web pricing page.
+          // purchase() calls applyCustomerInfo() internally, which posts
+          // SUBSCRIPTION_STATUS + PURCHASE_CONFIRMED to the WebView.
+          // No extra postToWeb calls needed here — they would be duplicates.
+          await purchase(pkg);
         } catch (e: any) {
-          // Surface purchase errors to the web so the user gets feedback.
           if (!e?.userCancelled) {
             postToWeb("PAYWALL_ERROR", {
               message: e?.message ?? "Purchase failed. Please try again.",
@@ -187,7 +189,6 @@ export default function WebViewScreen() {
       }
 
       case "REQUEST_MANAGE_SUBSCRIPTION": {
-        // Open Apple's native subscription management page.
         const appleSubsUrl = "https://apps.apple.com/account/subscriptions";
         try {
           const supported = await Linking.canOpenURL(appleSubsUrl);
@@ -195,27 +196,27 @@ export default function WebViewScreen() {
             await Linking.openURL(appleSubsUrl);
           } else {
             postToWeb("MANAGE_SUBSCRIPTION_FALLBACK", {
-              message: "Manage your Ascend subscription in Settings → Apple Account → Subscriptions.",
+              message:
+                "Manage your Ascend subscription in Settings → Apple Account → Subscriptions.",
             });
           }
         } catch {
           postToWeb("MANAGE_SUBSCRIPTION_FALLBACK", {
-            message: "Manage your Ascend subscription in Settings → Apple Account → Subscriptions.",
+            message:
+              "Manage your Ascend subscription in Settings → Apple Account → Subscriptions.",
           });
         }
         break;
       }
 
       case "REQUEST_RESTORE": {
-        // Web "Restore Purchases" link → triggers RC restore natively.
         try {
+          // restore() calls applyCustomerInfo() internally, which posts
+          // SUBSCRIPTION_STATUS + PURCHASE_CONFIRMED if Pro is active.
           const restored = await restore();
-          if (restored) {
-            postToWeb("SUBSCRIPTION_STATUS", { isPro: true });
-            postToWeb("PURCHASE_CONFIRMED", {});
-          } else {
+          if (!restored) {
             postToWeb("RESTORE_FAILED", {
-              message: "No active subscription found for your account.",
+              message: "No active Ascend Pro subscription was found.",
             });
           }
         } catch {
@@ -261,8 +262,8 @@ export default function WebViewScreen() {
 
       {/*
         Splash-matching overlay: shown from app open until the first page has
-        loaded AND RevenueCat has resolved. Rendered on top of the WebView so
-        the WebView can load underneath — no wasted time waiting behind a gate.
+        loaded AND RevenueCat has resolved (subscriptionResolved=true). The
+        WebView loads underneath so no startup time is wasted behind this gate.
         Background (#080D12) matches the Expo splash for a seamless transition.
       */}
       {showOverlay && (
