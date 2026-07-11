@@ -8,7 +8,7 @@ import { useUser } from "@/contexts/UserContext";
 const BASE_URL = `https://${process.env.EXPO_PUBLIC_DOMAIN ?? "ascendfit.fitness"}`;
 // Versioned so each native build fetches a fresh entry from WKWebView's cache.
 // Bump _v whenever the web app has meaningful changes that must bypass stale cache.
-const LAUNCH_URL = `${BASE_URL}/dashboard?_v=28`;
+const LAUNCH_URL = `${BASE_URL}/dashboard?_v=30`;
 
 // Injected on every page load — sets up the bidirectional bridge
 const BRIDGE_JS = `
