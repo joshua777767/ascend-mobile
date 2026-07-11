@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -19,64 +18,27 @@ export const INTRO_SEEN_KEY = "ascend_intro_seen";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
+// Matches the web intro exactly — same 3 slides, same copy
 const SLIDES = [
   {
-    icon: "zap" as const,
-    accent: "#F59E0B",
-    title: "Your AI Coach for Body, Energy & Focus",
-    body: "Ascend builds a fully personalized plan around your real life — meals, workouts, habits, and daily coaching — then adjusts it every week.",
-    pills: ["AI-powered", "Fully personalized", "Updates weekly"],
+    icon: "⚡",
+    title: "Your Personal AI Fitness Coach",
+    text: "Whether your goal is to lose weight, gain weight, build muscle, stay fit, or improve energy, Ascend builds a plan specifically for you.",
   },
   {
-    icon: "cpu" as const,
-    accent: "#3B82F6",
-    title: "An AI Coach That Learns",
-    body: "Every meal you log, every weigh-in, every workout — your coach tracks it all and refines your plan automatically to keep you making progress.",
-    pills: ["Weekly plan adjustments", "Context-aware coaching"],
+    icon: "🎯",
+    title: "Everything You Need In One Place",
+    text: "Get personalized nutrition, custom workouts, daily coaching, progress tracking, habit building, and streaks — without guessing what to do next.",
   },
   {
-    icon: "target" as const,
-    accent: "#22C55E",
-    title: "Precision Calories & Macros",
-    body: "Calorie, protein, and water targets calculated from your body stats, activity, and pace. Athletes get separate Rest Day, Practice Day, and Game Day targets.",
-    pills: ["Calorie & protein targets", "Sport day splits"],
-  },
-  {
-    icon: "coffee" as const,
-    accent: "#F97316",
-    title: "Log Meals. Get Instant Feedback.",
-    body: "Describe what you ate in plain English. Your AI coach responds instantly — what worked, what to fix, and what to eat for your next meal.",
-    pills: ["Instant AI feedback", "Meal quality scoring"],
-  },
-  {
-    icon: "activity" as const,
-    accent: "#A855F7",
-    title: "Workouts Built for Your Gear",
-    body: "No gym? Bodyweight only. Home gym? Equipment-matched. Full gym? Everything unlocked. Workouts auto-generate around your schedule.",
-    pills: ["Equipment-matched", "Auto-scheduled"],
-  },
-  {
-    icon: "trending-up" as const,
-    accent: "#06B6D4",
-    title: "Track Your Transformation",
-    body: "Log weekly weigh-ins and your AI coach automatically adjusts your calorie targets to keep your progress on track — no guessing.",
-    pills: ["Progress charts", "Auto plan updates"],
-  },
-  {
-    icon: "droplet" as const,
-    accent: "#0EA5E9",
-    title: "Stay Hydrated. Hit Your Missions.",
-    body: "Hit your daily water target, check off your key habits, and earn your Ascend Score — a single 0–100 daily performance number.",
-    pills: ["Daily score (0–100)", "Habit tracking & streaks"],
-  },
-  {
-    icon: "book-open" as const,
-    accent: "#F43F5E",
-    title: "Nightly Review. Real Accountability.",
-    body: "Write your evening journal and your AI coach scores your day, identifies exactly what held you back, and gives you precise fixes for tomorrow.",
-    pills: ["AI-scored nightly review", "Exact tomorrow fixes"],
+    icon: "🗺️",
+    title: "Built Around Your Goal",
+    text: "Tell Ascend about your body, lifestyle, goal, timeline, gym access, and activity level. Then get a personalized roadmap made for you.",
   },
 ];
+
+const AMBER = "#F59E0B";
+const AMBER_DARK = "hsl(38, 95%, 44%)";
 
 export default function IntroScreen() {
   const colors = useColors();
@@ -84,9 +46,13 @@ export default function IntroScreen() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [current, setCurrent] = useState(0);
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
+  const [animating, setAnimating] = useState(false);
 
+  const slideX = useRef(new Animated.Value(0)).current;
+  const slideOpacity = useRef(new Animated.Value(1)).current;
+
+  // Check if intro has been seen; skip straight to onboarding if so
   useEffect(() => {
     AsyncStorage.getItem(INTRO_SEEN_KEY).then((val) => {
       if (val === "true") {
@@ -102,18 +68,32 @@ export default function IntroScreen() {
     router.replace("/onboarding");
   };
 
-  const goNext = async () => {
+  function goTo(next: number, dir: "forward" | "back") {
+    if (animating) return;
+    setDirection(dir);
+    setAnimating(true);
+    const outX = dir === "forward" ? -SCREEN_W * 0.3 : SCREEN_W * 0.3;
+    const inX = dir === "forward" ? SCREEN_W * 0.3 : -SCREEN_W * 0.3;
+    Animated.parallel([
+      Animated.timing(slideOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
+      Animated.timing(slideX, { toValue: outX, duration: 120, useNativeDriver: true }),
+    ]).start(() => {
+      setCurrent(next);
+      slideX.setValue(inX);
+      Animated.parallel([
+        Animated.timing(slideOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+        Animated.timing(slideX, { toValue: 0, duration: 180, useNativeDriver: true }),
+      ]).start(() => setAnimating(false));
+    });
+  }
+
+  const handleNext = async () => {
     await Haptics.selectionAsync();
     if (current === SLIDES.length - 1) {
       finishIntro();
-      return;
+    } else {
+      goTo(current + 1, "forward");
     }
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 0, duration: 120, useNativeDriver: true }),
-    ]).start(() => {
-      setCurrent((c) => c + 1);
-      Animated.timing(fadeAnim, { toValue: 1, duration: 180, useNativeDriver: true }).start();
-    });
   };
 
   if (!ready) return null;
@@ -123,67 +103,93 @@ export default function IntroScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <TouchableOpacity
-        style={[styles.skip, { paddingTop: insets.top + 14 }]}
-        onPress={finishIntro}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Text style={[styles.skipText, { color: colors.mutedForeground }]}>Skip</Text>
-      </TouchableOpacity>
+      {/* Ambient amber orbs — matches web radial-gradient blobs */}
+      <View style={styles.orb1} pointerEvents="none" />
+      <View style={styles.orb2} pointerEvents="none" />
 
-      <Animated.View style={[styles.body, { opacity: fadeAnim }]}>
-        <LinearGradient
-          colors={[slide.accent + "18", slide.accent + "06", "transparent"]}
-          style={styles.iconGradient}
+      {/* AscendFit logo — matches web AuthHeader */}
+      <View style={[styles.logoArea, { paddingTop: insets.top + 24 }]}>
+        <Text style={[styles.logoText, { color: colors.foreground }]}>
+          Ascend<Text style={styles.logoAccent}>Fit</Text>
+        </Text>
+        <Text style={[styles.logoSub, { color: colors.mutedForeground }]}>Your Daily Coach</Text>
+      </View>
+
+      {/* Slide content */}
+      <View style={styles.slideArea}>
+        <Animated.View
+          style={[
+            styles.slide,
+            { opacity: slideOpacity, transform: [{ translateX: slideX }] },
+          ]}
         >
-          <View style={[styles.iconRing, { backgroundColor: slide.accent + "1A", borderColor: slide.accent + "50" }]}>
-            <Feather name={slide.icon} size={52} color={slide.accent} />
+          {/* Icon orb — matches web amber gradient box */}
+          <LinearGradient
+            colors={["hsl(38, 95%, 20%)", "hsl(38, 95%, 12%)"]}
+            start={{ x: 0.15, y: 0.15 }}
+            end={{ x: 0.85, y: 0.85 }}
+            style={styles.iconOrb}
+          >
+            <Text style={styles.iconEmoji}>{slide.icon}</Text>
+          </LinearGradient>
+
+          <View style={styles.textBlock}>
+            <Text style={[styles.slideTitle, { color: colors.foreground }]}>
+              {slide.title}
+            </Text>
+            <Text style={[styles.slideBody, { color: colors.mutedForeground }]}>
+              {slide.text}
+            </Text>
           </View>
-        </LinearGradient>
+        </Animated.View>
+      </View>
 
-        <Text style={[styles.title, { color: colors.foreground }]}>{slide.title}</Text>
-        <Text style={[styles.bodyText, { color: colors.mutedForeground }]}>{slide.body}</Text>
-
-        <View style={styles.pills}>
-          {slide.pills.map((pill, i) => (
-            <View key={i} style={[styles.pill, { backgroundColor: slide.accent + "18", borderColor: slide.accent + "44" }]}>
-              <Text style={[styles.pillText, { color: slide.accent }]}>{pill}</Text>
-            </View>
-          ))}
-        </View>
-      </Animated.View>
-
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 28 }]}>
+      {/* Bottom controls */}
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
+        {/* Progress dots — clickable, matches web */}
         <View style={styles.dots}>
           {SLIDES.map((_, i) => (
-            <Animated.View
+            <TouchableOpacity
               key={i}
-              style={[
-                styles.dot,
-                {
-                  backgroundColor: i === current ? colors.primary : colors.muted,
-                  width: i === current ? 22 : 7,
-                  opacity: i === current ? 1 : 0.4,
-                },
-              ]}
-            />
+              onPress={() => i !== current && goTo(i, i > current ? "forward" : "back")}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <View
+                style={[
+                  styles.dot,
+                  {
+                    width: i === current ? 24 : 8,
+                    backgroundColor: i === current ? AMBER : "hsl(217, 32%, 20%)",
+                  },
+                ]}
+              />
+            </TouchableOpacity>
           ))}
         </View>
 
-        <TouchableOpacity
-          style={[styles.nextBtn, { backgroundColor: colors.primary }]}
-          onPress={goNext}
-          activeOpacity={0.82}
-        >
-          <Text style={[styles.nextBtnText, { color: colors.primaryForeground }]}>
-            {isLast ? "Build My Plan" : "Next"}
-          </Text>
-          <Feather name="arrow-right" size={18} color={colors.primaryForeground} />
+        {/* Next / Start My Plan button — amber gradient, matches web */}
+        <TouchableOpacity onPress={handleNext} activeOpacity={0.88} style={styles.nextWrap}>
+          <LinearGradient
+            colors={[AMBER, AMBER_DARK]}
+            start={{ x: 0.1, y: 0 }}
+            end={{ x: 0.9, y: 1 }}
+            style={styles.nextBtn}
+          >
+            <Text style={styles.nextBtnText}>
+              {isLast ? "Start My Plan" : "Next"}
+            </Text>
+            <Text style={styles.nextArrow}>→</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
-        <Text style={[styles.counter, { color: colors.mutedForeground }]}>
-          {current + 1} / {SLIDES.length}
-        </Text>
+        {/* Skip — only on non-last screens, matches web */}
+        {!isLast ? (
+          <TouchableOpacity onPress={finishIntro} hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}>
+            <Text style={[styles.skipText, { color: colors.mutedForeground }]}>Skip intro</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.skipPlaceholder} />
+        )}
       </View>
     </View>
   );
@@ -191,90 +197,106 @@ export default function IntroScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  skip: {
+
+  // Ambient orbs
+  orb1: {
     position: "absolute",
-    top: 0,
-    right: 20,
-    zIndex: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 8,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    top: "-15%",
+    right: "-20%",
+    backgroundColor: "rgba(245,158,11,0.07)",
+    transform: [{ scale: 1.5 }],
   },
-  skipText: { fontSize: 14, fontFamily: "SpaceMono_400Regular" },
-  body: {
+  orb2: {
+    position: "absolute",
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    bottom: "5%",
+    left: "-15%",
+    backgroundColor: "rgba(245,158,11,0.04)",
+    transform: [{ scale: 1.5 }],
+  },
+
+  // Logo
+  logoArea: { paddingHorizontal: 24, paddingBottom: 8, zIndex: 1 },
+  logoText: { fontSize: 26, fontFamily: "SpaceMono_700Bold", letterSpacing: -0.5 },
+  logoAccent: { color: "#C89A3E" },
+  logoSub: { fontSize: 10, fontFamily: "SpaceMono_400Regular", letterSpacing: 1.2, marginTop: 2 },
+
+  // Slide area
+  slideArea: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 28,
-    gap: 20,
-    paddingTop: 24,
+    paddingHorizontal: 24,
+    zIndex: 1,
   },
-  iconGradient: {
-    width: 160,
-    height: 160,
-    borderRadius: 48,
+  slide: {
+    width: "100%",
+    maxWidth: 360,
+    alignItems: "center",
+    gap: 28,
+  },
+
+  // Icon orb — matches web w-24 h-24 rounded-3xl amber gradient
+  iconOrb: {
+    width: 96,
+    height: 96,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(245,158,11,0.3)",
   },
-  iconRing: {
-    width: 128,
-    height: 128,
-    borderRadius: 36,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 24,
+  iconEmoji: { fontSize: 46 },
+
+  textBlock: { alignItems: "center", gap: 12 },
+  slideTitle: {
+    fontSize: 26,
     fontFamily: "SpaceMono_700Bold",
     textAlign: "center",
     lineHeight: 32,
     letterSpacing: -0.3,
   },
-  bodyText: {
+  slideBody: {
     fontSize: 15,
     fontFamily: "SpaceMono_400Regular",
     textAlign: "center",
     lineHeight: 23,
   },
-  pills: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 4,
-  },
-  pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  pillText: {
-    fontSize: 12,
-    fontFamily: "SpaceMono_700Bold",
-    letterSpacing: 0.2,
-  },
+
+  // Footer
   footer: {
     paddingHorizontal: 24,
+    alignItems: "center",
     gap: 16,
-    alignItems: "center",
+    zIndex: 1,
   },
-  dots: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 5,
-  },
-  dot: { height: 7, borderRadius: 4 },
+  dots: { flexDirection: "row", alignItems: "center", gap: 6 },
+  dot: { height: 8, borderRadius: 4 },
+
+  nextWrap: { alignSelf: "stretch" },
   nextBtn: {
+    height: 56,
+    borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    height: 56,
-    borderRadius: 16,
-    alignSelf: "stretch",
   },
-  nextBtnText: { fontSize: 17, fontFamily: "SpaceMono_700Bold" },
-  counter: { fontSize: 12, fontFamily: "SpaceMono_400Regular" },
+  nextBtnText: {
+    fontSize: 16,
+    fontFamily: "SpaceMono_700Bold",
+    color: "#0A0A0A",
+  },
+  nextArrow: {
+    fontSize: 18,
+    color: "#0A0A0A",
+    fontFamily: "SpaceMono_700Bold",
+  },
+  skipText: { fontSize: 14, fontFamily: "SpaceMono_400Regular" },
+  skipPlaceholder: { height: 20 },
 });
