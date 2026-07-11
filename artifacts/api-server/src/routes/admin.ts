@@ -211,6 +211,23 @@ router.get("/admin/users", async (req, res): Promise<void> => {
   });
 });
 
+router.post("/admin/users/:id/revoke-pro", async (req, res): Promise<void> => {
+  if (!(await requireOwner(req, res))) return;
+
+  const userId = parseInt(req.params.id, 10);
+  if (Number.isNaN(userId)) {
+    res.status(400).json({ error: "Invalid user ID" });
+    return;
+  }
+
+  await db.update(usersTable)
+    .set({ freePro: false, freeProExpiresAt: null })
+    .where(eq(usersTable.id, userId));
+
+  logger.info({ userId }, "Admin revoked free pro");
+  res.json({ ok: true });
+});
+
 router.delete("/admin/users/:id", async (req, res): Promise<void> => {
   if (!(await requireOwner(req, res))) return;
 

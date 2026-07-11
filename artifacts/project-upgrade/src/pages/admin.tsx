@@ -84,6 +84,22 @@ export default function AdminPage() {
     );
   }, [stats?.allUsers, search]);
 
+  async function revokeProUser(userId: number) {
+    setPendingIds(prev => { const s = new Set(prev); s.add(userId); return s; });
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}api/admin/users/${userId}/revoke-pro`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to revoke pro");
+      await queryClient.invalidateQueries({ queryKey: ["adminStats"] });
+    } catch (e) {
+      alert("Failed to revoke pro.");
+    } finally {
+      setPendingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
+    }
+  }
+
   async function deleteUser(userId: number) {
     setPendingIds(prev => { const s = new Set(prev); s.add(userId); return s; });
     try {
@@ -261,6 +277,16 @@ export default function AdminPage() {
 
                     {/* User controls */}
                     <div className="border-t border-border pt-2.5 space-y-2">
+                      {/* Revoke Pro */}
+                      {u.isFreePro && (
+                        <button
+                          disabled={isPending}
+                          onClick={() => revokeProUser(u.id)}
+                          className="w-full rounded-xl border border-amber-500/30 text-amber-400 text-[11px] font-semibold py-1.5 hover:bg-amber-500/10 transition-colors disabled:opacity-50"
+                        >
+                          {isPending ? "Revoking…" : "Revoke Free Pro"}
+                        </button>
+                      )}
                       {/* Remove user */}
                       {confirmDeleteId === u.id ? (
                         <div className="space-y-1.5">
