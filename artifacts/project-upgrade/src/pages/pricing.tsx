@@ -41,14 +41,15 @@ export default function PricingPage() {
     }
   }, [isPro]);
 
-  // Listen for Pro confirmation from the native paywall and redirect.
+  // Navigate to dashboard only after a verified purchase or restore.
+  // PURCHASE_CONFIRMED is only posted by the native shell after purchase()
+  // or restore() returns true — never from the launch broadcast.
+  // This prevents SUBSCRIPTION_STATUS (which fires on launch for existing
+  // subscribers) from navigating the user before they tap anything.
   useEffect(() => {
     if (!isNative) return;
-    return onFromNative("SUBSCRIPTION_STATUS", (payload) => {
-      const p = payload as { isPro?: boolean } | null;
-      if (p?.isPro) {
-        window.location.href = "/dashboard";
-      }
+    return onFromNative("PURCHASE_CONFIRMED", () => {
+      window.location.href = "/dashboard";
     });
   }, [isNative]);
 

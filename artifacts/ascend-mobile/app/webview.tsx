@@ -155,9 +155,12 @@ export default function WebViewScreen() {
         try {
           const granted = await purchase(pkg);
           if (granted) {
-            // Broadcast new Pro status, then navigate to dashboard.
+            // Update gate state, then signal the web to navigate.
+            // PURCHASE_CONFIRMED is only ever posted after a verified purchase —
+            // never from the launch broadcast — so pricing.tsx can safely
+            // navigate on it without false positives.
             postToWeb("SUBSCRIPTION_STATUS", { isPro: true });
-            postToWeb("NAVIGATE", { path: "/dashboard" });
+            postToWeb("PURCHASE_CONFIRMED", {});
           }
           // If not granted (user cancelled) → stay on web pricing page.
         } catch (e: any) {
@@ -197,7 +200,7 @@ export default function WebViewScreen() {
           const restored = await restore();
           if (restored) {
             postToWeb("SUBSCRIPTION_STATUS", { isPro: true });
-            postToWeb("NAVIGATE", { path: "/dashboard" });
+            postToWeb("PURCHASE_CONFIRMED", {});
           } else {
             postToWeb("RESTORE_FAILED", {
               message: "No active subscription found for your account.",

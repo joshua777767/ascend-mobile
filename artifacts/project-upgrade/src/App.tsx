@@ -215,6 +215,11 @@ function ProtectedApp() {
   // SUBSCRIPTION_STATUS. Never reads stale localStorage for gate decisions.
   const { isPro: nativeIsPro, resolved: nativeSubResolved } = useNativeSub();
 
+  // Computed here (before the modal useEffect) so it's available as a dep.
+  // Mirrors the gate check below — true only when the native RC shell has
+  // confirmed Pro status after RC resolves.
+  const nativeProConfirmed = isNative && nativeIsPro;
+
   // Safety timeout: if native never posts SUBSCRIPTION_STATUS within 10 s,
   // stop spinning and fall through to the redirect (safe default = blocked).
   const [nativeSubTimedOut, setNativeSubTimedOut] = useState(false);
@@ -238,7 +243,9 @@ function ProtectedApp() {
     const sevenDaysDue = !last || (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24) >= 7;
     // Last trial day override: force check-in on day 7 if they haven't done one today
     const checkedInToday = !!last && new Date(last).toDateString() === new Date().toDateString();
-    const isLastTrialDay = !isPro && trialDay >= 7;
+    // Include nativeProConfirmed so native Pro users don't trigger the trial-ending
+    // modal path — the gate lets them through, but the modal should see them as Pro.
+    const isLastTrialDay = !isPro && !nativeProConfirmed && trialDay >= 7;
     // Prevent the modal re-appearing on the same calendar day even after a
     // hard-refresh or re-login.  Both paths (7-day cadence and last trial day)
     // guard with !checkedInToday so the modal fires at most once per day.
@@ -247,7 +254,7 @@ function ProtectedApp() {
     // Small delay so the app shell renders first before the modal appears
     const t = setTimeout(() => setShowWeeklyCheckIn(true), 1500);
     return () => clearTimeout(t);
-  }, [profile, trialDay, isPro]);
+  }, [profile, trialDay, isPro, nativeProConfirmed]);
 
   // Weekly review: show after 7 days, then every 7 days after. Not on trial day.
   useEffect(() => {
@@ -313,7 +320,6 @@ function ProtectedApp() {
 
   // For native: gate on live RC confirmation only (not localStorage).
   // For web: no native gate applies.
-  const nativeProConfirmed = isNative && nativeIsPro;
   if (expired && !isFreeRoute && !nativeProConfirmed) {
     return <Redirect to="/pricing?expired=1" />;
   }
@@ -456,32 +462,26 @@ function NativeBridge() {
   }, [me?.id]);
 
   // Listen for subscription status from native.
-  // Native broadcasts this on launch (after RC resolves), on purchase, and on
-  // app resume — so we always have an up-to-date entitlement state in the web.
+  // Native broadcasts this on launch (after RC resolves) and on app resume.
+  // We update the module-level store so ProtectedApp can gate access correctly.
   //
-  // We update the module-level native sub store (_setNativeSub) so ProtectedApp
-  // can read the live value without relying on potentially stale localStorage.
-  // The localStorage flag is kept only for the pricing-page redirect path, which
-  // is a navigation convenience, not a security gate.
+  // IMPORTANT: Do NOT navigate here. SUBSCRIPTION_STATUS fires on launch for
+  // any user RC already knows is Pro — navigating on it causes the pricing page
+  // to immediately redirect to dashboard before the user taps anything.
+  // Navigation after a real purchase or restore is handled by PURCHASE_CONFIRMED
+  // (only posted by native after purchase()/restore() return true).
   useEffect(() => {
     if (!isNative) return;
     return onFromNative("SUBSCRIPTION_STATUS", (payload) => {
       const p = payload as { isPro?: boolean } | null;
       const isPro = !!p?.isPro;
 
-      // Update live module state — ProtectedApp reads this instead of localStorage.
+      // Update live module state — ProtectedApp reads this for gate decisions.
       _setNativeSub(isPro);
 
       if (isPro) {
         localStorage.setItem("ascend.nativePro", "1");
-        // If the user is on a paywall/utility page and Pro just confirmed,
-        // navigate them to the dashboard.
-        const path = window.location.pathname;
-        const isFreeRoute = ["/pricing", "/privacy", "/terms", "/support", "/marketing"].some(r => path.startsWith(r));
-        if (isFreeRoute) window.location.href = "/dashboard";
       } else {
-        // Pro not confirmed (expired, cancelled, never subscribed).
-        // Clear the flag so it cannot be accidentally read as Pro.
         localStorage.removeItem("ascend.nativePro");
       }
     });
