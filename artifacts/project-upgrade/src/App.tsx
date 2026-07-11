@@ -146,7 +146,9 @@ const RC_PRO_ENTITLEMENT = "Ascend: AI Fitness Pro";
 // Only actions allowed: Buy Pro, Restore Purchases, Log Out.
 function LockedPaywall() {
   const [error, setError] = useState("");
+  const [restoreLog, setRestoreLog] = useState<string | null>(null);
   const qc = useQueryClient();
+  const { isPro: nativeIsPro, resolved: nativeSubResolved } = useNativeSub();
 
   // PURCHASE_CONFIRMED arrives after a successful purchase or restore.
   // The gate re-evaluates automatically because SUBSCRIPTION_STATUS{isPro:true}
@@ -196,6 +198,12 @@ function LockedPaywall() {
 
   function handleRestore() {
     setError("");
+    setRestoreLog("Restoring…");
+    const unsub = onFromNative("RESTORE_RESULT", (payload) => {
+      const p = payload as { isPro?: boolean; entitlements?: string[] } | null;
+      setRestoreLog(`isPro: ${p?.isPro} | entitlements: [${(p?.entitlements ?? []).join(", ")}]`);
+      unsub();
+    });
     sendToNative("REQUEST_RESTORE");
   }
 
@@ -332,6 +340,15 @@ function LockedPaywall() {
               Restore Purchases
             </button>
           )}
+
+          {/* Diagnostic panel — always visible so we can see what RC is returning */}
+          <div style={{ background: "rgba(0,0,0,0.4)", border: "1px solid #334155", borderRadius: "10px", padding: "10px 12px", fontSize: "11px", fontFamily: "monospace", color: "#94A3B8", lineHeight: 1.6 }}>
+            <div style={{ color: "#F59E0B", fontWeight: 700, marginBottom: 4 }}>RC State</div>
+            <div>isNative: <b style={{ color: "#F8FAFC" }}>{String(isNative)}</b></div>
+            <div>resolved: <b style={{ color: "#F8FAFC" }}>{String(nativeSubResolved)}</b></div>
+            <div>isPro: <b style={{ color: nativeIsPro ? "#4ADE80" : "#F87171" }}>{String(nativeIsPro)}</b></div>
+            {restoreLog && <div style={{ marginTop: 6, color: "#CBD5E1", wordBreak: "break-all" }}>restore: {restoreLog}</div>}
+          </div>
 
           <button
             onClick={handleLogout}

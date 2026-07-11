@@ -354,14 +354,18 @@ export function SubscriptionProvider({
 
       const restoredInfo = await Purchases.restorePurchases();
       const active = applyCustomerInfo(restoredInfo);
+      const entitlementKeys = Object.keys(restoredInfo.entitlements.active);
 
       console.log(
         "[RC:restore] complete — isPro:", active,
-        "| active entitlements:", Object.keys(restoredInfo.entitlements.active)
+        "| active entitlements:", entitlementKeys,
+        "| RC App User ID:", (restoredInfo as any).originalAppUserId ?? "?"
       );
 
+      // Always post RESTORE_RESULT so the web diagnostic panel updates.
+      postToWebFromNative("RESTORE_RESULT", { isPro: active, entitlements: entitlementKeys });
+
       if (active) {
-        // PURCHASE_CONFIRMED is the signal web uses to navigate after unlock.
         postToWebFromNative("PURCHASE_CONFIRMED", { isPro: true });
       }
       return active;
