@@ -209,11 +209,20 @@ function ProtectedApp() {
 
   const [showWeeklyCheckIn, setShowWeeklyCheckIn] = useState(false);
   const [showWeeklyReview, setShowWeeklyReview] = useState(false);
-  const { trialDay, isPro, trialExpired, hasAccess } = useTrialDay();
+  const { trialDay, isPro, trialExpired, hasAccess, isLoading: isTrialLoading } = useTrialDay();
 
   // Live native subscription state — resolved only after native posts
   // SUBSCRIPTION_STATUS. Never reads stale localStorage for gate decisions.
   const { isPro: nativeIsPro, resolved: nativeSubResolved } = useNativeSub();
+
+  // Safety timeout: if native never posts SUBSCRIPTION_STATUS within 10 s,
+  // stop spinning and fall through to the redirect (safe default = blocked).
+  const [nativeSubTimedOut, setNativeSubTimedOut] = useState(false);
+  useEffect(() => {
+    if (!isNative || nativeSubResolved || nativeSubTimedOut) return;
+    const t = setTimeout(() => setNativeSubTimedOut(true), 10_000);
+    return () => clearTimeout(t);
+  }, [nativeSubResolved, nativeSubTimedOut]);
 
   // Check if weekly check-in is due after profile has loaded.
   // Fires on the normal 7-day cadence, OR on the last day of the free trial
@@ -275,6 +284,13 @@ function ProtectedApp() {
     );
   }
 
+  // Also spin while /auth/me is still loading. Without this, there is a window
+  // where trialExpired=false (the safe-default while me is undefined) and an
+  // expired user briefly sees the dashboard before the gate re-fires.
+  // isTrialLoading is isMeLoading from useTrialDay; the 8s timeout above
+  // already prevents a forever-spin if /auth/me never resolves.
+  if (isTrialLoading) return <FullScreenSpinner />;
+
   // Access lockout: trial expired and no active subscription → redirect to pricing
   const expired = trialExpired && !hasAccess;
 
@@ -289,7 +305,9 @@ function ProtectedApp() {
   // the native shell — never a potentially stale localStorage value. While
   // native hasn't confirmed RC state yet (resolved=false) and the trial is
   // expired, we hold on a spinner to avoid a false lockout for active Pro users.
-  if (isNative && expired && !nativeSubResolved) {
+  // nativeSubTimedOut (10 s) is the safety net: if native never posts, fall
+  // through and block access (safe default — expired + no confirmation = no access).
+  if (isNative && expired && !nativeSubResolved && !nativeSubTimedOut) {
     return <FullScreenSpinner />;
   }
 

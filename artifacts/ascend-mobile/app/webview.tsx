@@ -6,6 +6,11 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useUser } from "@/contexts/UserContext";
 
 const BASE_URL = `https://${process.env.EXPO_PUBLIC_DOMAIN ?? "ascendfit.fitness"}`;
+// Always open to /dashboard on launch. If the session cookie is still valid,
+// the user lands directly on their dashboard. If not, AppRouter redirects to
+// /login. Loading the root URL (/) was landing authenticated users on the
+// marketing landing page, making them appear logged out.
+const LAUNCH_URL = `${BASE_URL}/dashboard`;
 
 // Injected on every page load — sets up the bidirectional bridge
 const BRIDGE_JS = `
@@ -194,7 +199,7 @@ export default function WebViewScreen() {
       />
       <WebView
         ref={webviewRef}
-        source={{ uri: BASE_URL }}
+        source={{ uri: LAUNCH_URL }}
         style={styles.webview}
         injectedJavaScript={BRIDGE_JS}
         injectedJavaScriptBeforeContentLoaded={BRIDGE_JS}

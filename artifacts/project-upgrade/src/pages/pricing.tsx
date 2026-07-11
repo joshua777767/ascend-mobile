@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Loader2, AlertTriangle } from "lucide-react";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useGetMe } from "@workspace/api-client-react";
-import { sendToNative, onFromNative } from "@/lib/native-bridge";
+import { sendToNative, onFromNative, isNative } from "@/lib/native-bridge";
 
 const PRO_FEATURES = [
   "Personalized daily schedule built around your real life",
@@ -247,7 +247,7 @@ export default function PricingPage() {
           </div>
         )}
 
-        {!isExpired && (
+        {!isExpired && !isNative && (
           <div className="mt-8 text-center">
             <Link href="/dashboard">
               <Button variant="ghost" className="text-muted-foreground text-sm" data-testid="link-back-to-dashboard">
