@@ -253,10 +253,11 @@ function ProtectedApp() {
   const FREE_ROUTES = ["/privacy", "/terms", "/support", "/marketing", "/delete-account", "/data-export"];
   const isFreeRoute = typeof window !== "undefined" && FREE_ROUTES.some((r) => window.location.pathname.includes(r));
 
-  // In the native WebView the native paywall is the subscription gate.
-  // Skip the web trial-expiry redirect so the web app never hijacks the flow.
-  const nativeProConfirmed = isNative && sessionStorage.getItem("ascend.nativePro") === "1";
-  if (expired && !isFreeRoute && !isNative && !nativeProConfirmed) {
+  // nativePro persists in localStorage so it survives WebView reloads.
+  // It is set when native posts SUBSCRIPTION_STATUS { isPro: true } and
+  // cleared when native posts { isPro: false } or the user logs out.
+  const nativeProConfirmed = isNative && localStorage.getItem("ascend.nativePro") === "1";
+  if (expired && !isFreeRoute && !nativeProConfirmed) {
     return <Redirect to="/pricing?expired=1" />;
   }
 
@@ -396,14 +397,24 @@ function NativeBridge() {
     }
   }, [me?.id]);
 
-  // Listen for Pro-confirmed signal from native (e.g. after IAP on paywall).
+  // Listen for subscription status from native.
+  // Native broadcasts this on launch (after RC resolves), on purchase, and on
+  // app resume — so we always have an up-to-date entitlement state in the web.
   useEffect(() => {
     if (!isNative) return;
     return onFromNative("SUBSCRIPTION_STATUS", (payload) => {
       const p = payload as { isPro?: boolean } | null;
       if (p?.isPro) {
-        sessionStorage.setItem("ascend.nativePro", "1");
-        window.location.href = "/dashboard";
+        localStorage.setItem("ascend.nativePro", "1");
+        // Only hard-navigate if we're not already on the dashboard or a
+        // free-only route — avoids a jarring reload mid-session.
+        const path = window.location.pathname;
+        const isFreeRoute = ["/pricing", "/privacy", "/terms", "/support", "/marketing"].some(r => path.startsWith(r));
+        if (isFreeRoute) window.location.href = "/dashboard";
+      } else {
+        // Pro not confirmed (expired, cancelled, never subscribed).
+        // Clear the flag so the trial gate fires on next render.
+        localStorage.removeItem("ascend.nativePro");
       }
     });
   }, []);

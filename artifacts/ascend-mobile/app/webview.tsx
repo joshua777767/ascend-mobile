@@ -36,17 +36,19 @@ true;
 export default function WebViewScreen() {
   const webviewRef = useRef<WebView>(null);
   const { setUserId } = useUser();
-  const { isPro, packages, purchase } = useSubscription();
-  const isPrevPro = useRef(isPro);
+  const { isPro, isLoading: rcLoading, packages, purchase } = useSubscription();
+  const hasPostedInitialStatus = useRef(false);
 
-  // When Pro becomes true (after inline purchase or restore), tell the web app
-  // so it can navigate to /dashboard without a reload.
+  // Broadcast the current RC entitlement to the web on every meaningful change:
+  // 1) Once after the initial RC check resolves (isLoading → false), so the
+  //    web's trial gate always has an authoritative native answer at launch.
+  // 2) On every subsequent isPro change (purchase, restore, app resume).
+  // Using localStorage on the web side so it survives WebView reloads.
   useEffect(() => {
-    if (isPro && !isPrevPro.current) {
-      postToWeb("SUBSCRIPTION_STATUS", { isPro: true });
-    }
-    isPrevPro.current = isPro;
-  }, [isPro]);
+    if (rcLoading) return;
+    postToWeb("SUBSCRIPTION_STATUS", { isPro });
+    hasPostedInitialStatus.current = true;
+  }, [rcLoading, isPro]);
 
   const postToWeb = (type: string, payload: unknown) => {
     if (!webviewRef.current) return;
