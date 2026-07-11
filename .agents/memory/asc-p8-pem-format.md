@@ -21,4 +21,15 @@ with open('/tmp/asc_key.p8', 'w') as f:
 
 **Why:** Apple's App Store Connect API validates PEM structure strictly. A one-line file with no headers causes a generic "Something went wrong" error from Expo's submit service with no further detail from the CLI.
 
-**Note:** EAS submit in Replit also times out at 120s while waiting for the Apple upload to complete. Use `--no-wait` to schedule it and check the Expo submissions dashboard for the actual result: https://expo.dev/accounts/ascend-ai-coach/projects/ascend-mobile/submissions
+**Note:** EAS submit in Replit times out at ~120s while waiting for the Apple upload to complete. Use `--no-wait` to schedule it and check the Expo submissions dashboard for the actual result: https://expo.dev/accounts/ascend-ai-coach/projects/ascend-mobile/submissions
+
+**Duplicate upload symptom:** "Something went wrong when submitting your app to Apple App Store Connect" (without "401 NOT_AUTHORIZED") often means the build was already uploaded by an earlier attempt. Verify via:
+```
+GET https://api.appstoreconnect.apple.com/v1/builds?filter[app]=<APP_ID>&sort=-uploadedDate
+```
+`processingState: VALID` = successfully landed in TestFlight.
+
+**Key IDs in use:**
+- `9R29JH7PU6` — EAS (App Manager) — issuer `d276c0b6-b8dd-41bf-ac1a-ca629db36dde`
+- `GNNZKY285B` — RevenueCat (Admin)
+- `HG2U9Q6XXJ` — [Expo] EAS Submit (Admin)
