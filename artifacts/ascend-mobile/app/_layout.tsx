@@ -59,12 +59,13 @@ function AppGate({ children }: { children: React.ReactNode }) {
     const profileErrored = !!profileQuery.error && !profile404;
 
     const onOnboarding = seg0 === "onboarding";
+    const onIntro = seg0 === "intro";
     const onPaywall = seg0 === "paywall";
     const onDebug = seg0 === "debug-subscription";
 
-    // No profile yet → onboarding.
+    // No profile yet → intro (first time) or onboarding (returning).
     if (!hasProfile && profile404) {
-      if (!onOnboarding) router.replace("/onboarding");
+      if (!onOnboarding && !onIntro) router.replace("/intro");
       return;
     }
 
@@ -88,8 +89,8 @@ function AppGate({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Pro + profile → into the app; bounce off auth/onboarding/paywall screens.
-    if (inAuth || onOnboarding || onPaywall) router.replace("/(tabs)");
+    // Pro + profile → into the app; bounce off auth/onboarding/intro/paywall screens.
+    if (inAuth || onOnboarding || onIntro || onPaywall) router.replace("/(tabs)");
   }, [
     user,
     authLoading,
@@ -120,6 +121,10 @@ function RootLayoutNav() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false, animation: "fade" }} />
           <Stack.Screen name="signup" options={{ headerShown: false, animation: "fade" }} />
+          <Stack.Screen
+            name="intro"
+            options={{ headerShown: false, animation: "fade", gestureEnabled: false }}
+          />
           <Stack.Screen
             name="onboarding"
             options={{ headerShown: false, animation: "fade", gestureEnabled: false }}

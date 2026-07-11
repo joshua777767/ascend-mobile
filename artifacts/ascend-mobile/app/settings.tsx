@@ -17,8 +17,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useResetUserProfile } from "@workspace/api-client-react";
 import Purchases from "react-native-purchases";
+import { INTRO_SEEN_KEY } from "./intro";
 
 const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN ?? "";
 
@@ -155,6 +157,16 @@ export default function SettingsScreen() {
             label="Edit Profile"
             sublabel="Update goals, body stats, training & more"
             onPress={() => router.push("/edit-profile")}
+          />
+          <Divider />
+          <Row
+            icon="play-circle"
+            label="Replay Feature Tour"
+            sublabel="See what Ascend can do"
+            onPress={async () => {
+              await AsyncStorage.removeItem(INTRO_SEEN_KEY);
+              router.push("/intro");
+            }}
           />
         </Section>
 
