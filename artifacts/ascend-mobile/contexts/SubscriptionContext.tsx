@@ -322,19 +322,24 @@ export function SubscriptionProvider({
     try {
       console.log("[RC:refresh] app foregrounded — refreshing CustomerInfo …");
       const info = await Purchases.getCustomerInfo();
-      const stillPro = applyCustomerInfo(info);
+      const initialPro = info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
 
-      // If the cached CustomerInfo says not-Pro, silently restore before
-      // telling the web — this re-links any Apple receipt that got attached
-      // to a different RC App User ID (anonymous ID from an earlier build, etc.)
-      if (!stillPro) {
-        console.log("[RC:refresh] not Pro after getCustomerInfo — auto-restoring on foreground …");
+      if (initialPro) {
+        // Cache says Pro — apply immediately, nothing else needed.
+        applyCustomerInfo(info);
+      } else {
+        // Cache says not-Pro. Before telling the web (which would flash the paywall),
+        // silently restore to re-link any Apple receipt that attached to a different
+        // RC App User ID (anonymous ID from an earlier build, etc.).
+        console.log("[RC:refresh] not Pro after getCustomerInfo — auto-restoring before posting to web …");
         try {
           const restored = await Purchases.restorePurchases();
           const restoredPro = applyCustomerInfo(restored);
           console.log("[RC:refresh] foreground restore — isPro:", restoredPro, "| entitlements:", Object.keys(restored.entitlements.active));
         } catch (restoreErr) {
-          console.warn("[RC:refresh] foreground auto-restore failed (non-fatal):", restoreErr);
+          // Restore failed — only NOW post the non-Pro state so the web is accurate.
+          console.warn("[RC:refresh] foreground restore failed — posting non-Pro state:", restoreErr);
+          applyCustomerInfo(info);
         }
       }
     } catch (e) {
