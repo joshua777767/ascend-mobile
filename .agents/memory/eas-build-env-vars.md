@@ -3,12 +3,19 @@ name: EAS build env vars must be explicit
 description: EXPO_PUBLIC_ env vars set as Replit secrets are NOT forwarded to EAS cloud builds — they must be listed in eas.json env block or the feature silently breaks at runtime.
 ---
 
-EAS builds run on Expo's cloud servers, not in the Replit environment. Replit secrets (including `EXPO_PUBLIC_*` vars) are NOT automatically available during EAS builds.
+There are TWO separate bundle contexts that need `EXPO_PUBLIC_*` vars, and they are sourced differently:
 
-**Rule:** Before triggering any EAS build, audit `eas.json` and confirm every `EXPO_PUBLIC_` var the app reads at runtime is listed in the relevant build profile's `env` block with its literal value.
+**1. EAS cloud binary builds (`eas build`)**
+- Run on Expo's cloud servers — Replit secrets are NOT available.
+- `EXPO_PUBLIC_*` vars must be explicitly listed in `eas.json` under the relevant profile's `env` block.
+- Check `eas.json` production env includes at minimum: `EXPO_PUBLIC_DOMAIN`, `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`.
 
-**Why:** `EXPO_PUBLIC_` vars are baked into the JS bundle at build time. If missing, the app gets an empty string silently — no build error, no warning, just a broken feature at runtime. In this project, `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` was missing from the production profile, causing every IAP attempt to fail immediately with "API key not set" — this caused multiple unnecessary Apple rejections before the root cause was found.
+**2. EAS OTA updates (`eas update` run from Replit)**
+- Bundle is built LOCALLY on Replit, then uploaded.
+- `EXPO_PUBLIC_*` vars must exist as Replit environment variables (set via `setEnvVars` or the Secrets tab).
+- `eas.json` env blocks are NOT read during `eas update` — only during `eas build`.
+- `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` must be set as a Replit env var for OTA updates to work.
 
-**How to apply:** When setting up or modifying an EAS build for this project, check that `eas.json` production env includes at minimum:
-- `EXPO_PUBLIC_DOMAIN`
-- `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`
+**Why this matters:** Every OTA update pushed without `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` in Replit's environment had an empty API key. RC hit `if (!apiKey)` → posted `SUBSCRIPTION_STATUS{isPro:false}` immediately → bailed. The SDK was never initialized. Users were stuck on the paywall despite having active subscriptions.
+
+**Current state:** `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY=appl_hXpbLbMroDWwJXBrCUBZGqTxkbP` is now set in Replit shared env. All future OTA updates will have it.
