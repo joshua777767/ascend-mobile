@@ -38,7 +38,7 @@
       "ios": {
         "ascAppId": "6784409058",
         "appleTeamId": "4BZY3Y44XW",
-        "ascApiKeyPath": "/tmp/asc_key.p8",
+        "ascApiKeyPath": "/tmp/asc_key.pem",
         "ascApiKeyIssuerId": "d276c0b6-b8dd-41bf-ac1a-ca629db36dde",
         "ascApiKeyId": "9R29JH7PU6"
       }
