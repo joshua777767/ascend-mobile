@@ -53,12 +53,11 @@ export default function WebViewScreen() {
   const subscriptionResolvedRef = useRef(subscriptionResolved);
   subscriptionResolvedRef.current = subscriptionResolved;
 
-  // The native overlay hides only when BOTH conditions are met:
-  //   1. The WebView has finished loading the first page (onLoadEnd fired).
-  //   2. RevenueCat has resolved — subscriptionResolved is true, meaning
-  //      applyCustomerInfo() has been called at least once after logIn().
-  // This ensures the web gate never evaluates before native RC is ready.
-  const showOverlay = !webviewLoaded || !subscriptionResolved;
+  // The native overlay hides once the WebView has finished loading.
+  // RC resolution is no longer required to lift the overlay: the web gate
+  // shows its own spinner while nativeSubResolved=false, so the user never
+  // sees a LockedPaywall flash while RC is still identifying the user.
+  const showOverlay = !webviewLoaded;
 
   const postToWeb = useCallback((type: string, payload: unknown) => {
     if (!webviewRef.current) return;

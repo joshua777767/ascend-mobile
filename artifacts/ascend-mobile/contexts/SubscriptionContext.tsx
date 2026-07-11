@@ -216,6 +216,15 @@ export function SubscriptionProvider({
       }
 
       // Step 2: Identify the Ascend user in RevenueCat.
+      // If no userId yet (user not logged in / AsyncStorage still reading),
+      // do nothing — never call logOut() here, never post SUBSCRIPTION_STATUS,
+      // never set subscriptionResolved=true. The web gate keeps its spinner.
+      // When AUTH_STATE fires and userId arrives, this effect re-runs correctly.
+      if (!userId) {
+        if (!cancelled) setIsLoading(false);
+        return;
+      }
+
       // logIn() migrates any anonymous RC purchases to this user's canonical ID
       // and returns the CustomerInfo immediately — so the gate can open before
       // getCustomerInfo() below even completes.
@@ -245,17 +254,6 @@ export function SubscriptionProvider({
           if (!cancelled) applyCustomerInfo(loginInfo);
         } catch (e) {
           console.error("[RC:logIn] failed (non-fatal):", e);
-        }
-      } else {
-        // Explicit logout path — clear RC identity so the next user starts clean.
-        // Never called during normal app backgrounding or closing.
-        try { await Purchases.logOut(); } catch {}
-        appUserIdRef.current = null;
-        if (!cancelled) {
-          setAppUserId(null);
-          setCustomerInfo(null);
-          setSubscriptionResolved(true);
-          postToWebFromNative("SUBSCRIPTION_STATUS", { isPro: false, appUserId: null });
         }
       }
 
@@ -416,9 +414,16 @@ export function SubscriptionProvider({
         return false;
       } catch (e: any) {
         if (e?.userCancelled) {
-          console.log("[RC:purchase] cancelled by user");
-          postToWebFromNative("PURCHASE_CANCELLED", {});
-          return false;
+          // Apple's "You're already subscribed" sheet dismisses with userCancelled=true.
+          // Always attempt a restore first — if Pro is found, unlock immediately.
+          // Only fall back to PURCHASE_CANCELLED if the restore confirms no active sub.
+          console.log("[RC:purchase] userCancelled=true — restoring to check if already subscribed …");
+          const alreadyPro = await restore();
+          if (!alreadyPro) {
+            console.log("[RC:purchase] restore confirmed no active subscription — posting PURCHASE_CANCELLED");
+            postToWebFromNative("PURCHASE_CANCELLED", {});
+          }
+          return alreadyPro;
         }
         const code = e?.code ?? e?.errorCode ?? "";
         const msg = e?.message ?? "";

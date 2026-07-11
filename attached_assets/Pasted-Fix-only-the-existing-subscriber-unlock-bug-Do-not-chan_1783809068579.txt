@@ -1,0 +1,48 @@
+Fix only the existing-subscriber unlock bug. Do not change the paywall design, trial gate, login persistence, saved data, workouts, meals, or other working features.
+
+Confirmed behavior:
+- Apple says the user is already subscribed.
+- The user remains stuck on the expired-trial paywall.
+- Logging in while already subscribed also leaves the user locked.
+
+Required fix:
+
+1. Before checking access or rendering the paywall:
+   - Restore the current Ascend user ID.
+   - Await Purchases.logIn(String(currentUser.id)).
+   - Await Purchases.getCustomerInfo().
+   - Check the exact configured Ascend Pro entitlement.
+
+2. If CustomerInfo shows active Pro:
+   - Send SUBSCRIPTION_STATUS { isPro: true } to the WebView.
+   - Update the shared subscription state.
+   - Immediately replace LockedPaywall with the app.
+
+3. When Buy Pro returns “already subscribed,” PURCHASE_CANCELLED, or an already-owned error:
+   - Do not stay silently locked.
+   - Call Purchases.restorePurchases().
+   - Check the returned CustomerInfo.
+   - If Pro is active, send SUBSCRIPTION_STATUS { isPro: true } and unlock immediately.
+
+4. Restore Purchases must run that identical restore-and-entitlement-check flow.
+
+5. Never decide the user is non-Pro until RevenueCat login and CustomerInfo retrieval finish. Show loading while resolving.
+
+6. Use the same stable RevenueCat App User ID before purchase, after purchase, on login, and after relaunch. Do not use an anonymous ID or carry an ID from another account.
+
+7. Add logs for:
+   - Ascend user ID
+   - RevenueCat App User ID before and after logIn
+   - active entitlements
+   - purchase error code
+   - restore result
+   - final isPro value
+
+8. Test:
+   - Already-subscribed user logs in → app opens.
+   - Already-subscribed user taps Buy → restore runs and app opens.
+   - Restore Purchases → app opens.
+   - Force-close/reopen → remains Pro.
+   - Different non-Pro user → remains locked.
+
+Show me the exact RevenueCat user IDs and entitlement returned before creating another build. Fix only this identity/restore flow.
