@@ -36,7 +36,7 @@ true;
 export default function WebViewScreen() {
   const webviewRef = useRef<WebView>(null);
   const { setUserId } = useUser();
-  const { isPro, isLoading: rcLoading, packages, purchase } = useSubscription();
+  const { isPro, isLoading: rcLoading, packages, purchase, restore } = useSubscription();
 
   // True once the WebView has fired onLoadEnd for the first page load.
   const [webviewLoaded, setWebviewLoaded] = useState(false);
@@ -142,20 +142,48 @@ export default function WebViewScreen() {
         // appears modally over the WebView. The website /pricing page is the
         // only visible paywall UI; no native screen is shown.
         const pkg = packages[0];
-        if (pkg) {
-          try {
-            const granted = await purchase(pkg);
-            if (granted) {
-              postToWeb("SUBSCRIPTION_STATUS", { isPro: true });
-            }
-          } catch {
-            // User cancelled or purchase error — stay on web pricing page.
+        if (!pkg) {
+          // RC packages not loaded yet — tell the web so it can show a retry.
+          postToWeb("PAYWALL_ERROR", {
+            message: "Subscription unavailable. Please check your connection and try again.",
+          });
+          break;
+        }
+        try {
+          const granted = await purchase(pkg);
+          if (granted) {
+            // Broadcast new Pro status, then navigate to dashboard.
+            postToWeb("SUBSCRIPTION_STATUS", { isPro: true });
+            postToWeb("NAVIGATE", { path: "/dashboard" });
           }
+          // If not granted (user cancelled) → stay on web pricing page.
+        } catch {
+          // Purchase error — stay on web pricing page.
+        }
+        break;
+      }
+
+      case "REQUEST_RESTORE": {
+        // Web "Restore Purchases" link → triggers RC restore natively.
+        try {
+          const restored = await restore();
+          if (restored) {
+            postToWeb("SUBSCRIPTION_STATUS", { isPro: true });
+            postToWeb("NAVIGATE", { path: "/dashboard" });
+          } else {
+            postToWeb("RESTORE_FAILED", {
+              message: "No active subscription found for your account.",
+            });
+          }
+        } catch {
+          postToWeb("RESTORE_FAILED", {
+            message: "Restore failed. Please try again.",
+          });
         }
         break;
       }
     }
-  }, [setUserId, packages, purchase, postToWeb]);
+  }, [setUserId, packages, purchase, restore, postToWeb]);
 
   return (
     <View style={styles.root}>
@@ -192,7 +220,7 @@ export default function WebViewScreen() {
         Splash-matching overlay: shown from app open until the first page has
         loaded AND RevenueCat has resolved. Rendered on top of the WebView so
         the WebView can load underneath — no wasted time waiting behind a gate.
-        Background matches the Expo splash (#080D12) for a seamless transition.
+        Background (#080D12) matches the Expo splash for a seamless transition.
       */}
       {showOverlay && (
         <View style={styles.overlay}>
