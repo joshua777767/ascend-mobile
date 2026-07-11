@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, Component } from "react";
 import type { ReactNode, ErrorInfo } from "react";
 import { Switch, Route, Redirect, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 
@@ -36,7 +36,7 @@ import { WeeklyReviewModal } from "@/components/WeeklyReviewModal";
 import { useAuth } from "@/hooks/use-auth";
 import { useGetUserProfile, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useTrialDay } from "@/hooks/use-trial";
-import { initializeRevenueCat } from "@/lib/revenuecat";
+import { initializeRevenueCat, Purchases } from "@/lib/revenuecat";
 import { isNative, sendToNative, onFromNative } from "@/lib/native-bridge";
 
 const queryClient = new QueryClient({
@@ -158,22 +158,26 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
   }
 }
 
+// The entitlement key in RevenueCat — must match REVENUECAT_ENTITLEMENT in revenuecat.ts.
+const RC_PRO_ENTITLEMENT = "pro";
+
 // ── Locked paywall ────────────────────────────────────────────────────────────
 // Rendered inline (not via redirect) when hasAccess === false.
 // Replaces the entire app shell — no Layout, no nav, no child routes.
 // Only actions allowed: Buy Pro, Restore Purchases, Log Out.
 function LockedPaywall() {
   const [error, setError] = useState("");
+  const qc = useQueryClient();
 
-  // After a real purchase or restore, native posts SUBSCRIPTION_STATUS { isPro:true }
-  // BEFORE PURCHASE_CONFIRMED, so _setNativeSub(true) fires first from NativeBridge.
-  // We call it again defensively here in case ordering ever differs.
+  // After a confirmed purchase or restore, invalidate the RC access-gate query.
+  // AuthenticatedGate will refetch fresh CustomerInfo; if the entitlement is now
+  // active, hasAccess becomes true and the gate opens without a page reload.
   useEffect(() => {
     if (!isNative) return;
     return onFromNative("PURCHASE_CONFIRMED", () => {
-      _setNativeSub(true);
+      qc.invalidateQueries({ queryKey: ["revenuecat", "access-gate"] });
     });
-  }, []);
+  }, [qc]);
 
   useEffect(() => {
     if (!isNative) return;
@@ -581,50 +585,61 @@ function AuthedRouteSwitch() {
 // LockedPaywall is the ONLY thing that renders when hasAccess is false.
 // No Layout, no nav, no Switch, no modals — nothing else mounts.
 //
-// Gate logic (in priority order):
-//   1. Backend trial date is in the future → access granted
-//   2. Backend freePro flag is true → access granted (admin/RC webhook grant)
-//   3. Native bridge confirmed isPro=true → access granted
-//   4. Otherwise → locked
+// Exactly two sources decide access — nothing else:
+//   1. me.trialEndDate from the server: trial is still running
+//   2. Fresh RevenueCat CustomerInfo: "pro" entitlement is active
 //
-// The web Capacitor RC client is intentionally excluded from the gate.
-// It can return stale cached "subscribed" data for users whose RC entitlement
-// has actually expired, silently bypassing the lock.
+// Explicitly excluded (all can be stale/incorrect):
+//   - backendIsFreePro (me.isFreePro) — DB flag can outlive the real RC entitlement
+//   - nativeProConfirmed — native bridge message can be from a previous session
+//   - localStorage / sessionStorage
+//   - any cached subscription state
 function AuthenticatedGate() {
   const { data: me, isLoading: meLoading } = useGetMe({
     query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false },
   });
-  const { isPro: nativeIsPro, resolved: nativeSubResolved } = useNativeSub();
 
-  // 10 s safety net: if native never posts SUBSCRIPTION_STATUS, fail closed.
-  const [nativeSubTimedOut, setNativeSubTimedOut] = useState(false);
-  useEffect(() => {
-    if (!isNative || nativeSubResolved || nativeSubTimedOut) return;
-    const t = setTimeout(() => setNativeSubTimedOut(true), 10_000);
-    return () => clearTimeout(t);
-  }, [nativeSubResolved, nativeSubTimedOut]);
+  // Fresh RC CustomerInfo — staleTime:0 so every component mount triggers a live fetch.
+  // enabled only after me.id is known: RC must be identified (via NativeBridge /
+  // RevenueCatInit) before getCustomerInfo() can return this user's entitlements.
+  // refetchOnWindowFocus:true re-checks on app resume and WebView foreground events.
+  const { data: rcInfo, isLoading: rcLoading } = useQuery({
+    queryKey: ["revenuecat", "access-gate", me?.id ?? 0],
+    queryFn: async () => {
+      try {
+        const { customerInfo } = await Purchases.getCustomerInfo();
+        return customerInfo;
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!me?.id,
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    retry: false,
+    refetchOnWindowFocus: true,
+  });
 
-  // Wait for /auth/me to resolve
+  // Spin until both /auth/me and RC resolve. Never fall through to app as a fallback.
   if (meLoading) return <FullScreenSpinner />;
+  if (me?.id && rcLoading) return <FullScreenSpinner />;
 
-  // For native: hold until RC status arrives or timeout fires
-  const nativeResolved = !isNative || nativeSubResolved || nativeSubTimedOut;
-  if (!nativeResolved) return <FullScreenSpinner />;
-
-  // ── Access decision ──
+  // ── Access decision — exactly two sources ────────────────────────────────
   const trialEndDate = me?.trialEndDate ? new Date(me.trialEndDate) : null;
   const isTrialActive = trialEndDate ? Date.now() < trialEndDate.getTime() : false;
-  const nativeProConfirmed = isNative && nativeIsPro;
-  const backendIsFreePro = !!me?.isFreePro;
-  const hasAccess = isTrialActive || nativeProConfirmed || backendIsFreePro;
+  const hasActiveProEntitlement =
+    rcInfo?.entitlements?.active?.[RC_PRO_ENTITLEMENT] != null;
+  const hasAccess = isTrialActive || hasActiveProEntitlement;
 
+  // Always log in DEV so runtime values are visible in the browser console.
   if (import.meta.env.DEV) {
     console.debug("[AuthenticatedGate]", {
       trialEndsAt: me?.trialEndDate ?? null,
       now: new Date().toISOString(),
       isTrialActive,
-      nativeProConfirmed,
-      backendIsFreePro,
+      rcAppUserId: rcInfo?.originalAppUserId ?? null,
+      activeEntitlements: rcInfo ? Object.keys(rcInfo.entitlements.active) : [],
+      hasActiveProEntitlement,
       hasAccess,
     });
   }

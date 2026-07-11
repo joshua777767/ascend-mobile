@@ -1,0 +1,97 @@
+FIX THE EXPIRED-USER ACCESS BUG GLOBALLY FOR EVERY USER. Use jquag7 only to reproduce the issue. Do not hardcode any username, email, user ID, or account-specific exception.
+
+Do not change the working purchase flow, login persistence, saved data, UI styling, meals, workouts, coach, or unrelated features.
+
+CONFIRMED BUG:
+An expired user can still enter the dashboard because the shared access calculation is being granted by a stale or incorrect flag such as nativeProConfirmed, backendIsFreePro, cached subscription state, review mode, demo mode, localStorage, or another fallback.
+
+REPLACE THE CURRENT PRO/TRIAL ACCESS DECISION WITH ONE GLOBAL SOURCE-OF-TRUTH GATE.
+
+Required behavior:
+
+1. The access gate must run at the highest authenticated root, before the router, layouts, tabs, dashboard, modals, or protected pages mount.
+
+2. On login, account change, app launch, WebView reload, and app resume:
+- Reset any subscription state left from the previous user.
+- Fetch the current authenticated user’s exact trialEndsAt from the server.
+- Fetch fresh RevenueCat CustomerInfo for the current App User ID.
+- Do not use stale local subscription values while these checks are loading.
+
+3. Production access must use only this rule:
+
+const isTrialActive =
+  Boolean(trialEndsAt) &&
+  Date.now() < new Date(trialEndsAt).getTime();
+
+const hasActiveProEntitlement =
+  freshRevenueCatCustomerInfo?.entitlements?.active?.[PRO_ENTITLEMENT_ID] != null;
+
+const hasAccess =
+  isTrialActive || hasActiveProEntitlement;
+
+Do not allow backendIsFreePro, nativeProConfirmed from a previous session, cached local flags, review mode, demo mode, localStorage, sessionStorage, or route state to grant production access.
+
+4. Until authentication, trial status, and fresh RevenueCat status are resolved, render only a full-screen loading state. Never load the dashboard as a fallback.
+
+5. If hasAccess is false, return only the locked paywall root:
+
+if (!hasAccess) {
+  return (
+    <LockedPaywall
+      onUpgrade={existingUpgradeHandler}
+      onRestore={existingRestoreHandler}
+      onLogout={existingLogoutHandler}
+    />
+  );
+}
+
+return <AppRouter />;
+
+The locked state must not mount:
+- bottom navigation
+- Home
+- Plan
+- Meals
+- Coach
+- Journal
+- Settings
+- workouts
+- weekly check-in
+- weigh-in
+- dashboard modals
+- direct protected routes
+
+Expired non-Pro users may only:
+- Upgrade to Pro
+- Restore Purchases
+- Log Out
+
+6. After purchase or restore:
+- Fetch fresh RevenueCat CustomerInfo.
+- Unlock only if the configured Pro entitlement is active.
+- Cancellation or failure must leave the user locked.
+
+7. On logout or switching accounts:
+- Clear nativeProConfirmed and all cached subscription state.
+- Identify RevenueCat with the new current user before checking access.
+- Never carry Pro access from one account to another.
+
+8. Protect direct navigation:
+- Any protected URL or route must pass through this same global gate.
+- Do not allow tabs, deep links, browser history, or manual URLs to bypass it.
+
+9. Test globally before finishing:
+- Active trial, no Pro → app opens.
+- Expired trial, no Pro → locked paywall only, no tabs.
+- Expired trial, active Pro → app opens.
+- Cancel purchase → remains locked.
+- Successful purchase → unlocks only after entitlement confirmation.
+- Restore purchase → unlocks only after entitlement confirmation.
+- Log out and enter another non-Pro account → no inherited Pro access.
+- Force-close and reopen → login/data remain, but access is recalculated correctly.
+- Directly open /meals, /dashboard, /coach, and /settings as expired non-Pro → blocked.
+
+First identify and report the exact variable currently granting jquag7 access. Then apply the shared fix globally. List every changed file and the runtime values:
+trialEndsAt, current time, isTrialActive, RevenueCat App User ID, active entitlements, hasActiveProEntitlement, and hasAccess.
+
+After all tests pass, republish ascendfit.fitness and verify the LIVE production deployment contains the new gate. Do not make another iOS build unless the existing TestFlight WebView demonstrably continues loading stale production code.
