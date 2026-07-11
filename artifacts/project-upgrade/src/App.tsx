@@ -707,28 +707,33 @@ function NativeBridge() {
 
   // Listen for subscription status from native.
   // Native broadcasts this on launch (after RC resolves) and on app resume.
-  // We update the module-level store so ProtectedApp can gate access correctly.
+  // We update the module-level store so AuthenticatedGate can gate access correctly.
+  //
+  // After registering the listener, we immediately send REQUEST_SUBSCRIPTION_STATUS
+  // to native. This handles the timing race where native already broadcast
+  // SUBSCRIPTION_STATUS before this useEffect ran — native responds with the
+  // current isPro state, which the listener below receives.
   //
   // IMPORTANT: Do NOT navigate here. SUBSCRIPTION_STATUS fires on launch for
-  // any user RC already knows is Pro — navigating on it causes the pricing page
-  // to immediately redirect to dashboard before the user taps anything.
-  // Navigation after a real purchase or restore is handled by PURCHASE_CONFIRMED
-  // (only posted by native after purchase()/restore() return true).
+  // any user RC already knows is Pro. Navigation after a real purchase or restore
+  // is handled by PURCHASE_CONFIRMED (only posted by native after purchase/restore).
   useEffect(() => {
     if (!isNative) return;
-    return onFromNative("SUBSCRIPTION_STATUS", (payload) => {
+    const unsub = onFromNative("SUBSCRIPTION_STATUS", (payload) => {
       const p = payload as { isPro?: boolean } | null;
       const isPro = !!p?.isPro;
-
-      // Update live module state — ProtectedApp reads this for gate decisions.
       _setNativeSub(isPro);
-
       if (isPro) {
         localStorage.setItem("ascend.nativePro", "1");
       } else {
         localStorage.removeItem("ascend.nativePro");
       }
     });
+    // Request current state now that the listener is registered.
+    // If native already resolved RC, it responds immediately.
+    // If RC is still loading, it will broadcast when ready via its own effect.
+    sendToNative("REQUEST_SUBSCRIPTION_STATUS", {});
+    return unsub;
   }, []);
 
   return null;

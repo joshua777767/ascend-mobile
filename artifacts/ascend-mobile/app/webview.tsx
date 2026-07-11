@@ -98,6 +98,18 @@ export default function WebViewScreen() {
         break;
       }
 
+      case "REQUEST_SUBSCRIPTION_STATUS": {
+        // Web's NativeBridge sends this immediately after registering its
+        // SUBSCRIPTION_STATUS listener to handle the race where native already
+        // broadcast before the listener was registered.
+        // Respond immediately if RC is already resolved; otherwise the existing
+        // useEffect([rcLoading, isPro]) will broadcast when it settles.
+        if (!rcLoadingRef.current) {
+          postToWeb("SUBSCRIPTION_STATUS", { isPro: isProRef.current });
+        }
+        break;
+      }
+
       case "LOGOUT": {
         setUserId(null);
         break;

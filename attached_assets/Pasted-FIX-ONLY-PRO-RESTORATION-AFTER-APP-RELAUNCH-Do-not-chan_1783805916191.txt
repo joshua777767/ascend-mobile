@@ -1,0 +1,47 @@
+FIX ONLY PRO RESTORATION AFTER APP RELAUNCH. Do not change the hard paywall, purchase button, trial logic, login persistence, saved data, UI, meals, workouts, or any other working feature.
+
+CONFIRMED BUG:
+A successful purchase immediately unlocks the app. After force-closing and reopening, the user is incorrectly locked again. This means the temporary native Pro state worked, but RevenueCat identity/CustomerInfo was not restored before the access gate ran.
+
+Required launch order:
+
+1. Load the persisted authenticated Ascend user ID.
+2. Configure RevenueCat once.
+3. Call and await:
+   Purchases.logIn(String(currentUser.id))
+4. Then call and await:
+   Purchases.getCustomerInfo()
+5. Check the existing configured Pro entitlement.
+6. Post SUBSCRIPTION_STATUS { isPro: true } to the WebView if active.
+7. Only after this process completes may the web access gate decide whether to show the app or paywall.
+
+Do not:
+- reset Pro to false on every launch
+- evaluate the paywall before RevenueCat identity is restored
+- call Purchases.logOut() when the app closes
+- use an anonymous RevenueCat user after the user has logged in
+- rely only on temporary PURCHASE_CONFIRMED state
+
+The same RevenueCat App User ID must be used:
+- before purchase
+- immediately after purchase
+- after force-close/reopen
+- after restore purchases
+
+Add logs showing:
+- Ascend user ID
+- RevenueCat App User ID before logIn
+- RevenueCat App User ID after logIn
+- active entitlements after purchase
+- active entitlements after relaunch
+
+Acceptance tests:
+1. Buy Pro → app unlocks.
+2. Force-close and reopen → stays Pro and opens the app.
+3. Badge says Pro.
+4. Log out and log back into the same account → remains Pro.
+5. Different non-Pro account → remains locked and does not inherit access.
+
+Identify whether the purchase was attached to an anonymous RevenueCat ID or the wrong user ID, then fix the identity mapping globally. Do not alter the working paywall design or access rules.
+
+If a native RevenueCat initialization file changes, create one new TestFlight build. Otherwise republish only.

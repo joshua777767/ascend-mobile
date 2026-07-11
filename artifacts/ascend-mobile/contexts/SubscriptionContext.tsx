@@ -199,9 +199,25 @@ export function SubscriptionProvider({
       // --- Step 2: Identify the user (optional — offerings load regardless) ---
       if (userId) {
         try {
+          // Log the anonymous/prior RC App User ID before logIn so we can confirm
+          // which identity was active before and verify it matches after logIn.
+          let preLoginId = "(unknown)";
+          try {
+            preLoginId = await Purchases.getAppUserID();
+          } catch {}
+          console.log(
+            "[RC:logIn] Ascend userId:", userId,
+            "| RC App User ID before logIn:", preLoginId
+          );
+
           const { customerInfo: info } = await Purchases.logIn(String(userId));
           if (!cancelled) setCustomerInfo(info);
-          console.log("[RC:logIn] OK — userId:", userId);
+
+          const postLoginId = await Purchases.getAppUserID();
+          console.log(
+            "[RC:logIn] OK — RC App User ID after logIn:", postLoginId,
+            "| active entitlements:", Object.keys(info.entitlements.active)
+          );
         } catch (e) {
           // logIn failure is non-fatal; we can still fetch offerings
           console.error("[RC:logIn] failed (non-fatal):", e);
@@ -227,6 +243,12 @@ export function SubscriptionProvider({
 
         if (cancelled) return;
 
+        console.log(
+          "[RC:fetch] getCustomerInfo returned — active entitlements:",
+          Object.keys(info.entitlements.active),
+          "| isPro (", ENTITLEMENT_ID, "):",
+          info.entitlements.active[ENTITLEMENT_ID]?.isActive === true
+        );
         setCustomerInfo(info);
 
         const { packages: pkgs, diagnostic } = diagnoseOfferings(offerings);
