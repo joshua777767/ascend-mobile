@@ -16,7 +16,7 @@ import {
 import { getUserId } from "../middlewares/auth";
 import { logger } from "../lib/logger";
 
-const OWNER_EMAIL = "joshquag2010@icloud.com";
+const OWNER_EMAIL = "mike@mikequaglia.com";
 
 const router = Router();
 

@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Shield, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
-const OWNER_EMAIL = "joshquag2010@icloud.com";
+const OWNER_EMAIL = "mike@mikequaglia.com";
 
 const CARD = "rounded-2xl bg-card border border-border p-4";
 const VAL = "text-2xl font-black text-primary leading-none";
