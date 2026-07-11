@@ -158,6 +158,221 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
   }
 }
 
+// ── Locked paywall ────────────────────────────────────────────────────────────
+// Rendered inline (not via redirect) when hasAccess === false.
+// Replaces the entire app shell — no Layout, no nav, no child routes.
+// Only actions allowed: Buy Pro, Restore Purchases, Log Out.
+function LockedPaywall() {
+  const [error, setError] = useState("");
+
+  // After a real purchase or restore, native posts SUBSCRIPTION_STATUS { isPro:true }
+  // BEFORE PURCHASE_CONFIRMED, so _setNativeSub(true) fires first from NativeBridge.
+  // We call it again defensively here in case ordering ever differs.
+  useEffect(() => {
+    if (!isNative) return;
+    return onFromNative("PURCHASE_CONFIRMED", () => {
+      _setNativeSub(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isNative) return;
+    return onFromNative("RESTORE_FAILED", (payload) => {
+      const p = payload as { message?: string } | null;
+      setError(p?.message ?? "Restore failed. Please try again.");
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isNative) return;
+    return onFromNative("PAYWALL_ERROR", (payload) => {
+      const p = payload as { message?: string } | null;
+      setError(p?.message ?? "Subscription unavailable. Please check your connection and try again.");
+    });
+  }, []);
+
+  async function handleLogout() {
+    try {
+      await fetch(`${import.meta.env.BASE_URL}api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      window.location.replace("/login");
+    }
+  }
+
+  function handleBuyPro() {
+    setError("");
+    if (isNative) {
+      sendToNative("REQUEST_PAYWALL");
+    } else {
+      window.location.href = "/pricing";
+    }
+  }
+
+  function handleRestore() {
+    setError("");
+    sendToNative("REQUEST_RESTORE");
+  }
+
+  return (
+    <div
+      style={{
+        height: "100dvh",
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+        background: "hsl(222 47% 5%)",
+        color: "#F8FAFC",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "24px",
+        paddingTop: "calc(24px + env(safe-area-inset-top))",
+        paddingBottom: "calc(24px + env(safe-area-inset-bottom))",
+        fontFamily: "'Space Mono', 'Inter', system-ui, sans-serif",
+        boxSizing: "border-box",
+      }}
+    >
+      <div style={{ width: "100%", maxWidth: "380px", display: "flex", flexDirection: "column", gap: "24px" }}>
+        {/* Icon */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", textAlign: "center" }}>
+          <div
+            style={{
+              width: "72px",
+              height: "72px",
+              borderRadius: "20px",
+              background: "rgba(245,158,11,0.12)",
+              border: "1px solid rgba(245,158,11,0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "32px",
+            }}
+          >
+            🔒
+          </div>
+          <div>
+            <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#F59E0B", margin: "0 0 8px" }}>
+              Trial Complete
+            </p>
+            <h1 style={{ fontSize: "26px", fontWeight: 900, letterSpacing: "-0.02em", margin: "0 0 10px", lineHeight: 1.2 }}>
+              Your 7-day trial has ended.
+            </h1>
+            <p style={{ fontSize: "14px", color: "#94A3B8", lineHeight: 1.6, margin: 0 }}>
+              Subscribe to Ascend Pro to keep your plan, meals, workouts, and AI coach going.
+            </p>
+          </div>
+        </div>
+
+        {/* Features recap */}
+        <div
+          style={{
+            background: "hsl(220 47% 8%)",
+            border: "1px solid hsl(217 32% 14%)",
+            borderRadius: "16px",
+            padding: "16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+        >
+          {[
+            "Personalized daily schedule",
+            "AI meal feedback & coach chat",
+            "Custom workout plan",
+            "Nightly review & weekly adjustments",
+            "Progress tracking & streaks",
+          ].map((f) => (
+            <div key={f} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px" }}>
+              <span style={{ color: "#F59E0B", fontSize: "10px" }}>✦</span>
+              <span style={{ color: "#CBD5E1" }}>{f}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div
+            style={{
+              background: "rgba(239,68,68,0.10)",
+              border: "1px solid rgba(239,68,68,0.30)",
+              borderRadius: "12px",
+              padding: "12px 14px",
+              fontSize: "13px",
+              color: "#FCA5A5",
+              lineHeight: 1.5,
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <button
+            onClick={handleBuyPro}
+            style={{
+              width: "100%",
+              padding: "16px",
+              borderRadius: "14px",
+              background: "#F59E0B",
+              color: "#0B1220",
+              fontSize: "15px",
+              fontWeight: 800,
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Continue with Ascend Pro — $19.99/month
+          </button>
+
+          {isNative && (
+            <button
+              onClick={handleRestore}
+              style={{
+                width: "100%",
+                padding: "13px",
+                borderRadius: "14px",
+                background: "transparent",
+                color: "#94A3B8",
+                fontSize: "13px",
+                fontWeight: 600,
+                border: "1px solid hsl(217 32% 18%)",
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              Restore Purchases
+            </button>
+          )}
+
+          <button
+            onClick={handleLogout}
+            style={{
+              width: "100%",
+              padding: "13px",
+              borderRadius: "14px",
+              background: "transparent",
+              color: "#64748B",
+              fontSize: "13px",
+              fontWeight: 600,
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            Log Out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Guards ────────────────────────────────────────────────────────────────────
 function FullScreenSpinner() {
   return (
@@ -303,11 +518,6 @@ function ProtectedApp() {
 
   const userGoals = Array.isArray((profile as any).goals) ? (profile as any).goals as string[] : [];
 
-  // Expired users can only access account-utility pages (GDPR-style).
-  // All app feature pages — including settings — require active access.
-  const FREE_ROUTES = ["/privacy", "/terms", "/support", "/marketing", "/delete-account", "/data-export"];
-  const isFreeRoute = typeof window !== "undefined" && FREE_ROUTES.some((r) => window.location.pathname.includes(r));
-
   // In the native WebView, the trial gate must use the live RC status from
   // the native shell — never a potentially stale localStorage value. While
   // native hasn't confirmed RC state yet (resolved=false) and the trial is
@@ -318,10 +528,12 @@ function ProtectedApp() {
     return <FullScreenSpinner />;
   }
 
-  // For native: gate on live RC confirmation only (not localStorage).
-  // For web: no native gate applies.
-  if (expired && !isFreeRoute && !nativeProConfirmed) {
-    return <Redirect to="/pricing?expired=1" />;
+  // Hard lock: render the paywall INLINE — no redirect, no Layout, no nav,
+  // no underlying routes. Direct URL access, tab navigation, back navigation,
+  // and deep links all hit ProtectedApp first, so this catches everything.
+  // Only Buy Pro, Restore Purchases, and Log Out are rendered.
+  if (expired && !nativeProConfirmed) {
+    return <LockedPaywall />;
   }
 
   return (

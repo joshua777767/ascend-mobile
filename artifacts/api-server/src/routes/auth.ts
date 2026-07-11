@@ -55,17 +55,16 @@ function publicUser(
 }
 
 /**
- * Returns true if the user has an active paid Stripe subscription,
- * using only the DB-cached status (no live API call).
- * iOS subscribers are handled separately via RevenueCat.
+ * Stripe has been removed. All paid access is via RevenueCat (iOS in-app purchase).
+ * This function always returns false — the Stripe fields are kept in the DB for
+ * historical data only and must not grant access.
  */
 function checkStripeSubscription(
   _userId: number,
-  stripeCustomerId: string | null,
-  subscriptionStatus: string | null | undefined = null
+  _stripeCustomerId: string | null,
+  _subscriptionStatus: string | null | undefined = null
 ): boolean {
-  if (!stripeCustomerId) return false;
-  return subscriptionStatus === "active" || subscriptionStatus === "trialing";
+  return false;
 }
 
 router.post("/auth/signup", async (req, res): Promise<void> => {
