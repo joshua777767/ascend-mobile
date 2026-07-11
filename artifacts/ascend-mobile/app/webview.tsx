@@ -1,16 +1,14 @@
 import * as ImagePicker from "expo-image-picker";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Platform, StatusBar, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Linking, Platform, StatusBar, StyleSheet, View } from "react-native";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useUser } from "@/contexts/UserContext";
 
 const BASE_URL = `https://${process.env.EXPO_PUBLIC_DOMAIN ?? "ascendfit.fitness"}`;
-// Always open to /dashboard on launch. If the session cookie is still valid,
-// the user lands directly on their dashboard. If not, AppRouter redirects to
-// /login. Loading the root URL (/) was landing authenticated users on the
-// marketing landing page, making them appear logged out.
-const LAUNCH_URL = `${BASE_URL}/dashboard`;
+// Versioned so each native build fetches a fresh entry from WKWebView's cache.
+// Bump _v whenever the web app has meaningful changes that must bypass stale cache.
+const LAUNCH_URL = `${BASE_URL}/dashboard?_v=28`;
 
 // Injected on every page load — sets up the bidirectional bridge
 const BRIDGE_JS = `
@@ -162,8 +160,33 @@ export default function WebViewScreen() {
             postToWeb("NAVIGATE", { path: "/dashboard" });
           }
           // If not granted (user cancelled) → stay on web pricing page.
+        } catch (e: any) {
+          // Surface purchase errors to the web so the user gets feedback.
+          if (!e?.userCancelled) {
+            postToWeb("PAYWALL_ERROR", {
+              message: e?.message ?? "Purchase failed. Please try again.",
+            });
+          }
+        }
+        break;
+      }
+
+      case "REQUEST_MANAGE_SUBSCRIPTION": {
+        // Open Apple's native subscription management page.
+        const appleSubsUrl = "https://apps.apple.com/account/subscriptions";
+        try {
+          const supported = await Linking.canOpenURL(appleSubsUrl);
+          if (supported) {
+            await Linking.openURL(appleSubsUrl);
+          } else {
+            postToWeb("MANAGE_SUBSCRIPTION_FALLBACK", {
+              message: "Manage your Ascend subscription in Settings → Apple Account → Subscriptions.",
+            });
+          }
         } catch {
-          // Purchase error — stay on web pricing page.
+          postToWeb("MANAGE_SUBSCRIPTION_FALLBACK", {
+            message: "Manage your Ascend subscription in Settings → Apple Account → Subscriptions.",
+          });
         }
         break;
       }

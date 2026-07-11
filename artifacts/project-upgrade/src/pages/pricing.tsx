@@ -97,6 +97,16 @@ export default function PricingPage() {
     });
   }, [isNative]);
 
+  // Listen for paywall errors from the native shell (e.g. RC packages not loaded).
+  useEffect(() => {
+    if (!isNative) return;
+    return onFromNative("PAYWALL_ERROR", (payload) => {
+      const p = payload as { message?: string } | null;
+      setError(p?.message ?? "Subscription unavailable. Please check your connection and try again.");
+      setLoading(false);
+    });
+  }, [isNative]);
+
   const trialEndDate = getTrialEndDate();
 
   return (

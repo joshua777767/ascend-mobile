@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
+import { isNative, sendToNative, onFromNative } from "@/lib/native-bridge";
 import {
   useLogout,
   useResetUserProfile,
@@ -138,7 +139,25 @@ function SubscriptionSection() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState("");
 
+  // When native cannot open the Apple subscriptions URL, it sends a fallback
+  // message — display it to the user instead of the Stripe error banner.
+  useEffect(() => {
+    if (!isNative) return;
+    return onFromNative("MANAGE_SUBSCRIPTION_FALLBACK", (payload) => {
+      const p = payload as { message?: string } | null;
+      setPortalError(
+        p?.message ??
+          "Manage your Ascend subscription in Settings → Apple Account → Subscriptions.",
+      );
+    });
+  }, []);
+
   const handleManageSubscription = async () => {
+    // On iOS native, open Apple's subscription management page directly.
+    if (isNative) {
+      sendToNative("REQUEST_MANAGE_SUBSCRIPTION");
+      return;
+    }
     setPortalLoading(true);
     setPortalError("");
     try {
