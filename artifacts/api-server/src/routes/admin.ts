@@ -211,55 +211,6 @@ router.get("/admin/users", async (req, res): Promise<void> => {
   });
 });
 
-router.post("/admin/grant-free-pro", async (req, res): Promise<void> => {
-  if (!(await requireOwner(req, res))) return;
-
-  const { userId, expiresAt } = req.body as { userId?: number; expiresAt?: string | null };
-  if (!userId || typeof userId !== "number") {
-    res.status(400).json({ error: "userId is required" });
-    return;
-  }
-
-  const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, userId));
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
-
-  const expiresAtDate = expiresAt ? new Date(expiresAt) : null;
-  await db
-    .update(usersTable)
-    .set({ freePro: true, freeProExpiresAt: expiresAtDate })
-    .where(eq(usersTable.id, userId));
-
-  logger.info({ userId, expiresAt: expiresAtDate }, "Admin granted Free Pro");
-  res.json({ ok: true });
-});
-
-router.post("/admin/revoke-free-pro", async (req, res): Promise<void> => {
-  if (!(await requireOwner(req, res))) return;
-
-  const { userId } = req.body as { userId?: number };
-  if (!userId || typeof userId !== "number") {
-    res.status(400).json({ error: "userId is required" });
-    return;
-  }
-
-  const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, userId));
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
-
-  await db
-    .update(usersTable)
-    .set({ freePro: false, freeProExpiresAt: null })
-    .where(eq(usersTable.id, userId));
-
-  logger.info({ userId }, "Admin revoked Free Pro");
-  res.json({ ok: true });
-});
-
 router.delete("/admin/users/:id", async (req, res): Promise<void> => {
   if (!(await requireOwner(req, res))) return;
 

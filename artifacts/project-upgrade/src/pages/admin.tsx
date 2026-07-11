@@ -58,7 +58,6 @@ export default function AdminPage() {
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
-  const [expiryDates, setExpiryDates] = useState<Record<number, string>>({});
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
@@ -84,38 +83,6 @@ export default function AdminPage() {
         u.name?.toLowerCase().includes(q),
     );
   }, [stats?.allUsers, search]);
-
-  async function grantFreePro(userId: number) {
-    setPendingIds(prev => { const s = new Set(prev); s.add(userId); return s; });
-    try {
-      const res = await fetch(`${import.meta.env.BASE_URL}api/admin/grant-free-pro`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, expiresAt: expiryDates[userId] || null }),
-      });
-      if (!res.ok) throw new Error("Failed to grant Free Pro");
-      await queryClient.invalidateQueries({ queryKey: ["adminStats"] });
-    } finally {
-      setPendingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
-    }
-  }
-
-  async function revokeFreePro(userId: number) {
-    setPendingIds(prev => { const s = new Set(prev); s.add(userId); return s; });
-    try {
-      const res = await fetch(`${import.meta.env.BASE_URL}api/admin/revoke-free-pro`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-      if (!res.ok) throw new Error("Failed to revoke Free Pro");
-      await queryClient.invalidateQueries({ queryKey: ["adminStats"] });
-    } finally {
-      setPendingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
-    }
-  }
 
   async function deleteUser(userId: number) {
     setPendingIds(prev => { const s = new Set(prev); s.add(userId); return s; });
@@ -292,38 +259,8 @@ export default function AdminPage() {
                       )}
                     </div>
 
-                    {/* Subscription controls */}
+                    {/* User controls */}
                     <div className="border-t border-border pt-2.5 space-y-2">
-                      {u.isFreePro ? (
-                        <button
-                          disabled={isPending}
-                          onClick={() => revokeFreePro(u.id)}
-                          className="w-full rounded-xl border border-red-500/30 text-red-400 text-[11px] font-semibold py-1.5 hover:bg-red-500/10 transition-colors disabled:opacity-50"
-                        >
-                          {isPending ? "Removing…" : "Remove Free Pro"}
-                        </button>
-                      ) : (
-                        <div className="space-y-1.5">
-                          <div className="flex gap-2 items-center">
-                            <input
-                              type="date"
-                              value={expiryDates[u.id] ?? ""}
-                              onChange={(e) => setExpiryDates(prev => ({ ...prev, [u.id]: e.target.value }))}
-                              className="flex-1 rounded-xl bg-background border border-border px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                              placeholder="Expiry (optional)"
-                            />
-                            <button
-                              disabled={isPending}
-                              onClick={() => grantFreePro(u.id)}
-                              className="rounded-xl bg-primary/10 border border-primary/30 text-primary text-[11px] font-semibold px-3 py-1.5 hover:bg-primary/20 transition-colors disabled:opacity-50 shrink-0"
-                            >
-                              {isPending ? "Granting…" : "Grant Free Pro"}
-                            </button>
-                          </div>
-                          <p className="text-[9px] text-muted-foreground">Leave date empty for no expiration.</p>
-                        </div>
-                      )}
-
                       {/* Remove user */}
                       {confirmDeleteId === u.id ? (
                         <div className="space-y-1.5">
