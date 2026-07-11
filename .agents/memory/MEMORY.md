@@ -17,5 +17,6 @@
 - [Local type vs generated type drift](local-type-drift.md) — mobile component local types (MealEntry) can drift from generated API types; always use the generated hook's inferred type or check the OpenAPI spec field names. e.g. meals use `loggedAt` not `createdAt`.
 - [Coach fetch fallback field name](coach-fetch-fallback.md) — coach.tsx once tried SSE streaming from a JSON endpoint (always empty `full`), then called sendMessage as fallback but read `result.message` not `result.reply`. Remove streaming logic; API returns `{ reply, timestamp }`.
 - [Protein cap + weight validation](protein-cap-weight-validation.md) — planGenerator has no protein ceiling by default; add Math.min(calc, 250) for all 4 goal types. users.ts POST/PATCH profile should reject weights outside 20–300 kg.
+- [EAS Update skip fingerprint](eas-skip-fingerprint.md) — must pass EAS_SKIP_AUTO_FINGERPRINT=1 + --platform ios for eas update to succeed from Replit (git tagging step is blocked otherwise).
 - [ASC p8 key PEM format for eas submit](asc-p8-pem-format.md) — secret stored as raw base64 (no headers, spaces instead of newlines); must reformat with python before use.
 - [WebView shell architecture](webview-shell.md) — native app is a WebView wrapper around ascendfit.fitness; bridge via __ascendBridge / CustomEvent; key patterns documented.

@@ -26,6 +26,7 @@
       "package": "com.ascendfit.app",
       "versionCode": 1,
       "permissions": [
+        "android.permission.RECORD_AUDIO",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -61,6 +62,9 @@
       "eas": {
         "projectId": "cc67b3fb-5b5a-4ab1-867d-5713bb821e15"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/cc67b3fb-5b5a-4ab1-867d-5713bb821e15"
     }
   }
 }

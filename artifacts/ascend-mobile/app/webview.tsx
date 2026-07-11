@@ -1,5 +1,4 @@
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef } from "react";
 import { Platform, StatusBar, StyleSheet, View } from "react-native";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
@@ -36,13 +35,12 @@ true;
 
 export default function WebViewScreen() {
   const webviewRef = useRef<WebView>(null);
-  const router = useRouter();
   const { setUserId } = useUser();
-  const { isPro } = useSubscription();
+  const { isPro, packages, purchase } = useSubscription();
   const isPrevPro = useRef(isPro);
 
-  // When Pro status becomes true (e.g. after purchase on another session),
-  // notify the web app so it can skip its own trial-expiry redirect.
+  // When Pro becomes true (after inline purchase or restore), tell the web app
+  // so it can navigate to /dashboard without a reload.
   useEffect(() => {
     if (isPro && !isPrevPro.current) {
       postToWeb("SUBSCRIPTION_STATUS", { isPro: true });
@@ -115,25 +113,26 @@ export default function WebViewScreen() {
       }
 
       case "REQUEST_PAYWALL": {
-        router.push("/paywall");
+        // Trigger the RevenueCat purchase inline — Apple's StoreKit sheet
+        // appears modally over the WebView. The website /pricing page is the
+        // only visible paywall UI; no native screen is shown.
+        const pkg = packages[0];
+        if (pkg) {
+          try {
+            const granted = await purchase(pkg);
+            if (granted) {
+              // isPro effect above will fire and call postToWeb(SUBSCRIPTION_STATUS)
+              // but we also post immediately for zero-latency web response.
+              postToWeb("SUBSCRIPTION_STATUS", { isPro: true });
+            }
+          } catch {
+            // User cancelled or purchase error — stay on web pricing page.
+          }
+        }
         break;
       }
     }
-  }, [setUserId, router]);
-
-  // Intercept /pricing navigation → show native paywall instead
-  const handleShouldStartLoad = useCallback((request: { url: string }) => {
-    const url = request.url;
-    if (
-      url.includes("/pricing") &&
-      !url.includes("/api/") &&
-      !url.includes("?no_gate")
-    ) {
-      router.push("/paywall");
-      return false;
-    }
-    return true;
-  }, [router]);
+  }, [setUserId, packages, purchase]);
 
   return (
     <View style={styles.root}>
@@ -149,7 +148,6 @@ export default function WebViewScreen() {
         injectedJavaScript={BRIDGE_JS}
         injectedJavaScriptBeforeContentLoaded={BRIDGE_JS}
         onMessage={handleMessage}
-        onShouldStartLoadWithRequest={handleShouldStartLoad}
         // Cookie / storage sharing
         sharedCookiesEnabled={true}
         thirdPartyCookiesEnabled={true}

@@ -4,7 +4,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/space-mono";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -20,32 +20,14 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 /**
- * Auth/subscription gate.
- *
- * - No userId → show WebView (web app shows its own login page)
- * - userId + RC loading → show WebView (brief; RC is still resolving)
- * - userId + !isPro → push to native paywall
- * - isPro + on paywall → return to WebView
+ * Subscription context is still needed for RC configuration and purchase
+ * triggering, but routing is now handled entirely by the website. The native
+ * shell never navigates to a native paywall screen — the website's /pricing
+ * page is the only paywall UI the user ever sees.
  */
 function AppGate({ children }: { children: React.ReactNode }) {
-  const { isPro, isLoading } = useSubscription();
+  const { isLoading } = useSubscription();
   const { userId } = useUser();
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isLoading) return;
-
-    const seg0 = segments[0] as string | undefined;
-    const onPaywall = seg0 === "paywall";
-    const onDebug = seg0 === "debug-subscription";
-
-    if (userId && !isPro) {
-      if (!onPaywall && !onDebug) router.replace("/paywall");
-    } else if (isPro && onPaywall) {
-      router.replace("/webview");
-    }
-  }, [isPro, isLoading, userId, segments, router]);
 
   // Brief loading screen only during the initial RC check (anonymous).
   if (isLoading && !userId) return <LoadingScreen />;
