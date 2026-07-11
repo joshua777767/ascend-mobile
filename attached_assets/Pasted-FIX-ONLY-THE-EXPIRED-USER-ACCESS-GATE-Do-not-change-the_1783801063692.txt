@@ -1,0 +1,104 @@
+FIX ONLY THE EXPIRED-USER ACCESS GATE. Do not change the working purchase flow, RevenueCat setup, login persistence, saved data, styling, meals, workouts, coach, or any unrelated feature.
+
+CONFIRMED BUG:
+The “Trial Complete” page is rendering inside the normal app shell. The bottom navigation still mounts, so expired non-Pro users can access Meals, Home, Plan, Coach, Journal, and other Pro features.
+
+REQUIRED FIX:
+
+1. Move the access check to the highest authenticated root component, ABOVE:
+- AppRouter
+- ProtectedApp
+- AppShell
+- tab/bottom navigation
+- layouts
+- dashboard
+- weekly check-in
+- all protected routes and modals
+
+2. Use this logic, adapting names to the existing project instead of creating duplicate systems:
+
+if (!authResolved) {
+  return <FullScreenLoading />;
+}
+
+if (!currentUser) {
+  return <PublicAuthRoutes />;
+}
+
+if (!trialStatusResolved || !nativeSubscriptionStatusResolved) {
+  return <FullScreenLoading />;
+}
+
+const isTrialActive =
+  Boolean(trialEndsAt) &&
+  Date.now() < new Date(trialEndsAt).getTime();
+
+const isPro =
+  nativeSubscriptionStatus?.isPro === true;
+
+const hasAccess = isTrialActive || isPro;
+
+if (!hasAccess) {
+  return (
+    <ExpiredAccessPaywall
+      onUpgrade={existingOpenRevenueCatPaywall}
+      onRestore={existingRestorePurchases}
+      onLogout={existingLogout}
+    />
+  );
+}
+
+return <AppRouter />;
+
+3. The expired paywall must be the ONLY mounted application UI for an expired non-Pro user.
+
+It may contain only:
+- Upgrade to Ascend Pro
+- Restore Purchases
+- Log Out
+
+It must NOT mount or display:
+- bottom navigation
+- Home
+- Plan
+- Meals
+- Coach
+- Journal
+- workouts
+- settings
+- weekly check-in
+- weigh-in
+- trial-results page inside the app shell
+- close/continue/skip buttons
+- protected modals or routes
+
+4. Do not navigate to Home when Upgrade is tapped. Keep the existing working RevenueCat purchase flow. Unlock only after the native bridge reports SUBSCRIPTION_STATUS with isPro: true.
+
+5. If subscription status cannot be resolved, fail closed:
+- show a full-screen “Unable to verify access” state
+- allow Retry and Log Out
+- never load the protected app as a fallback
+
+6. Recheck access:
+- after login
+- when the app/WebView opens
+- when the app resumes
+- after purchase
+- after restore
+- whenever SUBSCRIPTION_STATUS changes
+
+7. Test these exact cases before finishing:
+- Active trial: full app loads.
+- Expired account with isPro false: only paywall loads; component tree contains no tabs or protected layout.
+- Expired account with isPro true: full app loads and no Trial Complete lock appears.
+- Cancel purchase: stays locked.
+- Successful purchase/restore: unlocks only after isPro true is confirmed.
+- Force-close/reopen: login and saved data remain unchanged.
+
+8. Show me:
+- the original root component hierarchy
+- the exact file where AppShell/tabs were mounting before the gate
+- every changed file
+- runtime values for trialEndsAt, current time, isTrialActive, isPro, and hasAccess
+
+After tests pass, republish ascendfit.fitness and verify the LIVE production deployment contains the root-level gate. Do not create another iOS build unless the current TestFlight build demonstrably continues loading stale web code.

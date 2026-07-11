@@ -417,61 +417,38 @@ function useFirstLoadSpinner(isLoading: boolean, timeoutMs = 8000): boolean {
   return isLoading && !settledRef.current && !timedOut;
 }
 
-// Authenticated app shell — requires a completed profile, else redirects to onboarding.
+// Authenticated app shell — profile guard + layout only. Access is gated above
+// this component (in AuthenticatedGate) so this never mounts for expired users.
 function ProtectedApp() {
   const { data: profile, isLoading, isError, error, isFetching } = useGetUserProfile();
   const status = (error as { status?: number } | null | undefined)?.status;
 
   const [showWeeklyCheckIn, setShowWeeklyCheckIn] = useState(false);
   const [showWeeklyReview, setShowWeeklyReview] = useState(false);
-  const { trialDay, isPro, trialExpired, hasAccess, isLoading: isTrialLoading } = useTrialDay();
-
-  // Live native subscription state — resolved only after native posts
-  // SUBSCRIPTION_STATUS. Never reads stale localStorage for gate decisions.
-  const { isPro: nativeIsPro, resolved: nativeSubResolved } = useNativeSub();
-
-  // Computed here (before the modal useEffect) so it's available as a dep.
-  // Mirrors the gate check below — true only when the native RC shell has
-  // confirmed Pro status after RC resolves.
+  // trialDay + isPro used only for weekly check-in modal logic — not for gate decisions.
+  const { trialDay, isPro } = useTrialDay();
+  const { isPro: nativeIsPro } = useNativeSub();
   const nativeProConfirmed = isNative && nativeIsPro;
-
-  // Safety timeout: if native never posts SUBSCRIPTION_STATUS within 10 s,
-  // stop spinning and fall through to the redirect (safe default = blocked).
-  const [nativeSubTimedOut, setNativeSubTimedOut] = useState(false);
-  useEffect(() => {
-    if (!isNative || nativeSubResolved || nativeSubTimedOut) return;
-    const t = setTimeout(() => setNativeSubTimedOut(true), 10_000);
-    return () => clearTimeout(t);
-  }, [nativeSubResolved, nativeSubTimedOut]);
 
   // Check if weekly check-in is due after profile has loaded.
   // Fires on the normal 7-day cadence, OR on the last day of the free trial
   // so users always get a weigh-in before the trial ends.
   useEffect(() => {
     if (!profile) return;
-    // Initialize trial start date on first authenticated load
     if (!localStorage.getItem("ascend.trialStartDate")) {
       localStorage.setItem("ascend.trialStartDate", new Date().toISOString());
     }
     const last = localStorage.getItem("ascend.lastWeeklyCheckIn");
-    // Standard 7-day interval trigger
     const sevenDaysDue = !last || (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24) >= 7;
-    // Last trial day override: force check-in on day 7 if they haven't done one today
     const checkedInToday = !!last && new Date(last).toDateString() === new Date().toDateString();
-    // Include nativeProConfirmed so native Pro users don't trigger the trial-ending
-    // modal path — the gate lets them through, but the modal should see them as Pro.
     const isLastTrialDay = !isPro && !nativeProConfirmed && trialDay >= 7;
-    // Prevent the modal re-appearing on the same calendar day even after a
-    // hard-refresh or re-login.  Both paths (7-day cadence and last trial day)
-    // guard with !checkedInToday so the modal fires at most once per day.
     const isDue = !checkedInToday && (sevenDaysDue || isLastTrialDay);
     if (!isDue) return;
-    // Small delay so the app shell renders first before the modal appears
     const t = setTimeout(() => setShowWeeklyCheckIn(true), 1500);
     return () => clearTimeout(t);
   }, [profile, trialDay, isPro, nativeProConfirmed]);
 
-  // Weekly review: show after 7 days, then every 7 days after. Not on trial day.
+  // Weekly review: show after 7 days, then every 7 days after.
   useEffect(() => {
     if (!profile || isPro) return;
     const lastReview = localStorage.getItem("ascend.lastWeeklyReview");
@@ -484,57 +461,17 @@ function ProtectedApp() {
     return;
   }, [profile, isPro]);
 
-  // Wait until we have a settled answer: either profile data, or a fetch that
-  // has fully finished. While the initial load OR a refetch is in flight and we
-  // don't yet have data, keep waiting — a stale cached error/404 (e.g. from a
-  // prior signed-out state or a previous new-user attempt) must never decide
-  // routing, or an existing user gets bounced to onboarding right after login.
   const undecided = !profile && (isLoading || isFetching);
-  // The `useFirstLoadSpinner` timeout (8s) only guards against a pending query
-  // that never settles. It must NOT let a stale cached 404 win a race against a
-  // live refetch, so we additionally block any routing decision while a fetch
-  // is actually in flight without data.
   if (useFirstLoadSpinner(undecided) || (isFetching && !profile)) return <FullScreenSpinner />;
 
-  // Settled with a genuine "this user has no profile yet" → onboarding.
   if (!profile && status === 404) return <Redirect to="/onboarding" />;
-  // Settled with a real error (5xx, network) — don't dump an existing user into
-  // onboarding; show a retry screen instead.
   if (isError || !profile) {
     return (
       <FullScreenError message="We couldn't load your profile. Please check your connection and try again." />
     );
   }
 
-  // Also spin while /auth/me is still loading. Without this, there is a window
-  // where trialExpired=false (the safe-default while me is undefined) and an
-  // expired user briefly sees the dashboard before the gate re-fires.
-  // isTrialLoading is isMeLoading from useTrialDay; the 8s timeout above
-  // already prevents a forever-spin if /auth/me never resolves.
-  if (isTrialLoading) return <FullScreenSpinner />;
-
-  // Access lockout: trial expired and no active subscription → redirect to pricing
-  const expired = trialExpired && !hasAccess;
-
   const userGoals = Array.isArray((profile as any).goals) ? (profile as any).goals as string[] : [];
-
-  // In the native WebView, the trial gate must use the live RC status from
-  // the native shell — never a potentially stale localStorage value. While
-  // native hasn't confirmed RC state yet (resolved=false) and the trial is
-  // expired, we hold on a spinner to avoid a false lockout for active Pro users.
-  // nativeSubTimedOut (10 s) is the safety net: if native never posts, fall
-  // through and block access (safe default — expired + no confirmation = no access).
-  if (isNative && expired && !nativeSubResolved && !nativeSubTimedOut) {
-    return <FullScreenSpinner />;
-  }
-
-  // Hard lock: render the paywall INLINE — no redirect, no Layout, no nav,
-  // no underlying routes. Direct URL access, tab navigation, back navigation,
-  // and deep links all hit ProtectedApp first, so this catches everything.
-  // Only Buy Pro, Restore Purchases, and Log Out are rendered.
-  if (expired && !nativeProConfirmed) {
-    return <LockedPaywall />;
-  }
 
   return (
     <>
@@ -595,15 +532,9 @@ function OnboardingGuard() {
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
-function AppRouter() {
-  const { isAuthed, isLoading, isServerError } = useAuth();
-  const showSpinner = useFirstLoadSpinner(isLoading);
-  if (isServerError) {
-    return (
-      <FullScreenError message="Ascend is having trouble connecting right now. Please check your connection and try again." />
-    );
-  }
-  if (showSpinner) return <FullScreenSpinner />;
+
+// Routes shown to unauthenticated visitors. All other paths redirect to /login.
+function PublicOnlyRoutes() {
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
@@ -617,12 +548,108 @@ function AppRouter() {
       <Route path="/support" component={SupportPage} />
       <Route path="/marketing" component={MarketingPage} />
       <Route path="/app-store-preview" component={AppStorePreviewPage} />
-      <Route path="/intro">{isAuthed ? <IntroPage /> : <Redirect to="/login" />}</Route>
-      <Route path="/onboarding">{isAuthed ? <OnboardingGuard /> : <Redirect to="/login" />}</Route>
-      <Route path="/admin">{isAuthed ? <AdminPage /> : <Redirect to="/login" />}</Route>
-      <Route path="/:rest*">{isAuthed ? <ProtectedApp /> : <Redirect to="/login" />}</Route>
+      <Route component={() => <Redirect to="/login" />} />
     </Switch>
   );
+}
+
+// Full route switch for authenticated + access-confirmed users.
+// The isAuthed checks are removed — AuthenticatedGate already guarantees auth.
+function AuthedRouteSwitch() {
+  return (
+    <Switch>
+      <Route path="/" component={LandingPage} />
+      <Route path="/login" component={LoginPage} />
+      <Route path="/signup" component={SignupPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
+      <Route path="/pricing" component={PricingPage} />
+      <Route path="/privacy" component={PrivacyPolicyPage} />
+      <Route path="/terms" component={TermsOfServicePage} />
+      <Route path="/support" component={SupportPage} />
+      <Route path="/marketing" component={MarketingPage} />
+      <Route path="/app-store-preview" component={AppStorePreviewPage} />
+      <Route path="/intro" component={IntroPage} />
+      <Route path="/onboarding"><OnboardingGuard /></Route>
+      <Route path="/admin" component={AdminPage} />
+      <Route path="/:rest*"><ProtectedApp /></Route>
+    </Switch>
+  );
+}
+
+// Access gate — sits above the entire route tree for authenticated users.
+// LockedPaywall is the ONLY thing that renders when hasAccess is false.
+// No Layout, no nav, no Switch, no modals — nothing else mounts.
+//
+// Gate logic (in priority order):
+//   1. Backend trial date is in the future → access granted
+//   2. Backend freePro flag is true → access granted (admin/RC webhook grant)
+//   3. Native bridge confirmed isPro=true → access granted
+//   4. Otherwise → locked
+//
+// The web Capacitor RC client is intentionally excluded from the gate.
+// It can return stale cached "subscribed" data for users whose RC entitlement
+// has actually expired, silently bypassing the lock.
+function AuthenticatedGate() {
+  const { data: me, isLoading: meLoading } = useGetMe({
+    query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false },
+  });
+  const { isPro: nativeIsPro, resolved: nativeSubResolved } = useNativeSub();
+
+  // 10 s safety net: if native never posts SUBSCRIPTION_STATUS, fail closed.
+  const [nativeSubTimedOut, setNativeSubTimedOut] = useState(false);
+  useEffect(() => {
+    if (!isNative || nativeSubResolved || nativeSubTimedOut) return;
+    const t = setTimeout(() => setNativeSubTimedOut(true), 10_000);
+    return () => clearTimeout(t);
+  }, [nativeSubResolved, nativeSubTimedOut]);
+
+  // Wait for /auth/me to resolve
+  if (meLoading) return <FullScreenSpinner />;
+
+  // For native: hold until RC status arrives or timeout fires
+  const nativeResolved = !isNative || nativeSubResolved || nativeSubTimedOut;
+  if (!nativeResolved) return <FullScreenSpinner />;
+
+  // ── Access decision ──
+  const trialEndDate = me?.trialEndDate ? new Date(me.trialEndDate) : null;
+  const isTrialActive = trialEndDate ? Date.now() < trialEndDate.getTime() : false;
+  const nativeProConfirmed = isNative && nativeIsPro;
+  const backendIsFreePro = !!me?.isFreePro;
+  const hasAccess = isTrialActive || nativeProConfirmed || backendIsFreePro;
+
+  if (import.meta.env.DEV) {
+    console.debug("[AuthenticatedGate]", {
+      trialEndsAt: me?.trialEndDate ?? null,
+      now: new Date().toISOString(),
+      isTrialActive,
+      nativeProConfirmed,
+      backendIsFreePro,
+      hasAccess,
+    });
+  }
+
+  if (!hasAccess) return <LockedPaywall />;
+
+  return <AuthedRouteSwitch />;
+}
+
+// Root gate: resolves auth, then delegates to public routes or the access gate.
+function AppRouter() {
+  const { isAuthed, isLoading, isServerError } = useAuth();
+  const showSpinner = useFirstLoadSpinner(isLoading);
+  if (isServerError) {
+    return (
+      <FullScreenError message="Ascend is having trouble connecting right now. Please check your connection and try again." />
+    );
+  }
+  if (showSpinner) return <FullScreenSpinner />;
+
+  // Unauthenticated: only public pages, everything else → /login
+  if (!isAuthed) return <PublicOnlyRoutes />;
+
+  // Authenticated: check access BEFORE any route, Layout, or nav can mount
+  return <AuthenticatedGate />;
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
