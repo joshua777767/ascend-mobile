@@ -11,7 +11,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { LoadingScreen } from "@/components/LoadingScreen";
 import { UserProvider, useUser } from "@/contexts/UserContext";
 import { SubscriptionProvider, useSubscription } from "@/contexts/SubscriptionContext";
 
@@ -21,34 +20,21 @@ const queryClient = new QueryClient();
 
 /**
  * Subscription context is still needed for RC configuration and purchase
- * triggering, but routing is now handled entirely by the website. The native
- * shell never navigates to a native paywall screen — the website's /pricing
- * page is the only paywall UI the user ever sees.
+ * triggering, but routing is handled entirely by the website. The WebView
+ * manages its own loading overlay — no native loading screen blocks here.
  */
-function AppGate({ children }: { children: React.ReactNode }) {
-  const { isLoading } = useSubscription();
-  const { userId } = useUser();
-
-  // Brief loading screen only during the initial RC check (anonymous).
-  if (isLoading && !userId) return <LoadingScreen />;
-  return <>{children}</>;
-}
-
 function RootLayoutNav() {
   const { userId } = useUser();
   return (
     <SubscriptionProvider userId={userId}>
-      <AppGate>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="webview" options={{ animation: "none" }} />
-          <Stack.Screen name="paywall" options={{ gestureEnabled: false }} />
-          <Stack.Screen
-            name="debug-subscription"
-            options={{ presentation: "modal" }}
-          />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-      </AppGate>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="webview" options={{ animation: "none" }} />
+        <Stack.Screen
+          name="debug-subscription"
+          options={{ presentation: "modal" }}
+        />
+        <Stack.Screen name="+not-found" />
+      </Stack>
     </SubscriptionProvider>
   );
 }

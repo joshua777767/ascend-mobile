@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
-import React, { useCallback, useEffect, useRef } from "react";
-import { Platform, StatusBar, StyleSheet, View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Platform, StatusBar, StyleSheet, View } from "react-native";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useUser } from "@/contexts/UserContext";
@@ -37,25 +37,48 @@ export default function WebViewScreen() {
   const webviewRef = useRef<WebView>(null);
   const { setUserId } = useUser();
   const { isPro, isLoading: rcLoading, packages, purchase } = useSubscription();
-  const hasPostedInitialStatus = useRef(false);
 
-  // Broadcast the current RC entitlement to the web on every meaningful change:
-  // 1) Once after the initial RC check resolves (isLoading → false), so the
-  //    web's trial gate always has an authoritative native answer at launch.
-  // 2) On every subsequent isPro change (purchase, restore, app resume).
-  // Using localStorage on the web side so it survives WebView reloads.
-  useEffect(() => {
-    if (rcLoading) return;
-    postToWeb("SUBSCRIPTION_STATUS", { isPro });
-    hasPostedInitialStatus.current = true;
-  }, [rcLoading, isPro]);
+  // True once the WebView has fired onLoadEnd for the first page load.
+  const [webviewLoaded, setWebviewLoaded] = useState(false);
 
-  const postToWeb = (type: string, payload: unknown) => {
+  // Refs so event handlers always read the latest values without stale closures.
+  const isProRef = useRef(isPro);
+  isProRef.current = isPro;
+  const rcLoadingRef = useRef(rcLoading);
+  rcLoadingRef.current = rcLoading;
+
+  // The native loading overlay hides only when BOTH conditions are met:
+  //   1. The WebView has finished loading the first page (onLoadEnd fired).
+  //   2. RevenueCat has resolved (rcLoading is false).
+  // This ensures the user never sees a blank WebView or a page that hasn't
+  // yet received the SUBSCRIPTION_STATUS broadcast.
+  const showOverlay = !webviewLoaded || rcLoading;
+
+  const postToWeb = useCallback((type: string, payload: unknown) => {
     if (!webviewRef.current) return;
     webviewRef.current.injectJavaScript(
       `window.dispatchEvent(new CustomEvent('__native:${type}',{detail:${JSON.stringify(payload)}}));true;`
     );
-  };
+  }, []);
+
+  // Broadcast RC entitlement status to the web whenever RC resolves or changes.
+  // Uses refs inside to get the latest isPro without a stale closure;
+  // handleLoadEnd also re-posts after page load to cover the timing race where
+  // RC resolves before the page is ready to receive events.
+  useEffect(() => {
+    if (rcLoading) return;
+    postToWeb("SUBSCRIPTION_STATUS", { isPro });
+  }, [rcLoading, isPro, postToWeb]);
+
+  // Called when the WebView finishes loading a page.
+  // Re-posts SUBSCRIPTION_STATUS using refs so the web always gets an authoritative
+  // answer even if RC resolved before the page was ready to listen.
+  const handleLoadEnd = useCallback(() => {
+    setWebviewLoaded(true);
+    if (!rcLoadingRef.current) {
+      postToWeb("SUBSCRIPTION_STATUS", { isPro: isProRef.current });
+    }
+  }, [postToWeb]);
 
   const handleMessage = useCallback(async (event: WebViewMessageEvent) => {
     let msg: { type: string; payload?: Record<string, unknown> };
@@ -123,8 +146,6 @@ export default function WebViewScreen() {
           try {
             const granted = await purchase(pkg);
             if (granted) {
-              // isPro effect above will fire and call postToWeb(SUBSCRIPTION_STATUS)
-              // but we also post immediately for zero-latency web response.
               postToWeb("SUBSCRIPTION_STATUS", { isPro: true });
             }
           } catch {
@@ -134,7 +155,7 @@ export default function WebViewScreen() {
         break;
       }
     }
-  }, [setUserId, packages, purchase]);
+  }, [setUserId, packages, purchase, postToWeb]);
 
   return (
     <View style={styles.root}>
@@ -150,6 +171,7 @@ export default function WebViewScreen() {
         injectedJavaScript={BRIDGE_JS}
         injectedJavaScriptBeforeContentLoaded={BRIDGE_JS}
         onMessage={handleMessage}
+        onLoadEnd={handleLoadEnd}
         // Cookie / storage sharing
         sharedCookiesEnabled={true}
         thirdPartyCookiesEnabled={true}
@@ -165,11 +187,29 @@ export default function WebViewScreen() {
         allowsInlineMediaPlayback={true}
         mediaPlaybackRequiresUserAction={false}
       />
+
+      {/*
+        Splash-matching overlay: shown from app open until the first page has
+        loaded AND RevenueCat has resolved. Rendered on top of the WebView so
+        the WebView can load underneath — no wasted time waiting behind a gate.
+        Background matches the Expo splash (#080D12) for a seamless transition.
+      */}
+      {showOverlay && (
+        <View style={styles.overlay}>
+          <ActivityIndicator size="large" color="#F59E0B" />
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0B1220" },
-  webview: { flex: 1, backgroundColor: "#0B1220" },
+  root: { flex: 1, backgroundColor: "#080D12" },
+  webview: { flex: 1, backgroundColor: "#080D12" },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#080D12",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

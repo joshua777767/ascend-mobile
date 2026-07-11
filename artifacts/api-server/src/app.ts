@@ -63,8 +63,14 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      // Always secure — server runs behind the Replit HTTPS proxy in all envs.
+      // trust proxy: 1 is set above so Express correctly sees the forwarded scheme.
+      secure: true,
+      // SameSite=None is required for iOS WKWebView: the native app shell does not
+      // share an origin with ascendfit.fitness, so Lax/Strict cookies are silently
+      // dropped, logging users out on every relaunch. None allows the cookie in all
+      // first-party WebView contexts. It requires secure:true (set above).
+      sameSite: "none",
       maxAge: 1000 * 60 * 60 * 24 * 30,
     },
   }),
