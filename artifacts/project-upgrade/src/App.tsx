@@ -321,8 +321,8 @@ function LockedPaywall() {
               width: "100%",
               padding: "16px",
               borderRadius: "14px",
-              background: "#F59E0B",
-              color: "#0B1220",
+              background: "hsl(210 40% 55%)",
+              color: "#ffffff",
               fontSize: "15px",
               fontWeight: 800,
               border: "none",
@@ -585,24 +585,34 @@ function AuthedRouteSwitch() {
 // LockedPaywall is the ONLY thing that renders when hasAccess is false.
 // No Layout, no nav, no Switch, no modals — nothing else mounts.
 //
-// Exactly two sources decide access — nothing else:
-//   1. me.trialEndDate from the server: trial is still running
-//   2. Fresh RevenueCat CustomerInfo: "pro" entitlement is active
+// Three sources decide access:
+//   1. me.trialEndDate from the server — trial is still running
+//   2. Fresh RevenueCat CustomerInfo — "pro" entitlement is active (persistent,
+//      survives force-close/reopen)
+//   3. nativeProConfirmed — SUBSCRIPTION_STATUS { isPro:true } arrived this session
+//      via the native bridge (fast-path: unlocks immediately after purchase without
+//      waiting for the RC query to refetch)
 //
-// Explicitly excluded (all can be stale/incorrect):
+// Explicitly excluded:
 //   - backendIsFreePro (me.isFreePro) — DB flag can outlive the real RC entitlement
-//   - nativeProConfirmed — native bridge message can be from a previous session
 //   - localStorage / sessionStorage
-//   - any cached subscription state
+//
+// nativeProConfirmed is safe because _nativeIsPro is module-level (resets to false
+// on every page load / logout) — it cannot carry over from a previous session.
 function AuthenticatedGate() {
   const { data: me, isLoading: meLoading } = useGetMe({
     query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false },
   });
 
-  // Fresh RC CustomerInfo — staleTime:0 so every component mount triggers a live fetch.
-  // enabled only after me.id is known: RC must be identified (via NativeBridge /
-  // RevenueCatInit) before getCustomerInfo() can return this user's entitlements.
-  // refetchOnWindowFocus:true re-checks on app resume and WebView foreground events.
+  // Fast-path: immediately true when native bridge posts SUBSCRIPTION_STATUS{isPro:true}.
+  // NativeBridge handles the event and calls _setNativeSub(isPro), which notifies all
+  // useNativeSub() subscribers and triggers a re-render here.
+  const { isPro: nativeIsPro } = useNativeSub();
+  const nativeProConfirmed = isNative && nativeIsPro;
+
+  // Persistent-path: fresh RC CustomerInfo — staleTime:0 so every mount fetches live.
+  // enabled only after me.id is known (RC is identified by NativeBridge/RevenueCatInit).
+  // refetchOnWindowFocus:true rechecks on app resume and WebView foreground events.
   const { data: rcInfo, isLoading: rcLoading } = useQuery({
     queryKey: ["revenuecat", "access-gate", me?.id ?? 0],
     queryFn: async () => {
@@ -620,18 +630,19 @@ function AuthenticatedGate() {
     refetchOnWindowFocus: true,
   });
 
-  // Spin until both /auth/me and RC resolve. Never fall through to app as a fallback.
+  // Spin until /auth/me and RC resolve. Never fall through to app as a fallback.
+  // nativeProConfirmed can short-circuit the RC wait after a purchase.
   if (meLoading) return <FullScreenSpinner />;
-  if (me?.id && rcLoading) return <FullScreenSpinner />;
+  if (me?.id && rcLoading && !nativeProConfirmed) return <FullScreenSpinner />;
 
-  // ── Access decision — exactly two sources ────────────────────────────────
+  // ── Access decision ───────────────────────────────────────────────────────
   const trialEndDate = me?.trialEndDate ? new Date(me.trialEndDate) : null;
   const isTrialActive = trialEndDate ? Date.now() < trialEndDate.getTime() : false;
   const hasActiveProEntitlement =
     rcInfo?.entitlements?.active?.[RC_PRO_ENTITLEMENT] != null;
-  const hasAccess = isTrialActive || hasActiveProEntitlement;
+  const hasAccess = isTrialActive || hasActiveProEntitlement || nativeProConfirmed;
 
-  // Always log in DEV so runtime values are visible in the browser console.
+  // DEV: log every evaluation so runtime values are visible in the browser console.
   if (import.meta.env.DEV) {
     console.debug("[AuthenticatedGate]", {
       trialEndsAt: me?.trialEndDate ?? null,
@@ -640,6 +651,7 @@ function AuthenticatedGate() {
       rcAppUserId: rcInfo?.originalAppUserId ?? null,
       activeEntitlements: rcInfo ? Object.keys(rcInfo.entitlements.active) : [],
       hasActiveProEntitlement,
+      nativeProConfirmed,
       hasAccess,
     });
   }

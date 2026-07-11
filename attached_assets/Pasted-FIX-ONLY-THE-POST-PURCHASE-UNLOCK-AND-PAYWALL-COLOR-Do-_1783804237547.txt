@@ -1,0 +1,85 @@
+FIX ONLY THE POST-PURCHASE UNLOCK AND PAYWALL COLOR. Do not change the working expired-user hard lock, login persistence, saved data, trial calculation, routing, meals, workouts, coach, or unrelated UI.
+
+CONFIRMED BEHAVIOR:
+- Expired non-Pro users are now correctly locked.
+- Apple successfully completes the $19.99/month purchase and says “You’re all set.”
+- The user incorrectly remains on LockedPaywall instead of immediately entering the app.
+- The main purchase button is orange; it must use the same existing Ascend blue design token used by the app’s other primary buttons.
+
+ROOT CAUSE TO FIX:
+The successful native RevenueCat purchase is not reliably updating the root AuthenticatedGate/WebView subscription state.
+
+NATIVE PURCHASE SUCCESS FLOW:
+
+const result = await Purchases.purchasePackage(selectedPackage);
+const customerInfo = result.customerInfo;
+
+const hasActivePro =
+  customerInfo.entitlements.active[PRO_ENTITLEMENT_ID] != null;
+
+if (!hasActivePro) {
+  postToWeb("PAYWALL_ERROR", {
+    message: "Purchase completed, but Pro access could not be verified."
+  });
+  return;
+}
+
+postToWeb("SUBSCRIPTION_STATUS", {
+  isPro: true,
+  appUserId: await Purchases.getAppUserID()
+});
+
+postToWeb("PURCHASE_CONFIRMED", {
+  isPro: true
+});
+
+Do not navigate Home before the entitlement is confirmed.
+
+WEB/GATE FLOW:
+When SUBSCRIPTION_STATUS or PURCHASE_CONFIRMED is received with isPro:true:
+
+1. Set nativeProConfirmed=true immediately.
+2. Invalidate/refetch the existing subscription/access-gate query.
+3. Update the shared subscription context.
+4. Cause AuthenticatedGate to re-render.
+5. hasAccess becomes true.
+6. Replace LockedPaywall with the normal AppRouter immediately, without requiring logout, refresh, force-close, or page reload.
+
+Use the project’s existing native bridge helpers. Confirm the WebView has an onMessage handler and that the web app has the matching native-message listener. Do not create a second bridge or subscription system.
+
+RESTORE PURCHASES:
+Apply the same logic after restore:
+- inspect returned CustomerInfo
+- verify the configured Pro entitlement is active
+- send SUBSCRIPTION_STATUS {isPro:true}
+- invalidate/refetch access status
+- immediately unlock the app
+
+CANCEL/ERROR:
+- Cancellation must remain on LockedPaywall.
+- Purchase failure must remain locked and show an error.
+- Never send isPro:true unless CustomerInfo confirms the active entitlement.
+
+COLOR:
+Change only the LockedPaywall primary purchase button from orange/amber to the existing Ascend primary blue token already used elsewhere in the app.
+Do not hardcode a new random blue.
+Keep the text readable and preserve the current layout.
+
+TEST BEFORE FINISHING:
+1. Expired non-Pro → locked paywall.
+2. Cancel Apple purchase → remains locked.
+3. Complete purchase → immediately enters the app.
+4. Pro badge/access appears.
+5. Force-close/reopen → remains Pro.
+6. Restore Purchases → immediately unlocks.
+7. Login and saved data remain unchanged.
+
+Show:
+- the exact event sent after purchase
+- the exact web listener receiving it
+- the entitlement identifier checked
+- every changed file
+- whether the fix is web-only or changes native webview.tsx
+
+Republish ascendfit.fitness after web changes.
+Only create a new TestFlight build if a native file changed.
