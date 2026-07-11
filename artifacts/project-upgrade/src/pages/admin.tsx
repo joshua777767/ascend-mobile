@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Shield, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
-const OWNER_EMAIL = "mike@mikequaglia.com";
+const OWNER_EMAILS = ["jquag7@gmail.com", "joshquag2010@icloud.com"];
 
 const CARD = "rounded-2xl bg-card border border-border p-4";
 const VAL = "text-2xl font-black text-primary leading-none";
@@ -114,7 +114,7 @@ export default function AdminPage() {
     return <Redirect to="/login" />;
   }
 
-  if (user?.email?.toLowerCase() !== OWNER_EMAIL) {
+  if (!OWNER_EMAILS.includes(user?.email?.toLowerCase() ?? "")) {
     return (
       <div className="h-dvh bg-background flex flex-col items-center justify-center gap-3 px-6 text-center">
         <div className="w-14 h-14 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive">

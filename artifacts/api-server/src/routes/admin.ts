@@ -16,7 +16,7 @@ import {
 import { getUserId } from "../middlewares/auth";
 import { logger } from "../lib/logger";
 
-const OWNER_EMAIL = "mike@mikequaglia.com";
+const OWNER_EMAILS = ["jquag7@gmail.com", "joshquag2010@icloud.com"];
 
 const router = Router();
 
@@ -26,7 +26,7 @@ const weekAgo = sql`now() - interval '7 days'`;
 async function requireOwner(req: any, res: any): Promise<boolean> {
   const userId = getUserId(req);
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  if (!user || user.email.toLowerCase() !== OWNER_EMAIL) {
+  if (!user || !OWNER_EMAILS.includes(user.email.toLowerCase())) {
     res.status(403).json({ error: "Access denied" });
     return false;
   }
