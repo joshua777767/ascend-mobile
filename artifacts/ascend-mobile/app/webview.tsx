@@ -52,6 +52,8 @@ export default function WebViewScreen() {
   appUserIdRef.current = appUserId;
   const subscriptionResolvedRef = useRef(subscriptionResolved);
   subscriptionResolvedRef.current = subscriptionResolved;
+  // Track last known entitlement keys for re-broadcast on page load.
+  const activeEntitlementKeysRef = useRef<string[]>([]);
 
   // The native overlay hides once the WebView has finished loading.
   // RC resolution is no longer required to lift the overlay: the web gate
@@ -83,6 +85,8 @@ export default function WebViewScreen() {
       postToWeb("SUBSCRIPTION_STATUS", {
         isPro: isProRef.current,
         appUserId: appUserIdRef.current,
+        activeEntitlementKeys: activeEntitlementKeysRef.current,
+        build: "d6c0e75a",
       });
     }
   }, [postToWeb]);
@@ -111,6 +115,8 @@ export default function WebViewScreen() {
           postToWeb("SUBSCRIPTION_STATUS", {
             isPro: isProRef.current,
             appUserId: appUserIdRef.current,
+            activeEntitlementKeys: activeEntitlementKeysRef.current,
+            build: "d6c0e75a",
           });
         }
         // If RC is still resolving, the startup effect in SubscriptionContext

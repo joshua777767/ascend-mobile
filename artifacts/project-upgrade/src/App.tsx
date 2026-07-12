@@ -746,11 +746,15 @@ function NativeBridge() {
   useEffect(() => {
     if (!isNative) return;
     const unsub = onFromNative("SUBSCRIPTION_STATUS", (payload) => {
-      const p = payload as { isPro?: boolean } | null;
+      const p = payload as { isPro?: boolean; appUserId?: string; activeEntitlementKeys?: string[]; build?: string } | null;
       const isPro = !!p?.isPro;
       // Update module-level store — triggers useNativeSub() re-renders
       // in AuthenticatedGate and MobileTrialBadge.
-      _setNativeSub(isPro);
+      _setNativeSub(isPro, {
+        appUserId: p?.appUserId,
+        activeEntitlementKeys: p?.activeEntitlementKeys,
+        build: p?.build,
+      });
     });
     // Request current state now that the listener is registered.
     // If native already resolved RC, it responds immediately.

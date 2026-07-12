@@ -127,7 +127,13 @@ export function SubscriptionProvider({
     setCustomerInfo(info);
     setSubscriptionResolved(true);
 
-    const payload = { isPro: active, appUserId: appUserIdRef.current };
+    const activeKeys = Object.keys(info.entitlements.active);
+    const payload = {
+      isPro: active,
+      appUserId: appUserIdRef.current,
+      activeEntitlementKeys: activeKeys,
+      build: "d6c0e75a",
+    };
     postToWebFromNative("SUBSCRIPTION_STATUS", payload);
 
     console.log(

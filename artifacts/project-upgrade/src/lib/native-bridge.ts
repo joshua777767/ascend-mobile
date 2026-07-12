@@ -17,22 +17,44 @@ export const isNative: boolean =
 // useNativeSub subscribes any component to immediate re-renders on change.
 let _nativeIsPro = false;
 let _nativeSubResolved = false;
+let _nativeAppUserId: string | null = null;
+let _nativeEntitlementKeys: string[] = [];
+let _nativeBuild: string | null = null;
 const _nativeSubListeners = new Set<() => void>();
 
-export function _setNativeSub(isPro: boolean): void {
+export function _setNativeSub(isPro: boolean, extra?: {
+  appUserId?: string | null;
+  activeEntitlementKeys?: string[];
+  build?: string;
+}): void {
   _nativeIsPro = isPro;
   _nativeSubResolved = true;
+  if (extra?.appUserId !== undefined) _nativeAppUserId = extra.appUserId ?? null;
+  if (extra?.activeEntitlementKeys !== undefined) _nativeEntitlementKeys = extra.activeEntitlementKeys;
+  if (extra?.build !== undefined) _nativeBuild = extra.build ?? null;
   _nativeSubListeners.forEach((fn) => fn());
 }
 
-export function useNativeSub(): { isPro: boolean; resolved: boolean } {
+export function useNativeSub(): {
+  isPro: boolean;
+  resolved: boolean;
+  appUserId: string | null;
+  activeEntitlementKeys: string[];
+  build: string | null;
+} {
   const [, tick] = useState(0);
   useEffect(() => {
     const listener = () => tick((n) => n + 1);
     _nativeSubListeners.add(listener);
     return () => { _nativeSubListeners.delete(listener); };
   }, []);
-  return { isPro: _nativeIsPro, resolved: _nativeSubResolved };
+  return {
+    isPro: _nativeIsPro,
+    resolved: _nativeSubResolved,
+    appUserId: _nativeAppUserId,
+    activeEntitlementKeys: _nativeEntitlementKeys,
+    build: _nativeBuild,
+  };
 }
 
 /**
