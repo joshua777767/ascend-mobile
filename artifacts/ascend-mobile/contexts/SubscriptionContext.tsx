@@ -224,14 +224,11 @@ export function SubscriptionProvider({
       console.log("[RC] ===== COLD START =====");
       console.log("[RC] Ascend userId: " + userId);
 
-      // Step 3: Invalidate RC SDK cache so every call below hits the network.
-      try {
-        await Purchases.invalidateCustomerInfoCache();
-        console.log("[RC] cache invalidated");
-      } catch (e) {
-        console.warn("[RC] invalidateCustomerInfoCache failed (non-fatal): " + String(e));
-      }
-      if (cancelled) return;
+      // NOTE: invalidateCustomerInfoCache() intentionally NOT called here.
+      // The RC SDK cache holds the correct merged subscription data (anonymous →
+      // userId merge). Invalidating forces a raw server fetch for userId which
+      // does not see the subscription (it lives under the original anonymous ID
+      // server-side). RC manages cache expiry automatically. Let it use the cache.
 
       // Step 4: logIn(userId) — identify this user in RC.
       // Log the result but do NOT call applyCustomerInfo here.
@@ -321,14 +318,9 @@ export function SubscriptionProvider({
   const refresh = useCallback(async () => {
     try {
       console.log("[RC:refresh] app foregrounded …");
-
-      try {
-        await Purchases.invalidateCustomerInfoCache();
-        console.log("[RC:refresh] SDK cache invalidated");
-      } catch (e) {
-        console.warn("[RC:refresh] invalidateCustomerInfoCache failed (non-fatal):", e);
-      }
-
+      // NOTE: invalidateCustomerInfoCache() intentionally NOT called — same reason
+      // as startup: invalidating the cache forces a raw server fetch that misses
+      // the subscription (which lives under the original anonymous RC ID).
       const info = await Purchases.getCustomerInfo();
       const isProNow = applyCustomerInfo(info);
       console.log("[RC:refresh] getCustomerInfo — isPro:", isProNow, "| entitlements:", Object.keys(info.entitlements.active));

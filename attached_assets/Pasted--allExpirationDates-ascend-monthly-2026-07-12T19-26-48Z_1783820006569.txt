@@ -1,0 +1,106 @@
+{
+  "allExpirationDates": {
+    "ascend_monthly": "2026-07-12T19:26:48Z"
+  },
+  "firstSeenMillis": 1783625208000,
+  "originalAppUserId": "$RCAnonymousID:f09af330229c4e83b729a3f37fabeb05",
+  "subscriptionsByProductIdentifier": {
+    "ascend_monthly": {
+      "originalPurchaseDate": "2026-07-09T19:26:48Z",
+      "storeTransactionId": "2000001203473357",
+      "productIdentifier": "ascend_monthly",
+      "isActive": true,
+      "purchaseDate": "2026-07-11T19:26:48Z",
+      "unsubscribeDetectedAt": null,
+      "isSandbox": true,
+      "billingIssuesDetectedAt": null,
+      "ownershipType": "PURCHASED",
+      "price": {
+        "amount": 19.99,
+        "currency": "USD"
+      },
+      "periodType": "NORMAL",
+      "expiresDate": "2026-07-12T19:26:48Z",
+      "store": "APP_STORE",
+      "willRenew": true,
+      "refundedAt": null,
+      "gracePeriodExpiresDate": null
+    }
+  },
+  "latestExpirationDate": "2026-07-12T19:26:48Z",
+  "allExpirationDatesMillis": {
+    "ascend_monthly": 1783884408000
+  },
+  "allPurchasedProductIdentifiers": [
+    "ascend_monthly"
+  ],
+  "originalPurchaseDate": "2013-08-01T07:00:00Z",
+  "originalApplicationVersion": "1.0",
+  "entitlements": {
+    "active": {
+      "Ascend: AI Fitness Pro": {
+        "originalPurchaseDateMillis": 1783625208000,
+        "latestPurchaseDate": "2026-07-11T19:26:48Z",
+        "billingIssueDetectedAt": null,
+        "originalPurchaseDate": "2026-07-09T19:26:48Z",
+        "ownershipType": "PURCHASED",
+        "expirationDateMillis": 1783884408000,
+        "billingIssueDetectedAtMillis": null,
+        "productPlanIdentifier": null,
+        "unsubscribeDetectedAt": null,
+        "store": "APP_STORE",
+        "identifier": "Ascend: AI Fitness Pro",
+        "productIdentifier": "ascend_monthly",
+        "isSandbox": true,
+        "verification": "NOT_REQUESTED",
+        "willRenew": true,
+        "isActive": true,
+        "periodType": "NORMAL",
+        "expirationDate": "2026-07-12T19:26:48Z",
+        "latestPurchaseDateMillis": 1783798008000,
+        "unsubscribeDetectedAtMillis": null
+      }
+    },
+    "verification": "NOT_REQUESTED",
+    "all": {
+      "Ascend: AI Fitness Pro": {
+        "productIdentifier": "ascend_monthly",
+        "periodType": "NORMAL",
+        "productPlanIdentifier": null,
+        "billingIssueDetectedAtMillis": null,
+        "isSandbox": true,
+        "ownershipType": "PURCHASED",
+        "verification": "NOT_REQUESTED",
+        "expirationDateMillis": 1783884408000,
+        "billingIssueDetectedAt": null,
+        "latestPurchaseDateMillis": 1783798008000,
+        "identifier": "Ascend: AI Fitness Pro",
+        "unsubscribeDetectedAtMillis": null,
+        "originalPurchaseDate": "2026-07-09T19:26:48Z",
+        "latestPurchaseDate": "2026-07-11T19:26:48Z",
+        "store": "APP_STORE",
+        "originalPurchaseDateMillis": 1783625208000,
+        "expirationDate": "2026-07-12T19:26:48Z",
+        "isActive": true,
+        "willRenew": true,
+        "unsubscribeDetectedAt": null
+      }
+    }
+  },
+  "allPurchaseDates": {
+    "ascend_monthly": "2026-07-11T19:26:48Z"
+  },
+  "nonSubscriptionTransactions": [],
+  "originalPurchaseDateMillis": 1375340400000,
+  "managementURL": "https://apps.apple.com/account/subscriptions",
+  "firstSeen": "2026-07-09T19:26:48Z",
+  "latestExpirationDateMillis": 1783884408000,
+  "requestDate": "2026-07-12T01:32:21Z",
+  "allPurchaseDatesMillis": {
+    "ascend_monthly": 1783798008000
+  },
+  "requestDateMillis": 1783819941000,
+  "activeSubscriptions": [
+    "ascend_monthly"
+  ]
+}

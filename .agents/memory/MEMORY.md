@@ -21,3 +21,4 @@
 - [ASC p8 key PEM format for eas submit](asc-p8-pem-format.md) — secret stored as raw base64 (no headers, spaces instead of newlines); must reformat with python before use.
 - [WebView shell architecture](webview-shell.md) — native app is a WebView wrapper around ascendfit.fitness; bridge via __ascendBridge / CustomEvent; key patterns documented.
 - [iOS WKWebView session cookie](ios-webview-cookie.md) — SameSite=Lax is dropped in WKWebView (app origin ≠ website); must use SameSite=None + secure:true. trust proxy:1 already set so always-HTTPS Replit proxy satisfies secure.
+- [RC invalidateCustomerInfoCache destroys merge data](rc-invalidate-cache-bug.md) — never call invalidateCustomerInfoCache in startup/refresh; it nukes the anonymous→userId merged cache and the server returns not-Pro.
