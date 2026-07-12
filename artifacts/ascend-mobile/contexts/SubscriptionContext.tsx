@@ -237,7 +237,12 @@ export function SubscriptionProvider({
       }
       if (cancelled) return;
 
-      // Step 4: getCustomerInfo() — authoritative entitlement state from RC.
+      // Step 4: getCustomerInfo() + getOfferings() in parallel.
+      // getCustomerInfo() asks RC what it knows about this user.
+      // If it returns not-Pro, syncPurchasesForResult() re-submits the local
+      // Apple receipt to RC's backend so it can re-validate and update its records.
+      // This handles the case where the receipt is valid on Apple's side but RC's
+      // backend hasn't linked it to this user ID yet.
       try {
         console.log("[RC:fetch] getCustomerInfo + getOfferings …");
         const [info, offerings] = await Promise.all([
@@ -246,8 +251,26 @@ export function SubscriptionProvider({
         ]);
         if (cancelled) return;
 
-        applyCustomerInfo(info);
+        const isProNow = applyCustomerInfo(info);
+        console.log("[RC:fetch] getCustomerInfo — isPro:", isProNow, "| entitlements:", Object.keys(info.entitlements.active));
 
+        if (!isProNow && !cancelled) {
+          // getCustomerInfo returned not-Pro. Re-submit the Apple receipt so RC
+          // can re-validate and link it to this user. This is the correct tool
+          // for "subscription valid at Apple, not reflected in RC yet."
+          console.log("[RC:sync] getCustomerInfo not-Pro — syncing Apple receipt with RC backend …");
+          try {
+            const { customerInfo: synced } = await Purchases.syncPurchasesForResult();
+            if (!cancelled) {
+              const syncedPro = applyCustomerInfo(synced);
+              console.log("[RC:sync] syncPurchasesForResult — isPro:", syncedPro, "| entitlements:", Object.keys(synced.entitlements.active));
+            }
+          } catch (syncErr: any) {
+            console.warn("[RC:sync] syncPurchasesForResult failed (non-fatal):", syncErr?.message ?? syncErr);
+          }
+        }
+
+        if (cancelled) return;
         const { packages: pkgs, diagnostic } = diagnoseOfferings(offerings);
         setPackages(pkgs);
         if (pkgs.length === 0) {
@@ -274,11 +297,11 @@ export function SubscriptionProvider({
 
   // ── App foreground refresh ────────────────────────────────────────────────
   // Called whenever the app returns to the foreground (AppState "active").
-  // Invalidates the RC SDK cache and calls getCustomerInfo() for a fresh read.
-  // restorePurchases() is never called here — only on explicit user action.
+  // Invalidates the RC SDK cache, fetches fresh CustomerInfo, and if not-Pro,
+  // re-submits the Apple receipt via syncPurchasesForResult so RC can re-validate.
   const refresh = useCallback(async () => {
     try {
-      console.log("[RC:refresh] app foregrounded — fetching fresh CustomerInfo …");
+      console.log("[RC:refresh] app foregrounded …");
 
       try {
         await Purchases.invalidateCustomerInfoCache();
@@ -288,8 +311,19 @@ export function SubscriptionProvider({
       }
 
       const info = await Purchases.getCustomerInfo();
-      applyCustomerInfo(info);
-      console.log("[RC:refresh] done — isPro:", info.entitlements.active[ENTITLEMENT_ID]?.isActive === true);
+      const isProNow = applyCustomerInfo(info);
+      console.log("[RC:refresh] getCustomerInfo — isPro:", isProNow, "| entitlements:", Object.keys(info.entitlements.active));
+
+      if (!isProNow) {
+        console.log("[RC:refresh] not-Pro — syncing Apple receipt with RC backend …");
+        try {
+          const { customerInfo: synced } = await Purchases.syncPurchasesForResult();
+          const syncedPro = applyCustomerInfo(synced);
+          console.log("[RC:refresh] syncPurchasesForResult — isPro:", syncedPro, "| entitlements:", Object.keys(synced.entitlements.active));
+        } catch (syncErr: any) {
+          console.warn("[RC:refresh] syncPurchasesForResult failed (non-fatal):", syncErr?.message ?? syncErr);
+        }
+      }
     } catch (e) {
       console.error("[RC:refresh] failed:", e);
     }
