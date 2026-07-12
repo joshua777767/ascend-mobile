@@ -163,14 +163,12 @@ export function SubscriptionProvider({
   // ORDER:
   // 1. Configure RC SDK (once per process).
   // 2. Invalidate RC's local SDK cache — forces the next call to hit the network
-  //    rather than returning stale data (root cause of the isPro=false false-negative).
-  // 3. logIn(userId) — migrates anonymous receipts + returns fresh CustomerInfo.
-  // 4. getCustomerInfo + getOfferings — authoritative check + load packages.
-  // 5. If still not Pro, auto-restore as last attempt.
+  //    rather than returning stale in-process data.
+  // 3. logIn(userId) — identifies this user in RC; result used as the initial check.
+  // 4. getCustomerInfo() + getOfferings() — authoritative entitlement check + packages.
   //
-  // On RC failure we do NOT post SUBSCRIPTION_STATUS to the WebView. The web
-  // gate keeps its loading spinner and the native overlay shows a Retry button.
-  // We never grant or deny access from a locally stored value.
+  // restorePurchases() is NOT called automatically — only when the user taps Restore.
+  // On RC failure the web gate keeps its loading spinner; a native Retry button appears.
   useEffect(() => {
     let cancelled = false;
 
@@ -192,17 +190,11 @@ export function SubscriptionProvider({
           }
           return;
         }
-        try {
-          Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO);
-        } catch {}
+        try { Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO); } catch {}
         try {
           Purchases.configure({ apiKey });
           configured.current = true;
-          console.log(
-            "[RC:configure] OK — key prefix:", apiKey.slice(0, 10),
-            "| platform:", Platform.OS,
-            "| entitlement:", ENTITLEMENT_ID
-          );
+          console.log("[RC:configure] OK — key prefix:", apiKey.slice(0, 10), "| entitlement:", ENTITLEMENT_ID);
         } catch (e) {
           const msg = `configure() threw: ${String(e)}`;
           console.error("[RC:configure]", msg);
@@ -215,74 +207,46 @@ export function SubscriptionProvider({
         }
       }
 
-      // Step 2: Wait for userId (user not logged in / UserContext still loading).
-      // Never call logOut() here, never post SUBSCRIPTION_STATUS, never resolve.
-      // The web gate keeps its spinner. When AUTH_STATE fires and userId arrives,
-      // this effect re-runs correctly.
+      // Wait for userId — keep spinner, don't resolve until the user is known.
       if (!userId) {
         if (!cancelled) setIsLoading(false);
         return;
       }
 
-      // Step 3: Invalidate RC SDK's local cache so logIn hits the network.
-      // RC caches CustomerInfo in memory/disk; subsequent logIn() calls for the
-      // same userId return stale cached data that may not include the migrated
-      // receipt — the root cause of isPro=false on relaunch despite active Apple sub.
+      // Step 2: Invalidate RC SDK's local cache so the next call hits the network.
       try {
         await Purchases.invalidateCustomerInfoCache();
-        console.log("[RC:startup] SDK cache invalidated — next call will hit network");
+        console.log("[RC:startup] SDK cache invalidated");
       } catch (e) {
         console.warn("[RC:startup] invalidateCustomerInfoCache failed (non-fatal):", e);
       }
       if (cancelled) return;
 
-      // Step 4: logIn() — migrates anonymous RC purchases + returns fresh CustomerInfo.
-      let preLoginId = "(unknown)";
-      try { preLoginId = await Purchases.getAppUserID(); } catch {}
-      console.log("[RC:logIn] Ascend userId:", userId, "| RC App User ID before logIn:", preLoginId);
-
+      // Step 3: logIn() — identifies this Ascend user in RC.
+      // Returns CustomerInfo as a side-effect; we apply it as the initial check.
       try {
         const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
         if (cancelled) return;
-
         const postLoginId = await Purchases.getAppUserID().catch(() => String(userId));
         appUserIdRef.current = postLoginId;
         if (!cancelled) setAppUserId(postLoginId);
-
-        console.log(
-          "[RC:logIn] OK — RC App User ID after logIn:", postLoginId,
-          "| active entitlements:", Object.keys(loginInfo.entitlements.active)
-        );
-
+        console.log("[RC:logIn] RC App User ID:", postLoginId, "| entitlements:", Object.keys(loginInfo.entitlements.active));
         if (!cancelled) applyCustomerInfo(loginInfo);
       } catch (e) {
         console.error("[RC:logIn] failed (non-fatal):", e);
       }
+      if (cancelled) return;
 
-      // Step 5: Fresh getCustomerInfo (authoritative) + load purchase packages.
+      // Step 4: getCustomerInfo() — authoritative entitlement state from RC.
       try {
-        console.log("[RC:fetch] calling getCustomerInfo + getOfferings …");
+        console.log("[RC:fetch] getCustomerInfo + getOfferings …");
         const [info, offerings] = await Promise.all([
           Purchases.getCustomerInfo(),
           Purchases.getOfferings(),
         ]);
         if (cancelled) return;
 
-        const isProNow = applyCustomerInfo(info);
-
-        // If still not Pro, auto-restore as last attempt.
-        if (!isProNow && !cancelled) {
-          console.log("[RC:startup] not Pro after getCustomerInfo — auto-restoring …");
-          try {
-            const restored = await Purchases.restorePurchases();
-            if (!cancelled) {
-              const restoredPro = applyCustomerInfo(restored);
-              console.log("[RC:startup] restore result — isPro:", restoredPro, "| entitlements:", Object.keys(restored.entitlements.active));
-            }
-          } catch (restoreErr) {
-            console.warn("[RC:startup] auto-restore failed (non-fatal):", restoreErr);
-          }
-        }
+        applyCustomerInfo(info);
 
         const { packages: pkgs, diagnostic } = diagnoseOfferings(offerings);
         setPackages(pkgs);
@@ -297,8 +261,6 @@ export function SubscriptionProvider({
         const msg = `getCustomerInfo/getOfferings threw: ${e?.message ?? String(e)} (code ${e?.code ?? "?"})`;
         console.error("[RC:fetch] ERROR:", msg);
         if (!cancelled) {
-          // Do NOT post SUBSCRIPTION_STATUS — keep the web spinner.
-          // Surface a Retry button in the native overlay instead.
           setOfferingsError("Could not verify subscription. Check connection and retry.");
           setOfferingsDiagnostic(msg);
         }
@@ -311,13 +273,13 @@ export function SubscriptionProvider({
   }, [userId, applyCustomerInfo]);
 
   // ── App foreground refresh ────────────────────────────────────────────────
-  // Re-fetches CustomerInfo whenever the app returns to the foreground.
-  // Invalidates the RC SDK cache first so the call always hits the network.
+  // Called whenever the app returns to the foreground (AppState "active").
+  // Invalidates the RC SDK cache and calls getCustomerInfo() for a fresh read.
+  // restorePurchases() is never called here — only on explicit user action.
   const refresh = useCallback(async () => {
     try {
-      console.log("[RC:refresh] app foregrounded …");
+      console.log("[RC:refresh] app foregrounded — fetching fresh CustomerInfo …");
 
-      // Invalidate RC SDK's local cache — forces a network call.
       try {
         await Purchases.invalidateCustomerInfoCache();
         console.log("[RC:refresh] SDK cache invalidated");
@@ -325,37 +287,13 @@ export function SubscriptionProvider({
         console.warn("[RC:refresh] invalidateCustomerInfoCache failed (non-fatal):", e);
       }
 
-      // logIn — migrates receipts + returns fresh data (most reliable).
-      if (userId) {
-        try {
-          const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
-          const loginPro = loginInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
-          console.log("[RC:refresh] logIn — isPro:", loginPro, "| entitlements:", Object.keys(loginInfo.entitlements.active));
-          applyCustomerInfo(loginInfo);
-          if (loginPro) return;
-        } catch (loginErr) {
-          console.warn("[RC:refresh] logIn failed (non-fatal):", loginErr);
-        }
-      }
-
-      // logIn didn't confirm Pro — try getCustomerInfo.
       const info = await Purchases.getCustomerInfo();
       applyCustomerInfo(info);
-      if (info.entitlements.active[ENTITLEMENT_ID]?.isActive === true) return;
-
-      // Still not Pro — restore as last attempt.
-      console.log("[RC:refresh] not Pro after logIn + getCustomerInfo — trying restore …");
-      try {
-        const restored = await Purchases.restorePurchases();
-        const restoredPro = applyCustomerInfo(restored);
-        console.log("[RC:refresh] restore — isPro:", restoredPro, "| entitlements:", Object.keys(restored.entitlements.active));
-      } catch (restoreErr) {
-        console.warn("[RC:refresh] restore failed (non-fatal):", restoreErr);
-      }
+      console.log("[RC:refresh] done — isPro:", info.entitlements.active[ENTITLEMENT_ID]?.isActive === true);
     } catch (e) {
       console.error("[RC:refresh] failed:", e);
     }
-  }, [userId, applyCustomerInfo]);
+  }, [applyCustomerInfo]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
@@ -365,41 +303,18 @@ export function SubscriptionProvider({
   }, [refresh]);
 
   // ── Restore ───────────────────────────────────────────────────────────────
+  // Called only when the user explicitly taps "Restore Purchases".
+  // The user is already identified via logIn() at startup, so we go straight
+  // to restorePurchases() — no automatic logIn() here.
   const restore = useCallback(async (): Promise<boolean> => {
-    console.log("[RC:restore] starting …");
+    console.log("[RC:restore] user-initiated restore …");
     try {
-      // Step 1: logIn — if this already confirms Pro, we're done.
-      // This is the most reliable call for users whose receipt was purchased
-      // under a different RC App User ID (e.g. anonymous) and migrated at login.
-      if (userId) {
-        try {
-          const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
-          const loginPro = loginInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
-          console.log(
-            "[RC:restore] logIn — isPro:", loginPro,
-            "| active entitlements:", Object.keys(loginInfo.entitlements.active)
-          );
-          if (loginPro) {
-            applyCustomerInfo(loginInfo);
-            postToWebFromNative("PURCHASE_CONFIRMED", { isPro: true });
-            return true;
-          }
-        } catch (e: any) {
-          console.error("[RC:restore] logIn failed (non-fatal):", e?.message ?? e);
-        }
-      }
-
-      // Step 2: logIn didn't confirm Pro — fall back to restorePurchases.
       const restoredInfo = await Purchases.restorePurchases();
       const active = applyCustomerInfo(restoredInfo);
-      const entitlementKeys = Object.keys(restoredInfo.entitlements.active);
-
       console.log(
-        "[RC:restore] restorePurchases — isPro:", active,
-        "| active entitlements:", entitlementKeys,
-        "| RC App User ID:", (restoredInfo as any).originalAppUserId ?? "?"
+        "[RC:restore] done — isPro:", active,
+        "| active entitlements:", Object.keys(restoredInfo.entitlements.active)
       );
-
       if (active) {
         postToWebFromNative("PURCHASE_CONFIRMED", { isPro: true });
       }
@@ -408,7 +323,7 @@ export function SubscriptionProvider({
       console.error("[RC:restore] failed:", e?.message ?? e);
       return false;
     }
-  }, [userId, applyCustomerInfo]);
+  }, [applyCustomerInfo]);
 
   // ── Purchase ──────────────────────────────────────────────────────────────
   const purchase = useCallback(
