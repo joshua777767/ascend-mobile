@@ -22,3 +22,4 @@
 - [WebView shell architecture](webview-shell.md) — native app is a WebView wrapper around ascendfit.fitness; bridge via __ascendBridge / CustomEvent; key patterns documented.
 - [iOS WKWebView session cookie](ios-webview-cookie.md) — SameSite=Lax is dropped in WKWebView (app origin ≠ website); must use SameSite=None + secure:true. trust proxy:1 already set so always-HTTPS Replit proxy satisfies secure.
 - [RC invalidateCustomerInfoCache destroys merge data](rc-invalidate-cache-bug.md) — never call invalidateCustomerInfoCache in startup/refresh; it nukes the anonymous→userId merged cache and the server returns not-Pro.
+- [OTA bundle picks up Replit EXPO_PUBLIC_ secrets](ota-entitlement-id-pollution.md) — eas update builds locally; Replit secrets pollute OTA bundles. ENTITLEMENT_ID must be hardcoded, not from env var.
