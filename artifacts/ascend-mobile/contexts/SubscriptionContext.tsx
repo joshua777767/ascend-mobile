@@ -321,13 +321,47 @@ export function SubscriptionProvider({
       }
       if (cancelled) return;
 
-      // Step 6: Send SUBSCRIPTION_STATUS exactly once with the final settled result.
+      // Step 6: If getCustomerInfo() returned not-Pro, sync the Apple receipt with RC.
+      // This re-validates the receipt against Apple and updates RC's server records so
+      // the subscription is properly credited to the current numerical userId (not just
+      // via the original anonymous-ID alias). This is the fix for "second login not-Pro":
+      // the RC cache expired → server fetch returned not-Pro → receipt sync re-registers
+      // the subscription under the userId → Pro unlocked.
+      const initialIsPro = finalInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+      if (!initialIsPro && finalInfo) {
+        console.log("[RC] getCustomerInfo returned not-Pro — syncing Apple receipt with RC …");
+        try {
+          const { customerInfo: synced } = await Purchases.syncPurchasesForResult();
+          if (!cancelled) {
+            finalInfo = synced;
+            const syncedKeys = Object.keys(synced.entitlements.active);
+            const syncedIsPro = synced.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+            console.log("[RC] syncPurchasesForResult() result:");
+            console.log("[RC]   active keys: [" + syncedKeys.join(", ") + "]");
+            console.log("[RC]   isPro (synced): " + syncedIsPro);
+          }
+        } catch (syncErr: any) {
+          console.warn("[RC] syncPurchasesForResult() failed (non-fatal):", syncErr?.message ?? syncErr);
+        }
+        if (cancelled) return;
+      }
+
+      // Step 7: Send SUBSCRIPTION_STATUS exactly once with the final settled result.
       if (finalInfo) {
         const finalIsPro = finalInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
         console.log("[RC] ===== SENDING SUBSCRIPTION_STATUS =====");
         console.log("[RC]   isPro: " + finalIsPro);
         console.log("[RC]   active keys: [" + Object.keys(finalInfo.entitlements.active).join(", ") + "]");
         applyCustomerInfo(finalInfo);
+
+        // Step 8: If Pro confirmed — fire a silent background receipt sync so RC's server
+        // records the userId→subscription mapping for future sessions. After this, server
+        // fetches for this userId will return Pro without relying on the anonymous-ID alias.
+        if (finalIsPro) {
+          Purchases.syncPurchasesForResult()
+            .then(() => console.log("[RC] background receipt sync complete (Pro registered under userId)"))
+            .catch((e: any) => console.warn("[RC] background receipt sync failed (non-fatal):", e?.message ?? e));
+        }
       }
 
       if (!cancelled) setIsLoading(false);
