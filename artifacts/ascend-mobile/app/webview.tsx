@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Linking, Platform, StatusBar, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Linking, Platform, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { registerPostToWeb } from "@/contexts/webview-bridge";
@@ -40,7 +40,7 @@ true;
 export default function WebViewScreen() {
   const webviewRef = useRef<WebView>(null);
   const { setUserId } = useUser();
-  const { isPro, subscriptionResolved, appUserId, packages, purchase, restore } = useSubscription();
+  const { isPro, subscriptionResolved, appUserId, packages, purchase, restore, refresh, offeringsError, isLoading } = useSubscription();
 
   // True once the WebView has fired onLoadEnd for the first page load.
   const [webviewLoaded, setWebviewLoaded] = useState(false);
@@ -267,7 +267,16 @@ export default function WebViewScreen() {
       */}
       {showOverlay && (
         <View style={styles.overlay}>
-          <ActivityIndicator size="large" color="#F59E0B" />
+          {!subscriptionResolved && !isLoading && offeringsError ? (
+            <>
+              <Text style={styles.errorText}>Could not verify subscription.{"\n"}Check your connection.</Text>
+              <Pressable style={styles.retryButton} onPress={refresh}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </Pressable>
+            </>
+          ) : (
+            <ActivityIndicator size="large" color="#F59E0B" />
+          )}
         </View>
       )}
     </View>
@@ -282,5 +291,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#080D12",
     alignItems: "center",
     justifyContent: "center",
+    gap: 20,
+  },
+  errorText: {
+    color: "#9CA3AF",
+    fontSize: 15,
+    textAlign: "center",
+    lineHeight: 22,
+    fontFamily: "SpaceMono",
+    paddingHorizontal: 32,
+  },
+  retryButton: {
+    backgroundColor: "#F59E0B",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 36,
+  },
+  retryButtonText: {
+    color: "#000",
+    fontWeight: "700",
+    fontSize: 15,
+    fontFamily: "SpaceMono",
   },
 });
