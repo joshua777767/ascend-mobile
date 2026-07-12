@@ -230,26 +230,48 @@ export function SubscriptionProvider({
       // does not see the subscription (it lives under the original anonymous ID
       // server-side). RC manages cache expiry automatically. Let it use the cache.
 
-      // Step 4: logIn(userId) — identify this user in RC.
-      // Log the result but do NOT call applyCustomerInfo here.
-      // SUBSCRIPTION_STATUS must not be sent until getCustomerInfo() settles.
+      // Step 4: logIn(userId) only when the SDK doesn't already know this user.
+      //
+      // WHY: logIn() always makes a server round-trip. The server returns CustomerInfo
+      // for the numerical userId, which may not include the subscription (it lives
+      // under the original anonymous RC ID). That server response then overwrites
+      // the SDK's local cache — which DID have the correct merged data — causing
+      // every subsequent getCustomerInfo() to return not-Pro.
+      //
+      // If the SDK is already identified as this Ascend userId, we skip logIn()
+      // entirely and go straight to getCustomerInfo(), which uses the cached
+      // (correct) data. logIn() is only needed on first launch (anonymous → userId
+      // migration) or if a different user somehow became active.
       let rcAppUserId = String(userId);
       try {
-        console.log("[RC] calling logIn(" + userId + ") …");
-        const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
-        if (cancelled) return;
-        rcAppUserId = await Purchases.getAppUserID().catch(() => String(userId));
-        appUserIdRef.current = rcAppUserId;
-        if (!cancelled) setAppUserId(rcAppUserId);
-        const loginKeys = Object.keys(loginInfo.entitlements.active);
-        const loginIsPro = loginInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
-        console.log("[RC] logIn() result:");
-        console.log("[RC]   RC App User ID : " + rcAppUserId);
-        console.log("[RC]   active keys    : [" + loginKeys.join(", ") + "]");
-        console.log("[RC]   isPro (logIn)  : " + loginIsPro);
-        console.log("[RC]   ⚠ NOT sent to WebView yet — awaiting getCustomerInfo()");
+        const currentRcId = await Purchases.getAppUserID();
+        rcAppUserId = currentRcId;
+        appUserIdRef.current = currentRcId;
+        if (!cancelled) setAppUserId(currentRcId);
+        const isAnonymous = currentRcId.startsWith("$RCAnonymousID:");
+        const isWrongUser = !isAnonymous && currentRcId !== String(userId);
+
+        console.log("[RC] current RC App User ID: " + currentRcId);
+        console.log("[RC] Ascend userId: " + userId);
+        console.log("[RC] isAnonymous: " + isAnonymous + " | isWrongUser: " + isWrongUser);
+
+        if (isAnonymous || isWrongUser) {
+          console.log("[RC] calling logIn(" + userId + ") — RC user needs migration …");
+          const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
+          if (cancelled) return;
+          rcAppUserId = await Purchases.getAppUserID().catch(() => String(userId));
+          appUserIdRef.current = rcAppUserId;
+          if (!cancelled) setAppUserId(rcAppUserId);
+          const loginKeys = Object.keys(loginInfo.entitlements.active);
+          const loginIsPro = loginInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+          console.log("[RC] logIn() done — RC App User ID: " + rcAppUserId);
+          console.log("[RC]   active keys: [" + loginKeys.join(", ") + "]");
+          console.log("[RC]   isPro (logIn): " + loginIsPro);
+        } else {
+          console.log("[RC] already identified as Ascend userId — skipping logIn() to preserve cache");
+        }
       } catch (e) {
-        console.error("[RC] logIn() failed (non-fatal): " + String(e));
+        console.error("[RC] getAppUserID/logIn failed (non-fatal): " + String(e));
       }
       if (cancelled) return;
 
