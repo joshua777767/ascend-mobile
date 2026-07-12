@@ -375,31 +375,37 @@ export function SubscriptionProvider({
   const restore = useCallback(async (): Promise<boolean> => {
     console.log("[RC:restore] starting …");
     try {
-      // Re-identify before restoring so purchases link to the current user.
+      // Step 1: logIn — if this already confirms Pro, we're done.
+      // This is the most reliable call for users whose receipt was purchased
+      // under a different RC App User ID (e.g. anonymous) and migrated at login.
       if (userId) {
         try {
           const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
+          const loginPro = loginInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
           console.log(
-            "[RC:restore] logIn OK | active entitlements:",
-            Object.keys(loginInfo.entitlements.active)
+            "[RC:restore] logIn — isPro:", loginPro,
+            "| active entitlements:", Object.keys(loginInfo.entitlements.active)
           );
+          if (loginPro) {
+            applyCustomerInfo(loginInfo);
+            postToWebFromNative("PURCHASE_CONFIRMED", { isPro: true });
+            return true;
+          }
         } catch (e: any) {
           console.error("[RC:restore] logIn failed (non-fatal):", e?.message ?? e);
         }
       }
 
+      // Step 2: logIn didn't confirm Pro — fall back to restorePurchases.
       const restoredInfo = await Purchases.restorePurchases();
       const active = applyCustomerInfo(restoredInfo);
       const entitlementKeys = Object.keys(restoredInfo.entitlements.active);
 
       console.log(
-        "[RC:restore] complete — isPro:", active,
+        "[RC:restore] restorePurchases — isPro:", active,
         "| active entitlements:", entitlementKeys,
         "| RC App User ID:", (restoredInfo as any).originalAppUserId ?? "?"
       );
-
-      // Always post RESTORE_RESULT so the web diagnostic panel updates.
-      postToWebFromNative("RESTORE_RESULT", { isPro: active, entitlements: entitlementKeys });
 
       if (active) {
         postToWebFromNative("PURCHASE_CONFIRMED", { isPro: true });
