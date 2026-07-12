@@ -627,7 +627,7 @@ export function WeeklyCheckInModal({ open, onClose, goals, isProUser = false }: 
   // Hard-locked: no dismiss, no bypass. Only Upgrade, Restore, or Log Out.
   if (isTrialEnded && step === 0) {
     return (
-      <div className="fixed inset-0 z-50 bg-background flex flex-col">
+      <div className="fixed inset-0 z-50 bg-background flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="flex items-center px-5 pt-4 pb-3 border-b border-border">
           <p className="text-[10px] tracking-wide text-muted-foreground">Ascend</p>
         </div>
@@ -710,7 +710,7 @@ export function WeeklyCheckInModal({ open, onClose, goals, isProUser = false }: 
         : "bg-red-500/15";
 
     return (
-      <div className="fixed inset-0 z-50 bg-background flex flex-col">
+      <div className="fixed inset-0 z-50 bg-background flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border">
           <div>
             <p className="text-[10px] tracking-wide text-muted-foreground">
@@ -784,7 +784,7 @@ export function WeeklyCheckInModal({ open, onClose, goals, isProUser = false }: 
   // ── Intro step (step === 0) ────────────────────────────────────────────────
   if (step === 0) {
     return (
-      <div className="fixed inset-0 z-50 bg-background flex flex-col">
+      <div className="fixed inset-0 z-50 bg-background flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border">
           <p className="text-[10px] tracking-wide text-muted-foreground">
             Week {trialDay} Check-In
@@ -862,7 +862,7 @@ export function WeeklyCheckInModal({ open, onClose, goals, isProUser = false }: 
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div className="fixed inset-0 z-50 bg-background flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border">
         <div>
           <p className="text-[10px] tracking-wide text-muted-foreground">
