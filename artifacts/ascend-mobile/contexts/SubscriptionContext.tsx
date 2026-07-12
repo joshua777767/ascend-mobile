@@ -117,6 +117,9 @@ export function SubscriptionProvider({
   const appUserIdRef = useRef<string | null>(null);
 
   const isPro = customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+  // Ref so refresh() can read current isPro without stale closure.
+  const isProRef = useRef(false);
+  isProRef.current = isPro;
 
   // ── applyCustomerInfo ─────────────────────────────────────────────────────
   // THE single source of truth for all CustomerInfo state changes.
@@ -335,28 +338,33 @@ export function SubscriptionProvider({
 
   // ── App foreground refresh ────────────────────────────────────────────────
   // Called whenever the app returns to the foreground (AppState "active").
-  // Invalidates the RC SDK cache, fetches fresh CustomerInfo, and if not-Pro,
-  // re-submits the Apple receipt via syncPurchasesForResult so RC can re-validate.
+  //
+  // NOTE: invalidateCustomerInfoCache() is intentionally NOT called — it forces
+  // a raw server fetch for the numerical userId which misses the subscription
+  // (stored under the original anonymous RC ID server-side).
+  //
+  // NOTE: If getCustomerInfo() returns not-Pro but we are currently Pro, we do
+  // NOT downgrade. The RC server-side fetch for the numerical userId omits the
+  // anonymous-merged entitlement once the SDK cache expires (5-min TTL). The
+  // RC SDK's addCustomerInfoUpdateListener fires for genuine expirations — we
+  // rely on that for real downgrades, not on foreground polls.
   const refresh = useCallback(async () => {
     try {
       console.log("[RC:refresh] app foregrounded …");
-      // NOTE: invalidateCustomerInfoCache() intentionally NOT called — same reason
-      // as startup: invalidating the cache forces a raw server fetch that misses
-      // the subscription (which lives under the original anonymous RC ID).
       const info = await Purchases.getCustomerInfo();
-      const isProNow = applyCustomerInfo(info);
+      const isProNow = info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
       console.log("[RC:refresh] getCustomerInfo — isPro:", isProNow, "| entitlements:", Object.keys(info.entitlements.active));
 
-      if (!isProNow) {
-        console.log("[RC:refresh] not-Pro — syncing Apple receipt with RC backend …");
-        try {
-          const { customerInfo: synced } = await Purchases.syncPurchasesForResult();
-          const syncedPro = applyCustomerInfo(synced);
-          console.log("[RC:refresh] syncPurchasesForResult — isPro:", syncedPro, "| entitlements:", Object.keys(synced.entitlements.active));
-        } catch (syncErr: any) {
-          console.warn("[RC:refresh] syncPurchasesForResult failed (non-fatal):", syncErr?.message ?? syncErr);
-        }
+      if (!isProNow && isProRef.current) {
+        // Server returned not-Pro but we're currently Pro. This is the known
+        // anonymous-ID cache issue: once the SDK cache expires the server fetch
+        // returns not-Pro for the numerical userId. Do NOT downgrade — the RC
+        // listener handles real expirations.
+        console.log("[RC:refresh] server says not-Pro but current state is Pro — skipping downgrade (anonymous-id stale server issue)");
+        return;
       }
+
+      applyCustomerInfo(info);
     } catch (e) {
       console.error("[RC:refresh] failed:", e);
     }
