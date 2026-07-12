@@ -164,17 +164,17 @@ export function SubscriptionProvider({
   }, [applyCustomerInfo]);
 
   // ── Startup: configure → invalidate → logIn → getCustomerInfo ───────────
-  // Runs whenever userId changes (login / logout / account switch).
+  // Strictly sequential. SUBSCRIPTION_STATUS is sent to the WebView exactly
+  // ONCE — at the very end, after all RC calls have settled. It is never sent
+  // with a default/guessed value while userId or RC status is still unresolved.
   //
-  // ORDER:
-  // 1. Configure RC SDK (once per process).
-  // 2. Invalidate RC's local SDK cache — forces the next call to hit the network
-  //    rather than returning stale in-process data.
-  // 3. logIn(userId) — identifies this user in RC; result used as the initial check.
-  // 4. getCustomerInfo() + getOfferings() — authoritative entitlement check + packages.
-  //
-  // restorePurchases() is NOT called automatically — only when the user taps Restore.
-  // On RC failure the web gate keeps its loading spinner; a native Retry button appears.
+  // Order:
+  //   1. Configure RC SDK (once per process).
+  //   2. Wait for Ascend userId from the WebView AUTH_STATE message.
+  //   3. invalidateCustomerInfoCache()
+  //   4. logIn(userId)          ← log result, do NOT post to WebView yet
+  //   5. getCustomerInfo()      ← authoritative entitlement check
+  //   6. applyCustomerInfo()    ← post SUBSCRIPTION_STATUS exactly once
   useEffect(() => {
     let cancelled = false;
 
@@ -188,7 +188,7 @@ export function SubscriptionProvider({
         const apiKey = getApiKey();
         if (!apiKey) {
           const msg = "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY is not set. IAP will not work.";
-          console.error("[RC:configure] ERROR:", msg);
+          console.error("[RC] ERROR: " + msg);
           if (!cancelled) {
             setOfferingsError("Subscription configuration error. Please restart the app.");
             setOfferingsDiagnostic(msg);
@@ -200,10 +200,10 @@ export function SubscriptionProvider({
         try {
           Purchases.configure({ apiKey });
           configured.current = true;
-          console.log("[RC:configure] OK — key prefix:", apiKey.slice(0, 10), "| entitlement:", ENTITLEMENT_ID);
+          console.log("[RC] configured — key:", apiKey.slice(0, 10) + "… | entitlement ID: " + ENTITLEMENT_ID);
         } catch (e) {
           const msg = `configure() threw: ${String(e)}`;
-          console.error("[RC:configure]", msg);
+          console.error("[RC] ERROR: " + msg);
           if (!cancelled) {
             setOfferingsError("Subscription service unavailable. Please restart the app.");
             setOfferingsDiagnostic(msg);
@@ -213,89 +213,102 @@ export function SubscriptionProvider({
         }
       }
 
-      // Wait for userId — keep spinner, don't resolve until the user is known.
+      // Step 2: Wait for Ascend userId from WebView AUTH_STATE.
+      // Keep spinner. Never send SUBSCRIPTION_STATUS with a default while waiting.
       if (!userId) {
+        console.log("[RC] waiting for Ascend userId — SUBSCRIPTION_STATUS not sent yet");
         if (!cancelled) setIsLoading(false);
         return;
       }
 
-      // Step 2: Invalidate RC SDK's local cache so the next call hits the network.
+      console.log("[RC] ===== COLD START =====");
+      console.log("[RC] Ascend userId: " + userId);
+
+      // Step 3: Invalidate RC SDK cache so every call below hits the network.
       try {
         await Purchases.invalidateCustomerInfoCache();
-        console.log("[RC:startup] SDK cache invalidated");
+        console.log("[RC] cache invalidated");
       } catch (e) {
-        console.warn("[RC:startup] invalidateCustomerInfoCache failed (non-fatal):", e);
+        console.warn("[RC] invalidateCustomerInfoCache failed (non-fatal): " + String(e));
       }
       if (cancelled) return;
 
-      // Step 3: logIn() — identifies this Ascend user in RC.
-      // Returns CustomerInfo as a side-effect; we apply it as the initial check.
+      // Step 4: logIn(userId) — identify this user in RC.
+      // Log the result but do NOT call applyCustomerInfo here.
+      // SUBSCRIPTION_STATUS must not be sent until getCustomerInfo() settles.
+      let rcAppUserId = String(userId);
       try {
+        console.log("[RC] calling logIn(" + userId + ") …");
         const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
         if (cancelled) return;
-        const postLoginId = await Purchases.getAppUserID().catch(() => String(userId));
-        appUserIdRef.current = postLoginId;
-        if (!cancelled) setAppUserId(postLoginId);
-        console.log("[RC:logIn] RC App User ID:", postLoginId, "| entitlements:", Object.keys(loginInfo.entitlements.active));
-        if (!cancelled) applyCustomerInfo(loginInfo);
+        rcAppUserId = await Purchases.getAppUserID().catch(() => String(userId));
+        appUserIdRef.current = rcAppUserId;
+        if (!cancelled) setAppUserId(rcAppUserId);
+        const loginKeys = Object.keys(loginInfo.entitlements.active);
+        const loginIsPro = loginInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+        console.log("[RC] logIn() result:");
+        console.log("[RC]   RC App User ID : " + rcAppUserId);
+        console.log("[RC]   active keys    : [" + loginKeys.join(", ") + "]");
+        console.log("[RC]   isPro (logIn)  : " + loginIsPro);
+        console.log("[RC]   ⚠ NOT sent to WebView yet — awaiting getCustomerInfo()");
       } catch (e) {
-        console.error("[RC:logIn] failed (non-fatal):", e);
+        console.error("[RC] logIn() failed (non-fatal): " + String(e));
       }
       if (cancelled) return;
 
-      // Step 4: getCustomerInfo() + getOfferings() in parallel.
-      // getCustomerInfo() asks RC what it knows about this user.
-      // If it returns not-Pro, syncPurchasesForResult() re-submits the local
-      // Apple receipt to RC's backend so it can re-validate and update its records.
-      // This handles the case where the receipt is valid on Apple's side but RC's
-      // backend hasn't linked it to this user ID yet.
+      // Step 5: getCustomerInfo() — authoritative entitlement state from RC backend.
+      // getOfferings() fetched in parallel for the paywall UI.
+      let finalInfo: import("react-native-purchases").CustomerInfo | null = null;
       try {
-        console.log("[RC:fetch] getCustomerInfo + getOfferings …");
+        console.log("[RC] calling getCustomerInfo() …");
         const [info, offerings] = await Promise.all([
           Purchases.getCustomerInfo(),
           Purchases.getOfferings(),
         ]);
         if (cancelled) return;
 
-        const isProNow = applyCustomerInfo(info);
-        console.log("[RC:fetch] getCustomerInfo — isPro:", isProNow, "| entitlements:", Object.keys(info.entitlements.active));
+        finalInfo = info;
+        const getKeys = Object.keys(info.entitlements.active);
+        const getIsPro = info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+        const rcId2 = await Purchases.getAppUserID().catch(() => rcAppUserId);
+        console.log("[RC] getCustomerInfo() result:");
+        console.log("[RC]   RC App User ID       : " + rcId2);
+        console.log("[RC]   active keys           : [" + getKeys.join(", ") + "]");
+        console.log("[RC]   isPro (getCustomerInfo): " + getIsPro);
 
-        if (!isProNow && !cancelled) {
-          // getCustomerInfo returned not-Pro. Re-submit the Apple receipt so RC
-          // can re-validate and link it to this user. This is the correct tool
-          // for "subscription valid at Apple, not reflected in RC yet."
-          console.log("[RC:sync] getCustomerInfo not-Pro — syncing Apple receipt with RC backend …");
-          try {
-            const { customerInfo: synced } = await Purchases.syncPurchasesForResult();
-            if (!cancelled) {
-              const syncedPro = applyCustomerInfo(synced);
-              console.log("[RC:sync] syncPurchasesForResult — isPro:", syncedPro, "| entitlements:", Object.keys(synced.entitlements.active));
-            }
-          } catch (syncErr: any) {
-            console.warn("[RC:sync] syncPurchasesForResult failed (non-fatal):", syncErr?.message ?? syncErr);
+        const { packages: pkgs, diagnostic } = diagnoseOfferings(offerings);
+        if (!cancelled) {
+          setPackages(pkgs);
+          if (pkgs.length === 0) {
+            setOfferingsError("No subscription package found. Tap to retry.");
+            setOfferingsDiagnostic(diagnostic);
+          } else {
+            setOfferingsError(null);
+            setOfferingsDiagnostic(null);
           }
         }
-
-        if (cancelled) return;
-        const { packages: pkgs, diagnostic } = diagnoseOfferings(offerings);
-        setPackages(pkgs);
-        if (pkgs.length === 0) {
-          setOfferingsError("No subscription package found. Tap to retry.");
-          setOfferingsDiagnostic(diagnostic);
-        } else {
-          setOfferingsError(null);
-          setOfferingsDiagnostic(null);
-        }
       } catch (e: any) {
-        const msg = `getCustomerInfo/getOfferings threw: ${e?.message ?? String(e)} (code ${e?.code ?? "?"})`;
-        console.error("[RC:fetch] ERROR:", msg);
+        const msg = `getCustomerInfo() threw: ${e?.message ?? String(e)} (code ${e?.code ?? "?"})`;
+        console.error("[RC] ERROR: " + msg);
         if (!cancelled) {
           setOfferingsError("Could not verify subscription. Check connection and retry.");
           setOfferingsDiagnostic(msg);
+          setIsLoading(false);
         }
-      } finally {
-        if (!cancelled) setIsLoading(false);
+        return;
       }
+      if (cancelled) return;
+
+      // Step 6: Send SUBSCRIPTION_STATUS exactly once with the final settled result.
+      if (finalInfo) {
+        const finalIsPro = finalInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+        console.log("[RC] ===== SENDING SUBSCRIPTION_STATUS =====");
+        console.log("[RC]   isPro: " + finalIsPro);
+        console.log("[RC]   active keys: [" + Object.keys(finalInfo.entitlements.active).join(", ") + "]");
+        applyCustomerInfo(finalInfo);
+      }
+
+      if (!cancelled) setIsLoading(false);
     })();
 
     return () => { cancelled = true; };
