@@ -13,7 +13,49 @@ import Purchases, {
   type PurchasesPackage,
 } from "react-native-purchases";
 import { Platform, AppState } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { postToWebFromNative } from "./webview-bridge";
+
+// ── Pro cache ─────────────────────────────────────────────────────────────────
+// When RC confirms Pro, we write a timestamp to AsyncStorage. On startup and
+// foreground we read this first. If < TTL hours old, we immediately tell the
+// web layer the user is Pro and then verify with RC in the background.
+// RC only ever returns `isPro:false` to the WebView if the cache is also expired,
+// preventing false lockouts caused by stale RC SDK cache.
+const PRO_CACHE_KEY = "ascend_pro_confirmed_ts";
+const PRO_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+async function readProCache(): Promise<boolean> {
+  try {
+    const raw = await AsyncStorage.getItem(PRO_CACHE_KEY);
+    if (!raw) return false;
+    const age = Date.now() - Number(raw);
+    const fresh = age >= 0 && age < PRO_CACHE_TTL_MS;
+    console.log("[RC:cache] age:", Math.round(age / 60000), "min — fresh:", fresh);
+    return fresh;
+  } catch (e) {
+    console.warn("[RC:cache] read error (non-fatal):", e);
+    return false;
+  }
+}
+
+async function writeProCache(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(PRO_CACHE_KEY, String(Date.now()));
+    console.log("[RC:cache] written — Pro confirmed");
+  } catch (e) {
+    console.warn("[RC:cache] write error (non-fatal):", e);
+  }
+}
+
+async function clearProCache(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(PRO_CACHE_KEY);
+    console.log("[RC:cache] cleared — Pro no longer confirmed");
+  } catch (e) {
+    console.warn("[RC:cache] clear error (non-fatal):", e);
+  }
+}
 
 // The entitlement identifier configured in RevenueCat dashboard.
 // Must match exactly — RC uses the identifier (not the display name) as the
@@ -115,6 +157,9 @@ export function SubscriptionProvider({
   // Ref so applyCustomerInfo can include the current appUserId in the broadcast
   // without being invalidated by every render.
   const appUserIdRef = useRef<string | null>(null);
+  // True when AsyncStorage cache confirms Pro and RC hasn't yet countered it.
+  // Prevents RC's stale false-negative from closing the gate for legitimate Pro users.
+  const cacheProtected = useRef(false);
 
   const isPro = customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
 
@@ -123,24 +168,43 @@ export function SubscriptionProvider({
   //
   // 1. Checks the exact configured Pro entitlement.
   // 2. Updates React state (customerInfo, subscriptionResolved).
-  // 3. Immediately posts SUBSCRIPTION_STATUS to the WebView via the module-level
-  //    bridge — no React cycle delay. If the WebView isn't ready yet, the post
-  //    is a no-op; handleLoadEnd and REQUEST_SUBSCRIPTION_STATUS cover that case.
-  // 4. Returns whether Pro is currently active.
+  // 3. Immediately posts SUBSCRIPTION_STATUS to the WebView — UNLESS the cache
+  //    says Pro and RC is returning a false-negative (cacheProtected=true).
+  //    In that case we silently skip the false post so the user stays in.
+  // 4. When RC confirms Pro, writes the AsyncStorage cache.
+  // 5. Returns whether Pro is currently active.
   const applyCustomerInfo = useCallback((info: CustomerInfo): boolean => {
     const active = info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
     setCustomerInfo(info);
     setSubscriptionResolved(true);
 
-    const payload = { isPro: active, appUserId: appUserIdRef.current };
-    postToWebFromNative("SUBSCRIPTION_STATUS", payload);
+    if (active) {
+      // RC confirmed Pro — write cache and lift protection (no longer needed)
+      cacheProtected.current = false;
+      writeProCache(); // fire and forget
+      const payload = { isPro: true, appUserId: appUserIdRef.current };
+      postToWebFromNative("SUBSCRIPTION_STATUS", payload);
+    } else if (cacheProtected.current) {
+      // RC is returning not-Pro but our local cache says Pro < 24h ago.
+      // Trust the cache — don't downgrade the web gate. RC SDK cache issue.
+      console.log(
+        "[RC:apply] RC says not-Pro but cache is fresh — suppressing false-negative.",
+        "| checked entitlement:", ENTITLEMENT_ID,
+        "| active entitlements:", Object.keys(info.entitlements.active)
+      );
+    } else {
+      // No cache protection and RC says not-Pro — legitimate downgrade.
+      const payload = { isPro: false, appUserId: appUserIdRef.current };
+      postToWebFromNative("SUBSCRIPTION_STATUS", payload);
+    }
 
     console.log(
       "[RC:apply] entitlement:", ENTITLEMENT_ID,
       "| isPro:", active,
+      "| cacheProtected:", cacheProtected.current,
+      "| posted:", active || !cacheProtected.current,
       "| active entitlements:", Object.keys(info.entitlements.active),
-      "| appUserId:", appUserIdRef.current,
-      "| subscriptionResolved: true"
+      "| appUserId:", appUserIdRef.current
     );
     return active;
   }, []);
@@ -163,10 +227,18 @@ export function SubscriptionProvider({
     };
   }, [applyCustomerInfo]);
 
-  // ── Startup: configure → logIn → getCustomerInfo → applyCustomerInfo ──────
+  // ── Startup: cache → configure → invalidate → logIn → getCustomerInfo ──────
   // Runs whenever userId changes (login / logout / account switch).
-  // Never evaluates the web gate before this completes (subscriptionResolved
-  // stays false until applyCustomerInfo is called below).
+  //
+  // ORDER MATTERS:
+  // 1. Read AsyncStorage Pro cache — if fresh, post isPro:true immediately and
+  //    set cacheProtected so RC false-negatives don't close the gate.
+  // 2. Configure RC SDK (once per process).
+  // 3. Invalidate RC's local SDK cache — forces the next call to hit the network
+  //    instead of returning a stale cached result (root cause of the false-negative).
+  // 4. logIn(userId) — network call, most reliable for migrated receipts.
+  // 5. getCustomerInfo + getOfferings — authoritative check + load packages.
+  // 6. If still not Pro, auto-restore as last attempt.
   useEffect(() => {
     let cancelled = false;
 
@@ -175,7 +247,21 @@ export function SubscriptionProvider({
       setOfferingsError(null);
       setOfferingsDiagnostic(null);
 
-      // Step 1: Configure the SDK exactly once per process lifetime.
+      // Step 1: Check AsyncStorage cache BEFORE any RC call.
+      // If we confirmed Pro within the last 24h, tell the web immediately and
+      // enable cacheProtected so RC false-negatives don't close the gate.
+      if (userId) {
+        const cachedPro = await readProCache();
+        if (!cancelled && cachedPro) {
+          cacheProtected.current = true;
+          console.log("[RC:startup] cache hit — posting isPro:true immediately, RC will verify in background");
+          setSubscriptionResolved(true);
+          setIsLoading(false);
+          postToWebFromNative("SUBSCRIPTION_STATUS", { isPro: true, appUserId: appUserIdRef.current });
+        }
+      }
+
+      // Step 2: Configure the SDK exactly once per process lifetime.
       if (!configured.current) {
         const apiKey = getApiKey();
         if (!apiKey) {
@@ -185,8 +271,10 @@ export function SubscriptionProvider({
             setOfferingsError("Subscription configuration error. Please restart the app.");
             setOfferingsDiagnostic(msg);
             setIsLoading(false);
-            setSubscriptionResolved(true);
-            postToWebFromNative("SUBSCRIPTION_STATUS", { isPro: false, appUserId: null });
+            if (!cacheProtected.current) {
+              setSubscriptionResolved(true);
+              postToWebFromNative("SUBSCRIPTION_STATUS", { isPro: false, appUserId: null });
+            }
           }
           return;
         }
@@ -208,14 +296,16 @@ export function SubscriptionProvider({
             setOfferingsError("Subscription service unavailable. Please restart the app.");
             setOfferingsDiagnostic(msg);
             setIsLoading(false);
-            setSubscriptionResolved(true);
-            postToWebFromNative("SUBSCRIPTION_STATUS", { isPro: false, appUserId: null });
+            if (!cacheProtected.current) {
+              setSubscriptionResolved(true);
+              postToWebFromNative("SUBSCRIPTION_STATUS", { isPro: false, appUserId: null });
+            }
           }
           return;
         }
       }
 
-      // Step 2: Identify the Ascend user in RevenueCat.
+      // Step 3: Identify the Ascend user in RevenueCat.
       // If no userId yet (user not logged in / AsyncStorage still reading),
       // do nothing — never call logOut() here, never post SUBSCRIPTION_STATUS,
       // never set subscriptionResolved=true. The web gate keeps its spinner.
@@ -225,39 +315,41 @@ export function SubscriptionProvider({
         return;
       }
 
-      // logIn() migrates any anonymous RC purchases to this user's canonical ID
-      // and returns the CustomerInfo immediately — so the gate can open before
-      // getCustomerInfo() below even completes.
-      if (userId) {
-        let preLoginId = "(unknown)";
-        try { preLoginId = await Purchases.getAppUserID(); } catch {}
+      // Step 4: Invalidate RC SDK's local cache so the next call hits the network.
+      // This is the root fix — RC's in-memory/disk cache returns stale data on
+      // subsequent logIn() calls after the initial anonymous→user migration.
+      try {
+        await Purchases.invalidateCustomerInfoCache();
+        console.log("[RC:startup] SDK cache invalidated — next call will hit network");
+      } catch (e) {
+        console.warn("[RC:startup] invalidateCustomerInfoCache failed (non-fatal):", e);
+      }
+      if (cancelled) return;
+
+      // Step 5: logIn() — migrates anonymous RC purchases + returns fresh CustomerInfo.
+      let preLoginId = "(unknown)";
+      try { preLoginId = await Purchases.getAppUserID(); } catch {}
+      console.log("[RC:logIn] Ascend userId:", userId, "| RC App User ID before logIn:", preLoginId);
+
+      try {
+        const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
+        if (cancelled) return;
+
+        const postLoginId = await Purchases.getAppUserID().catch(() => String(userId));
+        appUserIdRef.current = postLoginId;
+        if (!cancelled) setAppUserId(postLoginId);
+
         console.log(
-          "[RC:logIn] Ascend userId:", userId,
-          "| RC App User ID before logIn:", preLoginId
+          "[RC:logIn] OK — RC App User ID after logIn:", postLoginId,
+          "| active entitlements:", Object.keys(loginInfo.entitlements.active)
         );
 
-        try {
-          const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
-          if (cancelled) return;
-
-          const postLoginId = await Purchases.getAppUserID().catch(() => String(userId));
-          appUserIdRef.current = postLoginId;
-          if (!cancelled) setAppUserId(postLoginId);
-
-          console.log(
-            "[RC:logIn] OK — RC App User ID after logIn:", postLoginId,
-            "| active entitlements:", Object.keys(loginInfo.entitlements.active)
-          );
-
-          // Apply immediately — gate can open here for returning Pro users
-          // before the slower getCustomerInfo() completes.
-          if (!cancelled) applyCustomerInfo(loginInfo);
-        } catch (e) {
-          console.error("[RC:logIn] failed (non-fatal):", e);
-        }
+        if (!cancelled) applyCustomerInfo(loginInfo);
+      } catch (e) {
+        console.error("[RC:logIn] failed (non-fatal):", e);
       }
 
-      // Step 3: Fresh getCustomerInfo (authoritative) + load purchase packages.
+      // Step 6: Fresh getCustomerInfo (authoritative) + load purchase packages.
       try {
         console.log("[RC:fetch] calling getCustomerInfo + getOfferings …");
         const [info, offerings] = await Promise.all([
@@ -266,16 +358,11 @@ export function SubscriptionProvider({
         ]);
         if (cancelled) return;
 
-        // applyCustomerInfo broadcasts the final authoritative state.
-        const isPro = applyCustomerInfo(info);
+        const isProNow = applyCustomerInfo(info);
 
-        // If getCustomerInfo shows no Pro, auto-restore immediately.
-        // This covers the case where the Apple receipt exists on a different
-        // RC App User ID (e.g. anonymous ID from an earlier build, or a prior
-        // user account). restorePurchases() re-links the receipt to the current
-        // identity without requiring the user to tap "Restore".
-        if (!isPro && !cancelled) {
-          console.log("[RC:startup] not Pro after getCustomerInfo — auto-restoring to re-link Apple receipt …");
+        // If still not Pro, auto-restore as last attempt.
+        if (!isProNow && !cancelled) {
+          console.log("[RC:startup] not Pro after getCustomerInfo — auto-restoring …");
           try {
             const restored = await Purchases.restorePurchases();
             if (!cancelled) {
@@ -299,10 +386,9 @@ export function SubscriptionProvider({
       } catch (e: any) {
         const msg = `getCustomerInfo/getOfferings threw: ${e?.message ?? String(e)} (code ${e?.code ?? "?"})`;
         console.error("[RC:fetch] ERROR:", msg);
-        if (!cancelled) {
+        if (!cancelled && !cacheProtected.current) {
           setOfferingsError("Could not load subscription. Check your connection.");
           setOfferingsDiagnostic(msg);
-          // Always resolve so the gate doesn't spin forever on a network error.
           setSubscriptionResolved(true);
           postToWebFromNative("SUBSCRIPTION_STATUS", { isPro: false, appUserId: appUserIdRef.current });
         }
@@ -320,44 +406,53 @@ export function SubscriptionProvider({
   // (cancellation, renewal failure, family sharing, etc.).
   const refresh = useCallback(async () => {
     try {
-      console.log("[RC:refresh] app foregrounded — re-identifying and refreshing …");
+      console.log("[RC:refresh] app foregrounded …");
 
-      // Step 1: logIn first — this is the only RC call that reliably returns the
-      // correct entitlement when the receipt was purchased under a different RC
-      // App User ID (anonymous ID) and migrated at login time.
+      // Step 1: Check cache — if fresh, enable protection so RC false-negatives
+      // don't flash the paywall while the network call is in-flight.
+      if (userId) {
+        const cachedPro = await readProCache();
+        if (cachedPro) {
+          cacheProtected.current = true;
+          console.log("[RC:refresh] cache fresh — protecting gate while RC verifies");
+        }
+      }
+
+      // Step 2: Invalidate RC SDK's local cache — forces a network call.
+      try {
+        await Purchases.invalidateCustomerInfoCache();
+        console.log("[RC:refresh] SDK cache invalidated");
+      } catch (e) {
+        console.warn("[RC:refresh] invalidateCustomerInfoCache failed (non-fatal):", e);
+      }
+
+      // Step 3: logIn — migrates receipts + returns fresh data (most reliable).
       if (userId) {
         try {
           const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
           const loginPro = loginInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
           console.log("[RC:refresh] logIn — isPro:", loginPro, "| entitlements:", Object.keys(loginInfo.entitlements.active));
-          if (loginPro) {
-            applyCustomerInfo(loginInfo);
-            return; // confirmed Pro — nothing else needed
-          }
+          applyCustomerInfo(loginInfo);
+          if (loginPro) return; // confirmed — done
         } catch (loginErr) {
           console.warn("[RC:refresh] logIn failed (non-fatal):", loginErr);
         }
       }
 
-      // Step 2: logIn didn't confirm Pro — try getCustomerInfo.
+      // Step 4: logIn didn't confirm Pro — try getCustomerInfo.
       const info = await Purchases.getCustomerInfo();
+      applyCustomerInfo(info);
       const initialPro = info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+      if (initialPro) return;
 
-      if (initialPro) {
-        applyCustomerInfo(info);
-      } else {
-        // Step 3: Still not Pro — silently restore before telling the web anything.
-        // This prevents a paywall flash for users whose receipt needs re-linking.
-        console.log("[RC:refresh] not Pro — auto-restoring before posting to web …");
-        try {
-          const restored = await Purchases.restorePurchases();
-          const restoredPro = applyCustomerInfo(restored);
-          console.log("[RC:refresh] foreground restore — isPro:", restoredPro, "| entitlements:", Object.keys(restored.entitlements.active));
-        } catch (restoreErr) {
-          // Only post the non-Pro state after all attempts failed.
-          console.warn("[RC:refresh] foreground restore failed — posting non-Pro:", restoreErr);
-          applyCustomerInfo(info);
-        }
+      // Step 5: Still not Pro — restore as last attempt.
+      console.log("[RC:refresh] not Pro after all RC calls — trying restore …");
+      try {
+        const restored = await Purchases.restorePurchases();
+        const restoredPro = applyCustomerInfo(restored);
+        console.log("[RC:refresh] restore — isPro:", restoredPro, "| entitlements:", Object.keys(restored.entitlements.active));
+      } catch (restoreErr) {
+        console.warn("[RC:refresh] restore failed (non-fatal):", restoreErr);
       }
     } catch (e) {
       console.error("[RC:refresh] failed:", e);
