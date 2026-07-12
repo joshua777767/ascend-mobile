@@ -320,32 +320,49 @@ export function SubscriptionProvider({
   // (cancellation, renewal failure, family sharing, etc.).
   const refresh = useCallback(async () => {
     try {
-      console.log("[RC:refresh] app foregrounded — refreshing CustomerInfo …");
+      console.log("[RC:refresh] app foregrounded — re-identifying and refreshing …");
+
+      // Step 1: logIn first — this is the only RC call that reliably returns the
+      // correct entitlement when the receipt was purchased under a different RC
+      // App User ID (anonymous ID) and migrated at login time.
+      if (userId) {
+        try {
+          const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
+          const loginPro = loginInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
+          console.log("[RC:refresh] logIn — isPro:", loginPro, "| entitlements:", Object.keys(loginInfo.entitlements.active));
+          if (loginPro) {
+            applyCustomerInfo(loginInfo);
+            return; // confirmed Pro — nothing else needed
+          }
+        } catch (loginErr) {
+          console.warn("[RC:refresh] logIn failed (non-fatal):", loginErr);
+        }
+      }
+
+      // Step 2: logIn didn't confirm Pro — try getCustomerInfo.
       const info = await Purchases.getCustomerInfo();
       const initialPro = info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
 
       if (initialPro) {
-        // Cache says Pro — apply immediately, nothing else needed.
         applyCustomerInfo(info);
       } else {
-        // Cache says not-Pro. Before telling the web (which would flash the paywall),
-        // silently restore to re-link any Apple receipt that attached to a different
-        // RC App User ID (anonymous ID from an earlier build, etc.).
-        console.log("[RC:refresh] not Pro after getCustomerInfo — auto-restoring before posting to web …");
+        // Step 3: Still not Pro — silently restore before telling the web anything.
+        // This prevents a paywall flash for users whose receipt needs re-linking.
+        console.log("[RC:refresh] not Pro — auto-restoring before posting to web …");
         try {
           const restored = await Purchases.restorePurchases();
           const restoredPro = applyCustomerInfo(restored);
           console.log("[RC:refresh] foreground restore — isPro:", restoredPro, "| entitlements:", Object.keys(restored.entitlements.active));
         } catch (restoreErr) {
-          // Restore failed — only NOW post the non-Pro state so the web is accurate.
-          console.warn("[RC:refresh] foreground restore failed — posting non-Pro state:", restoreErr);
+          // Only post the non-Pro state after all attempts failed.
+          console.warn("[RC:refresh] foreground restore failed — posting non-Pro:", restoreErr);
           applyCustomerInfo(info);
         }
       }
     } catch (e) {
       console.error("[RC:refresh] failed:", e);
     }
-  }, [applyCustomerInfo]);
+  }, [userId, applyCustomerInfo]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
