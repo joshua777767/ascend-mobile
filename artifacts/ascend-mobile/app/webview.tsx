@@ -2,7 +2,6 @@ import * as ImagePicker from "expo-image-picker";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Linking, Platform, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
-import { useRouter } from "expo-router";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { registerPostToWeb } from "@/contexts/webview-bridge";
 import { useUser } from "@/contexts/UserContext";
@@ -40,7 +39,6 @@ true;
 
 export default function WebViewScreen() {
   const webviewRef = useRef<WebView>(null);
-  const router = useRouter();
   const { setUserId } = useUser();
   const { isPro, subscriptionResolved, appUserId, packages, purchase, restore, refresh, offeringsError, isLoading } = useSubscription();
 
@@ -267,22 +265,6 @@ export default function WebViewScreen() {
         mediaPlaybackRequiresUserAction={false}
       />
 
-      {/*
-        Splash-matching overlay: shown from app open until the first page has
-        loaded AND RevenueCat has resolved (subscriptionResolved=true). The
-        WebView loads underneath so no startup time is wasted behind this gate.
-        Background (#080D12) matches the Expo splash for a seamless transition.
-      */}
-      {/* Floating debug button — visible only when paywall is showing (resolved, not Pro) */}
-      {subscriptionResolved && !isPro && webviewLoaded && (
-        <Pressable
-          style={styles.debugBtn}
-          onPress={() => router.push("/debug-subscription")}
-        >
-          <Text style={styles.debugBtnText}>🔍 RC Debug</Text>
-        </Pressable>
-      )}
-
       {showOverlay && (
         <View style={styles.overlay}>
           {!subscriptionResolved && !isLoading && offeringsError ? (
@@ -330,22 +312,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 15,
     fontFamily: "SpaceMono",
-  },
-  debugBtn: {
-    position: "absolute",
-    bottom: 48,
-    right: 16,
-    backgroundColor: "rgba(245,158,11,0.15)",
-    borderWidth: 1,
-    borderColor: "#F59E0B",
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    zIndex: 999,
-  },
-  debugBtnText: {
-    color: "#F59E0B",
-    fontSize: 12,
-    fontWeight: "700",
   },
 });

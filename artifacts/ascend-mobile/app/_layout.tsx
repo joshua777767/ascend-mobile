@@ -41,10 +41,6 @@ function RootLayoutNav() {
     <SubscriptionProvider userId={userId}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="webview" options={{ animation: "none" }} />
-        <Stack.Screen
-          name="debug-subscription"
-          options={{ presentation: "modal" }}
-        />
         <Stack.Screen name="+not-found" />
       </Stack>
     </SubscriptionProvider>
