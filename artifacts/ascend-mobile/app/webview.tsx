@@ -6,7 +6,6 @@ import {
   handleCancelNotification,
   handleDevTestNotification,
 } from "../notificationHandler";
-import { handleRequestLocationPermission } from "../locationHandler";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Linking, Platform, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
@@ -253,11 +252,6 @@ export default function WebViewScreen() {
 
       case "REQUEST_NOTIFICATION_PERMISSION": {
         await handleRequestPermission(postToWeb);
-        break;
-      }
-
-      case "REQUEST_LOCATION_PERMISSION": {
-        await handleRequestLocationPermission(postToWeb);
         break;
       }
 

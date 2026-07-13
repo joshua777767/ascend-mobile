@@ -17,8 +17,7 @@
       "buildNumber": "32",
       "minimumOsVersion": "15.1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "Ascend uses your location to determine your current timezone so meal and workout reminders remain accurate when you travel."
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

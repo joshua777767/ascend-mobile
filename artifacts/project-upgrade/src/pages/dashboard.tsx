@@ -559,34 +559,6 @@ export default function DashboardPage() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
-  // ── Location / timezone permission ────────────────────────────────────────
-  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
-  const [locationGranted, setLocationGranted] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    // Show once — after a short delay so the dashboard has rendered first
-    const asked = localStorage.getItem("ascend_location_asked");
-    const t = !asked ? setTimeout(() => setShowLocationPrompt(true), 1500) : null;
-    return () => { if (t !== null) clearTimeout(t); };
-  }, []);
-
-  function handleAllowLocation() {
-    localStorage.setItem("ascend_location_asked", "1");
-    if (window.__ascendBridge) {
-      window.__ascendBridge("REQUEST_LOCATION_PERMISSION", null);
-    }
-  }
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const { granted } = (e as CustomEvent<{ granted: boolean }>).detail ?? {};
-      setShowLocationPrompt(false);
-      setLocationGranted(granted ?? false);
-    };
-    window.addEventListener("__native:LOCATION_PERMISSION", handler);
-    return () => window.removeEventListener("__native:LOCATION_PERMISSION", handler);
-  }, []);
-
   // Scope all "today" queries to the user's local date so React Query
   // treats each calendar day as a separate cache entry and never serves
   // yesterday's data on a new local day.
@@ -1040,44 +1012,6 @@ export default function DashboardPage() {
   return (
     <div className="h-full overflow-y-auto scroll-area">
       <div className="max-w-lg mx-auto px-4 pt-5 pb-6 space-y-5">
-
-        {/* ── Location permission prompt ── */}
-        {showLocationPrompt && (
-          <div
-            className="rounded-2xl p-4 flex flex-col gap-3 animate-in slide-in-from-top-2 duration-300"
-            style={{
-              background: "hsl(220 12% 9%)",
-              border: "1px solid hsl(35 70% 50% / 0.35)",
-            }}
-          >
-            <div className="flex items-start gap-3">
-              <span className="text-xl mt-0.5">📍</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground leading-snug">Enable precise timing</p>
-                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  Your location lets Ascend sync your schedule, streaks, and daily reviews to your actual timezone — not a server default.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleAllowLocation}
-                className="flex-1 h-9 rounded-xl text-xs font-bold text-background"
-                style={{ background: "hsl(38 95% 54%)" }}
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Location granted toast ── */}
-        {locationGranted === true && (
-          <div className="rounded-2xl px-4 py-3 text-xs font-semibold text-emerald-400 flex items-center gap-2"
-            style={{ background: "hsl(150 50% 10%)", border: "1px solid hsl(150 50% 20%)" }}>
-            <span>✓</span> Location locked in — your schedule is now timezone-precise.
-          </div>
-        )}
 
         {/* ── Welcome card (first visit only) ── */}
         {showWelcome && (
