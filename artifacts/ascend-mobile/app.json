@@ -14,10 +14,11 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ascendfit.app",
-      "buildNumber": "31",
+      "buildNumber": "32",
       "minimumOsVersion": "15.1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Ascend uses your location to determine your current timezone so meal and workout reminders remain accurate when you travel."
       }
     },
     "android": {

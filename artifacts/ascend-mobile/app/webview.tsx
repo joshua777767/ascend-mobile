@@ -6,6 +6,7 @@ import {
   handleCancelNotification,
   handleDevTestNotification,
 } from "../notificationHandler";
+import { handleRequestLocationPermission } from "../locationHandler";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Linking, Platform, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
@@ -27,7 +28,7 @@ Notifications.setNotificationHandler({
 const BASE_URL = `https://${process.env.EXPO_PUBLIC_DOMAIN ?? "ascendfit.fitness"}`;
 // Versioned so each native build fetches a fresh entry from WKWebView's cache.
 // Bump _v whenever the web app has meaningful changes that must bypass stale cache.
-const LAUNCH_URL = `${BASE_URL}/dashboard?_v=31`;
+const LAUNCH_URL = `${BASE_URL}/dashboard?_v=32`;
 
 // Injected on every page load — sets up the bidirectional bridge
 const BRIDGE_JS = `
@@ -252,6 +253,11 @@ export default function WebViewScreen() {
 
       case "REQUEST_NOTIFICATION_PERMISSION": {
         await handleRequestPermission(postToWeb);
+        break;
+      }
+
+      case "REQUEST_LOCATION_PERMISSION": {
+        await handleRequestLocationPermission(postToWeb);
         break;
       }
 
