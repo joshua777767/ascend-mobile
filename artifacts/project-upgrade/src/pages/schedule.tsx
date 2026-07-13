@@ -758,6 +758,19 @@ export default function SchedulePage() {
           </button>
         )}
 
+        {/* DEV ONLY — never visible in production builds */}
+        {import.meta.env.DEV && isNative && (
+          <button
+            onClick={() => {
+              sendBridge("DEV_TEST_NOTIFICATION");
+              showNotifMsg("Test notification fires in ~10 seconds…");
+            }}
+            className="w-full mt-3 h-10 rounded-2xl border border-dashed border-yellow-500/50 text-xs font-semibold text-yellow-500/70 hover:text-yellow-400 hover:border-yellow-500 transition-all flex items-center justify-center gap-2"
+          >
+            🔔 Test notification in 10 seconds
+          </button>
+        )}
+
       </div>
 
       {/* Meal notification feedback toast */}
