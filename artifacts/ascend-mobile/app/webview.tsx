@@ -1,10 +1,22 @@
 import * as ImagePicker from "expo-image-picker";
+import * as Notifications from "expo-notifications";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Linking, Platform, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { registerPostToWeb } from "@/contexts/webview-bridge";
 import { useUser } from "@/contexts/UserContext";
+
+// Show alerts/sounds when a notification fires while the app is foregrounded.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 const BASE_URL = `https://${process.env.EXPO_PUBLIC_DOMAIN ?? "ascendfit.fitness"}`;
 // Versioned so each native build fetches a fresh entry from WKWebView's cache.
@@ -228,6 +240,63 @@ export default function WebViewScreen() {
           postToWeb("RESTORE_FAILED", {
             message: "Restore failed. Please try again.",
           });
+        }
+        break;
+      }
+
+      case "REQUEST_NOTIFICATION_PERMISSION": {
+        // Helper: iOS permission is granted when AUTHORIZED or PROVISIONAL.
+        const isGranted = (r: Notifications.NotificationPermissionsStatus) =>
+          r.ios?.status === Notifications.IosAuthorizationStatus.AUTHORIZED ||
+          r.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+        try {
+          const existing = await Notifications.getPermissionsAsync();
+          if (isGranted(existing)) {
+            postToWeb("NOTIFICATION_PERMISSION", { granted: true });
+          } else {
+            const result = await Notifications.requestPermissionsAsync();
+            postToWeb("NOTIFICATION_PERMISSION", { granted: isGranted(result) });
+          }
+        } catch {
+          postToWeb("NOTIFICATION_PERMISSION", { granted: false });
+        }
+        break;
+      }
+
+      case "SCHEDULE_NOTIFICATION": {
+        const { id, title, body, hour, minute } = (msg.payload ?? {}) as {
+          id: string; title: string; body: string; hour: number; minute: number;
+        };
+        try {
+          // Cancel any existing notification with the same id before rescheduling.
+          await Notifications.cancelScheduledNotificationAsync(String(id)).catch(() => {});
+          await Notifications.scheduleNotificationAsync({
+            identifier: String(id),
+            content: {
+              title: String(title),
+              body: String(body),
+              sound: true,
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.DAILY,
+              hour: Number(hour),
+              minute: Number(minute),
+            },
+          });
+          postToWeb("NOTIFICATION_SCHEDULED", { id });
+        } catch {
+          // non-fatal — notification scheduling is best-effort
+        }
+        break;
+      }
+
+      case "CANCEL_NOTIFICATION": {
+        const { id } = (msg.payload ?? {}) as { id: string };
+        try {
+          await Notifications.cancelScheduledNotificationAsync(String(id));
+          postToWeb("NOTIFICATION_CANCELLED", { id });
+        } catch {
+          // ignore — notification may not have existed
         }
         break;
       }
