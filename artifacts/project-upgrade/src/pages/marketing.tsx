@@ -32,7 +32,7 @@ export default function MarketingPage() {
                 "Weekly plan adjustments based on your weigh-ins",
                 "Meal photo feedback with instant AI analysis",
                 "Water, sleep, and habit tracking with streaks",
-                "14-day free trial, then $19.99/month — cancel anytime",
+                "14-day free trial included — cancel anytime",
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center text-primary text-xs font-bold mt-0.5 shrink-0">
@@ -47,12 +47,8 @@ export default function MarketingPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">Pricing</h2>
             <div className="rounded-2xl border border-primary/30 bg-card p-5">
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-3xl font-bold">$19.99</span>
-                <span className="text-muted-foreground">/ month</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Start with a 7-day free trial. Cancel anytime. No commitment.
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Start with a free trial to explore all Pro features. Subscription pricing is shown at checkout inside the app.
               </p>
             </div>
           </section>

@@ -1073,13 +1073,7 @@ export default function DashboardPage() {
                 className="flex-1 h-9 rounded-xl text-xs font-bold text-background"
                 style={{ background: "hsl(38 95% 54%)" }}
               >
-                Allow location
-              </button>
-              <button
-                onClick={handleSkipLocation}
-                className="flex-1 h-9 rounded-xl text-xs font-semibold text-muted-foreground border border-border/40"
-              >
-                Skip
+                Continue
               </button>
             </div>
           </div>

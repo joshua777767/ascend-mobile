@@ -222,7 +222,7 @@ export default function TrialReviewPage() {
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
-          <p className="text-xs text-muted-foreground text-center">$19.99/month · 7-day trial · Cancel anytime</p>
+          <p className="text-xs text-muted-foreground text-center">7-day trial · Cancel anytime</p>
         </div>
 
         {/* ── Not ready ── */}

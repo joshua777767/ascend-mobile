@@ -17,7 +17,8 @@
       "buildNumber": "31",
       "minimumOsVersion": "15.1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Ascend uses your location to keep your daily schedule, meal reminders, and streaks in sync with your local timezone. For example, if you travel to a different city, your 8 AM breakfast reminder will still fire at 8 AM in that city's timezone."
       }
     },
     "android": {
