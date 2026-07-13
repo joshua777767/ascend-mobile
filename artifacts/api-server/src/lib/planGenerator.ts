@@ -1,5 +1,11 @@
 import type { UserProfile } from "@workspace/db";
-import { parseSportSchedule, getSportAdjustmentForPlan, estimateSportCalBurn } from "./sportUtils";
+import {
+  parseSportSchedule,
+  getSportAdjustmentForPlan,
+  estimateSportCalBurn,
+  estimateGameCalBurn,
+  estimateGymCalBurn,
+} from "./sportUtils";
 
 export interface GeneratedPlan {
   goalType: string;
@@ -14,6 +20,7 @@ export interface GeneratedPlan {
   coachNotes: string;
   warnings: string | null;
   restDayCalorieTarget: number | null;
+  gymDayCalorieTarget: number | null;
   practiceDayCalorieTarget: number | null;
   gameDayCalorieTarget: number | null;
 }
@@ -282,10 +289,12 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
     : 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
 
-  const activityMult = profile.workoutDaysPerWeek === 0 ? 1.2
-    : profile.workoutDaysPerWeek >= 5 ? 1.725
-    : profile.workoutDaysPerWeek >= 3 ? 1.55
-    : 1.375;
+  // Lifestyle multiplier: covers only daily non-exercise movement (walking, household
+  // activity, desk work). Fixed at 1.2 (sedentary base) for everyone because all
+  // deliberate exercise — gym sessions, sport practice, game days — is added per-day
+  // via the day-specific calorie targets below. This prevents exercise from being
+  // counted twice: once in the base TDEE and again in the per-day burn additions.
+  const activityMult = 1.2;
 
   const tdee = Math.round(bmr * activityMult);
 
@@ -547,14 +556,34 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
   }
 
-  // Sport day calorie targets — MET-based burn using actual session duration + intensity
-  // Rest day = base calorie target (no practice burn)
-  // Practice day = base + MET-estimated calories burned during the session
-  // Game day = base + game session burn (25% longer, hard intensity = explicit game premium)
+  // ── Day-specific calorie targets ──────────────────────────────────────────
+  //
+  // Architecture: the base calorieTarget is derived from lifestyle TDEE only
+  // (activityMult = 1.2, no exercise included). Exercise calories are added
+  // on top per day type so they are never double-counted in the base:
+  //
+  //   restDayCalorieTarget     = calorieTarget          (lifestyle only)
+  //   gymDayCalorieTarget      = calorieTarget + gymBurn
+  //   practiceDayCalorieTarget = calorieTarget + sportPracticeBurn
+  //   gameDayCalorieTarget     = calorieTarget + gameBurn
+  //
+  // gameBurn uses the same MET formula as practice but forces "hard" intensity,
+  // replacing the previous arbitrary ×1.175 multiplier.
+
   let restDayCalorieTarget: number | null = null;
+  let gymDayCalorieTarget: number | null = null;
   let practiceDayCalorieTarget: number | null = null;
   let gameDayCalorieTarget: number | null = null;
 
+  // Gym day — add one session's worth of calories on gym days.
+  // workoutDaysPerWeek must NOT include sport practice days; it is strictly
+  // the number of days the user goes to the gym / does structured workouts.
+  if (workoutDays > 0) {
+    const gymBurn = estimateGymCalBurn(profile.workoutFocus, weightKg);
+    gymDayCalorieTarget = Math.max(calorieFloor, calorieTarget + gymBurn);
+  }
+
+  // Sport days — practice and game burns are additive on top of the lifestyle base.
   const sportEntry = parseSportSchedule(profile);
   if (sportEntry) {
     const practiceBurn = estimateSportCalBurn(
@@ -563,12 +592,24 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
       sportEntry.intensity,
       profile.currentWeightKg,
     );
-    restDayCalorieTarget     = calorieTarget;
     practiceDayCalorieTarget = Math.max(calorieFloor, calorieTarget + practiceBurn);
+
     if (sportEntry.gameDays && sportEntry.gameDays.length > 0) {
-      // Game day: ~17.5% premium above practice day (midpoint of 15–20% spec)
-      gameDayCalorieTarget = Math.max(calorieFloor, Math.round(practiceDayCalorieTarget * 1.175));
+      // Game day: same MET formula as practice but always "hard" intensity.
+      // This replaces the previous arbitrary ×1.175 multiplier.
+      const gameBurn = estimateGameCalBurn(
+        sportEntry.sport,
+        sportEntry.durationMinutes,
+        profile.currentWeightKg,
+      );
+      gameDayCalorieTarget = Math.max(calorieFloor, calorieTarget + gameBurn);
     }
+  }
+
+  // Set rest day target whenever any exercise-day target exists, so the UI
+  // can always show "rest day vs active day" side-by-side.
+  if (gymDayCalorieTarget !== null || practiceDayCalorieTarget !== null) {
+    restDayCalorieTarget = calorieTarget;
   }
 
   return {
@@ -584,6 +625,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     coachNotes,
     warnings,
     restDayCalorieTarget,
+    gymDayCalorieTarget,
     practiceDayCalorieTarget,
     gameDayCalorieTarget,
   };

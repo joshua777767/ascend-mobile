@@ -1,0 +1,59 @@
+Do not alter or withdraw the App Store build currently under review.
+
+Create automated tests for the sports-calorie system and meal-reminder notifications. Inspect the existing project first and adapt the tests to its real filenames, functions, database fields, and framework.
+
+SPORTS CALORIE TESTS
+
+1. Separate base TDEE from intentional exercise.
+2. Base TDEE must use normal daily lifestyle only.
+3. Sports and gym exercise must be added exactly once.
+4. Sport practices must not also increase workoutDaysPerWeek.
+5. The selected sport and intensity should resolve to one final MET value.
+6. Calculate sport calories using:
+
+calories = finalMET * 3.5 * weightKg / 200 * durationMinutes
+
+7. Remove and test against any arbitrary game-day multiplier such as ×1.175.
+
+Required test cases:
+
+- No sport selected returns 0 sport calories.
+- A duration of 0 returns 0 sport calories.
+- The same user must have the same base TDEE whether they play a sport or not.
+- A 70 kg user doing a 60-minute activity at 8 MET should burn approximately 588 calories.
+- Sport calories are added only once to the daily calorie target.
+- Gym and sport calories remain separate.
+- Practice-day calories are higher than rest-day calories only by the calculated activity amount.
+- Game-day calories depend on sport, intensity, duration, and weight.
+- Changing the sport changes the calculated calories.
+- Invalid or missing weight, duration, sport, or intensity is handled safely without NaN or negative calories.
+
+NOTIFICATION TESTS
+
+Use expo-notifications and mock its native functions in Jest.
+
+Test these behaviors:
+
+- Notification permission is not requested on app launch.
+- Permission is requested when the user enables their first meal reminder.
+- If permission is denied, no notification is scheduled.
+- If permission is granted, a repeating local notification is scheduled at the meal time chosen by the user.
+- Breakfast, lunch, dinner, and snack reminders each have separate stored notification IDs.
+- The notification says which meal should be logged.
+- Editing a meal time cancels the previous notification and schedules a new one.
+- Turning a reminder off cancels its scheduled notification.
+- Reminders restore correctly after closing and reopening the app.
+- Time parsing correctly handles AM and PM.
+- Duplicate notifications are never created when saving the same schedule multiple times.
+
+Add a development-only button labeled “Test notification in 10 seconds.” It must never appear in the production build.
+
+Use the project’s current testing framework. If this is an Expo project, configure jest-expo if it is not already configured.
+
+Run all tests and do not claim they passed unless they actually pass. Give me:
+
+1. Every file changed
+2. Every test created
+3. The exact test command
+4. The full pass/fail results
+5. Any remaining manual tests required on a real iPhone

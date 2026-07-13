@@ -24,6 +24,8 @@ export interface Plan {
   /** @nullable */
   restDayCalorieTarget?: number | null;
   /** @nullable */
+  gymDayCalorieTarget?: number | null;
+  /** @nullable */
   practiceDayCalorieTarget?: number | null;
   /** @nullable */
   gameDayCalorieTarget?: number | null;

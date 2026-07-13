@@ -374,7 +374,9 @@ export default function SchedulePage() {
             {(() => {
               const p = plan as any;
               const prof = profile as any;
-              const hasSportTargets = p?.restDayCalorieTarget && p?.practiceDayCalorieTarget && prof?.sportSchedule;
+              const hasGymTarget  = !!p?.gymDayCalorieTarget;
+              const hasSportTargets = !!(p?.practiceDayCalorieTarget && prof?.sportSchedule);
+              const hasAnyDayTargets = hasGymTarget || hasSportTargets;
 
               const chip = (val: string, label: string, i: number) => (
                 <div key={i} className="flex-1 rounded-xl p-3 text-center"
@@ -392,31 +394,36 @@ export default function SchedulePage() {
                 </div>
               );
 
-              if (hasSportTargets) {
-                // Detect today's type for visual highlight
-                let todayType: "rest" | "practice" | "game" = "rest";
-                try {
-                  const schedule = JSON.parse(prof.sportSchedule);
-                  const todayFull = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
-                  const todayShort = todayFull.slice(0, 3);
-                  const matchDay = (arr: string[]) => (arr ?? []).map((d: string) => d.toLowerCase().trim()).some((d: string) => d.startsWith(todayShort) || todayFull.startsWith(d.slice(0, 3)));
-                  const gameDays: string[] = schedule.gameDays ?? [];
-                  const practiceDays: string[] = schedule.days ?? [];
-                  if (gameDays.length > 0 && p.gameDayCalorieTarget && matchDay(gameDays)) todayType = "game";
-                  else if (matchDay(practiceDays)) todayType = "practice";
-                } catch { /* use rest default */ }
+              if (hasAnyDayTargets) {
+                // Detect today's sport day type for highlight (gym days not highlighted
+                // because specific gym days aren't tracked — only the weekly count).
+                let todayType: "rest" | "gym" | "practice" | "game" = "rest";
+                if (hasSportTargets) {
+                  try {
+                    const schedule = JSON.parse(prof.sportSchedule);
+                    const todayFull = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+                    const todayShort = todayFull.slice(0, 3);
+                    const matchDay = (arr: string[]) => (arr ?? []).map((d: string) => d.toLowerCase().trim()).some((d: string) => d.startsWith(todayShort) || todayFull.startsWith(d.slice(0, 3)));
+                    const gameDays: string[] = schedule.gameDays ?? [];
+                    const practiceDays: string[] = schedule.days ?? [];
+                    if (gameDays.length > 0 && p.gameDayCalorieTarget && matchDay(gameDays)) todayType = "game";
+                    else if (matchDay(practiceDays)) todayType = "practice";
+                  } catch { /* use rest default */ }
+                }
 
-                const dayChips: { val: string; label: string; type: "rest" | "practice" | "game" }[] = [
-                  { val: (p.restDayCalorieTarget as number).toLocaleString(), label: "cal · rest day", type: "rest" },
-                  { val: (p.practiceDayCalorieTarget as number).toLocaleString(), label: "cal · practice", type: "practice" },
+                type ChipDef = { val: string; label: string; type: "rest" | "gym" | "practice" | "game" };
+                const dayChips: ChipDef[] = [
+                  { val: (p.restDayCalorieTarget as number).toLocaleString(), label: "cal · rest", type: "rest" },
+                  ...(hasGymTarget ? [{ val: (p.gymDayCalorieTarget as number).toLocaleString(), label: "cal · gym day", type: "gym" as const }] : []),
+                  ...(hasSportTargets ? [{ val: (p.practiceDayCalorieTarget as number).toLocaleString(), label: "cal · practice", type: "practice" as const }] : []),
                   ...(p.gameDayCalorieTarget ? [{ val: (p.gameDayCalorieTarget as number).toLocaleString(), label: "cal · game day", type: "game" as const }] : []),
                 ];
 
                 return (
                   <>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {dayChips.map((s, i) => (
-                        <div key={i} className="flex-1 rounded-xl p-3 text-center"
+                        <div key={i} className="flex-1 min-w-[72px] rounded-xl p-3 text-center"
                           style={{
                             background: s.type === todayType ? "hsl(38 92% 25%)" : "hsl(220 52% 8%)",
                             border: s.type === todayType ? "1px solid hsl(38 92% 50%)" : "1px solid hsl(217 32% 14%)",

@@ -17,6 +17,7 @@ export const plansTable = pgTable("plans", {
   coachNotes: text("coach_notes").notNull(),
   warnings: text("warnings"),
   restDayCalorieTarget: integer("rest_day_calorie_target"),
+  gymDayCalorieTarget: integer("gym_day_calorie_target"),
   practiceDayCalorieTarget: integer("practice_day_calorie_target"),
   gameDayCalorieTarget: integer("game_day_calorie_target"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

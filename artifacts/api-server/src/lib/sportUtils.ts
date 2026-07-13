@@ -132,7 +132,7 @@ function capitalize(s: string): string {
 // Calorie burn estimation
 // ---------------------------------------------------------------------------
 
-const METS: Record<string, number> = {
+const SPORT_METS: Record<string, number> = {
   football: 8.0,
   basketball: 6.5,
   soccer: 7.0,
@@ -149,11 +149,48 @@ export function estimateSportCalBurn(
   intensity: "light" | "moderate" | "hard",
   weightKg: number
 ): number {
-  const baseMet = METS[sport.toLowerCase()] || 5.0;
+  const baseMet = SPORT_METS[sport.toLowerCase()] ?? 5.0;
   const intensityMult = intensity === "hard" ? 1.7 : intensity === "light" ? 1.3 : 1.5;
   const met = baseMet * intensityMult;
   const durationHours = durationMinutes / 60;
   return Math.round(met * weightKg * durationHours);
+}
+
+/**
+ * Game day burn — identical formula to practice but always "hard" intensity,
+ * reflecting the competitive effort of a game vs a training session.
+ * Replaces the previous arbitrary ×1.175 multiplier.
+ */
+export function estimateGameCalBurn(
+  sport: string,
+  durationMinutes: number,
+  weightKg: number
+): number {
+  return estimateSportCalBurn(sport, durationMinutes, "hard", weightKg);
+}
+
+// MET and default duration for structured gym sessions by workout focus.
+// Duration is a representative session length; actual may vary.
+const GYM_SESSIONS: Record<string, { met: number; durationMin: number }> = {
+  strength:             { met: 5.0, durationMin: 60 },
+  build_muscle:         { met: 5.0, durationMin: 60 },
+  athletic_performance: { met: 7.0, durationMin: 60 },
+  conditioning:         { met: 8.5, durationMin: 45 },
+  lose_fat:             { met: 6.5, durationMin: 50 },
+  general_fitness:      { met: 5.5, durationMin: 55 },
+};
+
+/**
+ * Estimated calories burned during one gym session.
+ * Used to build gymDayCalorieTarget — added on top of the lifestyle base TDEE
+ * so that gym calories are never baked into the activity multiplier.
+ */
+export function estimateGymCalBurn(
+  workoutFocus: string | null | undefined,
+  weightKg: number
+): number {
+  const session = GYM_SESSIONS[workoutFocus ?? ""] ?? GYM_SESSIONS["general_fitness"]!;
+  return Math.round(session.met * weightKg * (session.durationMin / 60));
 }
 
 export function estimateSportCaloriesBurned(

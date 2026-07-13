@@ -65,6 +65,7 @@ router.post("/plans/current", async (req, res): Promise<void> => {
     coachNotes: generated.coachNotes,
     warnings: generated.warnings,
     restDayCalorieTarget: generated.restDayCalorieTarget,
+    gymDayCalorieTarget: generated.gymDayCalorieTarget,
     practiceDayCalorieTarget: generated.practiceDayCalorieTarget,
     gameDayCalorieTarget: generated.gameDayCalorieTarget,
   }).returning();
