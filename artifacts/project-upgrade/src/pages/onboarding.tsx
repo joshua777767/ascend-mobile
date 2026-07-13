@@ -28,9 +28,33 @@ const WAKE_OPTIONS = [
   { label: "Varies",      emoji: "🔀",  wakeTime: "07:30", wakeTimeRange: null },
 ] as const;
 
+// Sports that match SPORT_METS in sportUtils.ts — MET value shown so the
+// selection feeds directly into calorie calculations on gym/practice/game days.
+const SPORTS = [
+  { label: "Football",         value: "football",         emoji: "🏈" },
+  { label: "Basketball",       value: "basketball",       emoji: "🏀" },
+  { label: "Soccer",           value: "soccer",           emoji: "⚽" },
+  { label: "Track & Field",    value: "track",            emoji: "🏃" },
+  { label: "Boxing / MMA",     value: "boxing/mma",       emoji: "🥊" },
+  { label: "Baseball / Softball", value: "baseball/softball", emoji: "⚾" },
+  { label: "Volleyball",       value: "volleyball",       emoji: "🏐" },
+  { label: "Wrestling",        value: "wrestling",        emoji: "🤼" },
+  { label: "No Sport",         value: "none",             emoji: "🚫" },
+] as const;
+
+const DAYS = [
+  { label: "M", value: "monday" },
+  { label: "T", value: "tuesday" },
+  { label: "W", value: "wednesday" },
+  { label: "T", value: "thursday" },
+  { label: "F", value: "friday" },
+  { label: "S", value: "saturday" },
+  { label: "S", value: "sunday" },
+] as const;
+
 const WEIGHT_GOALS = new Set(["lose weight", "gain weight and muscle"]);
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -52,17 +76,32 @@ export default function OnboardingPage() {
   const generatePlan = useGeneratePlan();
 
   const [step, setStep] = useState(1);
+  const [error, setError] = useState("");
+
+  // Step 1
   const [selectedGoal, setSelectedGoal] = useState<string>("");
+
+  // Step 2
   const [currentWeightLbs, setCurrentWeightLbs] = useState("");
   const [goalWeightLbs, setGoalWeightLbs] = useState("");
+
+  // Step 3
   const [heightFt, setHeightFt] = useState("");
   const [heightIn, setHeightIn] = useState("");
+
+  // Step 4
   const [age, setAge] = useState("");
+
+  // Step 5 — sport
+  const [selectedSport, setSelectedSport] = useState<string>("");
+  const [practiceDays, setPracticeDays] = useState<string[]>([]);
+
+  // Step 6
   const [wakeOption, setWakeOption] = useState<string>("");
-  const [error, setError] = useState("");
 
   const isLoading = createProfile.isPending || generatePlan.isPending;
   const isWeightGoal = WEIGHT_GOALS.has(selectedGoal);
+  const hasSport = selectedSport && selectedSport !== "none";
 
   // ── Step handlers ────────────────────────────────────────────────────────
 
@@ -102,6 +141,21 @@ export default function OnboardingPage() {
     setError(""); setStep(5);
   };
 
+  const handleStep5 = () => {
+    if (!selectedSport) { setError("Pick a sport or choose No Sport to continue."); return; }
+    if (hasSport && practiceDays.length === 0) {
+      setError("Pick at least one practice day so your coach can plan around it."); return;
+    }
+    setError(""); setStep(6);
+  };
+
+  const toggleDay = (day: string) => {
+    setPracticeDays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    );
+    setError("");
+  };
+
   const handleSubmit = async () => {
     if (!wakeOption) { setError("Pick your usual wake-up time to continue."); return; }
     setError("");
@@ -113,7 +167,7 @@ export default function OnboardingPage() {
     const goalWeightKg = goalWeightLbs ? lbsToKg(parseFloat(goalWeightLbs)) : currentWeightKg;
     const selectedWake = WAKE_OPTIONS.find(o => o.label === wakeOption);
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: me?.email?.split("@")[0] ?? "User",
       age: a,
       gender: "prefer not to say",
@@ -136,10 +190,24 @@ export default function OnboardingPage() {
       mealsPerDay: 3,
       waterIntakeLiters: 2,
       commitmentLevel: "serious",
-    } as any;
+    };
+
+    // Save sport + practice schedule so planGenerator can use the correct
+    // sport's MET value for practice-day and game-day calorie targets.
+    if (hasSport) {
+      payload.sport = selectedSport;
+      payload.sportSchedule = JSON.stringify({
+        sport: selectedSport,
+        days: practiceDays,
+        startTime: "17:00",
+        durationMinutes: 90,
+        intensity: "moderate",
+        gameDays: [],
+      });
+    }
 
     try {
-      await createProfile.mutateAsync({ data: payload });
+      await createProfile.mutateAsync({ data: payload as any });
       queryClient.invalidateQueries({ queryKey: getGetUserProfileQueryKey() });
       await generatePlan.mutateAsync(undefined as any);
       queryClient.invalidateQueries({ queryKey: getGetCurrentPlanQueryKey() });
@@ -339,8 +407,72 @@ export default function OnboardingPage() {
             </>
           )}
 
-          {/* ── Step 5: Wake-up time ─────────────────────────────────────── */}
+          {/* ── Step 5: Sport ────────────────────────────────────────────── */}
           {step === 5 && (
+            <>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Do you play a sport?</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your coach will build sport-specific calorie targets for practice and game days.
+                </p>
+              </div>
+
+              {/* Sport grid */}
+              <div className="grid grid-cols-3 gap-2.5">
+                {SPORTS.map((s) => (
+                  <button key={s.value} type="button"
+                    onClick={() => {
+                      setSelectedSport(s.value);
+                      if (s.value === "none") setPracticeDays([]);
+                      setError("");
+                    }}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-2 rounded-2xl border px-2 py-4 transition-all active:scale-[0.97]",
+                      selectedSport === s.value
+                        ? "bg-primary/10 border-primary text-primary"
+                        : "bg-card border-border text-foreground hover:bg-elevated"
+                    )}>
+                    <span className="text-2xl leading-none">{s.emoji}</span>
+                    <span className="text-xs font-semibold leading-tight text-center">{s.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Practice day picker — only shown when a sport is selected */}
+              {hasSport && (
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm font-semibold text-foreground">Which days do you practice?</p>
+                  <div className="flex gap-2">
+                    {DAYS.map((d) => (
+                      <button key={d.value} type="button"
+                        onClick={() => toggleDay(d.value)}
+                        className={cn(
+                          "flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-95",
+                          practiceDays.includes(d.value)
+                            ? "text-primary-foreground"
+                            : "bg-elevated border border-border text-muted-foreground hover:text-foreground"
+                        )}
+                        style={practiceDays.includes(d.value) ? { background: "#C89A3E" } : undefined}>
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    You can add game days and adjust session details in Settings later.
+                  </p>
+                </div>
+              )}
+
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <div className="flex gap-3">
+                {backBtn(() => setStep(4))}
+                {continueBtn(handleStep5)}
+              </div>
+            </>
+          )}
+
+          {/* ── Step 6: Wake-up time ─────────────────────────────────────── */}
+          {step === 6 && (
             <>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">When do you usually wake up?</h1>
@@ -378,7 +510,7 @@ export default function OnboardingPage() {
               </div>
 
               <div className="flex gap-3">
-                {backBtn(() => setStep(4))}
+                {backBtn(() => setStep(5))}
                 <button type="button" onClick={handleSubmit} disabled={isLoading || !wakeOption}
                   className="flex-1 h-14 rounded-2xl text-[15px] font-semibold text-primary-foreground disabled:opacity-60 active:scale-[0.99] transition-all"
                   style={{ background: "#C89A3E" }}>
