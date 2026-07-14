@@ -269,3 +269,9 @@ id = "AMgo3taCF5_J0_R0GIrk1"
 uri = "file://screenshots/ipad13-workouts.jpg"
 type = "image"
 title = "iPad 13-inch Screenshot 3 (Login — 2064×2752)"
+
+[[outputs]]
+id = "B3l1FEgaWVi3vJz7g9o1h"
+uri = "file://artifacts/project-upgrade/public/ipad13-v2.png"
+type = "image"
+title = "iPad 13-inch Screenshot — 2064×2752 (UPLOAD THIS ONE)"
