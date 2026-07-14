@@ -20,6 +20,7 @@ export const plansTable = pgTable("plans", {
   gymDayCalorieTarget: integer("gym_day_calorie_target"),
   practiceDayCalorieTarget: integer("practice_day_calorie_target"),
   gameDayCalorieTarget: integer("game_day_calorie_target"),
+  dailyCalorieTargets: text("daily_calorie_targets"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

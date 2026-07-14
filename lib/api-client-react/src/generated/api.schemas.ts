@@ -269,6 +269,11 @@ export interface Plan {
   practiceDayCalorieTarget?: number | null;
   /** @nullable */
   gameDayCalorieTarget?: number | null;
+  /**
+     * JSON object mapping weekday names (lowercase) to calorie targets, e.g. {"monday":2450,"thursday":2650}. Days not in the map are rest days — use calorieTarget.
+     * @nullable
+     */
+  dailyCalorieTargets?: string | null;
   createdAt: string;
 }
 

@@ -40,6 +40,32 @@ const WORKOUT_FOCUSES = [
   { label: "General fitness", value: "general_fitness" },
 ];
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+type ExerciseActivityType = "gym" | "home_workout" | "cardio" | "sport_practice" | "game";
+interface ExerciseActivityDraft {
+  type: ExerciseActivityType;
+  durationMinutes: number;
+  intensity: "light" | "moderate" | "hard";
+  sport?: string;
+}
+const EXERCISE_ACTIVITY_TYPES: { label: string; value: ExerciseActivityType; emoji: string }[] = [
+  { label: "Gym / Strength", value: "gym",            emoji: "🏋️" },
+  { label: "Home Workout",   value: "home_workout",   emoji: "🏠" },
+  { label: "Cardio",         value: "cardio",         emoji: "🏃" },
+  { label: "Sport Practice", value: "sport_practice", emoji: "🏈" },
+  { label: "Game Day",       value: "game",           emoji: "🏆" },
+];
+const EXERCISE_DURATIONS = [30, 45, 60, 90, 120];
+const EXERCISE_SPORTS = [
+  { label: "Football",   value: "football",          emoji: "🏈" },
+  { label: "Basketball", value: "basketball",        emoji: "🏀" },
+  { label: "Soccer",     value: "soccer",            emoji: "⚽" },
+  { label: "Track",      value: "track",             emoji: "🏃" },
+  { label: "Boxing/MMA", value: "boxing/mma",        emoji: "🥊" },
+  { label: "Baseball",   value: "baseball/softball", emoji: "⚾" },
+  { label: "Volleyball", value: "volleyball",        emoji: "🏐" },
+  { label: "Wrestling",  value: "wrestling",         emoji: "🤼" },
+];
 const COMMITMENT_LEVELS = [
   { value: "casual", label: "Casual", desc: "Small changes, no pressure." },
   { value: "serious", label: "Serious", desc: "Follow the plan and track daily." },
@@ -257,6 +283,11 @@ export default function SettingsPage() {
   const [customWorkoutDays, setCustomWorkoutDays] = useState<{ day: string; focus: string }[]>([]);
   const [selectedWorkoutFocus, setSelectedWorkoutFocus] = useState("");
 
+  // ── Exercise Schedule (new per-day per-activity format) ───────────────────
+  const [exerciseScheduleDays, setExerciseScheduleDays] = useState<string[]>([]);
+  const [exerciseScheduleActivities, setExerciseScheduleActivities] = useState<Record<string, ExerciseActivityDraft[]>>({});
+  const [savedExercise, setSavedExercise] = useState(false);
+
   // ── Section 4: Daily Schedule ─────────────────────────────────────────────
   const [wakeTime, setWakeTime] = useState("");
   const [sleepTime, setSleepTime] = useState("");
@@ -328,7 +359,16 @@ export default function SettingsPage() {
     if (p.customWorkoutSchedule) {
       try {
         const cs = JSON.parse(p.customWorkoutSchedule);
-        if (cs.days) setCustomWorkoutDays(cs.days);
+        // New format: has activities arrays
+        if (cs.days && cs.days.length > 0 && Array.isArray(cs.days[0]?.activities)) {
+          setExerciseScheduleDays(cs.days.map((d: any) => d.day));
+          const acts: Record<string, ExerciseActivityDraft[]> = {};
+          cs.days.forEach((d: any) => { acts[d.day] = d.activities; });
+          setExerciseScheduleActivities(acts);
+        } else if (cs.days) {
+          // Old format: {day, focus} array
+          setCustomWorkoutDays(cs.days);
+        }
       } catch { /* ignore */ }
     }
 
@@ -460,6 +500,41 @@ export default function SettingsPage() {
     const payload: Record<string, unknown> = {};
     if (commitmentLevel) payload.commitmentLevel = commitmentLevel;
     saveAndRegenerate(payload, setSaved5);
+  };
+
+  const handleSaveExerciseSchedule = () => {
+    const days = exerciseScheduleDays
+      .filter(d => (exerciseScheduleActivities[d] ?? []).length > 0)
+      .map(d => ({
+        day: d,
+        activities: exerciseScheduleActivities[d] ?? [],
+      }));
+
+    const payload: Record<string, unknown> = {
+      customWorkoutSchedule: JSON.stringify({ days }),
+      workoutDaysPerWeek: days.length,
+    };
+
+    // Backward-compat: set sport/sportSchedule if any sport activities exist
+    const allActivities = days.flatMap(d => d.activities);
+    const sportActivity = allActivities.find(a => a.type === "sport_practice" || a.type === "game");
+    if (sportActivity?.sport) {
+      const sport = sportActivity.sport;
+      payload.sport = sport;
+      const practiceDaysList = days.filter(d => d.activities.some(a => a.type === "sport_practice")).map(d => d.day);
+      const gameDaysList = days.filter(d => d.activities.some(a => a.type === "game")).map(d => d.day);
+      const firstSportAct = allActivities.find(a => a.type === "sport_practice" || a.type === "game")!;
+      payload.sportSchedule = JSON.stringify({
+        sport,
+        days: practiceDaysList,
+        startTime: "17:00",
+        durationMinutes: firstSportAct.durationMinutes,
+        intensity: firstSportAct.intensity,
+        gameDays: gameDaysList.length > 0 ? gameDaysList : [],
+      });
+    }
+
+    saveAndRegenerate(payload, setSavedExercise);
   };
 
   // ── Auth / reset ──────────────────────────────────────────────────────────
@@ -910,6 +985,152 @@ export default function SettingsPage() {
           </div>
 
           <SaveBtn onClick={handleSaveTraining} pending={isSaving} saved={saved3} label="Save training" />
+        </section>
+
+        {/* ── 3b. Exercise Schedule ─────────────────────────────────────────── */}
+        <section className="rounded-2xl bg-card border border-border p-5 space-y-5">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Exercise Schedule</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Set which days you exercise and what you do — your calorie target adjusts for each active day.
+            </p>
+          </div>
+
+          {/* Day toggles */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground tracking-wide mb-2">Exercise days</p>
+            <div className="flex gap-1.5">
+              {["monday","tuesday","wednesday","thursday","friday","saturday","sunday"].map((day, i) => {
+                const labels = ["M","T","W","T","F","S","S"];
+                const isOn = exerciseScheduleDays.includes(day);
+                return (
+                  <button key={day} type="button"
+                    onClick={() => {
+                      setExerciseScheduleDays(prev =>
+                        prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+                      );
+                      if (!exerciseScheduleActivities[day]) {
+                        setExerciseScheduleActivities(prev => ({
+                          ...prev,
+                          [day]: [{ type: "gym", durationMinutes: 60, intensity: "moderate" }],
+                        }));
+                      }
+                    }}
+                    className={cn(
+                      "flex-1 h-9 rounded-xl border text-xs font-bold transition-all active:scale-95",
+                      isOn ? "bg-primary text-primary-foreground border-primary" : "bg-elevated border-border text-muted-foreground"
+                    )}>
+                    {labels[i]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Per-day activity config */}
+          {exerciseScheduleDays.length > 0 && (
+            <div className="space-y-4">
+              {exerciseScheduleDays.map(day => {
+                const activities = exerciseScheduleActivities[day] ?? [{ type: "gym" as ExerciseActivityType, durationMinutes: 60, intensity: "moderate" as const }];
+                return (
+                  <div key={day} className="space-y-3">
+                    <p className="text-xs font-semibold capitalize text-foreground border-b border-border pb-1">{day}</p>
+                    {activities.map((act, idx) => {
+                      const needsSport = act.type === "sport_practice" || act.type === "game";
+                      const updateAct = (patch: Partial<ExerciseActivityDraft>) => {
+                        setExerciseScheduleActivities(prev => {
+                          const arr = [...(prev[day] ?? [])];
+                          arr[idx] = { ...arr[idx]!, ...patch };
+                          return { ...prev, [day]: arr };
+                        });
+                      };
+                      return (
+                        <div key={idx} className="bg-elevated rounded-xl p-3 space-y-2.5">
+                          {activities.length > 1 && (
+                            <div className="flex items-center justify-between">
+                              <p className="text-[10px] text-muted-foreground">Activity {idx + 1}</p>
+                              <button type="button" onClick={() => setExerciseScheduleActivities(prev => ({
+                                ...prev, [day]: (prev[day] ?? []).filter((_, i) => i !== idx)
+                              }))} className="text-[10px] text-destructive">Remove</button>
+                            </div>
+                          )}
+                          {/* Type */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {EXERCISE_ACTIVITY_TYPES.map(at => (
+                              <button key={at.value} type="button"
+                                onClick={() => updateAct({ type: at.value, sport: at.value === "sport_practice" || at.value === "game" ? act.sport : undefined })}
+                                className={cn(
+                                  "flex items-center gap-1 h-7 px-2 rounded-lg border text-[10px] font-semibold transition-all",
+                                  act.type === at.value ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground"
+                                )}>
+                                <span>{at.emoji}</span> {at.label}
+                              </button>
+                            ))}
+                          </div>
+                          {/* Duration */}
+                          <div className="flex gap-1.5">
+                            {EXERCISE_DURATIONS.map(min => (
+                              <button key={min} type="button"
+                                onClick={() => updateAct({ durationMinutes: min })}
+                                className={cn(
+                                  "flex-1 h-7 rounded-lg border text-[10px] font-bold transition-all",
+                                  act.durationMinutes === min ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground"
+                                )}>
+                                {min}m
+                              </button>
+                            ))}
+                          </div>
+                          {/* Intensity */}
+                          <div className="flex gap-1.5">
+                            {(["light","moderate","hard"] as const).map(i => (
+                              <button key={i} type="button"
+                                onClick={() => updateAct({ intensity: i })}
+                                className={cn(
+                                  "flex-1 h-7 rounded-lg border text-[10px] font-semibold capitalize transition-all",
+                                  act.intensity === i ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground"
+                                )}>
+                                {i}
+                              </button>
+                            ))}
+                          </div>
+                          {/* Sport */}
+                          {needsSport && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {EXERCISE_SPORTS.map(s => (
+                                <button key={s.value} type="button"
+                                  onClick={() => updateAct({ sport: s.value })}
+                                  className={cn(
+                                    "flex items-center gap-1 h-7 px-2 rounded-lg border text-[10px] font-semibold transition-all",
+                                    act.sport === s.value ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground"
+                                  )}>
+                                  {s.emoji} {s.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {/* Add activity */}
+                    <button type="button"
+                      onClick={() => setExerciseScheduleActivities(prev => ({
+                        ...prev,
+                        [day]: [...(prev[day] ?? []), { type: "gym" as ExerciseActivityType, durationMinutes: 60, intensity: "moderate" as const }],
+                      }))}
+                      className="text-xs text-primary font-semibold">
+                      + Add another activity
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {exerciseScheduleDays.length === 0 && (
+            <p className="text-xs text-muted-foreground">No exercise days set. Select days above to configure your schedule.</p>
+          )}
+
+          <SaveBtn onClick={handleSaveExerciseSchedule} pending={isSaving} saved={savedExercise} label="Save exercise schedule" />
         </section>
 
         {/* ── 4. Daily Schedule ─────────────────────────────────────────────── */}

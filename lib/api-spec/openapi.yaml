@@ -1398,6 +1398,9 @@ components:
           type: ["integer", "null"]
         gameDayCalorieTarget:
           type: ["integer", "null"]
+        dailyCalorieTargets:
+          type: ["string", "null"]
+          description: JSON object mapping weekday names (lowercase) to calorie targets, e.g. {"monday":2450,"thursday":2650}. Days not in the map are rest days — use calorieTarget.
         createdAt:
           type: string
           format: date-time

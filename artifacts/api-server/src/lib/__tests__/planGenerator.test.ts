@@ -4,7 +4,9 @@ import {
   estimateGymCalBurn,
   estimateSportCalBurn,
   estimateGameCalBurn,
+  estimateActivityBurn,
 } from "../sportUtils";
+import type { ScheduledActivity } from "../sportUtils";
 
 // ─── Shared base profile ──────────────────────────────────────────────────────
 
@@ -23,13 +25,11 @@ const BASE_PROFILE: Record<string, unknown> = {
   skinConcerns: [],
   digestionConcerns: [],
   sportSchedule: null,
+  customWorkoutSchedule: null,
   sleepHoursPerNight: 7,
   sleepQuality: "good",
 };
 
-// Helper: build a profile with given overrides.
-// Casts to `any` because test fixtures only supply the fields planGenerator
-// actually reads — the DB type includes many more columns we don't need here.
 const profile = (overrides: Record<string, unknown> = {}) =>
   ({ ...BASE_PROFILE, ...overrides }) as any;
 
@@ -39,9 +39,6 @@ describe("lifestyle TDEE invariant — no exercise in base", () => {
   it("calorieTarget is identical regardless of workoutDaysPerWeek (0 vs 5)", () => {
     const plan0 = generatePlan(profile({ workoutDaysPerWeek: 0 }));
     const plan5 = generatePlan(profile({ workoutDaysPerWeek: 5 }));
-
-    // The base calorie target must not change when workoutDaysPerWeek changes —
-    // exercise calories are added per-day, not baked into the base TDEE.
     expect(plan0.calorieTarget).toBe(plan5.calorieTarget);
   });
 
@@ -51,9 +48,83 @@ describe("lifestyle TDEE invariant — no exercise in base", () => {
     );
     expect(new Set(targets).size).toBe(1);
   });
+
+  it("calorieTarget never changes when customWorkoutSchedule days change", () => {
+    const noSchedule = generatePlan(profile({}));
+    const withGym = generatePlan(profile({
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          { day: "monday", activities: [{ type: "gym", durationMinutes: 60, intensity: "moderate" }] },
+          { day: "wednesday", activities: [{ type: "gym", durationMinutes: 60, intensity: "moderate" }] },
+          { day: "friday", activities: [{ type: "gym", durationMinutes: 60, intensity: "moderate" }] },
+        ],
+      }),
+    }));
+    expect(noSchedule.calorieTarget).toBe(withGym.calorieTarget);
+  });
 });
 
-// ─── 2. Gym day is strictly additive ─────────────────────────────────────────
+// ─── 2. Goal adjustment preserved in base ─────────────────────────────────────
+
+describe("goal-adjusted base (deficit/surplus) — preserved in all day targets", () => {
+  it("fat_loss: restDayCalorieTarget equals calorieTarget (deficit applied)", () => {
+    const p = profile({
+      goals: ["lose weight"],
+      workoutDaysPerWeek: 3,
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          { day: "monday", activities: [{ type: "gym", durationMinutes: 60, intensity: "moderate" }] },
+        ],
+      }),
+    });
+    const plan = generatePlan(p);
+    expect(plan.restDayCalorieTarget).toBe(plan.calorieTarget);
+  });
+
+  it("fat_loss: dailyCalorieTargets[day] > calorieTarget because exercise adds burn", () => {
+    const p = profile({
+      goals: ["lose weight"],
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          { day: "monday", activities: [{ type: "gym", durationMinutes: 60, intensity: "moderate" }] },
+        ],
+      }),
+    });
+    const plan = generatePlan(p);
+    expect(plan.dailyCalorieTargets?.monday).toBeGreaterThan(plan.calorieTarget);
+  });
+
+  it("muscle_gain: restDayCalorieTarget equals calorieTarget (surplus applied)", () => {
+    const p = profile({
+      goals: ["gain muscle"],
+      goalWeightKg: 90,
+      workoutDaysPerWeek: 4,
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          { day: "tuesday", activities: [{ type: "gym", durationMinutes: 60, intensity: "hard" }] },
+        ],
+      }),
+    });
+    const plan = generatePlan(p);
+    expect(plan.restDayCalorieTarget).toBe(plan.calorieTarget);
+  });
+
+  it("muscle_gain: dailyCalorieTargets[day] > calorieTarget (surplus + burn)", () => {
+    const p = profile({
+      goals: ["gain muscle"],
+      goalWeightKg: 90,
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          { day: "tuesday", activities: [{ type: "gym", durationMinutes: 60, intensity: "hard" }] },
+        ],
+      }),
+    });
+    const plan = generatePlan(p);
+    expect(plan.dailyCalorieTargets?.tuesday).toBeGreaterThan(plan.calorieTarget);
+  });
+});
+
+// ─── 3. Legacy gymDayCalorieTarget — additive on top of goal-adjusted base ────
 
 describe("gymDayCalorieTarget — additive on top of lifestyle base", () => {
   it("gymDayCalorieTarget = calorieTarget + estimateGymCalBurn(focus, weight)", () => {
@@ -81,7 +152,7 @@ describe("gymDayCalorieTarget — additive on top of lifestyle base", () => {
   });
 });
 
-// ─── 3. Sport practice day is strictly additive ───────────────────────────────
+// ─── 4. Legacy sport practice day ─────────────────────────────────────────────
 
 describe("practiceDayCalorieTarget — additive on top of lifestyle base", () => {
   const footballProfile = profile({
@@ -115,7 +186,7 @@ describe("practiceDayCalorieTarget — additive on top of lifestyle base", () =>
   });
 });
 
-// ─── 4. Game day uses MET formula, not ×1.175 ────────────────────────────────
+// ─── 5. Legacy game day ───────────────────────────────────────────────────────
 
 describe("gameDayCalorieTarget — MET formula, not arbitrary multiplier", () => {
   const gameDayProfile = profile({
@@ -151,7 +222,7 @@ describe("gameDayCalorieTarget — MET formula, not arbitrary multiplier", () =>
   });
 });
 
-// ─── 5. No double-counting across any combination ─────────────────────────────
+// ─── 6. No double-counting across any combination ────────────────────────────
 
 describe("no double-counting — exercise never baked into base TDEE", () => {
   it("gym burn is exactly the delta between gymDay and restDay targets", () => {
@@ -226,10 +297,272 @@ describe("no double-counting — exercise never baked into base TDEE", () => {
     expect(plan.practiceDayCalorieTarget).toBe(base + practiceBurn);
     expect(plan.gameDayCalorieTarget).toBe(base + gameBurn);
 
-    // All targets are strictly ordered: rest < gym ≤ practice < game
-    // (gym and practice order depends on session MET/duration, so only assert distinct from rest/game)
     expect(plan.gymDayCalorieTarget!).toBeGreaterThan(base);
     expect(plan.practiceDayCalorieTarget!).toBeGreaterThan(base);
     expect(plan.gameDayCalorieTarget!).toBeGreaterThan(plan.practiceDayCalorieTarget!);
+  });
+});
+
+// ─── 7. New dailyCalorieTargets — per-day per-activity map ────────────────────
+
+describe("dailyCalorieTargets — new per-day exercise schedule", () => {
+  it("rest day (no schedule): dailyCalorieTargets is null", () => {
+    const plan = generatePlan(profile({ workoutDaysPerWeek: 0 }));
+    expect(plan.dailyCalorieTargets).toBeNull();
+  });
+
+  it("gym-only day: dailyCalorieTargets[day] = calorieTarget + gymBurn", () => {
+    const p = profile({
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          { day: "monday", activities: [{ type: "gym", durationMinutes: 60, intensity: "moderate" }] },
+        ],
+      }),
+    });
+    const plan = generatePlan(p);
+    expect(plan.dailyCalorieTargets).not.toBeNull();
+
+    const act: ScheduledActivity = { type: "gym", durationMinutes: 60, intensity: "moderate" };
+    const expectedBurn = estimateActivityBurn(act, 80);
+    expect(plan.dailyCalorieTargets!.monday).toBe(plan.calorieTarget + expectedBurn);
+  });
+
+  it("sport_practice day: dailyCalorieTargets[day] = calorieTarget + sportPracticeBurn", () => {
+    const p = profile({
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          { day: "thursday", activities: [{ type: "sport_practice", durationMinutes: 90, intensity: "moderate", sport: "football" }] },
+        ],
+      }),
+    });
+    const plan = generatePlan(p);
+    expect(plan.dailyCalorieTargets).not.toBeNull();
+
+    const act: ScheduledActivity = { type: "sport_practice", durationMinutes: 90, intensity: "moderate", sport: "football" };
+    const expectedBurn = estimateActivityBurn(act, 80);
+    expect(plan.dailyCalorieTargets!.thursday).toBe(plan.calorieTarget + expectedBurn);
+  });
+
+  it("game day: dailyCalorieTargets[day] = calorieTarget + gameBurn", () => {
+    const p = profile({
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          { day: "saturday", activities: [{ type: "game", durationMinutes: 90, intensity: "hard", sport: "football" }] },
+        ],
+      }),
+    });
+    const plan = generatePlan(p);
+    expect(plan.dailyCalorieTargets).not.toBeNull();
+
+    const act: ScheduledActivity = { type: "game", durationMinutes: 90, intensity: "hard", sport: "football" };
+    const expectedBurn = estimateActivityBurn(act, 80);
+    expect(plan.dailyCalorieTargets!.saturday).toBe(plan.calorieTarget + expectedBurn);
+  });
+
+  it("two activities same day: both burns are summed (never double-counted)", () => {
+    const p = profile({
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          {
+            day: "tuesday",
+            activities: [
+              { type: "gym", durationMinutes: 60, intensity: "moderate" },
+              { type: "cardio", durationMinutes: 30, intensity: "hard" },
+            ],
+          },
+        ],
+      }),
+    });
+    const plan = generatePlan(p);
+    expect(plan.dailyCalorieTargets).not.toBeNull();
+
+    const gymBurn    = estimateActivityBurn({ type: "gym",    durationMinutes: 60, intensity: "moderate" }, 80);
+    const cardioBurn = estimateActivityBurn({ type: "cardio", durationMinutes: 30, intensity: "hard"     }, 80);
+    expect(plan.dailyCalorieTargets!.tuesday).toBe(plan.calorieTarget + gymBurn + cardioBurn);
+  });
+
+  it("gym + sport_practice same day: both burns summed independently", () => {
+    const p = profile({
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          {
+            day: "friday",
+            activities: [
+              { type: "gym",            durationMinutes: 60, intensity: "moderate" },
+              { type: "sport_practice", durationMinutes: 90, intensity: "moderate", sport: "basketball" },
+            ],
+          },
+        ],
+      }),
+    });
+    const plan = generatePlan(p);
+
+    const gymBurn     = estimateActivityBurn({ type: "gym",            durationMinutes: 60, intensity: "moderate"                }, 80);
+    const sportBurn   = estimateActivityBurn({ type: "sport_practice", durationMinutes: 90, intensity: "moderate", sport: "basketball" }, 80);
+    expect(plan.dailyCalorieTargets!.friday).toBe(plan.calorieTarget + gymBurn + sportBurn);
+  });
+
+  it("multiple days each have correct independent target", () => {
+    const p = profile({
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          { day: "monday",   activities: [{ type: "gym",     durationMinutes: 60, intensity: "moderate" }] },
+          { day: "thursday", activities: [{ type: "cardio",  durationMinutes: 45, intensity: "hard"     }] },
+          { day: "saturday", activities: [{ type: "game",    durationMinutes: 90, intensity: "hard",    sport: "soccer" }] },
+        ],
+      }),
+    });
+    const plan = generatePlan(p);
+    expect(plan.dailyCalorieTargets).not.toBeNull();
+
+    const monBurn = estimateActivityBurn({ type: "gym",    durationMinutes: 60, intensity: "moderate" }, 80);
+    const thuBurn = estimateActivityBurn({ type: "cardio", durationMinutes: 45, intensity: "hard"     }, 80);
+    const satBurn = estimateActivityBurn({ type: "game",   durationMinutes: 90, intensity: "hard", sport: "soccer" }, 80);
+
+    expect(plan.dailyCalorieTargets!.monday).toBe(plan.calorieTarget + monBurn);
+    expect(plan.dailyCalorieTargets!.thursday).toBe(plan.calorieTarget + thuBurn);
+    expect(plan.dailyCalorieTargets!.saturday).toBe(plan.calorieTarget + satBurn);
+  });
+
+  it("days not in schedule are absent from dailyCalorieTargets (rest days use calorieTarget)", () => {
+    const p = profile({
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          { day: "monday", activities: [{ type: "gym", durationMinutes: 60, intensity: "moderate" }] },
+        ],
+      }),
+    });
+    const plan = generatePlan(p);
+    expect(plan.dailyCalorieTargets!.tuesday).toBeUndefined();
+    expect(plan.dailyCalorieTargets!.wednesday).toBeUndefined();
+    expect(plan.dailyCalorieTargets!.sunday).toBeUndefined();
+  });
+
+  it("base calorieTarget never changes regardless of how many active days are in schedule", () => {
+    const fewDays = generatePlan(profile({
+      customWorkoutSchedule: JSON.stringify({
+        days: [{ day: "monday", activities: [{ type: "gym", durationMinutes: 60, intensity: "moderate" }] }],
+      }),
+    }));
+    const manyDays = generatePlan(profile({
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          { day: "monday",    activities: [{ type: "gym",    durationMinutes: 60, intensity: "moderate" }] },
+          { day: "tuesday",   activities: [{ type: "cardio", durationMinutes: 45, intensity: "hard"     }] },
+          { day: "wednesday", activities: [{ type: "gym",    durationMinutes: 60, intensity: "hard"     }] },
+          { day: "thursday",  activities: [{ type: "cardio", durationMinutes: 30, intensity: "moderate" }] },
+          { day: "friday",    activities: [{ type: "gym",    durationMinutes: 60, intensity: "moderate" }] },
+          { day: "saturday",  activities: [{ type: "game",   durationMinutes: 90, intensity: "hard", sport: "basketball" }] },
+        ],
+      }),
+    }));
+    expect(fewDays.calorieTarget).toBe(manyDays.calorieTarget);
+  });
+});
+
+// ─── 8. Backward compat: old sportSchedule populates dailyCalorieTargets ──────
+
+describe("backward compat — sportSchedule populates dailyCalorieTargets", () => {
+  it("old sportSchedule without customWorkoutSchedule still generates dailyCalorieTargets", () => {
+    const p = profile({
+      customWorkoutSchedule: null,
+      sportSchedule: JSON.stringify({
+        sport: "football",
+        days: ["tuesday", "thursday"],
+        startTime: "18:00",
+        durationMinutes: 90,
+        intensity: "moderate",
+        gameDays: ["saturday"],
+      }),
+    });
+    const plan = generatePlan(p);
+    expect(plan.dailyCalorieTargets).not.toBeNull();
+    expect(plan.dailyCalorieTargets!.tuesday).toBeGreaterThan(plan.calorieTarget);
+    expect(plan.dailyCalorieTargets!.thursday).toBeGreaterThan(plan.calorieTarget);
+    expect(plan.dailyCalorieTargets!.saturday).toBeGreaterThan(plan.calorieTarget);
+  });
+
+  it("legacy game day target > legacy practice day target (same sport, game = hard)", () => {
+    const p = profile({
+      customWorkoutSchedule: null,
+      sportSchedule: JSON.stringify({
+        sport: "basketball",
+        days: ["monday", "wednesday"],
+        startTime: "17:00",
+        durationMinutes: 75,
+        intensity: "moderate",
+        gameDays: ["friday"],
+      }),
+    });
+    const plan = generatePlan(p);
+    expect(plan.dailyCalorieTargets!.friday).toBeGreaterThan(plan.dailyCalorieTargets!.monday);
+  });
+
+  it("new customWorkoutSchedule takes priority over old sportSchedule", () => {
+    const p = profile({
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          { day: "monday", activities: [{ type: "gym", durationMinutes: 60, intensity: "moderate" }] },
+        ],
+      }),
+      sportSchedule: JSON.stringify({
+        sport: "football",
+        days: ["tuesday", "thursday"],
+        durationMinutes: 90,
+        intensity: "moderate",
+        gameDays: [],
+      }),
+    });
+    const plan = generatePlan(p);
+    // new schedule has monday only — tuesday from old sportSchedule should NOT appear
+    expect(plan.dailyCalorieTargets!.monday).toBeGreaterThan(plan.calorieTarget);
+    expect(plan.dailyCalorieTargets!.tuesday).toBeUndefined();
+  });
+});
+
+// ─── 9. estimateActivityBurn unit tests ───────────────────────────────────────
+
+describe("estimateActivityBurn — per-activity calorie burn", () => {
+  it("gym: burn > 0 for any intensity", () => {
+    for (const intensity of ["light", "moderate", "hard"] as const) {
+      const burn = estimateActivityBurn({ type: "gym", durationMinutes: 60, intensity }, 80);
+      expect(burn).toBeGreaterThan(0);
+    }
+  });
+
+  it("home_workout: burn > 0", () => {
+    const burn = estimateActivityBurn({ type: "home_workout", durationMinutes: 45, intensity: "moderate" }, 80);
+    expect(burn).toBeGreaterThan(0);
+  });
+
+  it("cardio: harder intensity burns more", () => {
+    const light    = estimateActivityBurn({ type: "cardio", durationMinutes: 30, intensity: "light"    }, 80);
+    const moderate = estimateActivityBurn({ type: "cardio", durationMinutes: 30, intensity: "moderate" }, 80);
+    const hard     = estimateActivityBurn({ type: "cardio", durationMinutes: 30, intensity: "hard"     }, 80);
+    expect(moderate).toBeGreaterThan(light);
+    expect(hard).toBeGreaterThan(moderate);
+  });
+
+  it("sport_practice: burn > 0 for football", () => {
+    const burn = estimateActivityBurn({ type: "sport_practice", durationMinutes: 90, intensity: "moderate", sport: "football" }, 80);
+    expect(burn).toBeGreaterThan(0);
+  });
+
+  it("game: burn > sport_practice burn for same duration (game = hard)", () => {
+    const practice = estimateActivityBurn({ type: "sport_practice", durationMinutes: 90, intensity: "moderate", sport: "basketball" }, 80);
+    const game     = estimateActivityBurn({ type: "game",           durationMinutes: 90, intensity: "hard",     sport: "basketball" }, 80);
+    expect(game).toBeGreaterThan(practice);
+  });
+
+  it("longer duration burns more for same activity type and intensity", () => {
+    const short = estimateActivityBurn({ type: "cardio", durationMinutes: 30, intensity: "moderate" }, 80);
+    const long  = estimateActivityBurn({ type: "cardio", durationMinutes: 60, intensity: "moderate" }, 80);
+    expect(long).toBeGreaterThan(short);
+  });
+
+  it("heavier user burns more for same activity", () => {
+    const lighter = estimateActivityBurn({ type: "gym", durationMinutes: 60, intensity: "moderate" }, 60);
+    const heavier = estimateActivityBurn({ type: "gym", durationMinutes: 60, intensity: "moderate" }, 100);
+    expect(heavier).toBeGreaterThan(lighter);
   });
 });

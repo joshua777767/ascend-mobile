@@ -10,6 +10,9 @@ function formatPlan(plan: any) {
   return {
     ...plan,
     keyHabits: JSON.parse(plan.keyHabits || "[]"),
+    dailyCalorieTargets: plan.dailyCalorieTargets
+      ? JSON.parse(plan.dailyCalorieTargets)
+      : null,
   };
 }
 
@@ -68,6 +71,9 @@ router.post("/plans/current", async (req, res): Promise<void> => {
     gymDayCalorieTarget: generated.gymDayCalorieTarget,
     practiceDayCalorieTarget: generated.practiceDayCalorieTarget,
     gameDayCalorieTarget: generated.gameDayCalorieTarget,
+    dailyCalorieTargets: generated.dailyCalorieTargets
+      ? JSON.stringify(generated.dailyCalorieTargets)
+      : null,
   }).returning();
 
   res.status(201).json(formatPlan(plan));

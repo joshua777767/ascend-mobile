@@ -790,27 +790,52 @@ export default function DashboardPage() {
   const todayCalories = (todayMeals ?? []).reduce((s, m) => s + (m.calories ?? 0), 0);
   const todayProtein = (todayMeals ?? []).reduce((s, m) => s + (m.protein ?? 0), 0);
 
-  // Detect today's sport day type to show the right calorie target
-  const todaySportInfo = (() => {
+  // Today's calorie target — uses new dailyCalorieTargets map first, then legacy fallback
+  const effectiveCalorieTarget = (() => {
     const p = plan as any;
-    if (!p?.restDayCalorieTarget || !p?.practiceDayCalorieTarget) return null;
-    const raw = (profile as any)?.sportSchedule;
-    if (!raw) return null;
-    try {
-      const schedule = JSON.parse(raw);
-      const todayFull = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
-      const todayShort = todayFull.slice(0, 3);
-      const matchDay = (arr: string[]) => arr.map(d => d.toLowerCase().trim()).some(d => d.startsWith(todayShort) || todayFull.startsWith(d.slice(0, 3)));
-      const gameDays: string[] = schedule.gameDays ?? [];
-      const practiceDays: string[] = schedule.days ?? [];
-      if (gameDays.length > 0 && p.gameDayCalorieTarget && matchDay(gameDays)) {
-        return { target: p.gameDayCalorieTarget as number, label: "Game Day" };
+    const todayFull = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+
+    // New path: per-day targets map (keyed by lowercase weekday)
+    if (p?.dailyCalorieTargets) {
+      const targets: Record<string, number> =
+        typeof p.dailyCalorieTargets === "string"
+          ? (() => { try { return JSON.parse(p.dailyCalorieTargets); } catch { return {}; } })()
+          : p.dailyCalorieTargets;
+      if (targets[todayFull]) return targets[todayFull] as number;
+      return (p.calorieTarget as number) ?? 0; // rest day — use goal-adjusted base
+    }
+
+    // Legacy path: old sport-based single-value targets
+    if (p?.restDayCalorieTarget && p?.practiceDayCalorieTarget) {
+      const raw = (profile as any)?.sportSchedule;
+      if (raw) {
+        try {
+          const schedule = JSON.parse(raw);
+          const todayShort = todayFull.slice(0, 3);
+          const matchDay = (arr: string[]) =>
+            arr.map(d => d.toLowerCase().trim()).some(d => d.startsWith(todayShort) || todayFull.startsWith(d.slice(0, 3)));
+          const gameDays: string[] = schedule.gameDays ?? [];
+          const practiceDays: string[] = schedule.days ?? [];
+          if (gameDays.length > 0 && p.gameDayCalorieTarget && matchDay(gameDays)) return p.gameDayCalorieTarget as number;
+          if (matchDay(practiceDays)) return p.practiceDayCalorieTarget as number;
+          return p.restDayCalorieTarget as number;
+        } catch { /* ignore */ }
       }
-      if (matchDay(practiceDays)) return { target: p.practiceDayCalorieTarget as number, label: "Practice Day" };
-      return { target: p.restDayCalorieTarget as number, label: "Rest Day" };
-    } catch { return null; }
+    }
+
+    return plan?.calorieTarget ?? 0;
   })();
-  const effectiveCalorieTarget = todaySportInfo?.target ?? plan?.calorieTarget ?? 0;
+
+  const isExerciseDay = (() => {
+    const p = plan as any;
+    if (!p?.dailyCalorieTargets) return false;
+    const todayFull = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+    const targets: Record<string, number> =
+      typeof p.dailyCalorieTargets === "string"
+        ? (() => { try { return JSON.parse(p.dailyCalorieTargets); } catch { return {}; } })()
+        : p.dailyCalorieTargets;
+    return !!targets[todayFull];
+  })();
 
   // Auto-check the calorie habit when daily calorie target is met
   useEffect(() => {
@@ -846,6 +871,25 @@ export default function DashboardPage() {
   );
   const showProfilePrompt = !profilePromptDismissed &&
     !!profile && !(profile as any).dietStyle && !(profile as any).allergies && (profile as any).gymAccess === "no";
+
+  // Schedule completion prompt — shown to existing users who have no exercise schedule set
+  const [schedulePromptDismissed, setSchedulePromptDismissed] = useState(
+    () => typeof localStorage !== "undefined" && localStorage.getItem("ascend.schedulePromptDismissed") === "1"
+  );
+  const hasExerciseSchedule = (() => {
+    const p = plan as any;
+    if (p?.dailyCalorieTargets) {
+      const targets: Record<string, number> =
+        typeof p.dailyCalorieTargets === "string"
+          ? (() => { try { return JSON.parse(p.dailyCalorieTargets); } catch { return {}; } })()
+          : p.dailyCalorieTargets;
+      return Object.keys(targets).length > 0;
+    }
+    // Legacy: had sport schedule
+    if ((profile as any)?.sportSchedule) return true;
+    return false;
+  })();
+  const showSchedulePrompt = !schedulePromptDismissed && !!plan && !hasExerciseSchedule;
 
   const { data: weighIns } = useListWeighIns();
   const [weighInPromptDismissed, setWeighInPromptDismissed] = useState(
@@ -1067,6 +1111,39 @@ export default function DashboardPage() {
               onClick={() => {
                 setProfilePromptDismissed(true);
                 localStorage.setItem("ascend.profilePromptDismissed", "1");
+              }}
+              className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none shrink-0 -mt-0.5"
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* ── Exercise schedule completion prompt ── */}
+        {showSchedulePrompt && (
+          <div
+            className="rounded-2xl p-4 flex items-start gap-3"
+            style={{ background: "hsl(220 12% 9%)", border: "1px solid hsl(38 70% 45% / 0.35)" }}
+          >
+            <span className="text-lg leading-none shrink-0 mt-0.5">🏋️</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground leading-snug">Set your exercise schedule</p>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                Tell your coach which days you train and what you do — your calorie target will automatically adjust on active days.
+              </p>
+              <Link
+                href="/settings"
+                className="inline-block mt-2 text-xs font-bold"
+                style={{ color: "#C89A3E" }}
+              >
+                Set up schedule →
+              </Link>
+            </div>
+            <button
+              onClick={() => {
+                setSchedulePromptDismissed(true);
+                localStorage.setItem("ascend.schedulePromptDismissed", "1");
               }}
               className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none shrink-0 -mt-0.5"
               aria-label="Dismiss"
@@ -1688,7 +1765,7 @@ export default function DashboardPage() {
           <div>
             <SectionLabel>Fuel</SectionLabel>
             <div className="grid grid-cols-2 gap-3">
-              <IntakeBar icon={Flame} label={todaySportInfo ? `Calories (${todaySportInfo.label})` : "Calories"} eaten={todayCalories} target={effectiveCalorieTarget} tint="blue" />
+              <IntakeBar icon={Flame} label={isExerciseDay ? "Calories (Active Day)" : "Calories"} eaten={todayCalories} target={effectiveCalorieTarget} tint="blue" />
               <IntakeBar icon={Beef} label="Protein" eaten={todayProtein} target={plan.proteinTargetG} unit="g" tint="green" />
             </div>
           </div>

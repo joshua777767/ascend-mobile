@@ -1,5 +1,9 @@
 import type { UserProfile } from "@workspace/db";
 
+// ---------------------------------------------------------------------------
+// Legacy sport-schedule types (kept for backward compat parsing)
+// ---------------------------------------------------------------------------
+
 export interface SportScheduleEntry {
   sport: string;
   days: string[];
@@ -8,6 +12,55 @@ export interface SportScheduleEntry {
   intensity: "light" | "moderate" | "hard";
   gameDays?: string[];
 }
+
+// ---------------------------------------------------------------------------
+// New per-day exercise schedule types
+// ---------------------------------------------------------------------------
+
+export type ActivityType = "gym" | "home_workout" | "cardio" | "sport_practice" | "game";
+
+export interface ScheduledActivity {
+  type: ActivityType;
+  durationMinutes: number;
+  intensity: "light" | "moderate" | "hard";
+  sport?: string;
+  focus?: string;
+}
+
+export interface ExerciseDay {
+  day: string;
+  activities: ScheduledActivity[];
+}
+
+export interface ExerciseSchedule {
+  days: ExerciseDay[];
+}
+
+// ---------------------------------------------------------------------------
+// Parse new ExerciseSchedule from customWorkoutSchedule
+// ---------------------------------------------------------------------------
+
+export function parseExerciseSchedule(profile: UserProfile): ExerciseSchedule | null {
+  if (!profile.customWorkoutSchedule) return null;
+  try {
+    const parsed = JSON.parse(profile.customWorkoutSchedule);
+    if (
+      parsed &&
+      Array.isArray(parsed.days) &&
+      parsed.days.length > 0 &&
+      Array.isArray(parsed.days[0]?.activities)
+    ) {
+      return parsed as ExerciseSchedule;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Legacy parsers (kept for backward compat)
+// ---------------------------------------------------------------------------
 
 export interface CustomWorkoutDay {
   day: string;
@@ -34,7 +87,6 @@ export function parseSportSchedule(profile: UserProfile): SportScheduleEntry | n
       };
     }
   } catch {
-    // Try to parse from free-text ownSchedule
     if (profile.hasOwnSchedule === "yes" && profile.ownSchedule) {
       return tryParseSportFromText(profile.sport || "sport", profile.ownSchedule);
     }
@@ -50,10 +102,9 @@ export function parseCustomWorkoutSchedule(profile: UserProfile): CustomWorkoutS
         return parsed as CustomWorkoutSchedule;
       }
     } catch {
-      // Fall through to try text parsing
+      // Fall through
     }
   }
-  // Try to parse from free-text ownSchedule
   if (profile.hasOwnSchedule === "yes" && profile.ownSchedule) {
     return tryParseCustomWorkoutFromText(profile.ownSchedule);
   }
@@ -67,22 +118,15 @@ function tryParseSportFromText(sport: string, text: string): SportScheduleEntry 
     if (text.toLowerCase().includes(d)) days.push(capitalize(d));
   }
   if (days.length === 0) return null;
-
-  // Try to extract time
   const timeMatch = text.match(/(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)/);
   const startTime = timeMatch ? timeMatch[1] : "16:00";
-
-  // Try to extract duration
   const durationMatch = text.match(/(\d+)\s*(?:hour|hr|hours|hrs)/i);
   const durationMinutes = durationMatch ? parseInt(durationMatch[1]) * 60 : 90;
-
-  // Try to extract intensity
   const intensity = text.match(/\bhard\b|\bintense\b|\bvigorous\b/i)
     ? "hard"
     : text.match(/\blight\b|\beasy\b|\blow\b/i)
       ? "light"
       : "moderate";
-
   return { sport, days, startTime, durationMinutes, intensity };
 }
 
@@ -129,7 +173,7 @@ function capitalize(s: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Calorie burn estimation
+// Calorie burn estimation — sport
 // ---------------------------------------------------------------------------
 
 const SPORT_METS: Record<string, number> = {
@@ -152,15 +196,9 @@ export function estimateSportCalBurn(
   const baseMet = SPORT_METS[sport.toLowerCase()] ?? 5.0;
   const intensityMult = intensity === "hard" ? 1.7 : intensity === "light" ? 1.3 : 1.5;
   const met = baseMet * intensityMult;
-  const durationHours = durationMinutes / 60;
-  return Math.round(met * weightKg * durationHours);
+  return Math.round(met * weightKg * (durationMinutes / 60));
 }
 
-/**
- * Game day burn — identical formula to practice but always "hard" intensity,
- * reflecting the competitive effort of a game vs a training session.
- * Replaces the previous arbitrary ×1.175 multiplier.
- */
 export function estimateGameCalBurn(
   sport: string,
   durationMinutes: number,
@@ -169,8 +207,10 @@ export function estimateGameCalBurn(
   return estimateSportCalBurn(sport, durationMinutes, "hard", weightKg);
 }
 
-// MET and default duration for structured gym sessions by workout focus.
-// Duration is a representative session length; actual may vary.
+// ---------------------------------------------------------------------------
+// Calorie burn estimation — gym sessions
+// ---------------------------------------------------------------------------
+
 const GYM_SESSIONS: Record<string, { met: number; durationMin: number }> = {
   strength:             { met: 5.0, durationMin: 60 },
   build_muscle:         { met: 5.0, durationMin: 60 },
@@ -180,18 +220,72 @@ const GYM_SESSIONS: Record<string, { met: number; durationMin: number }> = {
   general_fitness:      { met: 5.5, durationMin: 55 },
 };
 
-/**
- * Estimated calories burned during one gym session.
- * Used to build gymDayCalorieTarget — added on top of the lifestyle base TDEE
- * so that gym calories are never baked into the activity multiplier.
- */
 export function estimateGymCalBurn(
   workoutFocus: string | null | undefined,
-  weightKg: number
+  weightKg: number,
+  durationMinutes?: number
 ): number {
   const session = GYM_SESSIONS[workoutFocus ?? ""] ?? GYM_SESSIONS["general_fitness"]!;
-  return Math.round(session.met * weightKg * (session.durationMin / 60));
+  const mins = durationMinutes ?? session.durationMin;
+  return Math.round(session.met * weightKg * (mins / 60));
 }
+
+// ---------------------------------------------------------------------------
+// New: per-activity calorie burn — additive per day
+// ---------------------------------------------------------------------------
+
+const CARDIO_METS: Record<"light" | "moderate" | "hard", number> = {
+  light:    5.5,
+  moderate: 7.0,
+  hard:     9.0,
+};
+
+const HOME_WORKOUT_METS: Record<"light" | "moderate" | "hard", number> = {
+  light:    3.5,
+  moderate: 4.5,
+  hard:     5.5,
+};
+
+/**
+ * Estimate calories burned for a single scheduled activity.
+ * Each activity on the same day is computed independently and summed —
+ * never combined into the base TDEE.
+ */
+export function estimateActivityBurn(
+  activity: ScheduledActivity,
+  weightKg: number
+): number {
+  const { type, durationMinutes, intensity } = activity;
+  switch (type) {
+    case "gym": {
+      const focus = activity.focus ?? "general_fitness";
+      const session = GYM_SESSIONS[focus] ?? GYM_SESSIONS["general_fitness"]!;
+      return Math.round(session.met * weightKg * (durationMinutes / 60));
+    }
+    case "home_workout": {
+      const met = HOME_WORKOUT_METS[intensity];
+      return Math.round(met * weightKg * (durationMinutes / 60));
+    }
+    case "cardio": {
+      const met = CARDIO_METS[intensity];
+      return Math.round(met * weightKg * (durationMinutes / 60));
+    }
+    case "sport_practice": {
+      const sport = activity.sport ?? "sport";
+      return estimateSportCalBurn(sport, durationMinutes, intensity, weightKg);
+    }
+    case "game": {
+      const sport = activity.sport ?? "sport";
+      return estimateGameCalBurn(sport, durationMinutes, weightKg);
+    }
+    default:
+      return 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Coach / UI helpers
+// ---------------------------------------------------------------------------
 
 export function estimateSportCaloriesBurned(
   sport: string,
@@ -208,28 +302,22 @@ export function estimateSportCaloriesBurned(
 export function getSportContextForCoach(profile: UserProfile): string {
   const sport = parseSportSchedule(profile);
   if (!sport) return "";
-
   const calNote = estimateSportCaloriesBurned(sport.sport, sport.durationMinutes, sport.intensity, profile.currentWeightKg);
   const days = sport.days.join(", ");
   const intensityLabel = sport.intensity === "hard" ? "hard" : sport.intensity === "light" ? "light" : "moderate";
-
   let ctx = `Sport: ${sport.sport}. Practice: ${days} at ${sport.startTime}, ${sport.durationMinutes} min, ${intensityLabel} intensity. Estimated burn: ${calNote}.`;
-
   if (sport.gameDays && sport.gameDays.length > 0) {
     ctx += ` Game days: ${sport.gameDays.join(", ")}.`;
   }
-
   return ctx;
 }
 
 export function getSportScheduleItems(profile: UserProfile): { time: string; activity: string; notes: string }[] {
   const sport = parseSportSchedule(profile);
   if (!sport) return [];
-
   const calNote = estimateSportCaloriesBurned(sport.sport, sport.durationMinutes, sport.intensity, profile.currentWeightKg);
   const intensityLabel = sport.intensity === "hard" ? "hard" : sport.intensity === "light" ? "light" : "moderate";
-
-  return sport.days.map(day => ({
+  return sport.days.map(_day => ({
     time: sport.startTime,
     activity: `${sport.sport} practice`,
     notes: `${sport.durationMinutes} min, ${intensityLabel}. ${calNote}.`,
@@ -240,7 +328,6 @@ export function getSportAdjustmentForPlan(goalType: string, sport: SportSchedule
   const intensityLabel = sport.intensity === "hard" ? "hard" : sport.intensity === "light" ? "light" : "moderate";
   const sportName = sport.sport;
   const days = sport.days.join(", ");
-
   if (goalType === "muscle_gain") {
     return `You have ${sportName} practice ${days} (${sport.durationMinutes} min, ${intensityLabel}). Add a post-practice meal or shake so you still hit your calorie surplus. Prioritize recovery, sleep, and hydration on practice days.`;
   }

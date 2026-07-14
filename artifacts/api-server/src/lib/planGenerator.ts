@@ -1,10 +1,12 @@
 import type { UserProfile } from "@workspace/db";
 import {
   parseSportSchedule,
+  parseExerciseSchedule,
   getSportAdjustmentForPlan,
   estimateSportCalBurn,
   estimateGameCalBurn,
   estimateGymCalBurn,
+  estimateActivityBurn,
 } from "./sportUtils";
 
 export interface GeneratedPlan {
@@ -23,6 +25,13 @@ export interface GeneratedPlan {
   gymDayCalorieTarget: number | null;
   practiceDayCalorieTarget: number | null;
   gameDayCalorieTarget: number | null;
+  /**
+   * Per-day calorie targets keyed by lowercase weekday name.
+   * Each value = goal-adjusted calorieTarget + sum of that day's activity burns.
+   * Days absent from the map are rest days — use calorieTarget directly.
+   * null when the user has no exercise schedule configured.
+   */
+  dailyCalorieTargets: Record<string, number> | null;
 }
 
 function parseGoals(goalsJson: unknown): string[] {
@@ -558,26 +567,51 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
 
   // ── Day-specific calorie targets ──────────────────────────────────────────
   //
-  // Architecture: the base calorieTarget is derived from lifestyle TDEE only
-  // (activityMult = 1.2, no exercise included). Exercise calories are added
-  // on top per day type so they are never double-counted in the base:
+  // Architecture: calorieTarget is the goal-adjusted base (deficit/surplus
+  // already applied, lifestyle TDEE × 1.2 only — no exercise in base).
+  // Exercise calories are added on top per day so they are never double-counted:
   //
-  //   restDayCalorieTarget     = calorieTarget          (lifestyle only)
-  //   gymDayCalorieTarget      = calorieTarget + gymBurn
-  //   practiceDayCalorieTarget = calorieTarget + sportPracticeBurn
-  //   gameDayCalorieTarget     = calorieTarget + gameBurn
+  //   rest day:     calorieTarget                   (goal-adjusted, lifestyle only)
+  //   active day:   calorieTarget + Σ activityBurns  (one burn per scheduled activity)
   //
-  // gameBurn uses the same MET formula as practice but forces "hard" intensity,
-  // replacing the previous arbitrary ×1.175 multiplier.
+  // New path  — customWorkoutSchedule (new per-day per-activity format):
+  //   dailyCalorieTargets[day] = calorieTarget + Σ estimateActivityBurn(activity, kg)
+  //
+  // Legacy path — sportSchedule (old single-sport format), kept for backward compat:
+  //   practiceDayCalorieTarget = calorieTarget + practiceBurn
+  //   gameDayCalorieTarget     = calorieTarget + gameBurn   (hard intensity)
+  //
+  // The legacy gymDayCalorieTarget (one value for all gym days) is also kept
+  // for users who haven't migrated to the new per-day schedule.
 
   let restDayCalorieTarget: number | null = null;
   let gymDayCalorieTarget: number | null = null;
   let practiceDayCalorieTarget: number | null = null;
   let gameDayCalorieTarget: number | null = null;
+  let dailyCalorieTargets: Record<string, number> | null = null;
+
+  // ── New path: per-day per-activity schedule ──────────────────────────────
+  const exerciseSchedule = parseExerciseSchedule(profile);
+  if (exerciseSchedule && exerciseSchedule.days.length > 0) {
+    const map: Record<string, number> = {};
+    for (const day of exerciseSchedule.days) {
+      if (!day.day || day.activities.length === 0) continue;
+      const burn = day.activities.reduce(
+        (sum, act) => sum + estimateActivityBurn(act, weightKg),
+        0,
+      );
+      map[day.day.toLowerCase()] = Math.max(calorieFloor, calorieTarget + burn);
+    }
+    if (Object.keys(map).length > 0) {
+      dailyCalorieTargets = map;
+      restDayCalorieTarget = calorieTarget;
+    }
+  }
+
+  // ── Legacy path: old per-type single-value targets ───────────────────────
+  // Always computed so existing users (before migration) still see correct targets.
 
   // Gym day — add one session's worth of calories on gym days.
-  // workoutDaysPerWeek must NOT include sport practice days; it is strictly
-  // the number of days the user goes to the gym / does structured workouts.
   if (workoutDays > 0) {
     const gymBurn = estimateGymCalBurn(profile.workoutFocus, weightKg);
     gymDayCalorieTarget = Math.max(calorieFloor, calorieTarget + gymBurn);
@@ -595,8 +629,6 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     practiceDayCalorieTarget = Math.max(calorieFloor, calorieTarget + practiceBurn);
 
     if (sportEntry.gameDays && sportEntry.gameDays.length > 0) {
-      // Game day: same MET formula as practice but always "hard" intensity.
-      // This replaces the previous arbitrary ×1.175 multiplier.
       const gameBurn = estimateGameCalBurn(
         sportEntry.sport,
         sportEntry.durationMinutes,
@@ -604,10 +636,37 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
       );
       gameDayCalorieTarget = Math.max(calorieFloor, calorieTarget + gameBurn);
     }
+
+    // If we didn't already populate dailyCalorieTargets from the new schedule,
+    // build it from the legacy sport schedule for backward compat.
+    if (!dailyCalorieTargets) {
+      const map: Record<string, number> = {};
+      const practiceBurnVal = estimateSportCalBurn(
+        sportEntry.sport,
+        sportEntry.durationMinutes,
+        sportEntry.intensity,
+        weightKg,
+      );
+      for (const d of sportEntry.days) {
+        map[d.toLowerCase()] = Math.max(calorieFloor, calorieTarget + practiceBurnVal);
+      }
+      if (sportEntry.gameDays && sportEntry.gameDays.length > 0) {
+        const gameBurnVal = estimateGameCalBurn(
+          sportEntry.sport,
+          sportEntry.durationMinutes,
+          weightKg,
+        );
+        for (const d of sportEntry.gameDays) {
+          map[d.toLowerCase()] = Math.max(calorieFloor, calorieTarget + gameBurnVal);
+        }
+      }
+      if (Object.keys(map).length > 0) {
+        dailyCalorieTargets = map;
+      }
+    }
   }
 
-  // Set rest day target whenever any exercise-day target exists, so the UI
-  // can always show "rest day vs active day" side-by-side.
+  // Set rest day target whenever any exercise-day target exists.
   if (gymDayCalorieTarget !== null || practiceDayCalorieTarget !== null) {
     restDayCalorieTarget = calorieTarget;
   }
@@ -628,5 +687,6 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     gymDayCalorieTarget,
     practiceDayCalorieTarget,
     gameDayCalorieTarget,
+    dailyCalorieTargets,
   };
 }

@@ -28,20 +28,6 @@ const WAKE_OPTIONS = [
   { label: "Varies",      emoji: "🔀",  wakeTime: "07:30", wakeTimeRange: null },
 ] as const;
 
-// Sports that match SPORT_METS in sportUtils.ts — MET value shown so the
-// selection feeds directly into calorie calculations on gym/practice/game days.
-const SPORTS = [
-  { label: "Football",         value: "football",         emoji: "🏈" },
-  { label: "Basketball",       value: "basketball",       emoji: "🏀" },
-  { label: "Soccer",           value: "soccer",           emoji: "⚽" },
-  { label: "Track & Field",    value: "track",            emoji: "🏃" },
-  { label: "Boxing / MMA",     value: "boxing/mma",       emoji: "🥊" },
-  { label: "Baseball / Softball", value: "baseball/softball", emoji: "⚾" },
-  { label: "Volleyball",       value: "volleyball",       emoji: "🏐" },
-  { label: "Wrestling",        value: "wrestling",        emoji: "🤼" },
-  { label: "No Sport",         value: "none",             emoji: "🚫" },
-] as const;
-
 const DAYS = [
   { label: "M", value: "monday" },
   { label: "T", value: "tuesday" },
@@ -51,6 +37,29 @@ const DAYS = [
   { label: "S", value: "saturday" },
   { label: "S", value: "sunday" },
 ] as const;
+
+type ActivityType = "gym" | "home_workout" | "cardio" | "sport_practice" | "game";
+
+const ACTIVITY_TYPES: { label: string; value: ActivityType; emoji: string }[] = [
+  { label: "Gym / Strength", value: "gym",            emoji: "🏋️" },
+  { label: "Home Workout",   value: "home_workout",   emoji: "🏠" },
+  { label: "Cardio",         value: "cardio",         emoji: "🏃" },
+  { label: "Sport Practice", value: "sport_practice", emoji: "🏈" },
+  { label: "Game Day",       value: "game",           emoji: "🏆" },
+];
+
+const DURATIONS = [30, 45, 60, 90, 120];
+
+const SPORTS_LIST = [
+  { label: "Football",      value: "football",          emoji: "🏈" },
+  { label: "Basketball",    value: "basketball",        emoji: "🏀" },
+  { label: "Soccer",        value: "soccer",            emoji: "⚽" },
+  { label: "Track",         value: "track",             emoji: "🏃" },
+  { label: "Boxing/MMA",    value: "boxing/mma",        emoji: "🥊" },
+  { label: "Baseball",      value: "baseball/softball", emoji: "⚾" },
+  { label: "Volleyball",    value: "volleyball",        emoji: "🏐" },
+  { label: "Wrestling",     value: "wrestling",         emoji: "🤼" },
+];
 
 const WEIGHT_GOALS = new Set(["lose weight", "gain weight and muscle"]);
 
@@ -92,16 +101,21 @@ export default function OnboardingPage() {
   // Step 4
   const [age, setAge] = useState("");
 
-  // Step 5 — sport
-  const [selectedSport, setSelectedSport] = useState<string>("");
-  const [practiceDays, setPracticeDays] = useState<string[]>([]);
+  // Step 5 — exercise schedule
+  interface ActivityDraft {
+    type: ActivityType | "";
+    durationMinutes: number;
+    intensity: "light" | "moderate" | "hard";
+    sport?: string;
+  }
+  const [exerciseDays, setExerciseDays] = useState<string[]>([]);
+  const [dayActivities, setDayActivities] = useState<Record<string, ActivityDraft>>({});
 
   // Step 6
   const [wakeOption, setWakeOption] = useState<string>("");
 
   const isLoading = createProfile.isPending || generatePlan.isPending;
   const isWeightGoal = WEIGHT_GOALS.has(selectedGoal);
-  const hasSport = selectedSport && selectedSport !== "none";
 
   // ── Step handlers ────────────────────────────────────────────────────────
 
@@ -141,19 +155,47 @@ export default function OnboardingPage() {
     setError(""); setStep(5);
   };
 
-  const handleStep5 = () => {
-    if (!selectedSport) { setError("Pick a sport or choose No Sport to continue."); return; }
-    if (hasSport && practiceDays.length === 0) {
-      setError("Pick at least one practice day so your coach can plan around it."); return;
-    }
-    setError(""); setStep(6);
+  const updateDayActivity = (
+    day: string,
+    field: keyof ActivityDraft,
+    value: string | number,
+  ) => {
+    setDayActivities(prev => ({
+      ...prev,
+      [day]: { ...(prev[day] ?? { type: "" as ActivityType, durationMinutes: 60, intensity: "moderate" as const }), [field]: value },
+    }));
+    setError("");
   };
 
-  const toggleDay = (day: string) => {
-    setPracticeDays(prev =>
+  const toggleExerciseDay = (day: string) => {
+    setExerciseDays(prev =>
       prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
     );
+    if (!dayActivities[day]) {
+      setDayActivities(prev => ({
+        ...prev,
+        [day]: { type: "", durationMinutes: 60, intensity: "moderate" },
+      }));
+    }
     setError("");
+  };
+
+  const handleStep5 = () => {
+    // No exercise days is valid (rest week)
+    if (exerciseDays.length > 0) {
+      for (const day of exerciseDays) {
+        const draft = dayActivities[day];
+        if (!draft?.type) {
+          setError(`Pick an activity type for ${day.charAt(0).toUpperCase() + day.slice(1)}.`);
+          return;
+        }
+        if ((draft.type === "sport_practice" || draft.type === "game") && !draft.sport) {
+          setError(`Pick a sport for ${day.charAt(0).toUpperCase() + day.slice(1)}.`);
+          return;
+        }
+      }
+    }
+    setError(""); setStep(6);
   };
 
   const handleSubmit = async () => {
@@ -167,6 +209,20 @@ export default function OnboardingPage() {
     const goalWeightKg = goalWeightLbs ? lbsToKg(parseFloat(goalWeightLbs)) : currentWeightKg;
     const selectedWake = WAKE_OPTIONS.find(o => o.label === wakeOption);
 
+    // Build validated exercise schedule days
+    const scheduleDays = exerciseDays
+      .filter(d => dayActivities[d]?.type)
+      .map(d => {
+        const act = dayActivities[d]!;
+        const activity: Record<string, unknown> = {
+          type: act.type,
+          durationMinutes: act.durationMinutes,
+          intensity: act.intensity,
+        };
+        if (act.sport) activity.sport = act.sport;
+        return { day: d, activities: [activity] };
+      });
+
     const payload: Record<string, unknown> = {
       name: me?.email?.split("@")[0] ?? "User",
       age: a,
@@ -179,8 +235,8 @@ export default function OnboardingPage() {
       skinConcerns: [],
       digestionConcerns: [],
       fitnessLevel: "beginner",
-      gymAccess: "no",
-      workoutDaysPerWeek: 3,
+      gymAccess: scheduleDays.some(d => d.activities.some(a => a.type === "gym")) ? "gym" : "no",
+      workoutDaysPerWeek: scheduleDays.length,
       wakeTime: selectedWake?.wakeTime ?? "07:00",
       wakeTimeRange: selectedWake?.wakeTimeRange ?? null,
       sleepTime: "22:30",
@@ -192,18 +248,34 @@ export default function OnboardingPage() {
       commitmentLevel: "serious",
     };
 
-    // Save sport + practice schedule so planGenerator can use the correct
-    // sport's MET value for practice-day and game-day calorie targets.
-    if (hasSport) {
-      payload.sport = selectedSport;
-      payload.sportSchedule = JSON.stringify({
-        sport: selectedSport,
-        days: practiceDays,
-        startTime: "17:00",
-        durationMinutes: 90,
-        intensity: "moderate",
-        gameDays: [],
-      });
+    if (scheduleDays.length > 0) {
+      payload.customWorkoutSchedule = JSON.stringify({ days: scheduleDays });
+
+      // Backward-compat: also set sport / sportSchedule if any sport activities exist
+      const sportActivity = scheduleDays
+        .flatMap(d => d.activities)
+        .find(a => a.type === "sport_practice" || a.type === "game");
+      if (sportActivity?.sport) {
+        const sport = sportActivity.sport as string;
+        payload.sport = sport;
+        const practiceDaysList = scheduleDays
+          .filter(d => d.activities.some(a => a.type === "sport_practice"))
+          .map(d => d.day);
+        const gameDaysList = scheduleDays
+          .filter(d => d.activities.some(a => a.type === "game"))
+          .map(d => d.day);
+        const firstSportAct = scheduleDays
+          .flatMap(d => d.activities)
+          .find(a => a.type === "sport_practice" || a.type === "game");
+        payload.sportSchedule = JSON.stringify({
+          sport,
+          days: practiceDaysList,
+          startTime: "17:00",
+          durationMinutes: (firstSportAct?.durationMinutes as number) ?? 90,
+          intensity: (firstSportAct?.intensity as string) ?? "moderate",
+          gameDays: gameDaysList.length > 0 ? gameDaysList : [],
+        });
+      }
     }
 
     try {
@@ -407,60 +479,146 @@ export default function OnboardingPage() {
             </>
           )}
 
-          {/* ── Step 5: Sport ────────────────────────────────────────────── */}
+          {/* ── Step 5: Exercise schedule ─────────────────────────────── */}
           {step === 5 && (
             <>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">Do you play a sport?</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Your exercise schedule</h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Your coach will build sport-specific calorie targets for practice and game days.
+                  Pick the days you exercise — your calorie target adjusts automatically for each active day.
                 </p>
               </div>
 
-              {/* Sport grid */}
-              <div className="grid grid-cols-3 gap-2.5">
-                {SPORTS.map((s) => (
-                  <button key={s.value} type="button"
-                    onClick={() => {
-                      setSelectedSport(s.value);
-                      if (s.value === "none") setPracticeDays([]);
-                      setError("");
-                    }}
-                    className={cn(
-                      "flex flex-col items-center justify-center gap-2 rounded-2xl border px-2 py-4 transition-all active:scale-[0.97]",
-                      selectedSport === s.value
-                        ? "bg-primary/10 border-primary text-primary"
-                        : "bg-card border-border text-foreground hover:bg-elevated"
-                    )}>
-                    <span className="text-2xl leading-none">{s.emoji}</span>
-                    <span className="text-xs font-semibold leading-tight text-center">{s.label}</span>
-                  </button>
-                ))}
+              {/* Day selector */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground tracking-wide mb-2">Exercise days</p>
+                <div className="flex gap-1.5">
+                  {DAYS.map((d) => (
+                    <button key={d.value} type="button"
+                      onClick={() => toggleExerciseDay(d.value)}
+                      className={cn(
+                        "flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border",
+                        exerciseDays.includes(d.value)
+                          ? "border-primary text-primary-foreground"
+                          : "bg-elevated border-border text-muted-foreground hover:text-foreground"
+                      )}
+                      style={exerciseDays.includes(d.value) ? { background: "#C89A3E", borderColor: "#C89A3E" } : undefined}>
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Practice day picker — only shown when a sport is selected */}
-              {hasSport && (
-                <div className="flex flex-col gap-3">
-                  <p className="text-sm font-semibold text-foreground">Which days do you practice?</p>
-                  <div className="flex gap-2">
-                    {DAYS.map((d) => (
-                      <button key={d.value} type="button"
-                        onClick={() => toggleDay(d.value)}
-                        className={cn(
-                          "flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-95",
-                          practiceDays.includes(d.value)
-                            ? "text-primary-foreground"
-                            : "bg-elevated border border-border text-muted-foreground hover:text-foreground"
+              {/* Per-day activity config */}
+              {exerciseDays.length > 0 && (
+                <div className="space-y-3">
+                  {exerciseDays.map(day => {
+                    const draft = dayActivities[day] ?? { type: "" as const, durationMinutes: 60, intensity: "moderate" as const };
+                    const needsSport = draft.type === "sport_practice" || draft.type === "game";
+                    return (
+                      <div key={day} className="bg-card border border-border rounded-2xl p-4 space-y-3">
+                        <p className="text-sm font-semibold capitalize text-foreground">{day}</p>
+
+                        {/* Activity type */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {ACTIVITY_TYPES.map(at => (
+                            <button key={at.value} type="button"
+                              onClick={() => {
+                                updateDayActivity(day, "type", at.value);
+                                if (at.value !== "sport_practice" && at.value !== "game") {
+                                  setDayActivities(prev => ({
+                                    ...prev,
+                                    [day]: { ...(prev[day] ?? { durationMinutes: 60, intensity: "moderate" as const }), type: at.value, sport: undefined },
+                                  }));
+                                }
+                              }}
+                              className={cn(
+                                "flex items-center gap-1 h-8 px-2.5 rounded-lg border text-[11px] font-semibold transition-all active:scale-95",
+                                draft.type === at.value
+                                  ? "border-primary text-primary-foreground"
+                                  : "bg-elevated border-border text-muted-foreground"
+                              )}
+                              style={draft.type === at.value ? { background: "#C89A3E", borderColor: "#C89A3E" } : undefined}>
+                              <span>{at.emoji}</span> {at.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {draft.type && (
+                          <>
+                            {/* Duration */}
+                            <div>
+                              <p className="text-[10px] text-muted-foreground mb-1.5">Duration</p>
+                              <div className="flex gap-1.5">
+                                {DURATIONS.map(min => (
+                                  <button key={min} type="button"
+                                    onClick={() => updateDayActivity(day, "durationMinutes", min)}
+                                    className={cn(
+                                      "flex-1 h-8 rounded-lg border text-[11px] font-bold transition-all",
+                                      draft.durationMinutes === min
+                                        ? "border-primary text-primary-foreground"
+                                        : "bg-elevated border-border text-muted-foreground"
+                                    )}
+                                    style={draft.durationMinutes === min ? { background: "#C89A3E", borderColor: "#C89A3E" } : undefined}>
+                                    {min}m
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Intensity */}
+                            <div>
+                              <p className="text-[10px] text-muted-foreground mb-1.5">Intensity</p>
+                              <div className="flex gap-1.5">
+                                {(["light", "moderate", "hard"] as const).map(i => (
+                                  <button key={i} type="button"
+                                    onClick={() => updateDayActivity(day, "intensity", i)}
+                                    className={cn(
+                                      "flex-1 h-8 rounded-lg border text-[11px] font-semibold capitalize transition-all",
+                                      draft.intensity === i
+                                        ? "border-primary text-primary-foreground"
+                                        : "bg-elevated border-border text-muted-foreground"
+                                    )}
+                                    style={draft.intensity === i ? { background: "#C89A3E", borderColor: "#C89A3E" } : undefined}>
+                                    {i}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Sport picker */}
+                            {needsSport && (
+                              <div>
+                                <p className="text-[10px] text-muted-foreground mb-1.5">Sport</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {SPORTS_LIST.map(s => (
+                                    <button key={s.value} type="button"
+                                      onClick={() => updateDayActivity(day, "sport", s.value)}
+                                      className={cn(
+                                        "flex items-center gap-1 h-8 px-2.5 rounded-lg border text-[11px] font-semibold transition-all",
+                                        draft.sport === s.value
+                                          ? "border-primary text-primary-foreground"
+                                          : "bg-elevated border-border text-muted-foreground"
+                                      )}
+                                      style={draft.sport === s.value ? { background: "#C89A3E", borderColor: "#C89A3E" } : undefined}>
+                                      {s.emoji} {s.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
                         )}
-                        style={practiceDays.includes(d.value) ? { background: "#C89A3E" } : undefined}>
-                        {d.label}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    You can add game days and adjust session details in Settings later.
-                  </p>
+                      </div>
+                    );
+                  })}
                 </div>
+              )}
+
+              {exerciseDays.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  No exercise days selected — you can add your schedule in Settings anytime.
+                </p>
               )}
 
               {error && <p className="text-sm text-destructive">{error}</p>}

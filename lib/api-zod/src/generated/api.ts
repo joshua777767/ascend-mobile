@@ -422,6 +422,7 @@ export const GetCurrentPlanResponse = zod.object({
   "gymDayCalorieTarget": zod.number().nullish(),
   "practiceDayCalorieTarget": zod.number().nullish(),
   "gameDayCalorieTarget": zod.number().nullish(),
+  "dailyCalorieTargets": zod.string().nullish().describe('JSON object mapping weekday names (lowercase) to calorie targets, e.g. {\"monday\":2450,\"thursday\":2650}. Days not in the map are rest days — use calorieTarget.'),
   "createdAt": zod.coerce.date()
 })
 
