@@ -251,3 +251,21 @@ id = "EylkYgzPmPUUqVOHn0R0d"
 uri = "file://attached_assets/icon_concepts/concept-p-F.png"
 type = "image"
 title = "F: Shield + Arrow (Strength & Growth)"
+
+[[outputs]]
+id = "9l-dpEUb8xdcqQbbr2wHF"
+uri = "file://screenshots/ipad13-dashboard.jpg"
+type = "image"
+title = "iPad 13-inch Screenshot 1 (Login — 2064×2752)"
+
+[[outputs]]
+id = "l4LGLSQXISz0pOTTgbZku"
+uri = "file://screenshots/ipad13-schedule.jpg"
+type = "image"
+title = "iPad 13-inch Screenshot 2 (Login — 2064×2752)"
+
+[[outputs]]
+id = "AMgo3taCF5_J0_R0GIrk1"
+uri = "file://screenshots/ipad13-workouts.jpg"
+type = "image"
+title = "iPad 13-inch Screenshot 3 (Login — 2064×2752)"
