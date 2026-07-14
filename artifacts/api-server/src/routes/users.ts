@@ -143,6 +143,7 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
     "fitnessLevel", "gymAccess", "equipment", "workoutDaysPerWeek",
     "preferredWorkoutTime", "sport", "sportSchedule", "sportCustom",
     "hasOwnSchedule", "activityLevel", "dietStyle", "targetDate",
+    "customWorkoutSchedule",
   ] as const;
   const triggerRegen = PLAN_RELEVANT_FIELDS.some(f => f in setValues);
 
@@ -166,6 +167,9 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
         restDayCalorieTarget: newPlan.restDayCalorieTarget,
         practiceDayCalorieTarget: newPlan.practiceDayCalorieTarget,
         gameDayCalorieTarget: newPlan.gameDayCalorieTarget,
+        dailyCalorieTargets: newPlan.dailyCalorieTargets
+          ? JSON.stringify(newPlan.dailyCalorieTargets)
+          : null,
       };
       let saved: typeof plansTable.$inferSelect | undefined;
       if (existingPlan) {

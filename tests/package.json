@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "test:api": "node --test --experimental-strip-types api.test.mts",
+    "test:api-integration": "node --test --experimental-strip-types exercise-schedule-api.test.mts",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:report": "playwright show-report",

@@ -640,10 +640,10 @@ function AuthenticatedGate() {
     // Native: the ONLY valid Pro signals are trial and nativeIsPro (from RC via bridge).
     hasAccess = isTrialActive || nativeIsPro;
   } else {
-    // Browser: use Capacitor RC entitlement query.
+    // Browser: backend freePro grant or Capacitor RC entitlement.
     const hasActiveProEntitlement =
       rcInfo?.entitlements?.active?.[RC_PRO_ENTITLEMENT] != null;
-    hasAccess = isTrialActive || hasActiveProEntitlement;
+    hasAccess = isTrialActive || !!me?.isFreePro || hasActiveProEntitlement;
   }
 
   // DEV: log every evaluation so runtime values are visible in the browser console.

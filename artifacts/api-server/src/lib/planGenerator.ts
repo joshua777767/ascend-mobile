@@ -584,7 +584,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   // The legacy gymDayCalorieTarget (one value for all gym days) is also kept
   // for users who haven't migrated to the new per-day schedule.
 
-  let restDayCalorieTarget: number | null = null;
+  let restDayCalorieTarget: number | null = calorieTarget;
   let gymDayCalorieTarget: number | null = null;
   let practiceDayCalorieTarget: number | null = null;
   let gameDayCalorieTarget: number | null = null;

@@ -64,7 +64,7 @@ export default defineConfig({
         baseURL: "http://localhost:80",
         storageState: "./auth-with-profile.json",
       },
-      testMatch: "app.spec.ts",
+      testMatch: ["app.spec.ts", "exercise-schedule.spec.ts"],
     },
   ],
 });

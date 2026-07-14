@@ -1005,6 +1005,7 @@ export default function SettingsPage() {
                 const isOn = exerciseScheduleDays.includes(day);
                 return (
                   <button key={day} type="button"
+                    data-testid={`day-toggle-${day}`}
                     onClick={() => {
                       setExerciseScheduleDays(prev =>
                         prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
