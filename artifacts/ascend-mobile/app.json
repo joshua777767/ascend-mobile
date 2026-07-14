@@ -12,9 +12,9 @@
       "backgroundColor": "#080D12"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.ascendfit.app",
-      "buildNumber": "32",
+      "buildNumber": "33",
       "minimumOsVersion": "15.1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
