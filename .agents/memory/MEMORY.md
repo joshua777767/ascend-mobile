@@ -20,6 +20,7 @@
 - [EAS Update skip fingerprint](eas-skip-fingerprint.md) — must pass EAS_SKIP_AUTO_FINGERPRINT=1 + GIT_OPTIONAL_LOCKS=0 + --platform ios for eas update to succeed from Replit (git write ops blocked otherwise).
 - [ASC p8 key PEM format for eas submit](asc-p8-pem-format.md) — secret stored as raw base64 (no headers, spaces instead of newlines); must reformat with python before use.
 - [WebView shell architecture](webview-shell.md) — native app is a WebView wrapper around ascendfit.fitness; bridge via __ascendBridge / CustomEvent; key patterns documented.
+- [New-user trial funnel](new-user-trial-funnel.md) — access gate must exempt /intro, /onboarding, /pricing; RC intro offer IS the trial; LockedPaywall copy branches on isNewUser.
 - [iOS WKWebView session cookie](ios-webview-cookie.md) — SameSite=Lax is dropped in WKWebView (app origin ≠ website); must use SameSite=None + secure:true. trust proxy:1 already set so always-HTTPS Replit proxy satisfies secure.
 - [RC invalidateCustomerInfoCache destroys merge data](rc-invalidate-cache-bug.md) — never call invalidateCustomerInfoCache in startup/refresh; it nukes the anonymous→userId merged cache and the server returns not-Pro.
 - [OTA bundle picks up Replit EXPO_PUBLIC_ secrets](ota-entitlement-id-pollution.md) — eas update builds locally; Replit secrets pollute OTA bundles. ENTITLEMENT_ID must be hardcoded, not from env var.

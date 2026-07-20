@@ -18,4 +18,4 @@ There are TWO separate bundle contexts that need `EXPO_PUBLIC_*` vars, and they 
 
 **Why this matters:** Every OTA update pushed without `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` in Replit's environment had an empty API key. RC hit `if (!apiKey)` → posted `SUBSCRIPTION_STATUS{isPro:false}` immediately → bailed. The SDK was never initialized. Users were stuck on the paywall despite having active subscriptions.
 
-**Current state:** `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY=appl_hXpbLbMroDWwJXBrCUBZGqTxkbP` is now set in Replit shared env. All future OTA updates will have it.
+**Current state:** `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` is set in Replit shared env (never store the value here). All future OTA updates will have it.

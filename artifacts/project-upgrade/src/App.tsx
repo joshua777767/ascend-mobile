@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, Component } from "react";
 import type { ReactNode, ErrorInfo } from "react";
-import { Switch, Route, Redirect, Router as WouterRouter } from "wouter";
+import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
@@ -149,6 +149,15 @@ function LockedPaywall() {
   const [restoreLog, setRestoreLog] = useState<string | null>(null);
   const qc = useQueryClient();
   const { isPro: nativeIsPro, resolved: nativeSubResolved } = useNativeSub();
+  const { data: me } = useGetMe({
+    query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false },
+  });
+
+  // A user who never had a trial (no explicit backend trial dates and trialUsed
+  // is false) is a NEW user — the Apple/RevenueCat intro offer IS their 7-day
+  // free trial. Showing them "your trial has ended" is wrong and kills
+  // conversions. Only users who actually had a trial see the expired copy.
+  const isNewUser = !me?.trialUsed && !me?.trialEndDate;
 
   // PURCHASE_CONFIRMED arrives after a successful purchase or restore.
   // The gate re-evaluates automatically because SUBSCRIPTION_STATUS{isPro:true}
@@ -246,13 +255,15 @@ function LockedPaywall() {
           </div>
           <div>
             <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#F59E0B", margin: "0 0 8px" }}>
-              Trial Complete
+              {isNewUser ? "Ascend Pro" : "Trial Complete"}
             </p>
             <h1 style={{ fontSize: "26px", fontWeight: 900, letterSpacing: "-0.02em", margin: "0 0 10px", lineHeight: 1.2 }}>
-              Your 7-day trial has ended.
+              {isNewUser ? "Start your 7-day free trial." : "Your 7-day trial has ended."}
             </h1>
             <p style={{ fontSize: "14px", color: "#94A3B8", lineHeight: 1.6, margin: 0 }}>
-              Subscribe to Ascend Pro to keep your plan, meals, workouts, and AI coach going.
+              {isNewUser
+                ? "Try Ascend Pro free for 7 days — full access to your plan, meals, workouts, and AI coach. Cancel anytime before the trial ends and you won't be charged."
+                : "Subscribe to Ascend Pro to keep your plan, meals, workouts, and AI coach going."}
             </p>
           </div>
         </div>
@@ -318,7 +329,7 @@ function LockedPaywall() {
               letterSpacing: "-0.01em",
             }}
           >
-            Continue with Ascend Pro — $19.99/month
+            {isNewUser ? "Start 7-Day Free Trial — then $19.99/month" : "Continue with Ascend Pro — $19.99/month"}
           </button>
 
           {isNative && (
@@ -586,7 +597,27 @@ function AuthedRouteSwitch() {
 //
 // nativeProConfirmed is safe because _nativeIsPro is module-level (resets to false
 // on every page load / logout) — it cannot carry over from a previous session.
+// Routes a signed-in user may reach even WITHOUT Pro access. This is the
+// new-user funnel (signup → /intro → /onboarding → paywall) plus public/legal
+// pages. Everything else (the catch-all app content) stays hard-gated.
+const PRE_ACCESS_ROUTES = new Set([
+  "/",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/pricing",
+  "/privacy",
+  "/terms",
+  "/support",
+  "/marketing",
+  "/app-store-preview",
+  "/intro",
+  "/onboarding",
+]);
+
 function AuthenticatedGate() {
+  const [location] = useLocation();
   const { data: me, isLoading: meLoading } = useGetMe({
     query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false },
   });
@@ -616,6 +647,16 @@ function AuthenticatedGate() {
     retry: false,
     refetchOnWindowFocus: true,
   });
+
+  // ── Funnel exemption ──────────────────────────────────────────────────────
+  // Brand-new users must be able to reach /intro, /onboarding, and /pricing
+  // BEFORE they have any access — the Apple/RC intro offer on the paywall IS
+  // their 7-day free trial. Without this, a fresh signup is stonewalled by
+  // LockedPaywall and never sees the trial offer. App content is unaffected:
+  // the catch-all ProtectedApp route is not in PRE_ACCESS_ROUTES.
+  if (PRE_ACCESS_ROUTES.has(location.split("?")[0])) {
+    return <AuthedRouteSwitch />;
+  }
 
   // ── Spinner conditions ────────────────────────────────────────────────────
   // Always wait for /auth/me first.
