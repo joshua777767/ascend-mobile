@@ -1,5 +1,6 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pinoHttp from "pino-http";
@@ -53,6 +54,7 @@ app.use(
 );
 app.use(express.json({ limit: "12mb" }));
 app.use(express.urlencoded({ extended: true, limit: "12mb" }));
+app.use(cookieParser());
 
 const PgSession = connectPgSimple(session);
 app.use(

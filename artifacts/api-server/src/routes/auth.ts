@@ -1,19 +1,49 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { Router, type IRouter } from "express";
 import { and, eq, isNull } from "drizzle-orm";
-import { db, usersTable, userProfilesTable, passwordResetTokensTable } from "@workspace/db";
+import {
+  db,
+  usersTable,
+  userProfilesTable,
+  passwordResetTokensTable,
+  refreshTokensTable,
+} from "@workspace/db";
 import { SignupBody, LoginBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { sendEmail, buildPasswordResetEmail } from "../lib/email";
+import type { Response } from "express";
 
 const router: IRouter = Router();
 
+// ── Refresh-token constants ────────────────────────────────────────────────────
+const REFRESH_COOKIE = "ascend.rt";
+const REFRESH_TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1 year
+
 const SAFE_RESET_MSG = "If an account exists with that email, a reset link has been sent.";
 
-// Single source of truth for reset-token lifetime. RESET_TOKEN_TTL_LABEL is the
-// human-readable form shown in the email — keep it in sync with RESET_TOKEN_TTL_MS.
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 const RESET_TOKEN_TTL_LABEL = "1 hour";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function hashToken(raw: string): string {
+  return createHash("sha256").update(raw).digest("hex");
+}
+
+/** Issue a new refresh token: writes to DB and sets the httpOnly cookie. */
+async function issueRefreshToken(userId: number, res: Response): Promise<void> {
+  const raw = randomBytes(32).toString("hex");
+  const tokenHash = hashToken(raw);
+  const expiresAt = new Date(Date.now() + REFRESH_TTL_MS);
+  await db.insert(refreshTokensTable).values({ userId, tokenHash, expiresAt });
+  res.cookie(REFRESH_COOKIE, raw, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    maxAge: REFRESH_TTL_MS,
+    path: "/",
+  });
+}
 
 function publicUser(
   user: {
@@ -33,9 +63,6 @@ function publicUser(
     !user.freeProExpiresAt || user.freeProExpiresAt > new Date()
   );
   const now = new Date();
-  // A trial only counts when it was explicitly granted (both dates present).
-  // New users no longer receive an automatic backend trial — iOS Pro is driven
-  // solely by RevenueCat entitlements; the createdAt+7d fallback was removed.
   const hasTrialDates = !!user.trialStartDate && !!user.trialEndDate;
   const trialExpired = hasTrialDates ? now > user.trialEndDate! : true;
   const trialActive = hasTrialDates && !trialExpired && !isFreePro;
@@ -67,6 +94,8 @@ function checkStripeSubscription(
   return false;
 }
 
+// ── Routes ────────────────────────────────────────────────────────────────────
+
 router.post("/auth/signup", async (req, res): Promise<void> => {
   const parsed = SignupBody.safeParse(req.body);
   if (!parsed.success) {
@@ -79,14 +108,12 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   const email = rawEmail.trim().toLowerCase();
   const { password } = parsed.data;
 
-  // Mask email in logs: show first 2 chars + domain only (e.g. jo***@icloud.com)
   const [localPart, domain] = email.split("@");
   const maskedEmail = `${localPart.slice(0, 2)}***@${domain ?? "?"}`;
 
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email));
   if (existing) {
     const hasValidHash = typeof existing.passwordHash === "string" && existing.passwordHash.includes(":");
-    // Check whether onboarding was ever completed (a profile row exists).
     const [profile] = await db
       .select({ userId: userProfilesTable.userId })
       .from(userProfilesTable)
@@ -108,25 +135,23 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
     );
 
     if (profileCompleted) {
-      // Real account — user must log in or reset password.
       res.status(409).json({
         error: "An account already exists with this email. Please log in or reset your password.",
       });
       return;
     }
 
-    // Partial account: user row exists but onboarding never finished.
-    // Update the password so the new attempt takes effect, then issue a session.
     const passwordHash = await hashPassword(password);
     await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, existing.id));
 
-    req.session.regenerate((err) => {
+    req.session.regenerate(async (err) => {
       if (err) {
         req.log.error({ err, maskedEmail, userId: existing.id }, "signup: session failed on partial-account retry");
         res.status(500).json({ error: "Account creation failed. Please try again." });
         return;
       }
       req.session.userId = existing.id;
+      await issueRefreshToken(existing.id, res);
       req.log.info({ maskedEmail, userId: existing.id }, "signup success: partial account recovered");
       res.status(201).json(publicUser(existing));
     });
@@ -134,21 +159,20 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   }
 
   const passwordHash = await hashPassword(password);
-  // No automatic trial on signup. Pro access is granted only via RevenueCat
-  // (iOS in-app purchase) or an explicit freePro grant.
   const [user] = await db.insert(usersTable).values({
     email,
     passwordHash,
     trialUsed: false,
   }).returning();
 
-  req.session.regenerate((err) => {
+  req.session.regenerate(async (err) => {
     if (err) {
       req.log.error({ err, maskedEmail, userId: user.id }, "signup: session failed");
       res.status(500).json({ error: "Account creation failed. Please try again." });
       return;
     }
     req.session.userId = user.id;
+    await issueRefreshToken(user.id, res);
     req.log.info({ maskedEmail, userId: user.id }, "signup success: new account created");
     res.status(201).json(publicUser(user));
   });
@@ -180,23 +204,38 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  // Check Stripe subscription so the login response is immediately accurate —
-  // avoids the "need to refresh after payment" problem on the frontend.
-  // Uses DB-cached subscriptionStatus as fast path; falls back to Stripe API.
   const isPaidSubscriber = checkStripeSubscription(user.id, user.stripeCustomerId, user.subscriptionStatus);
 
-  req.session.regenerate((err) => {
+  req.session.regenerate(async (err) => {
     if (err) {
       req.log.error({ err }, "Failed to regenerate session on login");
       res.status(500).json({ error: "Failed to create session" });
       return;
     }
     req.session.userId = user.id;
+    await issueRefreshToken(user.id, res);
     res.json(publicUser(user, isPaidSubscriber));
   });
 });
 
 router.post("/auth/logout", async (req, res): Promise<void> => {
+  // Revoke the refresh token in the DB before destroying the session so that
+  // even if the session destroy fails the long-lived token is gone.
+  const raw = req.cookies?.[REFRESH_COOKIE];
+  if (raw && typeof raw === "string") {
+    const tokenHash = hashToken(raw);
+    await db
+      .update(refreshTokensTable)
+      .set({ revokedAt: new Date() })
+      .where(
+        and(
+          eq(refreshTokensTable.tokenHash, tokenHash),
+          isNull(refreshTokensTable.revokedAt),
+        ),
+      );
+    res.clearCookie(REFRESH_COOKIE, { httpOnly: true, secure: true, sameSite: "none", path: "/" });
+  }
+
   req.session.destroy((err) => {
     if (err) {
       req.log.error({ err }, "Failed to destroy session");
@@ -219,10 +258,74 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  // Always do a live Stripe check when stripeCustomerId exists so cancellations
-  // are caught immediately — even if the webhook missed.  Writes back to DB.
   const isPaidSubscriber = checkStripeSubscription(user.id, user.stripeCustomerId, user.subscriptionStatus);
   res.json(publicUser(user, isPaidSubscriber));
+});
+
+/**
+ * POST /api/auth/refresh
+ *
+ * Validates the long-lived refresh token cookie (ascend.rt), issues a new
+ * session, and rotates the refresh token (old token is revoked, new token
+ * is issued). This enables indefinite login: the client calls this endpoint
+ * automatically when the session cookie expires (401 from any other route).
+ */
+router.post("/auth/refresh", async (req, res): Promise<void> => {
+  const raw = req.cookies?.[REFRESH_COOKIE];
+  if (!raw || typeof raw !== "string") {
+    res.status(401).json({ error: "No refresh token" });
+    return;
+  }
+
+  const tokenHash = hashToken(raw);
+  const [token] = await db
+    .select()
+    .from(refreshTokensTable)
+    .where(
+      and(
+        eq(refreshTokensTable.tokenHash, tokenHash),
+        isNull(refreshTokensTable.revokedAt),
+      ),
+    );
+
+  if (!token) {
+    res.clearCookie(REFRESH_COOKIE, { httpOnly: true, secure: true, sameSite: "none", path: "/" });
+    res.status(401).json({ error: "Invalid refresh token" });
+    return;
+  }
+
+  if (token.expiresAt <= new Date()) {
+    // Expired — revoke it so it can't be presented again
+    await db
+      .update(refreshTokensTable)
+      .set({ revokedAt: new Date() })
+      .where(eq(refreshTokensTable.id, token.id));
+    res.clearCookie(REFRESH_COOKIE, { httpOnly: true, secure: true, sameSite: "none", path: "/" });
+    res.status(401).json({ error: "Refresh token expired" });
+    return;
+  }
+
+  // ── Token rotation ────────────────────────────────────────────────────────
+  // Revoke the presented token immediately so replay attacks are blocked even
+  // if the response containing the new token is intercepted.
+  await db
+    .update(refreshTokensTable)
+    .set({ revokedAt: new Date() })
+    .where(eq(refreshTokensTable.id, token.id));
+
+  const userId = token.userId;
+
+  req.session.regenerate(async (err) => {
+    if (err) {
+      req.log.error({ err, userId }, "refresh: session regenerate failed");
+      res.status(500).json({ error: "Session error" });
+      return;
+    }
+    req.session.userId = userId;
+    await issueRefreshToken(userId, res);
+    req.log.info({ userId }, "refresh: session restored, token rotated");
+    res.status(204).end();
+  });
 });
 
 router.post("/auth/forgot-password", async (req, res): Promise<void> => {
@@ -243,9 +346,6 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
 
-  // Invalidate any earlier unused reset tokens for this user so only the newest
-  // link works. Prevents stale/duplicate links from lingering and makes the
-  // "this link was replaced" case explicit on validation.
   await db
     .update(passwordResetTokensTable)
     .set({ usedAt: new Date() })
@@ -264,7 +364,6 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
     `[FORGOT PASSWORD] Reset link → ${resetLink}`
   );
 
-  // Send email via Resend when RESEND_API_KEY is configured
   const resendConfigured = !!process.env.RESEND_API_KEY;
   if (resendConfigured) {
     const baseUrl = process.env.APP_BASE_URL || "https://ascendfit.fitness";
@@ -302,8 +401,6 @@ router.post("/auth/reset-password", async (req, res): Promise<void> => {
     .from(passwordResetTokensTable)
     .where(eq(passwordResetTokensTable.token, token));
 
-  // Distinct messages per failure mode so users (and we) can tell *why* a link
-  // failed instead of a single ambiguous "invalid or expired".
   if (!resetToken) {
     res.status(400).json({ error: "This reset link is invalid. Please request a new password reset." });
     return;
@@ -322,8 +419,6 @@ router.post("/auth/reset-password", async (req, res): Promise<void> => {
     return;
   }
 
-  // Atomically claim the token: the conditional UPDATE guarantees single-use even
-  // under concurrent submissions — only one request can flip usedAt from NULL.
   const claimed = await db
     .update(passwordResetTokensTable)
     .set({ usedAt: new Date() })

@@ -18,6 +18,43 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
 
+// ---------------------------------------------------------------------------
+// Refresh-token interceptor
+// ---------------------------------------------------------------------------
+// When any API call returns 401 the interceptor silently calls
+// POST /api/auth/refresh (which validates the long-lived httpOnly cookie
+// "ascend.rt" and issues a fresh session cookie).  If the refresh succeeds
+// the original request is retried exactly once — the caller never sees the
+// 401.  If the refresh fails the 401 is re-thrown so the app can redirect to
+// the login screen.
+//
+// Deduplication: if multiple requests 401 simultaneously, only one refresh
+// call is made; all waiters share its result via the singleton promise.
+// ---------------------------------------------------------------------------
+
+let _refreshing: Promise<boolean> | null = null;
+
+async function tryRefreshSession(): Promise<boolean> {
+  if (_refreshing) return _refreshing;
+  _refreshing = (async (): Promise<boolean> => {
+    try {
+      const refreshUrl = _baseUrl
+        ? `${_baseUrl}/api/auth/refresh`
+        : "/api/auth/refresh";
+      const r = await fetch(refreshUrl, {
+        method: "POST",
+        credentials: "include",
+      });
+      return r.ok;
+    } catch {
+      return false;
+    } finally {
+      _refreshing = null;
+    }
+  })();
+  return _refreshing;
+}
+
 /**
  * Set a base URL that is prepended to every relative request URL
  * (i.e. paths that start with `/`).
@@ -375,6 +412,28 @@ export async function customFetch<T = unknown>(
   const requestInfo = { method, url: resolveUrl(input) };
 
   const response = await fetch(input, { credentials: "include", ...init, method, headers });
+
+  // ── 401 → silent refresh → single retry ───────────────────────────────────
+  // Don't intercept auth routes themselves to prevent infinite loops.
+  if (response.status === 401) {
+    const url = requestInfo.url;
+    const isAuthRoute =
+      url.includes("/auth/refresh") ||
+      url.includes("/auth/login") ||
+      url.includes("/auth/logout");
+
+    if (!isAuthRoute) {
+      const refreshed = await tryRefreshSession();
+      if (refreshed) {
+        const retried = await fetch(input, { credentials: "include", ...init, method, headers });
+        if (!retried.ok) {
+          const errorData = await parseErrorBody(retried, method);
+          throw new ApiError(retried, errorData, requestInfo);
+        }
+        return (await parseSuccessBody(retried, responseType, requestInfo)) as T;
+      }
+    }
+  }
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
