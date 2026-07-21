@@ -148,26 +148,12 @@ function LockedPaywall() {
   const [error, setError] = useState("");
   const [restoreLog, setRestoreLog] = useState<string | null>(null);
   const qc = useQueryClient();
-  const { isPro: nativeIsPro, resolved: nativeSubResolved, introEligible } = useNativeSub();
+  const { isPro: nativeIsPro, resolved: nativeSubResolved } = useNativeSub();
   const { data: me } = useGetMe({
     query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false },
   });
 
-  // Determine whether to show trial copy ("Start your 7-day free trial") or
-  // subscribe copy ("Subscribe for $19.99/month").
-  //
-  // Source of truth priority:
-  //   1. introEligible (boolean) — from RC/StoreKit via native bridge.
-  //        true  = never redeemed Apple's intro offer → show trial copy.
-  //        false = already redeemed → show subscribe copy.
-  //   2. isNewUser (boolean) — backend heuristic: no trialUsed + no trialEndDate.
-  //        Falls back to this when introEligible is null (RC check not done yet /
-  //        non-native browser path / RC call failed non-fatally).
-  //
-  // This ensures users who already used Apple's one-per-Apple-ID intro offer
-  // never see "Start your 7-day free trial" on the post-trial paywall.
-  const isNewUser = !me?.trialUsed && !me?.trialEndDate;
-  const showTrialCopy = introEligible !== null ? introEligible : isNewUser;
+  const showTrialCopy = !me?.trialUsed && !me?.trialEndDate;
 
   // PURCHASE_CONFIRMED arrives after a successful purchase or restore.
   // The gate re-evaluates automatically because SUBSCRIPTION_STATUS{isPro:true}
@@ -802,7 +788,6 @@ function NativeBridge() {
         appUserId?: string;
         activeEntitlementKeys?: string[];
         build?: string;
-        introEligible?: boolean | null;
       } | null;
       const isPro = !!p?.isPro;
       // Update module-level store — triggers useNativeSub() re-renders
@@ -811,7 +796,6 @@ function NativeBridge() {
         appUserId: p?.appUserId,
         activeEntitlementKeys: p?.activeEntitlementKeys,
         build: p?.build,
-        introEligible: p?.introEligible ?? null,
       });
     });
     // Request current state now that the listener is registered.
