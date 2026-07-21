@@ -20,18 +20,22 @@ let _nativeSubResolved = false;
 let _nativeAppUserId: string | null = null;
 let _nativeEntitlementKeys: string[] = [];
 let _nativeBuild: string | null = null;
+// null = not yet known (RC check not completed); true/false = RC result
+let _nativeIntroEligible: boolean | null = null;
 const _nativeSubListeners = new Set<() => void>();
 
 export function _setNativeSub(isPro: boolean, extra?: {
   appUserId?: string | null;
   activeEntitlementKeys?: string[];
   build?: string;
+  introEligible?: boolean | null;
 }): void {
   _nativeIsPro = isPro;
   _nativeSubResolved = true;
   if (extra?.appUserId !== undefined) _nativeAppUserId = extra.appUserId ?? null;
   if (extra?.activeEntitlementKeys !== undefined) _nativeEntitlementKeys = extra.activeEntitlementKeys;
   if (extra?.build !== undefined) _nativeBuild = extra.build ?? null;
+  if (extra?.introEligible !== undefined) _nativeIntroEligible = extra.introEligible ?? null;
   _nativeSubListeners.forEach((fn) => fn());
 }
 
@@ -41,6 +45,7 @@ export function useNativeSub(): {
   appUserId: string | null;
   activeEntitlementKeys: string[];
   build: string | null;
+  introEligible: boolean | null;
 } {
   const [, tick] = useState(0);
   useEffect(() => {
@@ -54,6 +59,7 @@ export function useNativeSub(): {
     appUserId: _nativeAppUserId,
     activeEntitlementKeys: _nativeEntitlementKeys,
     build: _nativeBuild,
+    introEligible: _nativeIntroEligible,
   };
 }
 

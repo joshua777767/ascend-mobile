@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import Purchases, {
   LOG_LEVEL,
+  INTRO_ELIGIBILITY_STATUS,
   type CustomerInfo,
   type PurchasesOfferings,
   type PurchasesPackage,
@@ -105,6 +106,11 @@ export function SubscriptionProvider({
   // Ref so applyCustomerInfo can include the current appUserId in the broadcast
   // without being invalidated by every render.
   const appUserIdRef = useRef<string | null>(null);
+  // Intro offer eligibility from RC/StoreKit — checked once at startup.
+  // true  = eligible (never redeemed Apple's intro offer)
+  // false = ineligible (already redeemed)
+  // null  = unknown (RC check not yet done or failed; web falls back to backend heuristic)
+  const introEligibleRef = useRef<boolean | null>(null);
 
   const isPro = customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
   // Ref so refresh() can read current isPro without stale closure.
@@ -126,6 +132,7 @@ export function SubscriptionProvider({
       appUserId: appUserIdRef.current,
       activeEntitlementKeys: activeKeys,
       build: "d6c0e75a",
+      introEligible: introEligibleRef.current,
     };
     postToWebFromNative("SUBSCRIPTION_STATUS", payload);
     return active;
@@ -260,6 +267,29 @@ export function SubscriptionProvider({
           } else {
             setOfferingsError(null);
             setOfferingsDiagnostic(null);
+          }
+        }
+
+        // Check intro offer eligibility so the paywall can show the correct copy.
+        // This runs once per startup — eligibility never changes within a session
+        // (once you've redeemed Apple's intro offer it's gone for that Apple ID).
+        // Non-fatal: if RC/StoreKit can't answer, introEligibleRef stays null and
+        // the web falls back to the backend isNewUser heuristic.
+        if (pkgs.length > 0 && !cancelled) {
+          const productId = pkgs[0].product.identifier;
+          try {
+            const eligibilityMap = await Purchases.checkTrialOrIntroductoryPriceEligibility([productId]);
+            const status = eligibilityMap[productId]?.status;
+            if (!cancelled) {
+              if (status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE) {
+                introEligibleRef.current = true;
+              } else if (status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_INELIGIBLE) {
+                introEligibleRef.current = false;
+              }
+              // UNKNOWN or NO_INTRO_OFFER_EXISTS → leave as null
+            }
+          } catch {
+            // non-fatal — introEligibleRef stays null
           }
         }
       } catch (e: any) {

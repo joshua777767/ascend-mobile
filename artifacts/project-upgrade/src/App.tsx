@@ -148,16 +148,26 @@ function LockedPaywall() {
   const [error, setError] = useState("");
   const [restoreLog, setRestoreLog] = useState<string | null>(null);
   const qc = useQueryClient();
-  const { isPro: nativeIsPro, resolved: nativeSubResolved } = useNativeSub();
+  const { isPro: nativeIsPro, resolved: nativeSubResolved, introEligible } = useNativeSub();
   const { data: me } = useGetMe({
     query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false },
   });
 
-  // A user who never had a trial (no explicit backend trial dates and trialUsed
-  // is false) is a NEW user — the Apple/RevenueCat intro offer IS their 7-day
-  // free trial. Showing them "your trial has ended" is wrong and kills
-  // conversions. Only users who actually had a trial see the expired copy.
+  // Determine whether to show trial copy ("Start your 7-day free trial") or
+  // subscribe copy ("Subscribe for $19.99/month").
+  //
+  // Source of truth priority:
+  //   1. introEligible (boolean) — from RC/StoreKit via native bridge.
+  //        true  = never redeemed Apple's intro offer → show trial copy.
+  //        false = already redeemed → show subscribe copy.
+  //   2. isNewUser (boolean) — backend heuristic: no trialUsed + no trialEndDate.
+  //        Falls back to this when introEligible is null (RC check not done yet /
+  //        non-native browser path / RC call failed non-fatally).
+  //
+  // This ensures users who already used Apple's one-per-Apple-ID intro offer
+  // never see "Start your 7-day free trial" on the post-trial paywall.
   const isNewUser = !me?.trialUsed && !me?.trialEndDate;
+  const showTrialCopy = introEligible !== null ? introEligible : isNewUser;
 
   // PURCHASE_CONFIRMED arrives after a successful purchase or restore.
   // The gate re-evaluates automatically because SUBSCRIPTION_STATUS{isPro:true}
@@ -255,15 +265,15 @@ function LockedPaywall() {
           </div>
           <div>
             <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#F59E0B", margin: "0 0 8px" }}>
-              {isNewUser ? "Ascend Pro" : "Trial Complete"}
+              {showTrialCopy ? "Ascend Pro" : "Subscribe"}
             </p>
             <h1 style={{ fontSize: "26px", fontWeight: 900, letterSpacing: "-0.02em", margin: "0 0 10px", lineHeight: 1.2 }}>
-              {isNewUser ? "Start your 7-day free trial." : "Your 7-day trial has ended."}
+              {showTrialCopy ? "Start your 7-day free trial." : "Subscribe for $19.99/month."}
             </h1>
             <p style={{ fontSize: "14px", color: "#94A3B8", lineHeight: 1.6, margin: 0 }}>
-              {isNewUser
+              {showTrialCopy
                 ? "Try Ascend Pro free for 7 days — full access to your plan, meals, workouts, and AI coach. Cancel anytime before the trial ends and you won't be charged."
-                : "Subscribe to Ascend Pro to keep your plan, meals, workouts, and AI coach going."}
+                : "Get full access to your plan, meals, workouts, and AI coach. Cancel anytime."}
             </p>
           </div>
         </div>
@@ -329,7 +339,7 @@ function LockedPaywall() {
               letterSpacing: "-0.01em",
             }}
           >
-            {isNewUser ? "Start 7-Day Free Trial — then $19.99/month" : "Continue with Ascend Pro — $19.99/month"}
+            {showTrialCopy ? "Start 7-Day Free Trial — then $19.99/month" : "Subscribe for $19.99/month"}
           </button>
 
           {isNative && (
@@ -787,7 +797,13 @@ function NativeBridge() {
   useEffect(() => {
     if (!isNative) return;
     const unsub = onFromNative("SUBSCRIPTION_STATUS", (payload) => {
-      const p = payload as { isPro?: boolean; appUserId?: string; activeEntitlementKeys?: string[]; build?: string } | null;
+      const p = payload as {
+        isPro?: boolean;
+        appUserId?: string;
+        activeEntitlementKeys?: string[];
+        build?: string;
+        introEligible?: boolean | null;
+      } | null;
       const isPro = !!p?.isPro;
       // Update module-level store — triggers useNativeSub() re-renders
       // in AuthenticatedGate and MobileTrialBadge.
@@ -795,6 +811,7 @@ function NativeBridge() {
         appUserId: p?.appUserId,
         activeEntitlementKeys: p?.activeEntitlementKeys,
         build: p?.build,
+        introEligible: p?.introEligible ?? null,
       });
     });
     // Request current state now that the listener is registered.
