@@ -61,6 +61,13 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    // Re-issue Set-Cookie on every response so the Expires date stays 30 days
+    // from *now* instead of 30 days from the original login. This is the key
+    // fix for session expiry: WKWebView on iOS receives a fresh cookie on every
+    // API call, preventing the browser from pruning a "stale" persistent cookie.
+    // connect-pg-simple implements touch() so the DB expire column is also kept
+    // current without a full session re-write (resave:false is respected).
+    rolling: true,
     cookie: {
       httpOnly: true,
       // Always secure — server runs behind the Replit HTTPS proxy in all envs.

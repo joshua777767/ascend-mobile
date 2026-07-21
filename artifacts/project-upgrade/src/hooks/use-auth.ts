@@ -5,7 +5,19 @@ export function useAuth() {
     query: {
       queryKey: getGetMeQueryKey(),
       retry: false,
-      refetchOnWindowFocus: false,
+      // Re-check auth state when the user brings the app to the foreground.
+      // WKWebView fires visibilitychange which React Query treats as a focus
+      // event, so this reliably fires on app resume.
+      refetchOnWindowFocus: true,
+      // Consider auth data fresh for 5 minutes so foregrounding doesn't
+      // cause a visible loading flash during normal uninterrupted use.
+      staleTime: 5 * 60 * 1000,
+      // Silently call /api/auth/me every 10 minutes while the app is open.
+      // Combined with rolling:true on the server, each call re-issues a
+      // Set-Cookie with a fresh 30-day Expires, keeping the session alive
+      // even when the user is idle on the dashboard.
+      refetchInterval: 10 * 60 * 1000,
+      refetchIntervalInBackground: false,
     },
   });
 
