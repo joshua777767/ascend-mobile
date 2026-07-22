@@ -259,7 +259,11 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   } else if (userChoseBulk) {
     goalType = "muscle_gain";
   } else if (userChoseRecomp) {
-    goalType = "recomp";
+    // "Gain Muscle" with a significant scale-weight goal (> 5 kg / ~11 lb above
+    // current weight) is a lean bulk — not a body recomposition. Recomp is
+    // appropriate only when body composition change is the goal without meaningful
+    // weight gain. Promote to muscle_gain so the correct caloric surplus is applied.
+    goalType = weightDiff > 5 ? "muscle_gain" : "recomp";
   } else if (userChoseMaintenance) {
     goalType = "maintain";
   } else if (isLoss) {
@@ -298,12 +302,23 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
     : 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
 
-  // Lifestyle multiplier: covers only daily non-exercise movement (walking, household
-  // activity, desk work). Fixed at 1.2 (sedentary base) for everyone because all
-  // deliberate exercise — gym sessions, sport practice, game days — is added per-day
-  // via the day-specific calorie targets below. This prevents exercise from being
-  // counted twice: once in the base TDEE and again in the per-day burn additions.
-  const activityMult = 1.2;
+  // NEAT-adjusted lifestyle multiplier.
+  // Represents non-exercise activity thermogenesis (NEAT) and the metabolic
+  // elevation that comes from consistent training (elevated resting metabolic rate,
+  // EPOC, and greater incidental movement in active lifestyles).
+  // Does NOT include deliberate exercise sessions — those are added separately
+  // per workout day via the day-specific calorie targets below, so there is
+  // no double-counting.
+  //   0 days   → 1.20  truly sedentary  (desk job, no structured exercise)
+  //   1-2 days → 1.30  lightly active   (1-2 easy sessions per week)
+  //   3-4 days → 1.40  moderately active (3-4 training sessions per week)
+  //   5+ days  → 1.50  very active      (5+ sessions; higher EPOC + RMR adaptation)
+  const wkDays = profile.workoutDaysPerWeek ?? 0;
+  const activityMult =
+    wkDays === 0 ? 1.20 :
+    wkDays <= 2  ? 1.30 :
+    wkDays <= 4  ? 1.40 :
+                   1.50;
 
   const tdee = Math.round(bmr * activityMult);
 
