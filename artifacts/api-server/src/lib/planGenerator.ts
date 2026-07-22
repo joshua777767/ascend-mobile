@@ -412,6 +412,23 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     weeklyPace = "Maintain current weight";
   }
 
+  // ── Sanity guard ─────────────────────────────────────────────────────────────
+  // Catches implausible outputs before they reach any user.
+  // These conditions should be mathematically impossible given the logic above,
+  // but act as a safety net against future edits to the goal/surplus/deficit blocks.
+  if (calorieTarget < bmr) {
+    // Below BMR = below the energy cost of being alive — always a bug.
+    calorieTarget = Math.round(bmr);
+    warnings = (warnings ? warnings + " " : "") +
+      "[internal] Calorie target was below BMR and was corrected. Please report this to support.";
+  }
+  if ((goalType === "muscle_gain") && calorieTarget <= tdee) {
+    // Muscle gain requires a surplus — if target is at or below maintenance, something went wrong.
+    calorieTarget = tdee + 250;
+    warnings = (warnings ? warnings + " " : "") +
+      "[internal] Muscle-gain target was not above maintenance and was corrected. Please report this to support.";
+  }
+
   // Personalized water target — weight base + goal/training adjustments
   // Rest-day base. Sport-day on-top boosts happen dynamically in getWaterSummary.
   let waterTargetL = weightKg * 0.033;
