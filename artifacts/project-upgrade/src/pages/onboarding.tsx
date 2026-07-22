@@ -20,13 +20,16 @@ const GOALS = [
   { label: "Stay Fit",             value: "stay fit",              emoji: "⚡" },
 ] as const;
 
-const WAKE_OPTIONS = [
-  { label: "5–7 AM",      emoji: "🌅", wakeTime: "06:00", wakeTimeRange: JSON.stringify({ start: "05:00", end: "07:00" }) },
-  { label: "7–9 AM",      emoji: "☀️",  wakeTime: "08:00", wakeTimeRange: JSON.stringify({ start: "07:00", end: "09:00" }) },
-  { label: "9–11 AM",     emoji: "🕙",  wakeTime: "10:00", wakeTimeRange: JSON.stringify({ start: "09:00", end: "11:00" }) },
-  { label: "After 11 AM", emoji: "🌤️", wakeTime: "11:30", wakeTimeRange: null },
-  { label: "Varies",      emoji: "🔀",  wakeTime: "07:30", wakeTimeRange: null },
-] as const;
+const WAKE_PRESETS = [
+  { label: "1 AM",  value: "01:00" },
+  { label: "5 AM",  value: "05:00" },
+  { label: "6 AM",  value: "06:00" },
+  { label: "7 AM",  value: "07:00" },
+  { label: "8 AM",  value: "08:00" },
+  { label: "9 AM",  value: "09:00" },
+  { label: "10 AM", value: "10:00" },
+  { label: "12 PM", value: "12:00" },
+];
 
 const DAYS = [
   { label: "M", value: "monday" },
@@ -112,7 +115,7 @@ export default function OnboardingPage() {
   const [dayActivities, setDayActivities] = useState<Record<string, ActivityDraft>>({});
 
   // Step 6
-  const [wakeOption, setWakeOption] = useState<string>("");
+  const [wakeTime, setWakeTime] = useState<string>("");
 
   const isLoading = createProfile.isPending || generatePlan.isPending;
   const isWeightGoal = WEIGHT_GOALS.has(selectedGoal);
@@ -199,7 +202,7 @@ export default function OnboardingPage() {
   };
 
   const handleSubmit = async () => {
-    if (!wakeOption) { setError("Pick your usual wake-up time to continue."); return; }
+    if (!wakeTime) { setError("Set your usual wake-up time to continue."); return; }
     setError("");
 
     const ft = parseInt(heightFt) || 0;
@@ -207,7 +210,6 @@ export default function OnboardingPage() {
     const a = parseInt(age);
     const currentWeightKg = lbsToKg(parseFloat(currentWeightLbs));
     const goalWeightKg = goalWeightLbs ? lbsToKg(parseFloat(goalWeightLbs)) : currentWeightKg;
-    const selectedWake = WAKE_OPTIONS.find(o => o.label === wakeOption);
 
     // Build validated exercise schedule days
     const scheduleDays = exerciseDays
@@ -237,8 +239,8 @@ export default function OnboardingPage() {
       fitnessLevel: "beginner",
       gymAccess: scheduleDays.some(d => d.activities.some(a => a.type === "gym")) ? "gym" : "no",
       workoutDaysPerWeek: scheduleDays.length,
-      wakeTime: selectedWake?.wakeTime ?? "07:00",
-      wakeTimeRange: selectedWake?.wakeTimeRange ?? null,
+      wakeTime,
+      wakeTimeRange: null,
       sleepTime: "22:30",
       sleepQuality: 5,
       energyLevel: 5,
@@ -639,20 +641,36 @@ export default function OnboardingPage() {
                 </p>
               </div>
 
-              <div className="flex flex-col gap-3">
-                {WAKE_OPTIONS.map((o) => (
-                  <button key={o.label} type="button"
-                    onClick={() => { setWakeOption(o.label); setError(""); }}
-                    className={cn(
-                      "flex items-center gap-4 rounded-2xl border px-5 py-4 transition-all active:scale-[0.99]",
-                      wakeOption === o.label
-                        ? "bg-primary/10 border-primary text-primary"
-                        : "bg-card border-border text-foreground hover:bg-elevated"
-                    )}>
-                    <span className="text-2xl leading-none">{o.emoji}</span>
-                    <span className="text-base font-semibold">{o.label}</span>
-                  </button>
-                ))}
+              <div className="flex flex-col gap-4">
+                {/* Freeform time picker */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground">Wake-up time</label>
+                  <input
+                    type="time"
+                    value={wakeTime}
+                    onChange={e => { setWakeTime(e.target.value); setError(""); }}
+                    className="w-full bg-card border border-border rounded-2xl px-4 py-4 text-lg font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60"
+                  />
+                </div>
+
+                {/* Quick-pick chips */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground">Quick pick</label>
+                  <div className="flex flex-wrap gap-2">
+                    {WAKE_PRESETS.map(p => (
+                      <button key={p.value} type="button"
+                        onClick={() => { setWakeTime(p.value); setError(""); }}
+                        className={cn(
+                          "px-3.5 py-2 rounded-xl text-sm font-semibold border transition-all active:scale-95",
+                          wakeTime === p.value
+                            ? "bg-primary/15 border-primary/50 text-primary"
+                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-border/80"
+                        )}>
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {error && <p className="text-sm text-destructive">{error}</p>}
@@ -669,7 +687,7 @@ export default function OnboardingPage() {
 
               <div className="flex gap-3">
                 {backBtn(() => setStep(5))}
-                <button type="button" onClick={handleSubmit} disabled={isLoading || !wakeOption}
+                <button type="button" onClick={handleSubmit} disabled={isLoading || !wakeTime}
                   className="flex-1 h-14 rounded-2xl text-[15px] font-semibold text-primary-foreground disabled:opacity-60 active:scale-[0.99] transition-all"
                   style={{ background: "#C89A3E" }}>
                   {isLoading ? "Building your plan…" : "Build My Plan →"}
