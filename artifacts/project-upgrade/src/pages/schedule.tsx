@@ -356,8 +356,9 @@ export default function SchedulePage() {
     clearSavedOrder();
     setEditingKey(null);
     patchItem(item, { time: newTime });
-    // Reschedule the notification at the new time if one is active for this meal.
-    if (isNative && item.type === "meal") {
+    // Reschedule any active notification for this item at the new time.
+    // Works for all item types — only fires if a notification was previously enabled.
+    if (isNative) {
       const nid = mealNotifId(item.activity);
       if (mealNotifsRef.current[nid]) {
         bridgeScheduleNotif(nid, item.activity, newTime);
@@ -619,14 +620,20 @@ export default function SchedulePage() {
                     <GripVertical className="w-3.5 h-3.5 text-muted-foreground/40" />
                   </div>
 
-                  {/* Time column */}
+                  {/* Time column — tap to open inline time editor */}
                   <div className="w-11 shrink-0 text-right pt-3.5">
-                    <span className={cn(
-                      "text-[11px] font-mono leading-none",
-                      isNext ? "text-primary font-bold" : "text-muted-foreground"
-                    )}>
+                    <button
+                      onClick={() => { setEditingKey(key); setEditTime(item.time); }}
+                      title="Tap to change time"
+                      className={cn(
+                        "text-[11px] font-mono leading-none transition-colors",
+                        isNext
+                          ? "text-primary font-bold hover:text-primary/80"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
                       {item.time}
-                    </span>
+                    </button>
                   </div>
 
                   {/* Card */}

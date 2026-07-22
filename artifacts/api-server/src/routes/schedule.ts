@@ -118,7 +118,7 @@ router.patch("/schedule/today", async (req, res): Promise<void> => {
       date: today,
       activity: data.activity,
       type: data.type,
-      time: data.time ?? "00:00",
+      time: data.time ?? "09:00",
       status: data.status ?? "active",
     });
   }
