@@ -412,6 +412,24 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     weeklyPace = "Maintain current weight";
   }
 
+  // ── Under-18 protein override ─────────────────────────────────────────────────
+  // Adolescents are still developing; using adult rates from goal weight can
+  // overshoot safe protein targets for teenagers.
+  //
+  // Evidence base (ISSN, IOC, AAP):
+  //   Maintain / fat-loss:  1.4–1.6 g/kg current BW  → midpoint 1.5 g/kg
+  //   Muscle gain / recomp: 1.6–1.8 g/kg current BW  → midpoint 1.7 g/kg
+  //   Hard ceiling without professional supervision:   2.0 g/kg
+  //
+  // Always uses CURRENT body weight — goal weight does NOT drive protein for
+  // under-18 users. Goal weight still drives calorie targets unchanged.
+  if (age < 18) {
+    const teenRateGPerKg = (goalType === "muscle_gain" || goalType === "recomp") ? 1.7 : 1.5;
+    const cappedRate = Math.min(teenRateGPerKg, 2.0);
+    // Round to nearest 5 g for a clean, easy-to-track target
+    proteinTargetG = Math.round((weightKg * cappedRate) / 5) * 5;
+  }
+
   // ── Sanity guard ─────────────────────────────────────────────────────────────
   // Catches implausible outputs before they reach any user.
   // These conditions should be mathematically impossible given the logic above,
@@ -595,6 +613,11 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     coachNotes = `You picked ${goalText}. The plan respects your own training schedule and builds nutrition and recovery around it. Today's mission: ${missionLine}. Hit ${proteinTargetG}g protein every day regardless of the gym.${commitmentNote}${sportNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
   } else {
     coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
+  }
+
+  // For under-18 users, append a plain-language note clarifying the protein source.
+  if (age < 18) {
+    coachNotes += ` Protein is calculated from your current body weight and activity, not your goal weight.`;
   }
 
   // ── Day-specific calorie targets ──────────────────────────────────────────

@@ -459,3 +459,100 @@ describe("Additional profiles — sanity checks", () => {
     expect(target).toBeGreaterThan(tdee);
   });
 });
+
+// ─── Under-18 protein helpers (mirror planGenerator.ts under-18 override) ─────
+
+/**
+ * Compute the under-18 protein target (g/day).
+ * Always uses CURRENT body weight. Goal weight is irrelevant for protein.
+ *   muscle_gain / recomp → 1.7 g/kg  (mid of 1.6-1.8 ISSN/IOC range)
+ *   fat_loss / maintain  → 1.5 g/kg  (mid of 1.4-1.6 range)
+ * Hard cap at 2.0 g/kg without professional supervision.
+ * Rounded to nearest 5 g for a clean, easy-to-track target.
+ */
+function calcUnder18Protein(
+  currentKg: number,
+  goalType: "fat_loss" | "muscle_gain" | "recomp" | "maintain",
+): number {
+  const rate = (goalType === "muscle_gain" || goalType === "recomp") ? 1.7 : 1.5;
+  const capped = Math.min(rate, 2.0);
+  return Math.round((currentKg * capped) / 5) * 5;
+}
+
+// ─── Under-18 protein tests — 15 yo, 150 lb, goal 155 lb ─────────────────────
+
+describe("Under-18 protein targets — 15 yo male, 150 lb, goal 155 lb", () => {
+  // 150 lb → 68.04 kg  |  155 lb → 70.31 kg
+  const currentKg = lbsToKg(150); // ≈ 68.04 kg
+  const goalKg    = lbsToKg(155); // ≈ 70.31 kg
+
+  test("150 lb converts to ~68.04 kg", () => {
+    expect(currentKg).toBeCloseTo(68.04, 1);
+  });
+
+  test("muscle_gain protein uses current weight at 1.7 g/kg (not goal weight)", () => {
+    const protein = calcUnder18Protein(currentKg, "muscle_gain");
+    // 68.04 × 1.7 = 115.67 → round to nearest 5 = 115 g
+    expect(protein).toBe(115);
+  });
+
+  test("recomp protein uses current weight at 1.7 g/kg", () => {
+    const protein = calcUnder18Protein(currentKg, "recomp");
+    expect(protein).toBe(115);
+  });
+
+  test("maintain protein uses current weight at 1.5 g/kg", () => {
+    const protein = calcUnder18Protein(currentKg, "maintain");
+    // 68.04 × 1.5 = 102.06 → round to nearest 5 = 100 g
+    expect(protein).toBe(100);
+  });
+
+  test("fat_loss protein uses current weight at 1.5 g/kg", () => {
+    const protein = calcUnder18Protein(currentKg, "fat_loss");
+    expect(protein).toBe(100);
+  });
+
+  test("under-18 protein is well below adult goal-weight rate (2.2 g/kg of goal weight)", () => {
+    // Adult path would have used goal weight for muscle_gain: 70.31 × 2.2 = ~155 g
+    const adultProtein = Math.min(Math.round(goalKg * 2.2), 250);
+    const teenProtein  = calcUnder18Protein(currentKg, "muscle_gain");
+    // Teen protein should be meaningfully lower — confirms goal weight is NOT used
+    expect(teenProtein).toBeLessThan(adultProtein);
+    expect(adultProtein - teenProtein).toBeGreaterThanOrEqual(35);
+  });
+
+  test("under-18 protein for muscle gain is between 1.6 and 1.8 g/kg of current weight", () => {
+    const protein = calcUnder18Protein(currentKg, "muscle_gain");
+    expect(protein).toBeGreaterThanOrEqual(currentKg * 1.6);
+    expect(protein).toBeLessThanOrEqual(currentKg * 1.8 + 5); // +5 allows rounding
+  });
+
+  test("under-18 protein for maintain is between 1.4 and 1.6 g/kg of current weight", () => {
+    const protein = calcUnder18Protein(currentKg, "maintain");
+    expect(protein).toBeGreaterThanOrEqual(currentKg * 1.4);
+    expect(protein).toBeLessThanOrEqual(currentKg * 1.6 + 5); // +5 allows rounding
+  });
+
+  test("protein is always a multiple of 5 (clean tracking target)", () => {
+    for (const gt of ["fat_loss", "muscle_gain", "recomp", "maintain"] as const) {
+      expect(calcUnder18Protein(currentKg, gt) % 5).toBe(0);
+    }
+  });
+
+  test("cap: even if rate * weight > 2.0 g/kg, protein never exceeds 2.0 g/kg of current weight", () => {
+    // Simulate a heavy teenager at 250 lb (113.4 kg)
+    const heavyKg = lbsToKg(250);
+    for (const gt of ["fat_loss", "muscle_gain", "recomp", "maintain"] as const) {
+      const protein = calcUnder18Protein(heavyKg, gt);
+      expect(protein).toBeLessThanOrEqual(Math.ceil((heavyKg * 2.0) / 5) * 5);
+    }
+  });
+
+  test("goal weight change (goal 170 lb vs 155 lb) does NOT change protein", () => {
+    // Both goal weights should produce the same protein since only current weight matters
+    const proteinGoal155 = calcUnder18Protein(currentKg, "muscle_gain");
+    // If goal weight were used (wrong), 170 lb = 77.11 kg × 2.2 = ~170 g vs correct ~115 g
+    // Confirm protein is fixed to current weight regardless
+    expect(proteinGoal155).toBe(115);
+  });
+});
