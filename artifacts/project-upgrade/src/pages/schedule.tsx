@@ -12,6 +12,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTrialDay } from "@/hooks/use-trial";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { sendToNative } from "@/lib/native-bridge";
+import {
+  mealNotifId,
+  loadMealNotifs,
+  saveMealNotifs,
+  loadNotifPermission,
+  saveNotifPermission,
+  bridgeScheduleNotif,
+  bridgeCancelNotif,
+} from "@/lib/notifications";
 import { Clock, Zap, Check, X, Pencil, GripVertical, Plus, Trash2, Bell } from "lucide-react";
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -80,37 +90,6 @@ const ORDER_KEY = `ascend.scheduleOrder.${new Date().toISOString().slice(0, 10)}
 function getSavedOrder(): string[] { try { return JSON.parse(localStorage.getItem(ORDER_KEY) ?? "[]"); } catch { return []; } }
 function setSavedOrder(keys: string[]) { localStorage.setItem(ORDER_KEY, JSON.stringify(keys)); }
 function clearSavedOrder() { localStorage.removeItem(ORDER_KEY); }
-
-// ─── meal notification helpers ────────────────────────────────────────────────
-
-const NOTIFS_KEY = "ascend.mealNotifs";
-const NOTIF_PERM_KEY = "ascend.notifPermission";
-
-function mealNotifId(activity: string) {
-  return "meal-" + activity.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-}
-function loadMealNotifs(): Record<string, boolean> {
-  try { return JSON.parse(localStorage.getItem(NOTIFS_KEY) ?? "{}"); } catch { return {}; }
-}
-function saveMealNotifs(v: Record<string, boolean>) {
-  localStorage.setItem(NOTIFS_KEY, JSON.stringify(v));
-}
-function sendBridge(type: string, payload?: unknown) {
-  (window as any).__ascendBridge?.(type, payload ?? null);
-}
-function bridgeScheduleNotif(id: string, activity: string, time: string) {
-  const [h, m] = time.split(":").map(Number);
-  sendBridge("SCHEDULE_NOTIFICATION", {
-    id,
-    title: "🍽 Time to eat!",
-    body: `Log your ${activity} in AscendFit`,
-    hour: h ?? 0,
-    minute: m ?? 0,
-  });
-}
-function bridgeCancelNotif(id: string) {
-  sendBridge("CANCEL_NOTIFICATION", { id });
-}
 
 function mergeWithOrder(serverItems: ScheduleItem[], savedOrder: string[]): ScheduleItem[] {
   if (!savedOrder.length) return [...serverItems].sort((a, b) => a.time.localeCompare(b.time));
@@ -277,10 +256,7 @@ export default function SchedulePage() {
   // mealNotifs: stable meal-id → enabled (persisted in localStorage)
   const [mealNotifs, setMealNotifs] = useState<Record<string, boolean>>(loadMealNotifs);
   // Permission state: persisted so we don't re-request after it's been decided.
-  const [notifPermission, setNotifPermission] = useState<"unknown" | "granted" | "denied">(() => {
-    const saved = localStorage.getItem(NOTIF_PERM_KEY);
-    return (saved === "granted" || saved === "denied") ? saved : "unknown";
-  });
+  const [notifPermission, setNotifPermission] = useState<"unknown" | "granted" | "denied">(loadNotifPermission);
   // While permission is "unknown", remember the meal the user was trying to enable.
   const pendingNotif = useRef<{ id: string; activity: string; time: string } | null>(null);
   // Non-reactive ref kept in sync — used inside event handlers without re-subscribing.
@@ -319,7 +295,7 @@ export default function SchedulePage() {
       const { granted } = (e as CustomEvent<{ granted: boolean }>).detail ?? {};
       const perm = granted ? "granted" as const : "denied" as const;
       setNotifPermission(perm);
-      localStorage.setItem(NOTIF_PERM_KEY, perm);
+      saveNotifPermission(perm);
       if (granted && pendingNotif.current) {
         const { id, activity, time } = pendingNotif.current;
         bridgeScheduleNotif(id, activity, time);
@@ -445,7 +421,7 @@ export default function SchedulePage() {
 
     // Permission unknown — request it and store the pending meal.
     pendingNotif.current = { id: nid, activity: item.activity, time: item.time };
-    sendBridge("REQUEST_NOTIFICATION_PERMISSION");
+    sendToNative("REQUEST_NOTIFICATION_PERMISSION");
   };
 
   // ── derived ───────────────────────────────────────────────────────────────
@@ -769,7 +745,7 @@ export default function SchedulePage() {
         {import.meta.env.DEV && isNative && (
           <button
             onClick={() => {
-              sendBridge("DEV_TEST_NOTIFICATION");
+              sendToNative("DEV_TEST_NOTIFICATION");
               showNotifMsg("Test notification fires in ~10 seconds…");
             }}
             className="w-full mt-3 h-10 rounded-2xl border border-dashed border-yellow-500/50 text-xs font-semibold text-yellow-500/70 hover:text-yellow-400 hover:border-yellow-500 transition-all flex items-center justify-center gap-2"

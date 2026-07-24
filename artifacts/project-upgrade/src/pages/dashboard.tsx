@@ -7,6 +7,7 @@ import {
   useGetTodayWorkout,
   useGetTodayReview,
   useGetTodayMeals,
+  useGetTodaySchedule,
   useGetWaterToday,
   useLogWater,
   useGetStreak,
@@ -16,6 +17,7 @@ import {
   useListWeighIns,
   getGetWaterTodayQueryKey,
   getGetTodayMealsQueryKey,
+  getGetTodayScheduleQueryKey,
   getGetTodayWorkoutQueryKey,
   getGetTodayReviewQueryKey,
   getGetStreakQueryKey,
@@ -51,7 +53,17 @@ import {
   Dumbbell as DumbbellIcon,
   Frown,
   UtensilsCrossed,
+  Bell,
 } from "lucide-react";
+import { isNative } from "@/lib/native-bridge";
+import {
+  loadNotifPermissionAsked,
+  saveNotifPermissionAsked,
+  loadNotifPermission,
+  saveNotifPermission,
+  enableMealNotifsForSchedule,
+  requestNotificationPermission,
+} from "@/lib/notifications";
 
 // ─── image util ───────────────────────────────────────────────────────────────
 
@@ -575,6 +587,9 @@ export default function DashboardPage() {
   const { data: todayMeals, refetch: refetchMeals } = useGetTodayMeals({
     query: { queryKey: [...getGetTodayMealsQueryKey(), localDate] },
   });
+  const { data: todaySchedule } = useGetTodaySchedule({
+    query: { queryKey: [...getGetTodayScheduleQueryKey(), localDate] },
+  });
   const { data: waterData, refetch: refetchWater } = useGetWaterToday({
     query: { queryKey: [...getGetWaterTodayQueryKey(), localDate] },
   });
@@ -891,6 +906,44 @@ export default function DashboardPage() {
   })();
   const showSchedulePrompt = !schedulePromptDismissed && !!plan && !hasExerciseSchedule;
 
+  // Meal notification prompt — one-time ask for native app users
+  const [notifPromptDismissed, setNotifPromptDismissed] = useState(
+    () => typeof localStorage !== "undefined" && localStorage.getItem("ascend.notifPromptDismissed") === "true"
+  );
+  const [notifPermission, setNotifPermission] = useState<"unknown" | "granted" | "denied">(loadNotifPermission);
+  const [notifAsking, setNotifAsking] = useState(false);
+  const notifAutoEnabled = useRef(false);
+  const showNotifPrompt = !notifPromptDismissed && isNative && notifPermission === "unknown" && !loadNotifPermissionAsked();
+
+  // If the user grants permission before the schedule has loaded, enable
+  // meal notifications as soon as the schedule arrives.
+  useEffect(() => {
+    if (notifPermission !== "granted" || notifAutoEnabled.current) return;
+    if (!todaySchedule?.items) return;
+    notifAutoEnabled.current = true;
+    enableMealNotifsForSchedule(todaySchedule.items as any);
+  }, [notifPermission, todaySchedule?.items]);
+
+  const handleEnableNotifs = async () => {
+    setNotifAsking(true);
+    saveNotifPermissionAsked();
+    const granted = await requestNotificationPermission();
+    const perm = granted ? "granted" : "denied";
+    setNotifPermission(perm);
+    saveNotifPermission(perm);
+    if (granted && todaySchedule?.items) {
+      notifAutoEnabled.current = true;
+      enableMealNotifsForSchedule(todaySchedule.items as any);
+    }
+    setNotifAsking(false);
+  };
+
+  const handleDismissNotifPrompt = () => {
+    setNotifPromptDismissed(true);
+    saveNotifPermissionAsked();
+    localStorage.setItem("ascend.notifPromptDismissed", "true");
+  };
+
   const { data: weighIns } = useListWeighIns();
   const [weighInPromptDismissed, setWeighInPromptDismissed] = useState(
     () => typeof localStorage !== "undefined" && localStorage.getItem("ascend.weighInDismissedDate") === new Date().toDateString()
@@ -1078,6 +1131,39 @@ export default function DashboardPage() {
                   setWelcomeDismissed(true);
                   localStorage.setItem("ascend.dashboardWelcome", "1");
                 }}
+                className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none shrink-0 -mt-0.5"
+                aria-label="Dismiss"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Meal notification prompt (one-time) ── */}
+        {showNotifPrompt && (
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: "hsl(220 12% 9%)", border: "1px solid hsl(38 70% 45% / 0.35)" }}
+          >
+            <div className="flex items-start gap-3">
+              <Bell className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "#C89A3E" }} strokeWidth={2} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground leading-snug">Get meal reminders</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Ascend can notify you when it's time to eat, so you never miss a meal or forget to log it.
+                </p>
+                <button
+                  onClick={handleEnableNotifs}
+                  disabled={notifAsking}
+                  className="mt-3 w-full h-11 rounded-xl text-sm font-semibold text-background transition-all active:scale-[0.99] disabled:opacity-60"
+                  style={{ background: "linear-gradient(135deg, #C89A3E 0%, #A87E2E 100%)" }}
+                >
+                  {notifAsking ? "Requesting permission…" : "Enable reminders"}
+                </button>
+              </div>
+              <button
+                onClick={handleDismissNotifPrompt}
                 className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none shrink-0 -mt-0.5"
                 aria-label="Dismiss"
               >
