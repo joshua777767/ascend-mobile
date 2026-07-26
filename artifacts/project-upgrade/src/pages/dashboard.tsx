@@ -55,7 +55,7 @@ import {
   UtensilsCrossed,
   Bell,
 } from "lucide-react";
-import { isNative } from "@/lib/native-bridge";
+import { isNative, useNativeSub } from "@/lib/native-bridge";
 import {
   loadNotifPermissionAsked,
   saveNotifPermissionAsked,
@@ -796,7 +796,9 @@ export default function DashboardPage() {
     }
   }
 
-  const { trialDay, daysLeft, trialComplete, isPro } = useTrialDay();
+  const { trialDay, daysLeft, trialComplete, isPro: trialIsPro } = useTrialDay();
+  const { isPro: nativeIsPro } = useNativeSub();
+  const isPro = trialIsPro || (isNative && nativeIsPro);
   const showTrialNudge = !isPro && trialDay >= 5;
 
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
@@ -1291,17 +1293,10 @@ export default function DashboardPage() {
               </h1>
               {/* Phase label — for Pro users show program day; for free-trial users show trial day */}
               <p className="text-[11px] font-semibold text-muted-foreground mt-0.5">
-                {isPro ? (
-                  <>
-                    Day {Math.max(1, Math.floor((Date.now() - new Date(profile?.createdAt ?? Date.now()).getTime()) / (86400000)) + 1)}
-                    {plan && isCutting ? " — Cut Phase" : plan && isBulking ? " — Build Phase" : " — Maintenance"}
-                  </>
-                ) : (
-                  <>
-                    Day {trialDay > 0 ? trialDay : 1}
-                    {plan && isCutting ? " — Cut Phase" : plan && isBulking ? " — Build Phase" : " — Maintenance"}
-                  </>
-                )}
+                <>
+                  Day {Math.max(1, Math.floor((Date.now() - new Date(profile?.createdAt ?? Date.now()).getTime()) / (86400000)) + 1)}
+                  {plan && isCutting ? " — Cut Phase" : plan && isBulking ? " — Build Phase" : " — Maintenance"}
+                </>
               </p>
               {/* Status badge */}
               {(() => {
