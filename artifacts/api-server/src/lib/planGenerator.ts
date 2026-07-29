@@ -56,7 +56,7 @@ type AdolescentActivityCategory = CalorieBreakdown["activityCategory"];
 
 /**
  * National Academies Dietary Reference Intakes (2023), reproduced by
- * Health Canada (page updated 2025-11-19), ages 14 to <19.
+ * Health Canada (page updated 2025-11-19), ages 9 to <19.
  *
  * These are EER equations (total daily energy requirement), not BMR
  * equations. Height is cm, weight is kg, age is years, and the final
@@ -85,8 +85,14 @@ function adolescentEer(
     active: [-189.55, -22.25, 11.74, 18.34, 20],
     very_active: [-709.59, -22.25, 18.22, 14.25, 20],
   };
-  const [constant, ageCoefficient, heightCoefficient, weightCoefficient, growthTerm] =
+  const [constant, ageCoefficient, heightCoefficient, weightCoefficient, adultGrowthTerm] =
     gender.toLowerCase() === "male" ? male[activityCategory] : female[activityCategory];
+  // Health Canada's DRI tables use +25 kcal for males and +30 kcal for
+  // females ages 9 to <14, then +20 kcal for ages 14 to <19. The coefficient
+  // sets are otherwise the same across these two bands.
+  const growthTerm = age < 14
+    ? (gender.toLowerCase() === "male" ? adultGrowthTerm + 5 : adultGrowthTerm + 10)
+    : adultGrowthTerm;
   return constant
     + ageCoefficient * age
     + heightCoefficient * heightCm
