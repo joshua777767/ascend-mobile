@@ -22,6 +22,12 @@ Minors (age < 18) use the National Academies Dietary Reference Intakes (2023) ad
 
 **How to apply:** Keep the goal-adjustment rates and caps shared across ages. Only the energy equations, calorie floors, and other explicitly age-specific safety rules should branch by age.
 
+**Safety rule:** Apply the configured calorie floor after every goal branch, including maintenance and weight gain; unusually small users can otherwise receive targets below the minimum safe intake.
+
+**Why:** A broad age/weight/activity matrix exposed that gain and maintenance paths bypassed the floor even though fat loss already clamped to it.
+
+**How to apply:** Validate the served target, not only the raw maintenance and adjustment arithmetic, against the sex- and age-specific floor.
+
 ## Gotchas
 
 - `commitmentLevel: "committed"` is NOT a neutral/default value — it fails every `=== "casual"` and `=== "extreme_discipline"` check, so it always lands in the generic "non-casual" bucket of ternaries. Don't assume it behaves like an unset/default field when reasoning about expected output.

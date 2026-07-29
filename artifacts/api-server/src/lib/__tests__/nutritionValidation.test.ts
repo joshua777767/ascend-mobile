@@ -46,11 +46,12 @@ const base = {
 
 type Profile = typeof base & {
   id: string;
-  activityLevel?: "sedentary" | "light" | "moderate" | "high" | "extra_active";
+  activityLevel?: "sedentary" | "light" | "moderate" | "active" | "high" | "extra_active";
   goal: Goal;
   day: DayKind;
   expectedExercise: number;
   targetDate?: string;
+  weightClass?: "underweight" | "normal" | "overweight" | "obese";
 };
 
 function makeProfile(
@@ -88,7 +89,7 @@ function daysFromNow(days: number) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-const profiles: Profile[] = [
+const baseProfiles: Profile[] = [
   // Profile-based activity: exercise is included in EER/TDEE and must not be added again.
   makeProfile("A01", { age: 16, gender: "male", heightCm: 167.64, currentWeightKg: 72.6, goalWeightKg: 63.5, activityLevel: "high", goal: "fat_loss", day: "gym" }),
   makeProfile("A02", { age: 15, gender: "female", activityLevel: "light", goal: "fat_loss", day: "rest" }),
@@ -117,25 +118,85 @@ const profiles: Profile[] = [
   makeProfile("L04", { age: 38, gender: "female", activityLevel: undefined, goal: "fat_loss", day: "game", expectedExercise: 0 }),
   makeProfile("L05", { age: 18, gender: "male", activityLevel: undefined, goal: "maintain", day: "rest" }),
   makeProfile("L06", { age: 44, gender: "female", activityLevel: undefined, goal: "muscle_gain", day: "gym" }),
-].map((p) => {
-  const day = p.day;
-  const weight = p.currentWeightKg;
-  const activity = day === "gym"
+];
+
+const additionalProfiles: Profile[] = [
+  // Underweight: only maintenance or weight gain goals are assigned.
+  makeProfile("C01", { age: 13, gender: "female", heightCm: 155, currentWeightKg: 42, goalWeightKg: 50, weightClass: "underweight", activityLevel: "sedentary", goal: "maintain", day: "rest" }),
+  makeProfile("C02", { age: 16, gender: "male", heightCm: 175, currentWeightKg: 55, goalWeightKg: 68, weightClass: "underweight", activityLevel: "light", goal: "muscle_gain", day: "gym" }),
+  makeProfile("C03", { age: 22, gender: "female", heightCm: 165, currentWeightKg: 48, goalWeightKg: 55, weightClass: "underweight", activityLevel: "moderate", goal: "muscle_gain", day: "practice" }),
+  makeProfile("C04", { age: 35, gender: "male", heightCm: 180, currentWeightKg: 58, goalWeightKg: 65, weightClass: "underweight", activityLevel: "high", goal: "maintain", day: "rest" }),
+  makeProfile("C05", { age: 70, gender: "female", heightCm: 160, currentWeightKg: 45, goalWeightKg: 52, weightClass: "underweight", activityLevel: "extra_active", goal: "muscle_gain", day: "gym" }),
+  makeProfile("C06", { age: 45, gender: "male", heightCm: 170, currentWeightKg: 52, goalWeightKg: 58, weightClass: "underweight", goal: "maintain", day: "rest" }),
+  makeProfile("C07", { age: 28, gender: "female", heightCm: 168, currentWeightKg: 51, goalWeightKg: 56, weightClass: "underweight", activityLevel: "light", goal: "muscle_gain", day: "practice" }),
+  makeProfile("C08", { age: 61, gender: "male", heightCm: 178, currentWeightKg: 57, goalWeightKg: 64, weightClass: "underweight", activityLevel: "moderate", goal: "maintain", day: "gym" }),
+
+  // Normal weight: all goals, genders, ages, and activity levels.
+  makeProfile("C09", { age: 14, gender: "female", heightCm: 165, currentWeightKg: 60, goalWeightKg: 56, weightClass: "normal", activityLevel: "light", goal: "fat_loss", day: "rest" }),
+  makeProfile("C10", { age: 18, gender: "male", heightCm: 175, currentWeightKg: 70, goalWeightKg: 78, weightClass: "normal", activityLevel: "moderate", goal: "muscle_gain", day: "gym" }),
+  makeProfile("C11", { age: 27, gender: "female", heightCm: 165, currentWeightKg: 65, goalWeightKg: 65, weightClass: "normal", activityLevel: "high", goal: "maintain", day: "practice" }),
+  makeProfile("C12", { age: 50, gender: "male", heightCm: 178, currentWeightKg: 75, goalWeightKg: 75, weightClass: "normal", activityLevel: "sedentary", goal: "maintain", day: "rest" }),
+  makeProfile("C13", { age: 63, gender: "female", heightCm: 160, currentWeightKg: 62, goalWeightKg: 68, weightClass: "normal", activityLevel: "extra_active", goal: "muscle_gain", day: "gym" }),
+  makeProfile("C14", { age: 70, gender: "male", heightCm: 175, currentWeightKg: 72, goalWeightKg: 68, weightClass: "normal", activityLevel: "light", goal: "fat_loss", day: "practice" }),
+  makeProfile("C15", { age: 32, gender: "female", heightCm: 170, currentWeightKg: 68, goalWeightKg: 68, weightClass: "normal", goal: "maintain", day: "rest" }),
+  makeProfile("C16", { age: 41, gender: "male", heightCm: 182, currentWeightKg: 79, goalWeightKg: 85, weightClass: "normal", activityLevel: "high", goal: "muscle_gain", day: "game" }),
+
+  // Overweight: mostly fat-loss and maintenance, with one carefully scoped gain case.
+  makeProfile("C17", { age: 15, gender: "male", heightCm: 170, currentWeightKg: 82, goalWeightKg: 72, weightClass: "overweight", activityLevel: "moderate", goal: "fat_loss", day: "practice" }),
+  makeProfile("C18", { age: 17, gender: "female", heightCm: 165, currentWeightKg: 78, goalWeightKg: 68, weightClass: "overweight", activityLevel: "high", goal: "fat_loss", day: "gym" }),
+  makeProfile("C19", { age: 30, gender: "male", heightCm: 180, currentWeightKg: 92, goalWeightKg: 82, weightClass: "overweight", activityLevel: "sedentary", goal: "fat_loss", day: "rest" }),
+  makeProfile("C20", { age: 40, gender: "female", heightCm: 165, currentWeightKg: 82, goalWeightKg: 75, weightClass: "overweight", activityLevel: "light", goal: "maintain", day: "gym" }),
+  makeProfile("C21", { age: 58, gender: "male", heightCm: 175, currentWeightKg: 95, goalWeightKg: 95, weightClass: "overweight", activityLevel: "moderate", goal: "maintain", day: "game" }),
+  makeProfile("C22", { age: 68, gender: "female", heightCm: 160, currentWeightKg: 78, goalWeightKg: 72, weightClass: "overweight", activityLevel: "high", goal: "fat_loss", day: "practice" }),
+  makeProfile("C23", { age: 24, gender: "male", heightCm: 175, currentWeightKg: 90, goalWeightKg: 95, weightClass: "overweight", activityLevel: "extra_active", goal: "muscle_gain", day: "gym" }),
+  makeProfile("C24", { age: 53, gender: "female", heightCm: 170, currentWeightKg: 86, goalWeightKg: 80, weightClass: "overweight", goal: "fat_loss", day: "rest" }),
+
+  // Obese: fat-loss safety, maintenance, and high-maintenance cap coverage.
+  makeProfile("C25", { age: 13, gender: "female", heightCm: 160, currentWeightKg: 95, goalWeightKg: 75, weightClass: "obese", activityLevel: "high", goal: "fat_loss", day: "practice" }),
+  makeProfile("C26", { age: 16, gender: "male", heightCm: 165, currentWeightKg: 100, goalWeightKg: 78, weightClass: "obese", activityLevel: "light", goal: "fat_loss", day: "gym" }),
+  makeProfile("C27", { age: 25, gender: "female", heightCm: 160, currentWeightKg: 110, goalWeightKg: 80, weightClass: "obese", activityLevel: "sedentary", goal: "fat_loss", day: "rest" }),
+  makeProfile("C28", { age: 35, gender: "male", heightCm: 180, currentWeightKg: 140, goalWeightKg: 105, weightClass: "obese", activityLevel: "extra_active", goal: "fat_loss", day: "gym" }),
+  makeProfile("C29", { age: 55, gender: "female", heightCm: 165, currentWeightKg: 115, goalWeightKg: 90, weightClass: "obese", activityLevel: "moderate", goal: "maintain", day: "practice" }),
+  makeProfile("C30", { age: 70, gender: "male", heightCm: 175, currentWeightKg: 125, goalWeightKg: 100, weightClass: "obese", activityLevel: "high", goal: "maintain", day: "gym" }),
+  makeProfile("C31", { age: 44, gender: "female", heightCm: 155, currentWeightKg: 105, goalWeightKg: 82, weightClass: "obese", goal: "fat_loss", day: "rest" }),
+  makeProfile("C32", { age: 62, gender: "male", heightCm: 185, currentWeightKg: 130, goalWeightKg: 105, weightClass: "obese", activityLevel: "moderate", goal: "fat_loss", day: "game" }),
+
+  // Legacy exercise fallback: no activityLevel, so workouts are additive only
+  // on active days. These exercise modes are intentionally mixed.
+  makeProfile("L07", { age: 19, gender: "female", heightCm: 168, currentWeightKg: 64, goalWeightKg: 60, weightClass: "normal", activityLevel: undefined, goal: "fat_loss", day: "gym" }),
+  makeProfile("L08", { age: 33, gender: "male", heightCm: 178, currentWeightKg: 83, goalWeightKg: 78, weightClass: "overweight", activityLevel: undefined, goal: "fat_loss", day: "practice" }),
+  makeProfile("L09", { age: 47, gender: "female", heightCm: 162, currentWeightKg: 92, goalWeightKg: 78, weightClass: "obese", activityLevel: undefined, goal: "fat_loss", day: "game" }),
+  makeProfile("L10", { age: 59, gender: "male", heightCm: 172, currentWeightKg: 68, goalWeightKg: 72, weightClass: "normal", activityLevel: undefined, goal: "muscle_gain", day: "gym" }),
+
+  // Extreme but still plausible combinations to test caps and floors.
+  makeProfile("E01", { age: 13, gender: "male", heightCm: 190, currentWeightKg: 150, goalWeightKg: 110, weightClass: "obese", activityLevel: "extra_active", goal: "fat_loss", day: "game", targetDate: daysFromNow(35) }),
+  makeProfile("E02", { age: 70, gender: "female", heightCm: 165, currentWeightKg: 50, goalWeightKg: 58, weightClass: "underweight", activityLevel: "sedentary", goal: "muscle_gain", day: "rest" }),
+  makeProfile("E03", { age: 70, gender: "male", heightCm: 195, currentWeightKg: 155, goalWeightKg: 120, weightClass: "obese", activityLevel: "extra_active", goal: "fat_loss", day: "gym", targetDate: daysFromNow(30) }),
+  makeProfile("E04", { age: 13, gender: "female", heightCm: 145, currentWeightKg: 36, goalWeightKg: 44, weightClass: "underweight", activityLevel: "sedentary", goal: "maintain", day: "rest" }),
+];
+
+function withExpectedExercise(p: Profile): Profile {
+  const activity = p.day === "gym"
       ? { type: "gym" as const, durationMinutes: 60, intensity: "moderate" as const }
-    : day === "practice"
+    : p.day === "practice"
       ? { type: "sport_practice" as const, sport: "soccer", durationMinutes: 90, intensity: "moderate" as const }
-      : day === "game"
+      : p.day === "game"
         ? { type: "game" as const, sport: "soccer", durationMinutes: 90, intensity: "hard" as const }
         : null;
   const expectedExercise = activity
     ? activity.type === "gym"
-      ? estimateActivityBurn(activity as ScheduledActivity, weight)
+      ? estimateActivityBurn(activity as ScheduledActivity, p.currentWeightKg)
       : activity.type === "sport_practice"
-        ? estimateActivityBurn(activity, weight)
-        : estimateGameCalBurn("soccer", 90, weight)
+        ? estimateActivityBurn(activity, p.currentWeightKg)
+        : estimateGameCalBurn("soccer", 90, p.currentWeightKg)
     : 0;
   return { ...p, expectedExercise };
-});
+}
+
+const profiles: Profile[] = [
+  ...baseProfiles,
+  ...additionalProfiles,
+].map(withExpectedExercise);
 
 function runProfile(p: Profile) {
   const spy = vi.spyOn(console, "info").mockImplementation(() => {});
@@ -166,27 +227,45 @@ function validateProfile(p: Profile) {
   const hasActivityLevel = typeof p.activityLevel === "string";
   const isMinor = p.age < 18;
   const expectedEquation = isMinor ? "dri_2023_adolescent" : "mifflin_st_jeor_adult";
+  const expectedProtein = Math.min(
+    Math.round(
+      (p.goal === "fat_loss" || p.goal === "muscle_gain" ? 1 : 0.8)
+      * p.goalWeightKg
+      * 2.20462 / 5,
+    ) * 5,
+    250,
+  );
+  const bmi = p.currentWeightKg / ((p.heightCm / 100) ** 2);
 
   if (breakdown.energyEquation !== expectedEquation) failures.push(`wrong equation: ${String(breakdown.energyEquation)}`);
   if (!Number.isFinite(baseline) || baseline <= 0) failures.push("missing/invalid baseline expenditure");
   if (!Number.isFinite(maintenance) || maintenance !== baseline + exercise) failures.push("maintenance does not equal baseline + exercise");
   if (!Number.isFinite(exercise) || exercise < 0) failures.push("invalid exercise calories");
+  if (maintenance < 1200 || maintenance > 6000) failures.push(`maintenance outside realistic bounds: ${maintenance}`);
   if (hasActivityLevel && exercise !== 0) failures.push("exercise double-counting: profile activity plus exercise addition");
   if (!hasActivityLevel && p.day === "rest" && exercise !== 0) failures.push("rest day has exercise calories");
+  if (!hasActivityLevel && p.day !== "rest" && exercise !== p.expectedExercise) {
+    failures.push(`scheduled exercise mismatch: expected ${p.expectedExercise}, got ${exercise}`);
+  }
   // The engine's finalMaintenanceCalories already includes the scheduled
   // exercise burn for legacy profiles; never add expectedExercise again here.
   const scenarioMaintenance = maintenance;
   if (p.goal === "fat_loss" && finalCalories >= scenarioMaintenance) failures.push("fat-loss calories are at or above maintenance");
+  if (p.goal === "muscle_gain" && finalCalories <= scenarioMaintenance) failures.push("weight-gain calories are at or below maintenance");
+  if (p.goal === "maintain" && finalCalories !== scenarioMaintenance) failures.push(`maintenance target mismatch: ${finalCalories} vs ${scenarioMaintenance}`);
   // Profile activity is already part of maintenance. Legacy profiles apply
   // the goal adjustment to their sedentary base, then add scheduled exercise
   // to active-day targets; validate each path against its own base.
   const deficitMaintenance = hasActivityLevel ? maintenance : baseline;
   if (p.goal === "fat_loss" && deficit !== Math.min(Math.round(deficitMaintenance * 0.20), 750)) failures.push(`deficit is not 20% of maintenance: ${deficit}`);
   if (p.goal === "muscle_gain" && (surplus <= 0 || surplus > 600)) failures.push(`extreme surplus: ${surplus}`);
-  if (finalCalories < (isMinor ? (p.gender === "male" ? 1800 : 1600) : 1500)) failures.push("dietitian-unacceptable low calorie target");
+  const expectedFloor = isMinor ? (p.gender === "male" ? 1800 : 1600) : (p.gender === "male" ? 1500 : 1200);
+  if (finalCalories < expectedFloor) failures.push("dietitian-unacceptable low calorie target");
+  if (finalCalories > 6000) failures.push(`target is excessively high: ${finalCalories}`);
   if (p.goal === "fat_loss" && scenarioMaintenance - finalCalories > scenarioMaintenance * 0.20 + 1) failures.push("dietitian-unacceptable deficit");
   if (p.goal === "muscle_gain" && finalCalories - scenarioMaintenance > 600) failures.push("dietitian-unacceptable surplus");
   if (plan.proteinTargetG <= 0 || plan.proteinTargetG > 250) failures.push("dietitian-unacceptable protein target");
+  if (plan.proteinTargetG !== expectedProtein) failures.push(`protein mismatch: expected ${expectedProtein}g, got ${plan.proteinTargetG}g`);
   if (p.goal === "maintain" && (deficit !== 0 || surplus !== 0)) failures.push("maintenance plan has deficit/surplus");
   if (finalCalories < floor) failures.push(`unsafe calorie floor: ${finalCalories} < ${floor}`);
   if (isMinor && breakdown.bmr !== null) failures.push("minor incorrectly reports adult BMR");
@@ -197,6 +276,14 @@ function validateProfile(p: Profile) {
     if (!plan.warnings) failures.push("timeline rate exceeded a safety limit without a warning");
   }
   if (p.day !== "rest" && !hasActivityLevel && exercise <= 0) failures.push(`${p.day} day missing exercise calories`);
+  if (hasActivityLevel && plan.dailyCalorieTargets !== null) failures.push("profile activity unexpectedly has additive day targets");
+  if (hasActivityLevel && p.day !== "rest" && (plan.gymDayCalorieTarget !== null || plan.practiceDayCalorieTarget !== null || plan.gameDayCalorieTarget !== null)) {
+    failures.push("profile activity unexpectedly has legacy exercise targets");
+  }
+  if (p.weightClass === "underweight" && bmi >= 19) failures.push(`underweight fixture BMI too high: ${bmi.toFixed(1)}`);
+  if (p.weightClass === "normal" && (bmi < 18.5 || bmi >= 27)) failures.push(`normal-weight fixture BMI out of range: ${bmi.toFixed(1)}`);
+  if (p.weightClass === "overweight" && (bmi < 25 || bmi >= 35)) failures.push(`overweight fixture BMI out of range: ${bmi.toFixed(1)}`);
+  if (p.weightClass === "obese" && bmi < 27) failures.push(`obese fixture BMI too low: ${bmi.toFixed(1)}`);
   if (p.day === "rest" && plan.dailyCalorieTargets && Object.keys(plan.dailyCalorieTargets).length > 0) {
     failures.push("rest profile unexpectedly has active-day targets");
   }
@@ -246,7 +333,7 @@ function onboardingFieldFailures() {
 }
 
 describe("automated nutrition validation report", () => {
-  it("runs 25 realistic profiles and produces a PASS report with no dietitian safety flags", () => {
+  it("runs 65 realistic profiles and produces a PASS report with no dietitian safety flags", () => {
     const results = profiles.map(validateProfile);
     const report = results.map(({ p, breakdown, plan, failures }) => ({
       id: p.id,
@@ -282,6 +369,23 @@ describe("automated nutrition validation report", () => {
       ...report.flatMap((row) => row.flags.map((flag) => `${row.id}: ${flag}`)),
       ...onboardingFlags.map((field) => `onboarding field missing: ${field}`),
     ];
+    const coverage = {
+      ages: new Set(profiles.map((p) => p.age)),
+      genders: new Set(profiles.map((p) => p.gender)),
+      goals: new Set(profiles.map((p) => p.goal)),
+      activities: new Set(profiles.map((p) => p.activityLevel ?? "legacy_fallback")),
+      days: new Set(profiles.map((p) => p.day)),
+      weightClasses: new Set(profiles.map((p) => p.weightClass)),
+    };
+    const coverageFailures = [
+      ...([13, 70].filter((age) => !coverage.ages.has(age)).map((age) => `missing age ${age}`)),
+      ...(["male", "female"].filter((gender) => !coverage.genders.has(gender)).map((gender) => `missing gender ${gender}`)),
+      ...(["fat_loss", "maintain", "muscle_gain"].filter((goal) => !coverage.goals.has(goal as Goal)).map((goal) => `missing goal ${goal}`)),
+      ...(["sedentary", "light", "moderate", "high", "extra_active", "legacy_fallback"].filter((activity) => !coverage.activities.has(activity as "sedentary" | "light" | "moderate" | "high" | "extra_active" | "legacy_fallback")).map((activity) => `missing activity ${activity}`)),
+      ...(["rest", "gym", "practice", "game"].filter((day) => !coverage.days.has(day as DayKind)).map((day) => `missing day ${day}`)),
+      ...(["underweight", "normal", "overweight", "obese"].filter((weightClass) => !coverage.weightClasses.has(weightClass as Profile["weightClass"])).map((weightClass) => `missing weight class ${weightClass}`)),
+    ];
+    allFailures.push(...coverageFailures);
 
     console.info("[nutrition-validation-report]", JSON.stringify({
       result: allFailures.length === 0 ? "PASS" : "FAIL",
@@ -301,7 +405,8 @@ describe("automated nutrition validation report", () => {
       why: row.why,
     }))));
 
-    expect(report).toHaveLength(25);
+    expect(report).toHaveLength(65);
+    expect(coverageFailures).toEqual([]);
     expect(onboardingFlags).toEqual([]);
     expect(allFailures).toEqual([]);
   });

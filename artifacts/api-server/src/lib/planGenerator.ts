@@ -504,6 +504,12 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     weeklyPace = "Maintain current weight";
   }
 
+  // Apply the age/sex safety floor to every goal, not only fat loss. This
+  // protects very small or older users whose calculated maintenance is below
+  // the minimum safe intake. Goal adjustments remain visible in the
+  // breakdown, while the served target never falls below the floor.
+  calorieTarget = Math.max(calorieFloor, calorieTarget);
+
   // Protein is intentionally age-independent. The goal branches above use
   // the upper end of the requested 0.8–1.0 g/lb range for fat loss/muscle
   // gain and the lower end (0.8 g/lb) for maintenance/recomp.
