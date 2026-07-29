@@ -106,7 +106,7 @@ describe("calorie audit — 16-year-old high-activity weight loss profile", () =
   //   Exercise calories:      +0 (already included in the EER category)
   //   Deficit (15% of maintenance): round(3,298 × 0.15) = 495 cal/day
   //   Final calorie target:   3,298 - 495 = 2,803 kcal/day
-  //   Protein (under-18):     current weight (72.6kg) × 1.5 g/kg ≈ 110g
+  //   Protein (fat loss):     goal weight (140 lb) × 1.0 g/lb = 140g
   it("uses high-activity TDEE once, does not add gym calories again, and applies the universal 15% deficit", () => {
     const p = profile({
       age: 16,
@@ -128,7 +128,7 @@ describe("calorie audit — 16-year-old high-activity weight loss profile", () =
     const { plan, breakdown } = captureBreakdown(p);
 
     expect(plan.calorieTarget).toBe(2803);
-    expect(plan.proteinTargetG).toBe(110);
+    expect(plan.proteinTargetG).toBe(140);
     expect(plan.dailyCalorieTargets).toBeNull();
     expect(plan.gymDayCalorieTarget).toBeNull();
 
@@ -147,7 +147,7 @@ describe("calorie audit — 16-year-old high-activity weight loss profile", () =
       calorieFloor: 1800,
       weightLossDeficit: 495,
       finalCalorieTarget: 2803,
-      proteinTargetG: 110,
+      proteinTargetG: 140,
     });
   });
 });
@@ -364,23 +364,36 @@ describe("age-aware calorie safety — recomp surplus", () => {
   });
 });
 
-describe("age-aware calorie safety — protein uses current weight for minors", () => {
-  it("under-18 fat_loss: protein = current weight × 1.5 g/kg, ignoring goal weight", () => {
+describe("unified goal-based protein targets — age-independent", () => {
+  it("fat loss: protein = goal weight × 1.0 g/lb for minors and adults", () => {
     const p = profile({
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 60, // large goal-weight gap
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["lose weight"],
     });
     const plan = generatePlan(p);
-    expect(plan.proteinTargetG).toBe(120); // round((80*1.5)/5)*5 — not based on the 60kg goal weight
+    expect(plan.proteinTargetG).toBe(130); // 60kg goal weight = 132.3 lb, rounded to 130g
   });
 
-  it("under-18 muscle_gain: protein = current weight × 1.7 g/kg, ignoring goal weight", () => {
+  it("muscle gain: protein = target weight × 1.0 g/lb for minors and adults", () => {
     const p = profile({
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 90,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["gain weight and muscle"],
     });
     const plan = generatePlan(p);
-    expect(plan.proteinTargetG).toBe(135); // round((80*1.7)/5)*5
+    expect(plan.proteinTargetG).toBe(200); // 90kg target weight = 198.4 lb, rounded to 200g
+  });
+
+  it("maintenance: protein = target weight × 0.8 g/lb for minors and adults", () => {
+    const minor = generatePlan(profile({
+      age: 16, gender: "male", currentWeightKg: 80, goalWeightKg: 80,
+      activityLevel: "moderate", goals: ["maintain fitness"],
+    }));
+    const adult = generatePlan(profile({
+      age: 30, gender: "male", currentWeightKg: 80, goalWeightKg: 80,
+      activityLevel: "moderate", goals: ["maintain fitness"],
+    }));
+    expect(minor.proteinTargetG).toBe(140);
+    expect(adult.proteinTargetG).toBe(140);
   });
 });
 

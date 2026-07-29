@@ -16,7 +16,7 @@ Minors (age < 18) use the National Academies Dietary Reference Intakes (2023) ad
 - Muscle-gain surplus: adults 250/300/400(extreme), capped 250–400 at max 0.8 lb/wk. Minors 200/300 — **no extreme-discipline path** — capped 150–300 at max 0.5 lb/wk.
 - Recomp surplus: adults 75(casual)/100. Minors always flat 75 regardless of commitment.
 - Calorie floor: adults 1500(M)/1200(F). Minors 1800(M)/1600(F).
-- Protein for minors overrides the goal-weight-based calc entirely: current weight × 1.5 g/kg (fat_loss) or × 1.7 g/kg (muscle_gain/recomp), rounded to nearest 5 — ignores goal weight on purpose.
+- Protein is age-independent and goal-based: fat loss/muscle gain use 0.8–1.0 g/lb of goal/target weight (current implementation uses 1.0 g/lb), while maintenance/recomp uses 0.8 g/lb; targets round to the nearest 5g and cap at 250g.
 
 **Why:** The prior implementation intentionally avoided a pediatric equation because it had not been verified. The authoritative DRI source is now verified and directly matches the app's available inputs (age, sex, height, weight, activity category), so using it is safer and more appropriate than substituting Mifflin-St Jeor for adolescents. The equation source is https://www.canada.ca/en/health-canada/services/food-nutrition/healthy-eating/dietary-reference-intakes/tables/equations-estimate-energy-requirement.html, under “Children and adolescents 3 to 18 years” → the “Age 9 years to <14 years” and “Age 14 years to <19 years” tables.
 

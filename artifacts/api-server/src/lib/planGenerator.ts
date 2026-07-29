@@ -441,9 +441,9 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
       : false;
     weightLossDeficit = deficit;
     calorieTarget = Math.max(calorieFloor, tdee - deficit);
-    // Protein from the lower of current or goal weight, capped at 2.2g/kg (1.0g/lb)
-    const proteinBaseKg = Math.min(weightKg, profile.goalWeightKg);
-    proteinTargetG = Math.min(Math.round(proteinBaseKg * 2.2), 250);
+    // Unified goal-weight protein rule: use the upper end of the requested
+    // 0.8–1.0 g/lb range during fat loss to support lean-mass retention.
+    proteinTargetG = Math.min(Math.round(profile.goalWeightKg * 2.20462), 250);
 
     const actualLbsPerWeek = deficit / 500;
     const paceStr = actualLbsPerWeek >= 1.85 ? "~2 lb / week"
@@ -483,8 +483,9 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
 
     muscleGainSurplus = surplus;
     calorieTarget = tdee + surplus;
-    // Protein from goal weight, capped at 2.2g/kg (1.0g/lb)
-    proteinTargetG = Math.min(Math.round(profile.goalWeightKg * 2.2), 250);
+    // Unified goal-weight protein rule: use the upper end of the requested
+    // 0.8–1.0 g/lb range while building muscle.
+    proteinTargetG = Math.min(Math.round(profile.goalWeightKg * 2.20462), 250);
 
     const actualLbsPerWeek = surplus / 500;
     const paceStr = actualLbsPerWeek >= 0.85 ? "~1 lb / week (lean bulk)"
@@ -503,32 +504,18 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     const surplus = isMinor ? 75 : (isCasual ? 75 : 100);
     muscleGainSurplus = surplus;
     calorieTarget = tdee + surplus;
-    // High protein drives recomp — use current weight at 2.2g/kg
-    proteinTargetG = Math.min(Math.round(weightKg * 2.2), 250);
+    proteinTargetG = Math.min(Math.round(profile.goalWeightKg * 0.8 * 2.20462), 250);
     weeklyPace = "Recomp: build muscle & reduce body fat simultaneously";
   } else {
     calorieTarget = tdee;
-    proteinTargetG = Math.min(Math.round(weightKg * 2.0), 250);
+    proteinTargetG = Math.min(Math.round(profile.goalWeightKg * 0.8 * 2.20462), 250);
     weeklyPace = "Maintain current weight";
   }
 
-  // ── Under-18 protein override ─────────────────────────────────────────────────
-  // Adolescents are still developing; using adult rates from goal weight can
-  // overshoot safe protein targets for teenagers.
-  //
-  // Evidence base (ISSN, IOC, AAP):
-  //   Maintain / fat-loss:  1.4–1.6 g/kg current BW  → midpoint 1.5 g/kg
-  //   Muscle gain / recomp: 1.6–1.8 g/kg current BW  → midpoint 1.7 g/kg
-  //   Hard ceiling without professional supervision:   2.0 g/kg
-  //
-  // Always uses CURRENT body weight — goal weight does NOT drive protein for
-  // under-18 users. Goal weight still drives calorie targets unchanged.
-  if (age < 18) {
-    const teenRateGPerKg = (goalType === "muscle_gain" || goalType === "recomp") ? 1.7 : 1.5;
-    const cappedRate = Math.min(teenRateGPerKg, 2.0);
-    // Round to nearest 5 g for a clean, easy-to-track target
-    proteinTargetG = Math.round((weightKg * cappedRate) / 5) * 5;
-  }
+  // Protein is intentionally age-independent. The goal branches above use
+  // the upper end of the requested 0.8–1.0 g/lb range for fat loss/muscle
+  // gain and the lower end (0.8 g/lb) for maintenance/recomp.
+  proteinTargetG = Math.min(Math.round(proteinTargetG / 5) * 5, 250);
 
   // ── Sanity guard ─────────────────────────────────────────────────────────────
   // Catches implausible outputs before they reach any user.
@@ -715,11 +702,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
   }
 
-  // For under-18 users, append a plain-language note clarifying the protein
-  // source and the safer, smaller calorie deficit/surplus used for their age.
-  if (isMinor) {
-    coachNotes += ` Protein is calculated from your current body weight and activity, not your goal weight. Because you're under 18, your calorie target uses a smaller, safer adjustment than an adult plan so you still have enough energy to grow.`;
-  }
+  coachNotes += ` Protein is calculated consistently from your goal or target body weight and your selected goal, regardless of age.`;
 
   // ── Day-specific calorie targets ──────────────────────────────────────────
   //
