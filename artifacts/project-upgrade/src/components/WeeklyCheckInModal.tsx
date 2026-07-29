@@ -57,6 +57,7 @@ interface CheckInResult {
 interface Props {
   open: boolean;
   onClose: () => void;
+  onCompleted?: () => void;
   goals: string[];
   isProUser?: boolean;
 }
@@ -515,7 +516,7 @@ function computeScore(goal: string, ans: GoalAnswers): number {
 }
 
 // ── Main modal ────────────────────────────────────────────────────────────────
-export function WeeklyCheckInModal({ open, onClose, goals, isProUser = false }: Props) {
+export function WeeklyCheckInModal({ open, onClose, onCompleted, goals, isProUser = false }: Props) {
   const queryClient = useQueryClient();
   const createGoalCheckIn = useCreateGoalCheckIn();
   const createWeighIn = useCreateWeighIn();
@@ -549,6 +550,7 @@ export function WeeklyCheckInModal({ open, onClose, goals, isProUser = false }: 
     setSubmitting(true);
     const submitted: CheckInResult[] = [];
 
+    let savedGoalCount = 0;
     for (const goal of activeGoals) {
       const ans = getAnswers(goal);
       const score = computeScore(goal, ans);
@@ -588,6 +590,7 @@ export function WeeklyCheckInModal({ open, onClose, goals, isProUser = false }: 
           coachFeedback: result.coachFeedback,
           status: result.status,
         });
+        savedGoalCount++;
 
         if ((LOSE_FAT_GOALS.includes(goal) || BUILD_MUSCLE_GOALS.includes(goal)) && ans.weight && parseFloat(ans.weight) > 0) {
           try {
@@ -599,7 +602,7 @@ export function WeeklyCheckInModal({ open, onClose, goals, isProUser = false }: 
           }
         }
       } catch {
-        submitted.push({ goal, score, coachFeedback: "Check-in saved. Keep pushing." });
+        submitted.push({ goal, score, coachFeedback: "This goal could not be saved. Please try the check-in again." });
       }
     }
 
@@ -607,10 +610,12 @@ export function WeeklyCheckInModal({ open, onClose, goals, isProUser = false }: 
     setStep(totalSteps + 1);
     setSubmitting(false);
 
-    localStorage.setItem("ascend.lastWeeklyCheckIn", new Date().toISOString());
     queryClient.invalidateQueries({ queryKey: getListGoalCheckInsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListWeighInsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetProgressSummaryQueryKey() });
+    if (savedGoalCount === activeGoals.length) {
+      onCompleted?.();
+    }
   }
 
   async function handleNext() {

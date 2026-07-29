@@ -26,3 +26,4 @@
 - [RC invalidateCustomerInfoCache destroys merge data](rc-invalidate-cache-bug.md) — never call invalidateCustomerInfoCache in startup/refresh; it nukes the anonymous→userId merged cache and the server returns not-Pro.
 - [OTA bundle picks up Replit EXPO_PUBLIC_ secrets](ota-entitlement-id-pollution.md) — eas update builds locally; Replit secrets pollute OTA bundles. ENTITLEMENT_ID must be hardcoded, not from env var.
 - [Calorie pipeline](calorie-pipeline.md) — profile activity includes usual workouts; adolescents use verified DRI EER equations plus separate safety caps/floors.
+- [Weekly check-in scheduling](weekly-check-in-scheduling.md) — cadence is account-creation/completion driven; dismissal never counts as completion and missed due dates remain due.

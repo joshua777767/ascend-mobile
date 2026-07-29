@@ -34,7 +34,14 @@ import { Layout } from "@/components/layout";
 import { WeeklyCheckInModal } from "@/components/WeeklyCheckInModal";
 import { WeeklyReviewModal } from "@/components/WeeklyReviewModal";
 import { useAuth } from "@/hooks/use-auth";
-import { useGetUserProfile, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
+import {
+  useGetUserProfile,
+  useGetMe,
+  useListGoalCheckIns,
+  getGetMeQueryKey,
+  getListGoalCheckInsQueryKey,
+  getWeeklyCheckInSchedule,
+} from "@workspace/api-client-react";
 import { useTrialDay } from "@/hooks/use-trial";
 import { initializeRevenueCat, Purchases } from "@/lib/revenuecat";
 import { isNative, sendToNative, onFromNative, _setNativeSub, useNativeSub } from "@/lib/native-bridge";
@@ -419,32 +426,44 @@ function useFirstLoadSpinner(isLoading: boolean, timeoutMs = 8000): boolean {
 // this component (in AuthenticatedGate) so this never mounts for expired users.
 function ProtectedApp() {
   const { data: profile, isLoading, isError, error, isFetching } = useGetUserProfile();
+  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, refetchOnWindowFocus: false } });
+  const { data: goalCheckIns } = useListGoalCheckIns({
+    query: { queryKey: getListGoalCheckInsQueryKey() },
+  });
   const status = (error as { status?: number } | null | undefined)?.status;
 
   const [showWeeklyCheckIn, setShowWeeklyCheckIn] = useState(false);
   const [showWeeklyReview, setShowWeeklyReview] = useState(false);
+  const [locallyCompletedCheckInAt, setLocallyCompletedCheckInAt] = useState<string | null>(null);
+  const [dismissedDueAt, setDismissedDueAt] = useState<number | null>(null);
   // trialDay + isPro used only for weekly check-in modal logic — not for gate decisions.
   const { trialDay, isPro } = useTrialDay();
   const { isPro: nativeIsPro } = useNativeSub();
   const nativeProConfirmed = isNative && nativeIsPro;
 
-  // Check if weekly check-in is due after profile has loaded.
-  // Fires on the normal 7-day cadence, OR on the last day of the free trial
-  // so users always get a weigh-in before the trial ends.
+  // Check-ins are due from persisted completion timestamps. Dismissing the
+  // modal does not advance the schedule, so missed check-ins remain due.
   useEffect(() => {
-    if (!profile) return;
-    if (!localStorage.getItem("ascend.trialStartDate")) {
-      localStorage.setItem("ascend.trialStartDate", new Date().toISOString());
-    }
-    const last = localStorage.getItem("ascend.lastWeeklyCheckIn");
-    const sevenDaysDue = !last || (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24) >= 7;
-    const checkedInToday = !!last && new Date(last).toDateString() === new Date().toDateString();
-    const isLastTrialDay = !isPro && !nativeProConfirmed && trialDay >= 7;
-    const isDue = !checkedInToday && (sevenDaysDue || isLastTrialDay);
-    if (!isDue) return;
+    const accountCreatedAt = me?.createdAt ?? profile?.createdAt;
+    if (!accountCreatedAt || !goalCheckIns) return;
+    const schedule = getWeeklyCheckInSchedule({
+      accountCreatedAt,
+      checkInCreatedAt: [
+        ...goalCheckIns.map((checkIn) => checkIn.createdAt),
+        ...(locallyCompletedCheckInAt ? [locallyCompletedCheckInAt] : []),
+      ],
+    });
+    if (!schedule.isDue || showWeeklyCheckIn || schedule.nextDueAt.getTime() === dismissedDueAt) return;
     const t = setTimeout(() => setShowWeeklyCheckIn(true), 1500);
     return () => clearTimeout(t);
-  }, [profile, trialDay, isPro, nativeProConfirmed]);
+  }, [
+    me?.createdAt,
+    profile?.createdAt,
+    goalCheckIns,
+    locallyCompletedCheckInAt,
+    dismissedDueAt,
+    showWeeklyCheckIn,
+  ]);
 
   // Weekly review: show after 7 days, then every 7 days after.
   useEffect(() => {
@@ -492,8 +511,22 @@ function ProtectedApp() {
       <WeeklyCheckInModal
         open={showWeeklyCheckIn}
         onClose={() => {
-          localStorage.setItem("ascend.lastWeeklyCheckIn", new Date().toISOString());
+          const accountCreatedAt = me?.createdAt ?? profile?.createdAt;
+          if (accountCreatedAt && goalCheckIns) {
+            const schedule = getWeeklyCheckInSchedule({
+              accountCreatedAt,
+              checkInCreatedAt: [
+                ...goalCheckIns.map((checkIn) => checkIn.createdAt),
+                ...(locallyCompletedCheckInAt ? [locallyCompletedCheckInAt] : []),
+              ],
+            });
+            setDismissedDueAt(schedule.nextDueAt.getTime());
+          }
           setShowWeeklyCheckIn(false);
+        }}
+        onCompleted={() => {
+          setLocallyCompletedCheckInAt(new Date().toISOString());
+          setDismissedDueAt(null);
         }}
         goals={userGoals}
         isProUser={isPro || nativeProConfirmed}

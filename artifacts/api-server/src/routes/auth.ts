@@ -78,6 +78,7 @@ function publicUser(
     trialExpired,
     trialActive,
     hasAccess,
+    createdAt: user.createdAt.toISOString(),
   };
 }
 

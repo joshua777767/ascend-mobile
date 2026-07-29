@@ -20,6 +20,7 @@ export interface AuthUser {
   trialExpired: boolean;
   trialActive: boolean;
   hasAccess: boolean;
+  createdAt: string;
 }
 
 export interface SignupInput {

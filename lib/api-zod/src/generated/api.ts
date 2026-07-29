@@ -356,7 +356,8 @@ export const LoginResponse = zod.object({
   "trialEndDate": zod.coerce.date().nullish(),
   "trialExpired": zod.boolean(),
   "trialActive": zod.boolean(),
-  "hasAccess": zod.boolean()
+  "hasAccess": zod.boolean(),
+  "createdAt": zod.coerce.date()
 })
 
 
@@ -402,7 +403,8 @@ export const GetMeResponse = zod.object({
   "trialEndDate": zod.coerce.date().nullish(),
   "trialExpired": zod.boolean(),
   "trialActive": zod.boolean(),
-  "hasAccess": zod.boolean()
+  "hasAccess": zod.boolean(),
+  "createdAt": zod.coerce.date()
 })
 
 

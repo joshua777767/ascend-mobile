@@ -977,6 +977,9 @@ components:
           type: boolean
         hasAccess:
           type: boolean
+        createdAt:
+          type: string
+          format: date-time
       required:
         - id
         - email
@@ -986,6 +989,7 @@ components:
         - trialExpired
         - trialActive
         - hasAccess
+        - createdAt
 
     SignupInput:
       type: object

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { db, goalCheckInsTable, userProfilesTable, plansTable } from "@workspace/db";
 import { CreateGoalCheckInBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
@@ -165,6 +165,27 @@ router.post("/goal-checkins", async (req, res): Promise<void> => {
   }
 
   const userId = getUserId(req);
+  // A single weekly modal can submit several goals sequentially. If the
+  // client retries after a partial network failure, return the row already
+  // created for this goal instead of duplicating the user's progress.
+  const recentSubmissionWindow = new Date(Date.now() - 10 * 60 * 1000);
+  const [recentCheckIn] = await db
+    .select()
+    .from(goalCheckInsTable)
+    .where(
+      and(
+        eq(goalCheckInsTable.userId, userId),
+        eq(goalCheckInsTable.goal, parsed.data.goal),
+        gte(goalCheckInsTable.createdAt, recentSubmissionWindow),
+      ),
+    )
+    .orderBy(desc(goalCheckInsTable.createdAt))
+    .limit(1);
+  if (recentCheckIn) {
+    res.status(200).json(recentCheckIn);
+    return;
+  }
+
   const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.userId, userId));
   const [plan] = await db.select().from(plansTable).where(eq(plansTable.userId, userId));
 
