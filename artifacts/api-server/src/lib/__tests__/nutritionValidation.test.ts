@@ -1,0 +1,263 @@
+import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { generatePlan } from "../planGenerator";
+import { estimateActivityBurn } from "../sportUtils";
+import type { ScheduledActivity } from "../sportUtils";
+
+type Goal = "fat_loss" | "maintain" | "muscle_gain";
+type DayKind = "rest" | "gym" | "practice" | "game";
+
+const DAYS = {
+  rest: JSON.stringify({ days: [] }),
+  gym: JSON.stringify({
+    days: [{ day: "monday", activities: [{ type: "gym", durationMinutes: 60, intensity: "moderate" }] }],
+  }),
+  practice: JSON.stringify({
+    days: [{
+      day: "monday",
+      activities: [{ type: "sport_practice", sport: "soccer", durationMinutes: 90, intensity: "moderate" }],
+    }],
+  }),
+  game: JSON.stringify({
+    days: [{ day: "monday", activities: [{ type: "game", sport: "soccer", durationMinutes: 90, intensity: "hard" }] }],
+  }),
+} as const;
+
+const base = {
+  age: 30,
+  gender: "male",
+  heightCm: 178,
+  currentWeightKg: 80,
+  goalWeightKg: 75,
+  fitnessLevel: "intermediate",
+  primaryGoal: "lose_fat",
+  workoutFocus: "lose_fat",
+  commitmentLevel: "committed",
+  workoutDaysPerWeek: 0,
+  goals: ["lose weight"],
+  skinConcerns: [],
+  digestionConcerns: [],
+  sportSchedule: null,
+  customWorkoutSchedule: null as string | null,
+  sleepHoursPerNight: 8,
+  sleepQuality: "good",
+};
+
+type Profile = typeof base & {
+  id: string;
+  activityLevel?: "sedentary" | "light" | "moderate" | "high" | "extra_active";
+  goal: Goal;
+  day: DayKind;
+  expectedExercise: number;
+  targetDate?: string;
+};
+
+function makeProfile(
+  id: string,
+  overrides: Partial<Omit<Profile, "id" | "goal" | "day" | "expectedExercise">> & {
+    goal: Goal;
+    day: DayKind;
+    expectedExercise?: number;
+  },
+): Profile {
+  const { goal, day, expectedExercise, ...rest } = overrides;
+  const goals = goal === "fat_loss"
+    ? ["lose weight"]
+    : goal === "muscle_gain"
+      ? ["gain weight and muscle"]
+      : ["maintain fitness"];
+  return {
+    ...base,
+    ...rest,
+    id,
+    goal,
+    day,
+    goals,
+    primaryGoal: goal === "fat_loss" ? "lose_fat" : goal === "muscle_gain" ? "build_muscle" : "maintain",
+    workoutFocus: goal === "muscle_gain" ? "build_muscle" : goal === "fat_loss" ? "lose_fat" : "general_fitness",
+    customWorkoutSchedule: day === "rest" ? DAYS.rest : DAYS[day],
+    workoutDaysPerWeek: day === "rest" ? 0 : 1,
+    expectedExercise: expectedExercise ?? 0,
+  } as Profile;
+}
+
+function daysFromNow(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+const profiles: Profile[] = [
+  // Profile-based activity: exercise is included in EER/TDEE and must not be added again.
+  makeProfile("A01", { age: 16, gender: "male", heightCm: 167.64, currentWeightKg: 72.6, goalWeightKg: 63.5, activityLevel: "high", goal: "fat_loss", day: "gym" }),
+  makeProfile("A02", { age: 15, gender: "female", activityLevel: "light", goal: "fat_loss", day: "rest" }),
+  makeProfile("A03", { age: 17, gender: "male", activityLevel: "moderate", goal: "maintain", day: "practice" }),
+  makeProfile("A04", { age: 14, gender: "female", activityLevel: "high", goal: "muscle_gain", day: "game" }),
+  makeProfile("A05", { age: 16, gender: "female", activityLevel: "sedentary", goal: "maintain", day: "rest" }),
+  makeProfile("A06", { age: 17, gender: "male", activityLevel: "extra_active", goal: "muscle_gain", day: "gym" }),
+  makeProfile("A07", { age: 13, gender: "female", activityLevel: "moderate", goal: "fat_loss", day: "practice" }),
+  makeProfile("A08", { age: 12, gender: "male", activityLevel: "light", goal: "maintain", day: "game" }),
+  makeProfile("A09", { age: 16, gender: "male", activityLevel: "moderate", goal: "fat_loss", day: "rest", targetDate: daysFromNow(35) }),
+  // Adult profile-based activity across low/moderate/high and all goals/days.
+  makeProfile("B01", { age: 25, gender: "male", activityLevel: "light", goal: "fat_loss", day: "rest" }),
+  makeProfile("B02", { age: 35, gender: "female", activityLevel: "moderate", goal: "maintain", day: "gym" }),
+  makeProfile("B03", { age: 42, gender: "male", activityLevel: "high", goal: "muscle_gain", day: "practice" }),
+  makeProfile("B04", { age: 29, gender: "female", activityLevel: "moderate", goal: "fat_loss", day: "game" }),
+  makeProfile("B05", { age: 55, gender: "male", activityLevel: "sedentary", goal: "maintain", day: "rest" }),
+  makeProfile("B06", { age: 22, gender: "female", activityLevel: "high", goal: "muscle_gain", day: "gym" }),
+  makeProfile("B07", { age: 48, gender: "female", activityLevel: "light", goal: "fat_loss", day: "practice" }),
+  makeProfile("B08", { age: 31, gender: "male", activityLevel: "high", goal: "maintain", day: "game" }),
+  makeProfile("B09", { age: 31, gender: "female", activityLevel: "moderate", currentWeightKg: 70, goalWeightKg: 80, goal: "muscle_gain", day: "rest", targetDate: daysFromNow(35) }),
+  // Legacy profiles: no activityLevel, so scheduled exercise is additive only on active days.
+  makeProfile("L01", { age: 27, gender: "male", activityLevel: undefined, goal: "fat_loss", day: "rest" }),
+  makeProfile("L02", { age: 19, gender: "female", activityLevel: undefined, goal: "maintain", day: "gym", expectedExercise: 0 }),
+  makeProfile("L03", { age: 64, gender: "male", activityLevel: undefined, goal: "muscle_gain", day: "practice", expectedExercise: 0 }),
+  makeProfile("L04", { age: 38, gender: "female", activityLevel: undefined, goal: "fat_loss", day: "game", expectedExercise: 0 }),
+  makeProfile("L05", { age: 18, gender: "male", activityLevel: undefined, goal: "maintain", day: "rest" }),
+  makeProfile("L06", { age: 44, gender: "female", activityLevel: undefined, goal: "muscle_gain", day: "gym" }),
+].map((p) => {
+  const day = p.day;
+  const weight = p.currentWeightKg;
+  const activity = day === "gym"
+      ? { type: "gym" as const, durationMinutes: 60, intensity: "moderate" as const }
+    : day === "practice"
+      ? { type: "sport_practice" as const, sport: "soccer", durationMinutes: 90, intensity: "moderate" as const }
+      : day === "game"
+        ? { type: "game" as const, sport: "soccer", durationMinutes: 90, intensity: "hard" as const }
+        : null;
+  const expectedExercise = activity
+    ? activity.type === "gym"
+      ? estimateActivityBurn(activity as ScheduledActivity, weight)
+      : activity.type === "sport_practice"
+        ? estimateActivityBurn(activity, weight)
+        : estimateActivityBurn(activity, weight)
+    : 0;
+  return { ...p, expectedExercise };
+});
+
+function runProfile(p: Profile) {
+  const spy = vi.spyOn(console, "info").mockImplementation(() => {});
+  const plan = generatePlan(p as any);
+  const call = spy.mock.calls.find((entry) => entry[0] === "[calorie-breakdown]");
+  spy.mockRestore();
+  return { plan, breakdown: call?.[1] as Record<string, unknown> };
+}
+
+function validateProfile(p: Profile) {
+  const { plan, breakdown } = runProfile(p);
+  const failures: string[] = [];
+  const maintenance = Number(breakdown.finalMaintenanceCalories);
+  const baseline = Number(breakdown.baseTdee);
+  const exercise = Number(breakdown.exerciseCaloriesAdded);
+  const finalCalories = plan.calorieTarget;
+  const deficit = Number(breakdown.weightLossDeficit);
+  const surplus = Number(breakdown.muscleGainSurplus);
+  const floor = Number(breakdown.calorieFloor);
+  const hasActivityLevel = typeof p.activityLevel === "string";
+  const isMinor = p.age < 18;
+  const expectedEquation = isMinor ? "dri_2023_adolescent" : "mifflin_st_jeor_adult";
+
+  if (breakdown.energyEquation !== expectedEquation) failures.push(`wrong equation: ${String(breakdown.energyEquation)}`);
+  if (!Number.isFinite(baseline) || baseline <= 0) failures.push("missing/invalid baseline expenditure");
+  if (!Number.isFinite(maintenance) || maintenance !== baseline + exercise) failures.push("maintenance does not equal baseline + exercise");
+  if (!Number.isFinite(exercise) || exercise < 0) failures.push("invalid exercise calories");
+  if (hasActivityLevel && exercise !== 0) failures.push("exercise double-counting: profile activity plus exercise addition");
+  if (!hasActivityLevel && p.day === "rest" && exercise !== 0) failures.push("rest day has exercise calories");
+  if (p.goal === "fat_loss" && finalCalories >= maintenance) failures.push("fat-loss calories are at or above maintenance");
+  if (p.goal === "fat_loss" && (deficit < 0 || deficit > (isMinor ? 300 : 500))) failures.push(`extreme deficit: ${deficit}`);
+  if (p.goal === "muscle_gain" && (surplus <= 0 || surplus > (isMinor ? 300 : 400))) failures.push(`extreme surplus: ${surplus}`);
+  if (p.goal === "maintain" && (deficit !== 0 || surplus !== 0)) failures.push("maintenance plan has deficit/surplus");
+  if (finalCalories < floor) failures.push(`unsafe calorie floor: ${finalCalories} < ${floor}`);
+  if (isMinor && breakdown.bmr !== null) failures.push("minor incorrectly reports adult BMR");
+  if (!isMinor && typeof breakdown.bmr !== "number") failures.push("adult missing BMR");
+  if (p.targetDate) {
+    const paceLimit = p.goal === "fat_loss" ? (isMinor ? 0.6 : 1) : (isMinor ? 0.5 : 0.8);
+    const paceMatch = plan.weeklyPace.match(/~([0-9.]+) lb/);
+    const displayedPace = paceMatch ? Number(paceMatch[1]) : 0;
+    if (displayedPace > paceLimit) failures.push(`unrealistic weekly rate: ${displayedPace} > ${paceLimit} lb/week`);
+    if (!plan.warnings) failures.push("timeline rate exceeded a safety limit without a warning");
+  }
+  if (p.day !== "rest" && !hasActivityLevel && exercise <= 0) failures.push(`${p.day} day missing exercise calories`);
+  if (p.day === "rest" && plan.dailyCalorieTargets && Object.keys(plan.dailyCalorieTargets).length > 0) {
+    failures.push("rest profile unexpectedly has active-day targets");
+  }
+  return { p, plan, breakdown, failures };
+}
+
+function onboardingFieldFailures() {
+  // These are the fields persisted by Step 5, checked against the same
+  // source used by the onboarding flow so a renamed/omitted field fails this
+  // validation report instead of silently degrading nutrition calculations.
+  const source = readFileSync(
+    resolve(process.cwd(), "../project-upgrade/src/pages/onboarding.tsx"),
+    "utf8",
+  );
+  const required = [
+    "activityLevel",
+    "workoutDaysPerWeek",
+    "customWorkoutSchedule",
+    "sportSchedule",
+    "durationMinutes",
+    "intensity",
+  ];
+  return required.filter((field) => !source.includes(field));
+}
+
+describe("automated nutrition validation report", () => {
+  it("runs 24 realistic profiles and produces a PASS report with no safety flags", () => {
+    const results = profiles.map(validateProfile);
+    const report = results.map(({ p, breakdown, plan, failures }) => ({
+      id: p.id,
+      age: p.age,
+      sex: p.gender,
+      goal: p.goal,
+      day: p.day,
+      equation: p.age < 18 ? breakdown.energyEquation : `BMR=${breakdown.bmr}`,
+      activityCategory: breakdown.activityCategory,
+      baseline: breakdown.baseTdee,
+      exerciseCalories: breakdown.exerciseCaloriesAdded,
+      maintenance: breakdown.finalMaintenanceCalories,
+      deficitOrSurplus: p.goal === "fat_loss" ? -Number(breakdown.weightLossDeficit) : Number(breakdown.muscleGainSurplus),
+      finalCalories: plan.calorieTarget,
+      proteinTargetG: plan.proteinTargetG,
+      safetyRulesTriggered: [
+        p.age < 18 ? "under-18 EER + safety limits" : "adult limits",
+        Number(breakdown.exerciseCaloriesAdded) === 0 ? "no additive exercise calories" : "legacy exercise addition",
+        Number(breakdown.calorieFloor) === plan.calorieTarget ? "calorie floor binds" : null,
+      ].filter(Boolean),
+      flags: failures,
+    }));
+    const onboardingFlags = onboardingFieldFailures();
+    const allFailures = [
+      ...report.flatMap((row) => row.flags.map((flag) => `${row.id}: ${flag}`)),
+      ...onboardingFlags.map((field) => `onboarding field missing: ${field}`),
+    ];
+
+    console.info("[nutrition-validation-report]", JSON.stringify({
+      result: allFailures.length === 0 ? "PASS" : "FAIL",
+      profileCount: report.length,
+      onboardingFlags,
+      profiles: report,
+    }, null, 2));
+
+    expect(report).toHaveLength(24);
+    expect(onboardingFlags).toEqual([]);
+    expect(allFailures).toEqual([]);
+  });
+
+  it("specifically verifies the requested 16-year-old gym profile", () => {
+    const result = validateProfile(profiles.find((p) => p.id === "A01")!);
+    expect(result.failures).toEqual([]);
+    expect(result.breakdown).toMatchObject({
+      energyEquation: "dri_2023_adolescent",
+      baseTdee: 3298,
+      exerciseCaloriesAdded: 0,
+      finalMaintenanceCalories: 3298,
+      weightLossDeficit: 300,
+      calorieFloor: 1800,
+      finalCalorieTarget: 2998,
+    });
+    expect(result.plan.calorieTarget).toBe(2998);
+  });
+});
