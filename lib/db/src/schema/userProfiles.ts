@@ -19,6 +19,11 @@ export const userProfilesTable = pgTable("user_profiles", {
   gymAccess: text("gym_access").notNull(),
   equipment: text("equipment"),
   workoutDaysPerWeek: integer("workout_days_per_week").notNull().default(3),
+  // Overall self-reported lifestyle activity level (sedentary/light/moderate/high/extra_active).
+  // When present, this already accounts for the user's usual training, so plan
+  // generation uses it as the sole TDEE multiplier and does not add scheduled
+  // workout/sport calories on top (see planGenerator.ts activityLevelSource).
+  activityLevel: text("activity_level"),
   preferredWorkoutTime: text("preferred_workout_time"),
   wakeTime: text("wake_time").notNull(),
   sleepTime: text("sleep_time").notNull(),

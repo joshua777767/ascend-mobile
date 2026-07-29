@@ -54,6 +54,20 @@ export interface MessageResponse {
 /**
  * @nullable
  */
+export type UserProfileActivityLevel = typeof UserProfileActivityLevel[keyof typeof UserProfileActivityLevel] | null;
+
+
+export const UserProfileActivityLevel = {
+  sedentary: 'sedentary',
+  light: 'light',
+  moderate: 'moderate',
+  high: 'high',
+  extra_active: 'extra_active',
+} as const;
+
+/**
+ * @nullable
+ */
 export type UserProfileCommitmentLevel = typeof UserProfileCommitmentLevel[keyof typeof UserProfileCommitmentLevel] | null;
 
 
@@ -81,6 +95,8 @@ export interface UserProfile {
   /** @nullable */
   equipment?: string | null;
   workoutDaysPerWeek: number;
+  /** @nullable */
+  activityLevel?: UserProfileActivityLevel;
   /** @nullable */
   preferredWorkoutTime?: string | null;
   wakeTime: string;
@@ -139,6 +155,20 @@ export interface UserProfile {
 /**
  * @nullable
  */
+export type UserProfileInputActivityLevel = typeof UserProfileInputActivityLevel[keyof typeof UserProfileInputActivityLevel] | null;
+
+
+export const UserProfileInputActivityLevel = {
+  sedentary: 'sedentary',
+  light: 'light',
+  moderate: 'moderate',
+  high: 'high',
+  extra_active: 'extra_active',
+} as const;
+
+/**
+ * @nullable
+ */
 export type UserProfileInputCommitmentLevel = typeof UserProfileInputCommitmentLevel[keyof typeof UserProfileInputCommitmentLevel] | null;
 
 
@@ -163,6 +193,8 @@ export interface UserProfileInput {
   gymAccess: string;
   equipment?: string;
   workoutDaysPerWeek: number;
+  /** @nullable */
+  activityLevel?: UserProfileInputActivityLevel;
   preferredWorkoutTime?: string;
   wakeTime: string;
   sleepTime: string;
@@ -200,6 +232,20 @@ export interface UserProfileInput {
 /**
  * @nullable
  */
+export type UserProfileUpdateActivityLevel = typeof UserProfileUpdateActivityLevel[keyof typeof UserProfileUpdateActivityLevel] | null;
+
+
+export const UserProfileUpdateActivityLevel = {
+  sedentary: 'sedentary',
+  light: 'light',
+  moderate: 'moderate',
+  high: 'high',
+  extra_active: 'extra_active',
+} as const;
+
+/**
+ * @nullable
+ */
 export type UserProfileUpdateCommitmentLevel = typeof UserProfileUpdateCommitmentLevel[keyof typeof UserProfileUpdateCommitmentLevel] | null;
 
 
@@ -222,6 +268,8 @@ export interface UserProfileUpdate {
   fitnessLevel?: string;
   gymAccess?: string;
   workoutDaysPerWeek?: number;
+  /** @nullable */
+  activityLevel?: UserProfileUpdateActivityLevel;
   preferredWorkoutTime?: string;
   wakeTime?: string;
   sleepTime?: string;

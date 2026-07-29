@@ -1,0 +1,176 @@
+Rebuild and audit the entire calorie and nutrition-target system for Ascend: AI Fitness. Do not rely on previous fixes or assumptions. Trace every calculation from onboarding data to the final daily calorie and protein targets.
+
+The goal is to produce the fastest safe and sustainable progress for both users under 18 and users 18 or older. Never use crash-diet or dirty-bulk logic.
+
+1. Required user data
+
+Ensure onboarding actually saves and uses:
+
+* Date of birth or age
+* Sex used for the metabolic equation
+* Height
+* Current weight
+* Goal: lose fat, gain muscle, or maintain
+* Target weight
+* Desired timeframe
+* Normal daily activity level
+* Gym or resistance-training days
+* Sports, practices, and game days
+* Workout duration and intensity
+
+Validate that these values persist after logout, login, and app restart.
+
+2. Prevent activity double-counting
+
+Create one clearly documented activity model.
+
+Do not include planned gym sessions or sports inside a high activity multiplier and then add those exercise calories again.
+
+Prefer this structure:
+
+* Calculate BMR
+* Calculate baseline daily expenditure from normal non-exercise lifestyle
+* Add only the estimated calories from that day’s scheduled workout or sport
+* Apply the appropriate deficit or surplus
+
+Show and log:
+
+* BMR
+* Baseline activity calculation
+* Scheduled exercise calories
+* Total estimated maintenance calories
+* Deficit or surplus
+* Final calorie target
+* Protein target
+* Any safety limit or adjustment applied
+
+3. Users age 18 or older
+
+Fat-loss goal
+
+Create the largest reasonable deficit that remains safe and sustainable.
+
+* Use a percentage-based deficit instead of blindly subtracting the same amount for everyone.
+* Default to approximately a 15%–20% deficit.
+* Allow up to approximately 25% only for appropriate adult profiles with higher body weight and sufficient calorie intake.
+* Do not let the planned rate exceed roughly 1% of body weight per week.
+* Do not prescribe extremely low calorie targets.
+* If the calculated target reaches a safety floor, reduce the deficit rather than forcing the target lower.
+* Reassess using the user’s average weight trend over at least 14 days.
+
+Muscle-gain goal
+
+Use a controlled lean-gain surplus:
+
+* Approximately 5%–10% above maintenance by default.
+* Favor the lower end for experienced lifters or users already carrying substantial body fat.
+* Increase calories only if body weight and gym performance fail to progress for at least two weeks.
+* Avoid aggressive surpluses that mainly increase fat.
+
+Adult protein
+
+For users performing resistance training, calculate a reasonable protein target based on body weight or an appropriate goal-weight adjustment for users with high body fat. Keep the target within an evidence-based range and avoid unnecessarily extreme amounts.
+
+4. Users under age 18
+
+Use the same objective—effective fat loss or muscle gain—but apply a separate adolescent safety pathway because minors are still growing.
+
+Do not simply run minors through the adult deficit and surplus system.
+
+Under-18 fat-loss goal
+
+* Use age-appropriate pediatric energy equations or estimated energy requirements rather than relying only on an adult BMR equation.
+* Evaluate weight status using age- and sex-specific BMI percentile, not adult BMI categories.
+* Prefer gradual fat loss, weight maintenance, or slower weight gain while height increases, depending on the user’s age and weight status.
+* Do not automatically create an aggressive calorie deficit.
+* Do not exceed approximately 0.5% of body weight loss per week without professional supervision.
+* Block unrealistic deadlines.
+* Never generate starvation-level targets.
+* Require a parent/guardian and qualified healthcare professional recommendation when a minor requests aggressive weight loss, has severe obesity, is underweight, reports an eating disorder, or chooses a medically concerning target.
+
+Under-18 muscle-gain goal
+
+* Use a small surplus only when needed.
+* Prioritize resistance training, adequate food, protein, sleep, and recovery.
+* Do not create a rapid bulk.
+* Consider normal growth and development when interpreting weight gain.
+* Adjust calories only after at least two weeks of trend data.
+
+Under-18 messaging
+
+Do not display language such as “lose weight as fast as possible.”
+
+Display:
+
+“Your plan is designed for effective progress while supporting healthy growth and development.”
+
+Include a notice that minors should review significant weight-change goals with a parent or guardian and healthcare professional.
+
+5. Adaptive weekly adjustments
+
+Use rolling weight averages, not individual weigh-ins.
+
+* Wait for at least 14 days of reliable data before making the first major adjustment.
+* If fat loss is slower than the safe target, reduce calories slightly.
+* If fat loss is faster than the safe target, increase calories.
+* If muscle-gain weight is not increasing, add a small calorie amount.
+* If weight gain is too rapid, reduce the surplus.
+* Limit each automatic adjustment to a small amount, such as 100–150 calories.
+* Never adjust based on a single day.
+
+6. Safety and validation
+
+Flag or block:
+
+* Underweight users attempting further weight loss
+* Extreme target weights
+* Extreme deadlines
+* Very low calorie outputs
+* Excessive deficits or surpluses
+* Contradictory onboarding information
+* Missing activity data
+* Potential exercise double-counting
+
+Do not diagnose medical conditions. Direct high-risk users to a physician or registered dietitian.
+
+7. Required test profile
+
+Test:
+
+* Male
+* Age 16
+* Height 5’6”
+* Weight 160 lb
+* Goal: lose fat
+* Gym workout that day
+
+Show the exact:
+
+* Saved onboarding fields
+* Energy equation
+* Baseline expenditure
+* Gym calorie estimate
+* Maintenance estimate
+* Deficit
+* Final calorie target
+* Protein target
+* Safety rules activated
+
+A final target around 2,800 calories must not be accepted unless the complete calculation genuinely supports it.
+
+8. Automated tests
+
+Add tests for:
+
+* Under-18 and adult users
+* Male and female profiles
+* Underweight, normal-weight, overweight, and high-body-weight profiles
+* Lose, maintain, and gain goals
+* Rest, gym, practice, and game days
+* Missing or corrupted activity fields
+* Duplicate exercise-calorie prevention
+* Unrealistic deadlines
+* Calorie safety limits
+* Adaptive two-week adjustments
+
+Run all tests and type checks. Report every changed file, the previous logic, the new logic, and the exact output for each test profile.

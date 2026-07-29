@@ -41,6 +41,16 @@ const DAYS = [
   { label: "S", value: "sunday" },
 ] as const;
 
+type ActivityLevel = "sedentary" | "light" | "moderate" | "high" | "extra_active";
+
+const ACTIVITY_LEVELS: { label: string; value: ActivityLevel; desc: string }[] = [
+  { label: "Sedentary",    value: "sedentary",    desc: "Little to no exercise, mostly desk-based" },
+  { label: "Light",        value: "light",        desc: "Light exercise 1–3 days a week" },
+  { label: "Moderate",     value: "moderate",     desc: "Moderate exercise 3–5 days a week" },
+  { label: "High",         value: "high",         desc: "Hard exercise 6–7 days a week" },
+  { label: "Extra Active", value: "extra_active", desc: "Very hard training or a physically demanding job" },
+];
+
 type ActivityType = "gym" | "home_workout" | "cardio" | "sport_practice" | "game";
 
 const ACTIVITY_TYPES: { label: string; value: ActivityType; emoji: string }[] = [
@@ -111,6 +121,7 @@ export default function OnboardingPage() {
     intensity: "light" | "moderate" | "hard";
     sport?: string;
   }
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel | "">("");
   const [exerciseDays, setExerciseDays] = useState<string[]>([]);
   const [dayActivities, setDayActivities] = useState<Record<string, ActivityDraft>>({});
 
@@ -184,6 +195,10 @@ export default function OnboardingPage() {
   };
 
   const handleStep5 = () => {
+    if (!activityLevel) {
+      setError("Pick your overall activity level to continue.");
+      return;
+    }
     // No exercise days is valid (rest week)
     if (exerciseDays.length > 0) {
       for (const day of exerciseDays) {
@@ -239,6 +254,7 @@ export default function OnboardingPage() {
       fitnessLevel: "beginner",
       gymAccess: scheduleDays.some(d => d.activities.some(a => a.type === "gym")) ? "gym" : "no",
       workoutDaysPerWeek: scheduleDays.length,
+      activityLevel,
       wakeTime,
       wakeTimeRange: null,
       sleepTime: "22:30",
@@ -487,8 +503,35 @@ export default function OnboardingPage() {
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">Your exercise schedule</h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Pick the days you exercise — your calorie target adjusts automatically for each active day.
+                  Tell us your overall activity level, then pick the days you train — we'll never double-count your workout calories.
                 </p>
+              </div>
+
+              {/* Activity level */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground tracking-wide mb-2">Overall activity level</p>
+                <div className="flex flex-col gap-2">
+                  {ACTIVITY_LEVELS.map((lvl) => (
+                    <button key={lvl.value} type="button"
+                      onClick={() => { setActivityLevel(lvl.value); setError(""); }}
+                      className={cn(
+                        "flex items-center justify-between gap-3 rounded-2xl border p-3.5 text-left transition-all active:scale-[0.99]",
+                        activityLevel === lvl.value
+                          ? "bg-primary/10 border-primary"
+                          : "bg-card border-border hover:bg-elevated"
+                      )}>
+                      <span>
+                        <span className={cn(
+                          "block text-sm font-semibold",
+                          activityLevel === lvl.value ? "text-primary" : "text-foreground"
+                        )}>
+                          {lvl.label}
+                        </span>
+                        <span className="block text-xs text-muted-foreground mt-0.5">{lvl.desc}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Day selector */}

@@ -5,6 +5,7 @@
  * Ascend API
  * OpenAPI spec version: 0.1.0
  */
+import type { UserProfileUpdateActivityLevel } from './userProfileUpdateActivityLevel';
 import type { UserProfileUpdateCommitmentLevel } from './userProfileUpdateCommitmentLevel';
 
 export interface UserProfileUpdate {
@@ -19,6 +20,8 @@ export interface UserProfileUpdate {
   fitnessLevel?: string;
   gymAccess?: string;
   workoutDaysPerWeek?: number;
+  /** @nullable */
+  activityLevel?: UserProfileUpdateActivityLevel;
   preferredWorkoutTime?: string;
   wakeTime?: string;
   sleepTime?: string;

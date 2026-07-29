@@ -5,6 +5,7 @@
  * Ascend API
  * OpenAPI spec version: 0.1.0
  */
+import type { UserProfileActivityLevel } from './userProfileActivityLevel';
 import type { UserProfileCommitmentLevel } from './userProfileCommitmentLevel';
 
 export interface UserProfile {
@@ -24,6 +25,8 @@ export interface UserProfile {
   /** @nullable */
   equipment?: string | null;
   workoutDaysPerWeek: number;
+  /** @nullable */
+  activityLevel?: UserProfileActivityLevel;
   /** @nullable */
   preferredWorkoutTime?: string | null;
   wakeTime: string;

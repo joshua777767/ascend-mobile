@@ -36,13 +36,17 @@ export interface GeneratedPlan {
 
 export interface CalorieBreakdown {
   bmr: number;
+  ageGroup: "under_18" | "adult";
   activityMultiplier: number;
+  activityLevelSource: "profile" | "scheduled-exercise-fallback";
   baseTdee: number;
   exerciseCaloriesAdded: number;
   finalMaintenanceCalories: number;
+  calorieFloor: number;
   weightLossDeficit: number;
+  muscleGainSurplus: number;
   finalCalorieTarget: number;
-  activityLevelSource: "profile" | "scheduled-exercise-fallback";
+  proteinTargetG: number;
 }
 
 function parseGoals(goalsJson: unknown): string[] {
@@ -309,6 +313,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   const heightCm = profile.heightCm;
   const age = profile.age;
   const isMale = profile.gender.toLowerCase() === "male";
+  const isMinor = age < 18;
   const bmr = isMale
     ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
     : 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
@@ -317,7 +322,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   // Therefore, when one is available, do not add workout calories again.
   // Older profiles have no activity level; those use a sedentary base and add
   // explicitly scheduled exercise calories only on the relevant day.
-  const rawActivityLevel = String((profile as UserProfile & { activityLevel?: unknown }).activityLevel ?? "").toLowerCase().trim();
+  const rawActivityLevel = String(profile.activityLevel ?? "").toLowerCase().trim();
   const activityMultipliers: Record<string, number> = {
     sedentary: 1.20,
     lightly_active: 1.375,
@@ -351,24 +356,35 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   let weeklyPace: string;
   let warnings: string | null = null;
   let weightLossDeficit = 0;
+  let muscleGainSurplus = 0;
 
-  // Safe calorie floors by sex
-  const calorieFloor = isMale ? 1500 : 1200;
+  // Safe calorie floors by sex — raised for under-18 users, who need more
+  // energy for growth and development on top of any training.
+  const calorieFloor = isMinor
+    ? (isMale ? 1800 : 1600)
+    : (isMale ? 1500 : 1200);
 
   if (goalType === "fat_loss") {
     // Timeline-driven deficit: if user set a target date, derive the needed pace.
-    // Deficit capped at 300–500 cal/day for safety.
+    // Adults: deficit capped at 300–500 cal/day (max ~1 lb/week).
+    // Under-18: capped at 200–300 cal/day (max ~0.6 lb/week) — teens are still
+    // growing, so an aggressive adult-sized deficit is not safe.
     let deficit: number;
     let timelineCapHit = false;
+    const maxWeeklyLbLoss = isMinor ? 0.6 : 1;
+    const deficitCapMin = isMinor ? 200 : 300;
+    const deficitCapMax = isMinor ? 300 : 500;
 
     if (weeksToGoal !== null && weightDiffLbs > 0.5) {
       const neededLbsPerWeek = weightDiffLbs / weeksToGoal;
-      if (neededLbsPerWeek > 1) timelineCapHit = true;
-      const clampedRate = Math.min(neededLbsPerWeek, 1);
+      if (neededLbsPerWeek > maxWeeklyLbLoss) timelineCapHit = true;
+      const clampedRate = Math.min(neededLbsPerWeek, maxWeeklyLbLoss);
       deficit = Math.round(clampedRate * 500);
-      deficit = Math.max(300, Math.min(500, deficit));
+      deficit = Math.max(deficitCapMin, Math.min(deficitCapMax, deficit));
     } else {
-      deficit = isCasual ? 300 : 500;
+      deficit = isMinor
+        ? (isCasual ? 250 : 300)
+        : (isCasual ? 300 : 500);
     }
 
     weightLossDeficit = deficit;
@@ -381,30 +397,41 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     const paceStr = actualLbsPerWeek >= 1.85 ? "~2 lb / week"
       : actualLbsPerWeek >= 1.35 ? "~1.5 lb / week"
       : actualLbsPerWeek >= 0.85 ? "~1 lb / week"
+      : actualLbsPerWeek >= 0.55 ? "~0.6 lb / week"
       : "~0.5 lb / week";
     weeklyPace = targetDateLabel ? `${paceStr} → goal by ${targetDateLabel}` : paceStr;
 
     if (timelineCapHit) {
-      warnings = `Your goal requires losing more than 1 lb/week given your timeline. Your plan uses the max safe deficit of 500 cal/day. You'll need more time than your target date to reach your goal safely.`;
+      warnings = isMinor
+        ? `Your goal requires losing more than ${maxWeeklyLbLoss} lb/week given your timeline. For your age, your plan uses the max safe deficit of ${deficitCapMax} cal/day. You'll need more time than your target date to reach your goal safely.`
+        : `Your goal requires losing more than 1 lb/week given your timeline. Your plan uses the max safe deficit of 500 cal/day. You'll need more time than your target date to reach your goal safely.`;
     } else if (Math.abs(weightDiff) > 20) {
       warnings = "Your goal is ambitious. Stay consistent and patient — safe fat loss takes time. Do not try to cut more than planned.";
     }
   } else if (goalType === "muscle_gain") {
     // Timeline-driven surplus: if user set a date, derive the needed pace.
-    // Surplus capped at 250–400 cal/day for a clean lean bulk.
+    // Adults: surplus capped at 250–400 cal/day for a clean lean bulk.
+    // Under-18: capped at 150–300 cal/day (max ~0.5 lb/week) — no "extreme"
+    // bulk path for teens, who gain muscle efficiently on a small surplus.
     let surplus: number;
     let timelineCapHit = false;
+    const maxWeeklyLbGain = isMinor ? 0.5 : 0.8;
+    const surplusCapMin = isMinor ? 150 : 250;
+    const surplusCapMax = isMinor ? 300 : 400;
 
     if (weeksToGoal !== null && weightDiffLbs > 0.5) {
       const neededLbsPerWeek = weightDiffLbs / weeksToGoal;
-      if (neededLbsPerWeek > 0.8) timelineCapHit = true;
-      const clampedRate = Math.min(neededLbsPerWeek, 0.8);
+      if (neededLbsPerWeek > maxWeeklyLbGain) timelineCapHit = true;
+      const clampedRate = Math.min(neededLbsPerWeek, maxWeeklyLbGain);
       surplus = Math.round(clampedRate * 500);
-      surplus = Math.max(250, Math.min(400, surplus));
+      surplus = Math.max(surplusCapMin, Math.min(surplusCapMax, surplus));
+    } else if (isMinor) {
+      surplus = isCasual ? 200 : 300;
     } else {
       surplus = isCasual ? 250 : isExtreme ? 400 : 300;
     }
 
+    muscleGainSurplus = surplus;
     calorieTarget = tdee + surplus;
     // Protein from goal weight, capped at 2.2g/kg (1.0g/lb)
     proteinTargetG = Math.min(Math.round(profile.goalWeightKg * 2.2), 250);
@@ -416,11 +443,15 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     weeklyPace = targetDateLabel ? `${paceStr} → goal by ${targetDateLabel}` : paceStr;
 
     if (timelineCapHit) {
-      warnings = `Your goal requires gaining faster than 0.8 lb/week — above the safe lean bulk rate. Your plan uses the max safe surplus of 400 cal/day. You'll need more time than your target date to reach your goal without excess fat gain.`;
+      warnings = isMinor
+        ? `Your goal requires gaining faster than ${maxWeeklyLbGain} lb/week — above the safe rate for your age. Your plan uses the max safe surplus of ${surplusCapMax} cal/day. You'll need more time than your target date to reach your goal without excess fat gain.`
+        : `Your goal requires gaining faster than 0.8 lb/week — above the safe lean bulk rate. Your plan uses the max safe surplus of 400 cal/day. You'll need more time than your target date to reach your goal without excess fat gain.`;
     }
   } else if (goalType === "recomp") {
-    // Recomposition: tiny surplus to support muscle growth while minimising fat gain
-    const surplus = isCasual ? 75 : 100;
+    // Recomposition: tiny surplus to support muscle growth while minimising fat gain.
+    // Under-18: always the flat casual rate — no reason to push a bigger surplus.
+    const surplus = isMinor ? 75 : (isCasual ? 75 : 100);
+    muscleGainSurplus = surplus;
     calorieTarget = tdee + surplus;
     // High protein drives recomp — use current weight at 2.2g/kg
     proteinTargetG = Math.min(Math.round(weightKg * 2.2), 250);
@@ -634,9 +665,10 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     coachNotes = `You picked ${goalText}. Today's mission: ${missionLine}. ${nutritionExplanation}${commitmentNote}${sportNote}${targetDateNote}${sportAdjustment ? " " + sportAdjustment : ""}`;
   }
 
-  // For under-18 users, append a plain-language note clarifying the protein source.
-  if (age < 18) {
-    coachNotes += ` Protein is calculated from your current body weight and activity, not your goal weight.`;
+  // For under-18 users, append a plain-language note clarifying the protein
+  // source and the safer, smaller calorie deficit/surplus used for their age.
+  if (isMinor) {
+    coachNotes += ` Protein is calculated from your current body weight and activity, not your goal weight. Because you're under 18, your calorie target uses a smaller, safer adjustment than an adult plan so you still have enough energy to grow.`;
   }
 
   // ── Day-specific calorie targets ──────────────────────────────────────────
@@ -750,13 +782,17 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   const finalMaintenanceCalories = baseTdee + exerciseCaloriesAdded;
   const calorieBreakdown: CalorieBreakdown = {
     bmr: Math.round(bmr),
+    ageGroup: isMinor ? "under_18" : "adult",
     activityMultiplier: activityMult,
+    activityLevelSource,
     baseTdee,
     exerciseCaloriesAdded,
     finalMaintenanceCalories,
+    calorieFloor,
     weightLossDeficit,
+    muscleGainSurplus,
     finalCalorieTarget: calorieTarget,
-    activityLevelSource,
+    proteinTargetG,
   };
   console.info("[calorie-breakdown]", {
     ...calorieBreakdown,

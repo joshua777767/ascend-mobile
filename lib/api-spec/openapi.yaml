@@ -1097,6 +1097,9 @@ components:
           type: ["string", "null"]
         workoutDaysPerWeek:
           type: integer
+        activityLevel:
+          type: ["string", "null"]
+          enum: ["sedentary", "light", "moderate", "high", "extra_active", null]
         preferredWorkoutTime:
           type: ["string", "null"]
         wakeTime:
@@ -1214,6 +1217,9 @@ components:
           type: string
         workoutDaysPerWeek:
           type: integer
+        activityLevel:
+          type: ["string", "null"]
+          enum: ["sedentary", "light", "moderate", "high", "extra_active", null]
         preferredWorkoutTime:
           type: string
         wakeTime:
@@ -1305,6 +1311,9 @@ components:
           type: string
         workoutDaysPerWeek:
           type: integer
+        activityLevel:
+          type: ["string", "null"]
+          enum: ["sedentary", "light", "moderate", "high", "extra_active", null]
         preferredWorkoutTime:
           type: string
         wakeTime:
