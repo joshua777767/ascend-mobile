@@ -15,8 +15,8 @@ import {
 import { SendChatMessageBody } from "@workspace/api-zod";
 import { openai } from "../lib/openai";
 import { logger } from "../lib/logger";
-import { getUserId } from "../middlewares/auth";
-import { getSportContextForCoach, parseCustomWorkoutSchedule } from "../lib/sportUtils";
+import { getUserId, getUserToday } from "../middlewares/auth";
+import { getSportContextForCoach, parseCustomWorkoutSchedule, parseExerciseSchedule, parseSportSchedule } from "../lib/sportUtils";
 import { detectWorkoutRequest, buildBodyPartWorkout, buildGoalWorkout, getWorkoutKnowledgeText } from "../lib/coachWorkoutKnowledge";
 
 const router: IRouter = Router();
@@ -65,6 +65,89 @@ interface ChatContext {
   goals: string[];
   calorieTarget: number | null;
   proteinTarget: number | null;
+  nutritionContext: NutritionContext;
+}
+
+interface NutritionContext {
+  activityLevel: string | null;
+  activitySource: "profile" | "unclear";
+  today: string;
+  todayActivities: string[];
+  actualWorkoutToday: string[];
+  normalWeeklyActivity: string;
+  averageSteps: number | null;
+  timeframe: string | null;
+  progressTrend: string;
+  inconsistencies: string[];
+}
+
+function buildNutritionContext(
+  req: Parameters<typeof getUserToday>[0],
+  profile: Profile | undefined,
+  plan: Plan | undefined,
+  weighIns: (typeof weighInsTable.$inferSelect)[],
+  workouts: (typeof workoutsTable.$inferSelect)[],
+): NutritionContext {
+  const today = getUserToday(req);
+  const timezone = (req.headers["x-timezone"] as string | undefined) || "UTC";
+  const activityLevel = profile?.activityLevel?.trim() || null;
+  const inconsistencies: string[] = [];
+  const todayActivities: string[] = [];
+  const actualWorkoutToday = workouts
+    .filter((workout) => workout.completedAt.toLocaleDateString("en-CA", { timeZone: timezone }) === today)
+    .map((workout) => `${workout.name}, ${workout.durationMinutes} min`);
+
+  if (profile) {
+    const schedule = parseExerciseSchedule(profile);
+    const dayName = new Date(`${today}T12:00:00`).toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+    const scheduledDay = schedule?.days.find((d) => d.day.toLowerCase() === dayName);
+    scheduledDay?.activities.forEach((activity) => {
+      todayActivities.push(
+        `${activity.type}${activity.sport ? ` (${activity.sport})` : ""}, ${activity.durationMinutes} min, ${activity.intensity}`,
+      );
+    });
+    if (todayActivities.length === 0) {
+      const legacySport = parseSportSchedule(profile);
+      if (legacySport && legacySport.days.some((d) => d.toLowerCase() === dayName)) {
+        todayActivities.push(
+          `${legacySport.sport} practice, ${legacySport.durationMinutes} min, ${legacySport.intensity}`,
+        );
+      }
+    }
+
+    if (!activityLevel && (profile.workoutDaysPerWeek > 0 || todayActivities.length > 0)) {
+      inconsistencies.push("overall activity level is missing while scheduled exercise exists");
+    }
+    if (activityLevel && profile.workoutDaysPerWeek === 0 && todayActivities.length > 0) {
+      inconsistencies.push("today has a scheduled workout but the weekly workout count is zero");
+    }
+  }
+
+  let progressTrend = "Insufficient weigh-in data for a 2-week trend; do not adjust the plan from scale data yet.";
+  if (weighIns.length >= 2) {
+    const chronological = [...weighIns].sort((a, b) => a.loggedAt.getTime() - b.loggedAt.getTime());
+    const first = chronological[0];
+    const last = chronological[chronological.length - 1];
+    const days = Math.max(1, (last.loggedAt.getTime() - first.loggedAt.getTime()) / 86_400_000);
+    const changeLbs = Math.round((last.weightKg - first.weightKg) * LBS * 10) / 10;
+    const weeklyRate = Math.round((changeLbs / days * 7) * 100) / 100;
+    progressTrend = `${chronological.length} weigh-ins over ${Math.round(days)} days: ${changeLbs >= 0 ? "+" : ""}${changeLbs} lb total (${weeklyRate >= 0 ? "+" : ""}${weeklyRate} lb/week). Treat this as a trend, not a single-day result.`;
+  }
+
+  return {
+    activityLevel,
+    activitySource: activityLevel ? "profile" : "unclear",
+    today,
+    todayActivities,
+    actualWorkoutToday,
+    normalWeeklyActivity: profile
+      ? `${profile.workoutDaysPerWeek} scheduled workout day(s)/week${profile.activityLevel ? `; overall level: ${profile.activityLevel}` : ""}`
+      : "unknown",
+    averageSteps: profile?.averageDailySteps ?? null,
+    timeframe: profile?.targetDate ?? null,
+    progressTrend,
+    inconsistencies,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -252,6 +335,17 @@ function heuristicReply(message: string, ctx: ChatContext): string {
   // 0c. Unsafe calorie target
   if (detectUnsafeCalories(m)) {
     return `Eating under 900 calories a day is medically unsafe. It triggers muscle loss, metabolic slowdown, and nutrient deficiency. The science is clear: sustainable deficit is the only path. ${calStr} with ${proStr} is your evidence-based target. That's where fat loss happens without damaging your metabolism.`;
+  }
+
+  // Activity context must be clarified before interpreting a target. A single
+  // workout is never enough evidence to promote an otherwise unknown/inactive
+  // profile to a high activity category.
+  const asksActivityContext = has(m, [
+    "activity level", "how active", "gym today", "workout today", "exercise today",
+    "maintenance", "tdee", "calorie target", "calorie goal", "how many calories",
+  ]);
+  if (ctx.nutritionContext.activitySource === "unclear" && asksActivityContext) {
+    return `I can explain the existing target, but I won't infer your normal activity from one workout. How many days per week do you usually train, and what is your typical daily step count? Your saved plan remains the authoritative calorie and protein target until that regular activity context is verified.`;
   }
 
   // 1. Unrealistic goal detection — "lose X in 2 days / overnight / tomorrow"
@@ -499,6 +593,7 @@ function normalizeGymAccessLabel(gymAccess: string | null | undefined): string {
 function buildContextSummary(
   profile: Profile | undefined,
   plan: Plan | undefined,
+  nutritionContext: NutritionContext,
   meals: (typeof mealsTable.$inferSelect)[],
   workouts: (typeof workoutsTable.$inferSelect)[],
   journals: (typeof journalEntriesTable.$inferSelect)[],
@@ -560,11 +655,25 @@ function buildContextSummary(
 
   if (plan) {
     parts.push(
-      `PLAN: goal type "${plan.goalType}", ${plan.calorieTarget} cal/day (because this ${plan.goalType === "fat_loss" ? "creates a moderate deficit for steady fat loss without muscle loss" : plan.goalType === "muscle_gain" ? "provides a controlled calorie surplus to build lean mass" : plan.goalType === "recomp" ? "provides a tiny surplus above maintenance to fuel muscle growth while keeping body fat low" : "supports energy balance for maintenance"}), ` +
+      `PLAN (AUTHORITATIVE NUTRITION ENGINE OUTPUT — do not recalculate or override): goal type "${plan.goalType}", ${plan.calorieTarget} cal/day, ` +
         `${plan.proteinTargetG}g protein/day, ${plan.waterTargetL}L water, ` +
-        `${plan.stepsTarget} steps/day, ${plan.sleepTargetHours}h sleep. Weekly pace: ${plan.weeklyPace}.`,
+        `${plan.stepsTarget} steps/day, ${plan.sleepTargetHours}h sleep. Weekly pace: ${plan.weeklyPace}. ` +
+        `The engine has already applied the verified formula, safety floor, deficit/surplus, and protein rules.`,
     );
   }
+
+  parts.push(
+    `NUTRITION CONTEXT: overall activity level=${nutritionContext.activityLevel ?? "unknown"}, ` +
+      `activity source=${nutritionContext.activitySource}, normal weekly activity=${nutritionContext.normalWeeklyActivity}, ` +
+      `average daily steps=${nutritionContext.averageSteps ?? "unknown"}, today=${nutritionContext.today}, ` +
+      `today's scheduled activity=${nutritionContext.todayActivities.length ? nutritionContext.todayActivities.join("; ") : "none recorded"}, ` +
+      `completed today=${nutritionContext.actualWorkoutToday.length ? nutritionContext.actualWorkoutToday.join("; ") : "none recorded"}, ` +
+      `timeframe=${nutritionContext.timeframe ?? "not set"}. ` +
+      `2-week progress: ${nutritionContext.progressTrend}` +
+      (nutritionContext.inconsistencies.length
+        ? ` Data-quality notes: ${nutritionContext.inconsistencies.join("; ")}.`
+        : ""),
+  );
 
   if (meals.length) {
     parts.push(
@@ -653,10 +762,12 @@ router.post("/chat", async (req, res): Promise<void> => {
     db.select().from(mealsTable).where(eq(mealsTable.userId, userId)).orderBy(desc(mealsTable.loggedAt)).limit(3),
     db.select().from(workoutsTable).where(eq(workoutsTable.userId, userId)).orderBy(desc(workoutsTable.completedAt)).limit(3),
     db.select().from(journalEntriesTable).where(eq(journalEntriesTable.userId, userId)).orderBy(desc(journalEntriesTable.createdAt)).limit(2),
-    db.select().from(weighInsTable).where(eq(weighInsTable.userId, userId)).orderBy(desc(weighInsTable.loggedAt)).limit(1),
+    db.select().from(weighInsTable).where(eq(weighInsTable.userId, userId)).orderBy(desc(weighInsTable.loggedAt)).limit(20),
     db.select().from(coachReviewsTable).where(eq(coachReviewsTable.userId, userId)).orderBy(desc(coachReviewsTable.createdAt)).limit(1),
     db.select().from(goalCheckInsTable).where(eq(goalCheckInsTable.userId, userId)).orderBy(desc(goalCheckInsTable.createdAt)).limit(8),
   ]);
+
+  const nutritionContext = buildNutritionContext(req, profile, plan, recentWeighIns, recentWorkouts);
 
   const ctx: ChatContext = {
     profile,
@@ -665,16 +776,17 @@ router.post("/chat", async (req, res): Promise<void> => {
     goals: parseArr(profile?.goals ?? null),
     calorieTarget: plan?.calorieTarget ?? null,
     proteinTarget: plan?.proteinTargetG ?? null,
+    nutritionContext,
   };
 
-  const contextSummary = buildContextSummary(profile, plan, recentMeals, recentWorkouts, recentJournals, recentWeighIns, recentReviews, recentCheckIns);
+  const contextSummary = buildContextSummary(profile, plan, nutritionContext, recentMeals, recentWorkouts, recentJournals, recentWeighIns, recentReviews, recentCheckIns);
 
   // Build goal-specific meal options for the system prompt
   const goalType = plan?.goalType ?? "general";
   const mealOptionsText = goalType !== "general" ? formatMealOptions(goalType) : formatMealOptions("maintain");
   const workoutKnowledgeText = getWorkoutKnowledgeText();
 
-  const systemPrompt = `You are Ascend — the user's personal coach. You are not a doctor or medical professional, but you are deeply knowledgeable about exercise physiology, metabolic science, and safe weight management. You speak like a well-informed coach who has studied the science: you reference calories, protein, metabolic rate, body composition, and sustainable pacing — but you keep it warm and direct, not academic.
+  const systemPrompt = `You are Ascend — the user's personal coach. You are not a doctor or medical professional, but you are deeply knowledgeable about exercise physiology, metabolic science, and safe weight management. You speak like a well-informed coach who has studied the science: you reference the provided calorie and protein targets, body composition, and sustainable pacing — but you keep it warm and direct, not academic.
 
 You know this user's real situation: their profile, their meals, their workouts, their journal, their weigh-ins, their weekly check-ins. You've been coaching them. You remember what they've told you.
 
@@ -683,6 +795,18 @@ VOICE: Warm, direct, scientifically grounded. Like a coach who actually knows wh
 LENGTH: 80 words max. Hard cap. No exceptions.
 FORMAT: One clear reason → 2–3 specific actions. Write like a person. No headers. No bullet walls.
 OPENER RULE: Never start with "I'm here to help", "I can help you", "I'd be happy to", "Of course!", "Great question", "As your coach", or any generic greeting. Jump immediately into the specific answer, insight, or next action. Every response must reference something from the user's actual data above.
+
+---
+
+NUTRITION AUTHORITY RULES:
+- The PLAN calorie target and protein target are deterministic outputs from the verified nutrition engine. Treat them as authoritative.
+- Never calculate calories, protein, BMR, EER, TDEE, deficits, surpluses, or exercise calories from scratch.
+- Never replace or override the plan target because of today's workout, a guessed activity multiplier, or a user's requested number.
+- Explain the target using the supplied profile, activity context, goal, and safety rules. If the user asks for new numbers, say the engine must recalculate after verified profile changes.
+- A single "gym today" or sport session does not change a normally inactive user's overall activity category. Do not call them highly active unless the stored normal activity level supports it.
+- Today's workout is context for recovery and adherence, not an extra calorie allowance when an overall activity level is present.
+- If overall activity is unknown, or weekly activity conflicts with the schedule, ask one focused follow-up question before interpreting the target. Do not silently assume high activity.
+- For adjustments, use the 2-week progress trend and adherence context. Suggest only small, safe changes or better data collection; never advise crash dieting, aggressive bulking, or extreme compensation.
 
 ---
 
