@@ -177,10 +177,14 @@ function validateProfile(p: Profile) {
   // exercise burn for legacy profiles; never add expectedExercise again here.
   const scenarioMaintenance = maintenance;
   if (p.goal === "fat_loss" && finalCalories >= scenarioMaintenance) failures.push("fat-loss calories are at or above maintenance");
-  if (p.goal === "fat_loss" && (deficit < 0 || deficit > (isMinor ? 300 : 500))) failures.push(`extreme deficit: ${deficit}`);
+  // Profile activity is already part of maintenance. Legacy profiles apply
+  // the goal adjustment to their sedentary base, then add scheduled exercise
+  // to active-day targets; validate each path against its own base.
+  const deficitMaintenance = hasActivityLevel ? maintenance : baseline;
+  if (p.goal === "fat_loss" && deficit !== Math.round(deficitMaintenance * 0.15)) failures.push(`deficit is not 15% of maintenance: ${deficit}`);
   if (p.goal === "muscle_gain" && (surplus <= 0 || surplus > (isMinor ? 300 : 400))) failures.push(`extreme surplus: ${surplus}`);
   if (finalCalories < (isMinor ? (p.gender === "male" ? 1800 : 1600) : 1500)) failures.push("dietitian-unacceptable low calorie target");
-  if (p.goal === "fat_loss" && scenarioMaintenance - finalCalories > (isMinor ? 300 : 500)) failures.push("dietitian-unacceptable deficit");
+  if (p.goal === "fat_loss" && scenarioMaintenance - finalCalories > scenarioMaintenance * 0.15 + 1) failures.push("dietitian-unacceptable deficit");
   if (p.goal === "muscle_gain" && finalCalories - scenarioMaintenance > (isMinor ? 300 : 400)) failures.push("dietitian-unacceptable surplus");
   if (plan.proteinTargetG <= 0 || plan.proteinTargetG > 250) failures.push("dietitian-unacceptable protein target");
   if (p.goal === "maintain" && (deficit !== 0 || surplus !== 0)) failures.push("maintenance plan has deficit/surplus");
@@ -188,10 +192,8 @@ function validateProfile(p: Profile) {
   if (isMinor && breakdown.bmr !== null) failures.push("minor incorrectly reports adult BMR");
   if (!isMinor && typeof breakdown.bmr !== "number") failures.push("adult missing BMR");
   if (p.targetDate) {
-    const paceLimit = p.goal === "fat_loss" ? (isMinor ? 0.6 : 1) : (isMinor ? 0.5 : 0.8);
     const paceMatch = plan.weeklyPace.match(/~([0-9.]+) lb/);
     const displayedPace = paceMatch ? Number(paceMatch[1]) : 0;
-    if (displayedPace > paceLimit) failures.push(`unrealistic weekly rate: ${displayedPace} > ${paceLimit} lb/week`);
     if (!plan.warnings) failures.push("timeline rate exceeded a safety limit without a warning");
   }
   if (p.day !== "rest" && !hasActivityLevel && exercise <= 0) failures.push(`${p.day} day missing exercise calories`);
@@ -312,10 +314,10 @@ describe("automated nutrition validation report", () => {
       baseTdee: 3298,
       exerciseCaloriesAdded: 0,
       finalMaintenanceCalories: 3298,
-      weightLossDeficit: 300,
+      weightLossDeficit: 495,
       calorieFloor: 1800,
-      finalCalorieTarget: 2998,
+      finalCalorieTarget: 2803,
     });
-    expect(result.plan.calorieTarget).toBe(2998);
+    expect(result.plan.calorieTarget).toBe(2803);
   });
 });

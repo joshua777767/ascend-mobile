@@ -432,28 +432,13 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     : (isMale ? 1500 : 1200);
 
   if (goalType === "fat_loss") {
-    // Timeline-driven deficit: if user set a target date, derive the needed pace.
-    // Adults: deficit capped at 300–500 cal/day (max ~1 lb/week).
-    // Under-18: capped at 200–300 cal/day (max ~0.6 lb/week) — teens are still
-    // growing, so an aggressive adult-sized deficit is not safe.
-    let deficit: number;
-    let timelineCapHit = false;
-    const maxWeeklyLbLoss = isMinor ? 0.6 : 1;
-    const deficitCapMin = isMinor ? 200 : 300;
-    const deficitCapMax = isMinor ? 300 : 500;
-
-    if (weeksToGoal !== null && weightDiffLbs > 0.5) {
-      const neededLbsPerWeek = weightDiffLbs / weeksToGoal;
-      if (neededLbsPerWeek > maxWeeklyLbLoss) timelineCapHit = true;
-      const clampedRate = Math.min(neededLbsPerWeek, maxWeeklyLbLoss);
-      deficit = Math.round(clampedRate * 500);
-      deficit = Math.max(deficitCapMin, Math.min(deficitCapMax, deficit));
-    } else {
-      deficit = isMinor
-        ? (isCasual ? 250 : 300)
-        : (isCasual ? 300 : 500);
-    }
-
+    // Every client pursuing fat loss uses the same goal adjustment:
+    // 15% of correctly calculated maintenance. Age-specific equations and
+    // calorie floors still protect the underlying maintenance and final target.
+    const deficit = Math.round(tdee * 0.15);
+    const timelineCapHit = weeksToGoal !== null && weightDiffLbs > 0.5
+      ? weightDiffLbs / weeksToGoal > 1
+      : false;
     weightLossDeficit = deficit;
     calorieTarget = Math.max(calorieFloor, tdee - deficit);
     // Protein from the lower of current or goal weight, capped at 2.2g/kg (1.0g/lb)
@@ -469,9 +454,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     weeklyPace = targetDateLabel ? `${paceStr} → goal by ${targetDateLabel}` : paceStr;
 
     if (timelineCapHit) {
-      warnings = isMinor
-        ? `Your goal requires losing more than ${maxWeeklyLbLoss} lb/week given your timeline. For your age, your plan uses the max safe deficit of ${deficitCapMax} cal/day. You'll need more time than your target date to reach your goal safely.`
-        : `Your goal requires losing more than 1 lb/week given your timeline. Your plan uses the max safe deficit of 500 cal/day. You'll need more time than your target date to reach your goal safely.`;
+      warnings = "Your target date requires losing more than about 1 lb/week. Your plan keeps the standard 15% calorie deficit; allow more time rather than cutting calories further.";
     } else if (Math.abs(weightDiff) > 20) {
       warnings = "Your goal is ambitious. Stay consistent and patient — safe fat loss takes time. Do not try to cut more than planned.";
     }

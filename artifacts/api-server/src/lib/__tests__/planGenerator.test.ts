@@ -97,17 +97,17 @@ describe("calorie audit — 16-year-old high-activity weight loss profile", () =
   // are no longer added on top. But the deficit was still a flat adult rate
   // (500 cal/day for a non-"casual" commitment).
   //
-  // AFTER fix #2 (this audit — evidence-based adolescent EER + safety cap):
+  // AFTER fix #2 (this audit — evidence-based adolescent EER):
   // the National Academies DRI 2023 adolescent EER equation is used. The
   // product's "high" activity maps to the DRI "active" category.
   //
   //   DRI adolescent EER (male, 16, active):
   //     -388.19 + 3.68(16) + 12.66(167.64) + 20.46(72.6) + 20 = 3,298 kcal
   //   Exercise calories:      +0 (already included in the EER category)
-  //   Deficit (under-18 cap): 300 cal/day
-  //   Final calorie target:   3,298 - 300 = 2,998 kcal/day
+  //   Deficit (15% of maintenance): round(3,298 × 0.15) = 495 cal/day
+  //   Final calorie target:   3,298 - 495 = 2,803 kcal/day
   //   Protein (under-18):     current weight (72.6kg) × 1.5 g/kg ≈ 110g
-  it("uses high-activity TDEE once, does not add gym calories again, and applies the under-18 safety cap", () => {
+  it("uses high-activity TDEE once, does not add gym calories again, and applies the universal 15% deficit", () => {
     const p = profile({
       age: 16,
       gender: "male",
@@ -127,7 +127,7 @@ describe("calorie audit — 16-year-old high-activity weight loss profile", () =
 
     const { plan, breakdown } = captureBreakdown(p);
 
-    expect(plan.calorieTarget).toBe(2998);
+    expect(plan.calorieTarget).toBe(2803);
     expect(plan.proteinTargetG).toBe(110);
     expect(plan.dailyCalorieTargets).toBeNull();
     expect(plan.gymDayCalorieTarget).toBeNull();
@@ -145,8 +145,8 @@ describe("calorie audit — 16-year-old high-activity weight loss profile", () =
       exerciseCaloriesAdded: 0,
       finalMaintenanceCalories: 3298,
       calorieFloor: 1800,
-      weightLossDeficit: 300,
-      finalCalorieTarget: 2998,
+      weightLossDeficit: 495,
+      finalCalorieTarget: 2803,
       proteinTargetG: 110,
     });
   });
@@ -161,45 +161,45 @@ describe("calorie audit — 16-year-old high-activity weight loss profile", () =
 // activityLevel so exercise is never separately added on top (Mode A), keeping
 // the arithmetic isolated to the deficit/surplus/floor logic under test.
 
-describe("age-aware calorie safety — fat loss (weight loss) deficit caps", () => {
-  it("adult, non-casual commitment: deficit is the full 500 cal/day (unchanged)", () => {
+describe("universal 15% maintenance deficit — fat loss (weight loss)", () => {
+  it("adult, non-casual commitment: deficit is 15% of maintenance", () => {
     const p = profile({
       age: 30, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 70,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["lose weight"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ ageGroup: "adult", weightLossDeficit: 500, calorieFloor: 1500 });
-    expect(plan.calorieTarget).toBe(2211);
+    expect(breakdown).toMatchObject({ ageGroup: "adult", weightLossDeficit: 407, calorieFloor: 1500 });
+    expect(plan.calorieTarget).toBe(2304);
   });
 
-  it("adult, casual commitment: deficit is 300 cal/day (unchanged)", () => {
+  it("adult, casual commitment: commitment does not change the 15% deficit", () => {
     const p = profile({
       age: 30, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 70,
       activityLevel: "moderate", commitmentLevel: "casual", goals: ["lose weight"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ weightLossDeficit: 300 });
-    expect(plan.calorieTarget).toBe(2411);
+    expect(breakdown).toMatchObject({ weightLossDeficit: 407 });
+    expect(plan.calorieTarget).toBe(2304);
   });
 
-  it("under-18, non-casual commitment: deficit is capped at 300 cal/day, not 500", () => {
+  it("under-18, non-casual commitment: deficit is 15% of maintenance", () => {
     const p = profile({
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 70,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["lose weight"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ ageGroup: "under_18", weightLossDeficit: 300, calorieFloor: 1800 });
-    expect(plan.calorieTarget).toBe(3243);
+    expect(breakdown).toMatchObject({ ageGroup: "under_18", weightLossDeficit: 531, calorieFloor: 1800 });
+    expect(plan.calorieTarget).toBe(3012);
   });
 
-  it("under-18, casual commitment: deficit is capped at 250 cal/day", () => {
+  it("under-18, casual commitment: commitment does not change the 15% deficit", () => {
     const p = profile({
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 70,
       activityLevel: "moderate", commitmentLevel: "casual", goals: ["lose weight"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ weightLossDeficit: 250 });
-    expect(plan.calorieTarget).toBe(3293);
+    expect(breakdown).toMatchObject({ weightLossDeficit: 531 });
+    expect(plan.calorieTarget).toBe(3012);
   });
 
   it("adult calorie floor (1,200 female) binds for a very small deficit target", () => {
@@ -219,35 +219,34 @@ describe("age-aware calorie safety — fat loss (weight loss) deficit caps", () 
       activityLevel: "sedentary", commitmentLevel: "committed", goals: ["lose weight"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    // DRI inactive EER is about 1,689; after the 300-calorie deficit the
-    // un-floored target is about 1,389, so the raised teen floor binds.
+    // The 15% deficit would place this target below the raised teen floor.
     expect(breakdown).toMatchObject({ ageGroup: "under_18", calorieFloor: 1600 });
     expect(plan.calorieTarget).toBe(1600);
     expect(plan.calorieTarget).toBeGreaterThan(1389);
   });
 
-  it("under-18 timeline-driven pace is capped at 0.6 lb/week (not the adult 1 lb/week)", () => {
+  it("under-18 timeline pressure does not override the universal 15% deficit", () => {
     const p = profile({
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 70,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["lose weight"],
       targetDate: daysFromNow(35), // 5 weeks — needs ~4.4 lb/week, far above any safe cap
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ weightLossDeficit: 300 }); // capped, not the raw ~2200 implied deficit
-    expect(plan.calorieTarget).toBe(3243);
+    expect(breakdown).toMatchObject({ weightLossDeficit: 531 });
+    expect(plan.calorieTarget).toBe(3012);
     expect(plan.warnings).toBeTruthy();
-    expect(plan.warnings).toMatch(/0\.6 lb\/week/i);
+    expect(plan.warnings).toMatch(/15% calorie deficit/i);
   });
 
-  it("adult timeline-driven pace is still capped at 1 lb/week (unchanged)", () => {
+  it("adult timeline pressure does not override the universal 15% deficit", () => {
     const p = profile({
       age: 30, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 70,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["lose weight"],
       targetDate: daysFromNow(35),
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ weightLossDeficit: 500 });
-    expect(plan.calorieTarget).toBe(2211);
+    expect(breakdown).toMatchObject({ weightLossDeficit: 407 });
+    expect(plan.calorieTarget).toBe(2304);
     expect(plan.warnings).toMatch(/1 lb\/week/i);
   });
 });

@@ -11,8 +11,8 @@ The calorie pipeline uses a profile activity multiplier when available; that mul
 
 ## Age-aware safety (under-18 vs adult)
 
-Minors (age < 18) use the National Academies Dietary Reference Intakes (2023) adolescent EER equations, reproduced in Health Canada's official DRI table (updated 2025-11-19), instead of an adult BMR/TDEE formula. The source has separate growth terms for ages 9–<14 and 14–<19: males use +25/+20 kcal and females +30/+20 kcal respectively; the sex/activity coefficient sets are otherwise shared. The app maps its labels explicitly: sedentary→inactive, light→low active, moderate/high→active, extra_active→very active. Adults retain Mifflin-St Jeor BMR plus the existing activity multiplier. Minors also get a deliberately smaller deficit/surplus range and a higher calorie floor:
-- Fat-loss deficit: adults 300 (casual)/500 (other), capped 300–500 at max 1 lb/wk. Minors 250/300, capped 200–300 at max 0.6 lb/wk.
+Minors (age < 18) use the National Academies Dietary Reference Intakes (2023) adolescent EER equations, reproduced in Health Canada's official DRI table (updated 2025-11-19), instead of an adult BMR/TDEE formula. The source has separate growth terms for ages 9–<14 and 14–<19: males use +25/+20 kcal and females +30/+20 kcal respectively; the sex/activity coefficient sets are otherwise shared. The app maps its labels explicitly: sedentary→inactive, light→low active, moderate/high→active, extra_active→very active. All users pursuing fat loss use a 15% deficit from correctly calculated maintenance; age-specific calorie floors still apply:
+- Fat-loss deficit: round(maintenance × 15%) for every age; timeline pressure does not replace the standard percentage.
 - Muscle-gain surplus: adults 250/300/400(extreme), capped 250–400 at max 0.8 lb/wk. Minors 200/300 — **no extreme-discipline path** — capped 150–300 at max 0.5 lb/wk.
 - Recomp surplus: adults 75(casual)/100. Minors always flat 75 regardless of commitment.
 - Calorie floor: adults 1500(M)/1200(F). Minors 1800(M)/1600(F).
