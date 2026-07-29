@@ -25,4 +25,4 @@
 - [Refresh token architecture](refresh-token-architecture.md) — ascend.rt cookie (1yr, httpOnly, SameSite=None); customFetch intercepts 401→POST /auth/refresh→retry; token rotation on every use; cookie-parser required before session middleware.
 - [RC invalidateCustomerInfoCache destroys merge data](rc-invalidate-cache-bug.md) — never call invalidateCustomerInfoCache in startup/refresh; it nukes the anonymous→userId merged cache and the server returns not-Pro.
 - [OTA bundle picks up Replit EXPO_PUBLIC_ secrets](ota-entitlement-id-pollution.md) — eas update builds locally; Replit secrets pollute OTA bundles. ENTITLEMENT_ID must be hardcoded, not from env var.
-- [Calorie pipeline](calorie-pipeline.md) — activity multipliers already include usual workouts (never add burns on top); minors get separate deficit/surplus/floor caps, not a shared adult formula.
+- [Calorie pipeline](calorie-pipeline.md) — profile activity includes usual workouts; adolescents use verified DRI EER equations plus separate safety caps/floors.

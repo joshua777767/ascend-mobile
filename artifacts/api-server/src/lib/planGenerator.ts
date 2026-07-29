@@ -35,7 +35,10 @@ export interface GeneratedPlan {
 }
 
 export interface CalorieBreakdown {
-  bmr: number;
+  bmr: number | null;
+  eer: number;
+  energyEquation: "mifflin_st_jeor_adult" | "dri_2023_adolescent";
+  activityCategory: "inactive" | "low_active" | "active" | "very_active";
   ageGroup: "under_18" | "adult";
   activityMultiplier: number;
   activityLevelSource: "profile" | "scheduled-exercise-fallback";
@@ -47,6 +50,48 @@ export interface CalorieBreakdown {
   muscleGainSurplus: number;
   finalCalorieTarget: number;
   proteinTargetG: number;
+}
+
+type AdolescentActivityCategory = CalorieBreakdown["activityCategory"];
+
+/**
+ * National Academies Dietary Reference Intakes (2023), reproduced by
+ * Health Canada (page updated 2025-11-19), ages 14 to <19.
+ *
+ * These are EER equations (total daily energy requirement), not BMR
+ * equations. Height is cm, weight is kg, age is years, and the final
+ * constant is the source's thermic-effect-of-food/growth term.
+ *
+ * The product has five activity labels but the DRI source has four PA
+ * categories. This explicit mapping keeps the source category semantics
+ * visible instead of silently applying an adult multiplier to adolescents.
+ */
+function adolescentEer(
+  age: number,
+  gender: string,
+  heightCm: number,
+  weightKg: number,
+  activityCategory: AdolescentActivityCategory,
+): number {
+  const male: Record<AdolescentActivityCategory, [number, number, number, number, number]> = {
+    inactive: [-447.51, 3.68, 13.01, 13.15, 20],
+    low_active: [19.12, 3.68, 8.62, 20.28, 20],
+    active: [-388.19, 3.68, 12.66, 20.46, 20],
+    very_active: [-671.75, 3.68, 15.38, 23.25, 20],
+  };
+  const female: Record<AdolescentActivityCategory, [number, number, number, number, number]> = {
+    inactive: [55.59, -22.25, 8.43, 17.07, 20],
+    low_active: [-297.54, -22.25, 12.77, 14.73, 20],
+    active: [-189.55, -22.25, 11.74, 18.34, 20],
+    very_active: [-709.59, -22.25, 18.22, 14.25, 20],
+  };
+  const [constant, ageCoefficient, heightCoefficient, weightCoefficient, growthTerm] =
+    gender.toLowerCase() === "male" ? male[activityCategory] : female[activityCategory];
+  return constant
+    + ageCoefficient * age
+    + heightCoefficient * heightCm
+    + weightCoefficient * weightKg
+    + growthTerm;
 }
 
 function parseGoals(goalsJson: unknown): string[] {
@@ -314,14 +359,15 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   const age = profile.age;
   const isMale = profile.gender.toLowerCase() === "male";
   const isMinor = age < 18;
-  const bmr = isMale
+  const adultBmr = isMale
     ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
     : 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
 
   // A standard activity level already includes the user's usual workouts.
   // Therefore, when one is available, do not add workout calories again.
-  // Older profiles have no activity level; those use a sedentary base and add
-  // explicitly scheduled exercise calories only on the relevant day.
+  // Older profiles have no activity level; those use the DRI inactive
+  // adolescent category (or the adult sedentary multiplier) and add explicitly
+  // scheduled exercise calories only on the relevant day.
   const rawActivityLevel = String(profile.activityLevel ?? "").toLowerCase().trim();
   const activityMultipliers: Record<string, number> = {
     sedentary: 1.20,
@@ -341,7 +387,22 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     ? "scheduled-exercise-fallback" as const
     : "profile" as const;
 
-  const baseTdee = Math.round(bmr * activityMult);
+  // The 2023 National Academies DRI adolescent equations are EER equations,
+  // so they directly produce total daily energy requirement. They are selected
+  // by the DRI activity category rather than multiplying an adult BMR.
+  const activityCategory: AdolescentActivityCategory =
+    normalizedActivityLevel === "extra_active" || normalizedActivityLevel === "extremely_active"
+      ? "very_active"
+      : normalizedActivityLevel === "light" || normalizedActivityLevel === "lightly_active"
+        ? "low_active"
+        : normalizedActivityLevel === "moderate" || normalizedActivityLevel === "moderately_active"
+          || normalizedActivityLevel === "high" || normalizedActivityLevel === "very_active"
+          ? "active"
+          : "inactive";
+  const adolescentEerCalories = isMinor
+    ? adolescentEer(age, profile.gender, heightCm, weightKg, activityCategory)
+    : null;
+  const baseTdee = Math.round(adolescentEerCalories ?? adultBmr * activityMult);
   const tdee = baseTdee;
 
   // Commitment level affects intensity — but never below safe floors
@@ -484,9 +545,9 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   // Catches implausible outputs before they reach any user.
   // These conditions should be mathematically impossible given the logic above,
   // but act as a safety net against future edits to the goal/surplus/deficit blocks.
-  if (calorieTarget < bmr) {
-    // Below BMR = below the energy cost of being alive — always a bug.
-    calorieTarget = Math.round(bmr);
+  if (!isMinor && calorieTarget < adultBmr) {
+    // Adult target below BMR = below the energy cost of being alive — always a bug.
+    calorieTarget = Math.round(adultBmr);
     warnings = (warnings ? warnings + " " : "") +
       "[internal] Calorie target was below BMR and was corrected. Please report this to support.";
   }
@@ -781,7 +842,10 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
 
   const finalMaintenanceCalories = baseTdee + exerciseCaloriesAdded;
   const calorieBreakdown: CalorieBreakdown = {
-    bmr: Math.round(bmr),
+    bmr: isMinor ? null : Math.round(adultBmr),
+    eer: baseTdee,
+    energyEquation: isMinor ? "dri_2023_adolescent" : "mifflin_st_jeor_adult",
+    activityCategory,
     ageGroup: isMinor ? "under_18" : "adult",
     activityMultiplier: activityMult,
     activityLevelSource,

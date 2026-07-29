@@ -95,18 +95,17 @@ describe("calorie audit — 16-year-old high-activity weight loss profile", () =
   // AFTER fix #1 (activity-level-aware TDEE, done first): the explicit
   // activityLevel="high" is used as the sole TDEE multiplier and gym calories
   // are no longer added on top. But the deficit was still a flat adult rate
-  // (500 cal/day for a non-"casual" commitment) → 2,930 - 500 = 2,430.
+  // (500 cal/day for a non-"casual" commitment).
   //
-  // AFTER fix #2 (this audit — age-aware safety cap): a 16-year-old now gets
-  // a safer, smaller deficit (max 300 cal/day instead of 500) and a higher
-  // calorie floor (1,800 instead of 1,500), matching adolescent nutrition
-  // guidance instead of an adult cutting rate.
+  // AFTER fix #2 (this audit — evidence-based adolescent EER + safety cap):
+  // the National Academies DRI 2023 adolescent EER equation is used. The
+  // product's "high" activity maps to the DRI "active" category.
   //
-  //   BMR (Mifflin–St Jeor):  10(72.6) + 6.25(167.64) - 5(16) + 5 = 1,699 kcal
-  //   Baseline activity:      1,699 × 1.725 (high) = 2,930 kcal maintenance
-  //   Exercise calories:      +0 (already included in "high" activity level)
-  //   Deficit (under-18 cap): 300 cal/day (was 500 pre-fix)
-  //   Final calorie target:   2,930 - 300 = 2,630 kcal/day
+  //   DRI adolescent EER (male, 16, active):
+  //     -388.19 + 3.68(16) + 12.66(167.64) + 20.46(72.6) + 20 = 3,298 kcal
+  //   Exercise calories:      +0 (already included in the EER category)
+  //   Deficit (under-18 cap): 300 cal/day
+  //   Final calorie target:   3,298 - 300 = 2,998 kcal/day
   //   Protein (under-18):     current weight (72.6kg) × 1.5 g/kg ≈ 110g
   it("uses high-activity TDEE once, does not add gym calories again, and applies the under-18 safety cap", () => {
     const p = profile({
@@ -128,23 +127,26 @@ describe("calorie audit — 16-year-old high-activity weight loss profile", () =
 
     const { plan, breakdown } = captureBreakdown(p);
 
-    expect(plan.calorieTarget).toBe(2630);
+    expect(plan.calorieTarget).toBe(2998);
     expect(plan.proteinTargetG).toBe(110);
     expect(plan.dailyCalorieTargets).toBeNull();
     expect(plan.gymDayCalorieTarget).toBeNull();
 
     // Full breakdown — pins every number in the audit trail above.
     expect(breakdown).toMatchObject({
-      bmr: 1699,
+      bmr: null,
+      eer: 3298,
+      energyEquation: "dri_2023_adolescent",
+      activityCategory: "active",
       ageGroup: "under_18",
       activityMultiplier: 1.725,
       activityLevelSource: "profile",
-      baseTdee: 2930,
+      baseTdee: 3298,
       exerciseCaloriesAdded: 0,
-      finalMaintenanceCalories: 2930,
+      finalMaintenanceCalories: 3298,
       calorieFloor: 1800,
       weightLossDeficit: 300,
-      finalCalorieTarget: 2630,
+      finalCalorieTarget: 2998,
       proteinTargetG: 110,
     });
   });
@@ -187,7 +189,7 @@ describe("age-aware calorie safety — fat loss (weight loss) deficit caps", () 
     });
     const { plan, breakdown } = captureBreakdown(p);
     expect(breakdown).toMatchObject({ ageGroup: "under_18", weightLossDeficit: 300, calorieFloor: 1800 });
-    expect(plan.calorieTarget).toBe(2519);
+    expect(plan.calorieTarget).toBe(3243);
   });
 
   it("under-18, casual commitment: deficit is capped at 250 cal/day", () => {
@@ -197,7 +199,7 @@ describe("age-aware calorie safety — fat loss (weight loss) deficit caps", () 
     });
     const { plan, breakdown } = captureBreakdown(p);
     expect(breakdown).toMatchObject({ weightLossDeficit: 250 });
-    expect(plan.calorieTarget).toBe(2569);
+    expect(plan.calorieTarget).toBe(3293);
   });
 
   it("adult calorie floor (1,200 female) binds for a very small deficit target", () => {
@@ -213,15 +215,15 @@ describe("age-aware calorie safety — fat loss (weight loss) deficit caps", () 
 
   it("under-18 calorie floor is raised to 1,600 (female) — binds where the adult floor would not", () => {
     const p = profile({
-      age: 15, gender: "female", heightCm: 160, currentWeightKg: 50, goalWeightKg: 45,
+      age: 15, gender: "female", heightCm: 150, currentWeightKg: 40, goalWeightKg: 35,
       activityLevel: "sedentary", commitmentLevel: "committed", goals: ["lose weight"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    // Unclamped math is 1,517 - 300 = 1,217 — above the adult floor (1,200) but
-    // below the raised under-18 floor (1,600), so only the teen floor binds.
+    // DRI inactive EER is about 1,689; after the 300-calorie deficit the
+    // un-floored target is about 1,389, so the raised teen floor binds.
     expect(breakdown).toMatchObject({ ageGroup: "under_18", calorieFloor: 1600 });
     expect(plan.calorieTarget).toBe(1600);
-    expect(plan.calorieTarget).toBeGreaterThan(1217);
+    expect(plan.calorieTarget).toBeGreaterThan(1389);
   });
 
   it("under-18 timeline-driven pace is capped at 0.6 lb/week (not the adult 1 lb/week)", () => {
@@ -232,7 +234,7 @@ describe("age-aware calorie safety — fat loss (weight loss) deficit caps", () 
     });
     const { plan, breakdown } = captureBreakdown(p);
     expect(breakdown).toMatchObject({ weightLossDeficit: 300 }); // capped, not the raw ~2200 implied deficit
-    expect(plan.calorieTarget).toBe(2519);
+    expect(plan.calorieTarget).toBe(3243);
     expect(plan.warnings).toBeTruthy();
     expect(plan.warnings).toMatch(/0\.6 lb\/week/i);
   });
@@ -278,7 +280,7 @@ describe("age-aware calorie safety — muscle gain surplus caps", () => {
     });
     const { plan, breakdown } = captureBreakdown(p);
     expect(breakdown).toMatchObject({ ageGroup: "under_18", muscleGainSurplus: 300 });
-    expect(plan.calorieTarget).toBe(3119);
+    expect(plan.calorieTarget).toBe(3843);
   });
 
   it("under-18, extreme_discipline: has NO extreme path — surplus is still 300, same as 'committed'", () => {
@@ -292,7 +294,7 @@ describe("age-aware calorie safety — muscle gain surplus caps", () => {
     }));
     expect(extreme.breakdown).toMatchObject({ muscleGainSurplus: 300 });
     expect(extreme.plan.calorieTarget).toBe(committed.plan.calorieTarget);
-    expect(extreme.plan.calorieTarget).toBe(3119);
+    expect(extreme.plan.calorieTarget).toBe(3843);
   });
 
   it("under-18, casual: surplus is 200", () => {
@@ -302,7 +304,7 @@ describe("age-aware calorie safety — muscle gain surplus caps", () => {
     });
     const { plan, breakdown } = captureBreakdown(p);
     expect(breakdown).toMatchObject({ muscleGainSurplus: 200 });
-    expect(plan.calorieTarget).toBe(3019);
+    expect(plan.calorieTarget).toBe(3743);
   });
 
   it("under-18 timeline-driven pace is capped at 0.5 lb/week (not the adult 0.8 lb/week)", () => {
@@ -313,7 +315,7 @@ describe("age-aware calorie safety — muscle gain surplus caps", () => {
     });
     const { plan, breakdown } = captureBreakdown(p);
     expect(breakdown).toMatchObject({ muscleGainSurplus: 250 });
-    expect(plan.calorieTarget).toBe(2914);
+    expect(plan.calorieTarget).toBe(3588);
     expect(plan.warnings).toMatch(/0\.5 lb\/week/i);
   });
 
@@ -358,8 +360,8 @@ describe("age-aware calorie safety — recomp surplus", () => {
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 82,
       activityLevel: "moderate", commitmentLevel: "extreme_discipline", goals: ["gain muscle"],
     }));
-    expect(committed.plan.calorieTarget).toBe(2894);
-    expect(extreme.plan.calorieTarget).toBe(2894);
+    expect(committed.plan.calorieTarget).toBe(3618);
+    expect(extreme.plan.calorieTarget).toBe(3618);
   });
 });
 
