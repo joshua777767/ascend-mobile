@@ -181,11 +181,11 @@ function validateProfile(p: Profile) {
   // the goal adjustment to their sedentary base, then add scheduled exercise
   // to active-day targets; validate each path against its own base.
   const deficitMaintenance = hasActivityLevel ? maintenance : baseline;
-  if (p.goal === "fat_loss" && deficit !== Math.round(deficitMaintenance * 0.15)) failures.push(`deficit is not 15% of maintenance: ${deficit}`);
-  if (p.goal === "muscle_gain" && (surplus <= 0 || surplus > (isMinor ? 300 : 400))) failures.push(`extreme surplus: ${surplus}`);
+  if (p.goal === "fat_loss" && deficit !== Math.min(Math.round(deficitMaintenance * 0.20), 750)) failures.push(`deficit is not 20% of maintenance: ${deficit}`);
+  if (p.goal === "muscle_gain" && (surplus <= 0 || surplus > 600)) failures.push(`extreme surplus: ${surplus}`);
   if (finalCalories < (isMinor ? (p.gender === "male" ? 1800 : 1600) : 1500)) failures.push("dietitian-unacceptable low calorie target");
-  if (p.goal === "fat_loss" && scenarioMaintenance - finalCalories > scenarioMaintenance * 0.15 + 1) failures.push("dietitian-unacceptable deficit");
-  if (p.goal === "muscle_gain" && finalCalories - scenarioMaintenance > (isMinor ? 300 : 400)) failures.push("dietitian-unacceptable surplus");
+  if (p.goal === "fat_loss" && scenarioMaintenance - finalCalories > scenarioMaintenance * 0.20 + 1) failures.push("dietitian-unacceptable deficit");
+  if (p.goal === "muscle_gain" && finalCalories - scenarioMaintenance > 600) failures.push("dietitian-unacceptable surplus");
   if (plan.proteinTargetG <= 0 || plan.proteinTargetG > 250) failures.push("dietitian-unacceptable protein target");
   if (p.goal === "maintain" && (deficit !== 0 || surplus !== 0)) failures.push("maintenance plan has deficit/surplus");
   if (finalCalories < floor) failures.push(`unsafe calorie floor: ${finalCalories} < ${floor}`);
@@ -314,10 +314,10 @@ describe("automated nutrition validation report", () => {
       baseTdee: 3298,
       exerciseCaloriesAdded: 0,
       finalMaintenanceCalories: 3298,
-      weightLossDeficit: 495,
+      weightLossDeficit: 660,
       calorieFloor: 1800,
-      finalCalorieTarget: 2803,
+      finalCalorieTarget: 2638,
     });
-    expect(result.plan.calorieTarget).toBe(2803);
+    expect(result.plan.calorieTarget).toBe(2638);
   });
 });

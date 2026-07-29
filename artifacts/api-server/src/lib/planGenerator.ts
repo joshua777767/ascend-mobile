@@ -138,6 +138,14 @@ const SPORT_HABITS: Record<string, string> = {
 const PRIMARY_GOALS = ["lose weight", "lose fat", "gain muscle", "gain weight and muscle", "stay fit", "gain weight", "build muscle", "maintain fitness"];
 const MAINTENANCE_GOALS = ["stay fit", "maintain fitness", "maintain", "maintenance"];
 
+// Goal adjustments are based on correctly calculated maintenance for every
+// user. Absolute caps prevent high-maintenance athletes from receiving
+// unnecessarily aggressive cuts or bulks.
+const FAT_LOSS_DEFICIT_RATE = 0.20;
+const FAT_LOSS_DEFICIT_CAP = 750;
+const GAIN_SURPLUS_RATE = 0.15;
+const GAIN_SURPLUS_CAP = 600;
+
 // Order goals so a combined daily mission reads sensibly
 const GOAL_ORDER = [
   "lose weight", "lose fat", "gain weight and muscle", "gain weight", "gain muscle",
@@ -433,9 +441,9 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
 
   if (goalType === "fat_loss") {
     // Every client pursuing fat loss uses the same goal adjustment:
-    // 15% of correctly calculated maintenance. Age-specific equations and
+    // 20% of correctly calculated maintenance, capped for safety. Age-specific equations and
     // calorie floors still protect the underlying maintenance and final target.
-    const deficit = Math.round(tdee * 0.15);
+    const deficit = Math.min(Math.round(tdee * FAT_LOSS_DEFICIT_RATE), FAT_LOSS_DEFICIT_CAP);
     const timelineCapHit = weeksToGoal !== null && weightDiffLbs > 0.5
       ? weightDiffLbs / weeksToGoal > 1
       : false;
@@ -454,32 +462,18 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     weeklyPace = targetDateLabel ? `${paceStr} → goal by ${targetDateLabel}` : paceStr;
 
     if (timelineCapHit) {
-      warnings = "Your target date requires losing more than about 1 lb/week. Your plan keeps the standard 15% calorie deficit; allow more time rather than cutting calories further.";
+      warnings = "Your target date requires losing more than about 1 lb/week. Your plan keeps the standard 20% calorie deficit; allow more time rather than cutting calories further.";
     } else if (Math.abs(weightDiff) > 20) {
       warnings = "Your goal is ambitious. Stay consistent and patient — safe fat loss takes time. Do not try to cut more than planned.";
     }
   } else if (goalType === "muscle_gain") {
-    // Timeline-driven surplus: if user set a date, derive the needed pace.
-    // Adults: surplus capped at 250–400 cal/day for a clean lean bulk.
-    // Under-18: capped at 150–300 cal/day (max ~0.5 lb/week) — no "extreme"
-    // bulk path for teens, who gain muscle efficiently on a small surplus.
-    let surplus: number;
-    let timelineCapHit = false;
-    const maxWeeklyLbGain = isMinor ? 0.5 : 0.8;
-    const surplusCapMin = isMinor ? 150 : 250;
-    const surplusCapMax = isMinor ? 300 : 400;
-
-    if (weeksToGoal !== null && weightDiffLbs > 0.5) {
-      const neededLbsPerWeek = weightDiffLbs / weeksToGoal;
-      if (neededLbsPerWeek > maxWeeklyLbGain) timelineCapHit = true;
-      const clampedRate = Math.min(neededLbsPerWeek, maxWeeklyLbGain);
-      surplus = Math.round(clampedRate * 500);
-      surplus = Math.max(surplusCapMin, Math.min(surplusCapMax, surplus));
-    } else if (isMinor) {
-      surplus = isCasual ? 200 : 300;
-    } else {
-      surplus = isCasual ? 250 : isExtreme ? 400 : 300;
-    }
+    // Every client pursuing weight/muscle gain uses the same 15% maintenance
+    // surplus, capped to avoid unnecessarily high bulks. Timeline pressure
+    // produces a warning but never replaces this consistent goal adjustment.
+    const surplus = Math.min(Math.round(tdee * GAIN_SURPLUS_RATE), GAIN_SURPLUS_CAP);
+    const timelineCapHit = weeksToGoal !== null && weightDiffLbs > 0.5
+      ? weightDiffLbs / weeksToGoal > 1
+      : false;
 
     muscleGainSurplus = surplus;
     calorieTarget = tdee + surplus;
@@ -494,9 +488,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     weeklyPace = targetDateLabel ? `${paceStr} → goal by ${targetDateLabel}` : paceStr;
 
     if (timelineCapHit) {
-      warnings = isMinor
-        ? `Your goal requires gaining faster than ${maxWeeklyLbGain} lb/week — above the safe rate for your age. Your plan uses the max safe surplus of ${surplusCapMax} cal/day. You'll need more time than your target date to reach your goal without excess fat gain.`
-        : `Your goal requires gaining faster than 0.8 lb/week — above the safe lean bulk rate. Your plan uses the max safe surplus of 400 cal/day. You'll need more time than your target date to reach your goal without excess fat gain.`;
+      warnings = "Your target date requires gaining more than about 1 lb/week. Your plan keeps the standard 15% calorie surplus; allow more time rather than increasing calories further.";
     }
   } else if (goalType === "recomp") {
     // Recomposition: tiny surplus to support muscle growth while minimising fat gain.

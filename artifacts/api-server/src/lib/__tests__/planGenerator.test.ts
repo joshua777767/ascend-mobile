@@ -104,10 +104,10 @@ describe("calorie audit — 16-year-old high-activity weight loss profile", () =
   //   DRI adolescent EER (male, 16, active):
   //     -388.19 + 3.68(16) + 12.66(167.64) + 20.46(72.6) + 20 = 3,298 kcal
   //   Exercise calories:      +0 (already included in the EER category)
-  //   Deficit (15% of maintenance): round(3,298 × 0.15) = 495 cal/day
-  //   Final calorie target:   3,298 - 495 = 2,803 kcal/day
+  //   Deficit (20% of maintenance): round(3,298 × 0.20) = 660 cal/day
+  //   Final calorie target:   3,298 - 660 = 2,638 kcal/day
   //   Protein (fat loss):     goal weight (140 lb) × 1.0 g/lb = 140g
-  it("uses high-activity TDEE once, does not add gym calories again, and applies the universal 15% deficit", () => {
+  it("uses high-activity TDEE once, does not add gym calories again, and applies the universal 20% deficit", () => {
     const p = profile({
       age: 16,
       gender: "male",
@@ -127,7 +127,7 @@ describe("calorie audit — 16-year-old high-activity weight loss profile", () =
 
     const { plan, breakdown } = captureBreakdown(p);
 
-    expect(plan.calorieTarget).toBe(2803);
+    expect(plan.calorieTarget).toBe(2638);
     expect(plan.proteinTargetG).toBe(140);
     expect(plan.dailyCalorieTargets).toBeNull();
     expect(plan.gymDayCalorieTarget).toBeNull();
@@ -145,8 +145,8 @@ describe("calorie audit — 16-year-old high-activity weight loss profile", () =
       exerciseCaloriesAdded: 0,
       finalMaintenanceCalories: 3298,
       calorieFloor: 1800,
-      weightLossDeficit: 495,
-      finalCalorieTarget: 2803,
+      weightLossDeficit: 660,
+      finalCalorieTarget: 2638,
       proteinTargetG: 140,
     });
   });
@@ -154,52 +154,53 @@ describe("calorie audit — 16-year-old high-activity weight loss profile", () =
 
 // ─── 1b. Age-aware calorie safety — minors vs adults ──────────────────────────
 //
-// Requirement: fat loss uses a safe deficit off maintenance; muscle gain uses a
-// small controlled surplus; under-18 and adult logic must be handled separately.
+// Requirement: fat loss and muscle gain use universal percentage adjustments
+// off correctly calculated maintenance; age-specific equations and floors still
+// protect the underlying energy estimate.
 // All numbers below were independently verified with a standalone calculator
 // before being hard-coded here (see audit notes) — every fixture uses
 // activityLevel so exercise is never separately added on top (Mode A), keeping
 // the arithmetic isolated to the deficit/surplus/floor logic under test.
 
-describe("universal 15% maintenance deficit — fat loss (weight loss)", () => {
-  it("adult, non-casual commitment: deficit is 15% of maintenance", () => {
+describe("universal 20% maintenance deficit — fat loss (weight loss)", () => {
+  it("adult, non-casual commitment: deficit is 20% of maintenance", () => {
     const p = profile({
       age: 30, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 70,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["lose weight"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ ageGroup: "adult", weightLossDeficit: 407, calorieFloor: 1500 });
-    expect(plan.calorieTarget).toBe(2304);
+    expect(breakdown).toMatchObject({ ageGroup: "adult", weightLossDeficit: 542, calorieFloor: 1500 });
+    expect(plan.calorieTarget).toBe(2169);
   });
 
-  it("adult, casual commitment: commitment does not change the 15% deficit", () => {
+  it("adult, casual commitment: commitment does not change the 20% deficit", () => {
     const p = profile({
       age: 30, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 70,
       activityLevel: "moderate", commitmentLevel: "casual", goals: ["lose weight"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ weightLossDeficit: 407 });
-    expect(plan.calorieTarget).toBe(2304);
+    expect(breakdown).toMatchObject({ weightLossDeficit: 542 });
+    expect(plan.calorieTarget).toBe(2169);
   });
 
-  it("under-18, non-casual commitment: deficit is 15% of maintenance", () => {
+  it("under-18, non-casual commitment: deficit is 20% of maintenance", () => {
     const p = profile({
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 70,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["lose weight"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ ageGroup: "under_18", weightLossDeficit: 531, calorieFloor: 1800 });
-    expect(plan.calorieTarget).toBe(3012);
+    expect(breakdown).toMatchObject({ ageGroup: "under_18", weightLossDeficit: 709, calorieFloor: 1800 });
+    expect(plan.calorieTarget).toBe(2834);
   });
 
-  it("under-18, casual commitment: commitment does not change the 15% deficit", () => {
+  it("under-18, casual commitment: commitment does not change the 20% deficit", () => {
     const p = profile({
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 70,
       activityLevel: "moderate", commitmentLevel: "casual", goals: ["lose weight"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ weightLossDeficit: 531 });
-    expect(plan.calorieTarget).toBe(3012);
+    expect(breakdown).toMatchObject({ weightLossDeficit: 709 });
+    expect(plan.calorieTarget).toBe(2834);
   });
 
   it("adult calorie floor (1,200 female) binds for a very small deficit target", () => {
@@ -225,64 +226,64 @@ describe("universal 15% maintenance deficit — fat loss (weight loss)", () => {
     expect(plan.calorieTarget).toBeGreaterThan(1389);
   });
 
-  it("under-18 timeline pressure does not override the universal 15% deficit", () => {
+  it("under-18 timeline pressure does not override the universal 20% deficit", () => {
     const p = profile({
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 70,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["lose weight"],
       targetDate: daysFromNow(35), // 5 weeks — needs ~4.4 lb/week, far above any safe cap
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ weightLossDeficit: 531 });
-    expect(plan.calorieTarget).toBe(3012);
+    expect(breakdown).toMatchObject({ weightLossDeficit: 709 });
+    expect(plan.calorieTarget).toBe(2834);
     expect(plan.warnings).toBeTruthy();
-    expect(plan.warnings).toMatch(/15% calorie deficit/i);
+    expect(plan.warnings).toMatch(/20% calorie deficit/i);
   });
 
-  it("adult timeline pressure does not override the universal 15% deficit", () => {
+  it("adult timeline pressure does not override the universal 20% deficit", () => {
     const p = profile({
       age: 30, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 70,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["lose weight"],
       targetDate: daysFromNow(35),
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ weightLossDeficit: 407 });
-    expect(plan.calorieTarget).toBe(2304);
+    expect(breakdown).toMatchObject({ weightLossDeficit: 542 });
+    expect(plan.calorieTarget).toBe(2169);
     expect(plan.warnings).toMatch(/1 lb\/week/i);
   });
 });
 
-describe("age-aware calorie safety — muscle gain surplus caps", () => {
-  it("adult, committed (non-casual, non-extreme): surplus is 300 (unchanged)", () => {
+describe("universal 15% maintenance surplus — weight and muscle gain", () => {
+  it("adult, committed: surplus is 15% of maintenance", () => {
     const p = profile({
       age: 30, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 90,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["gain weight and muscle"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ ageGroup: "adult", muscleGainSurplus: 300 });
-    expect(plan.calorieTarget).toBe(3011);
+    expect(breakdown).toMatchObject({ ageGroup: "adult", muscleGainSurplus: 407 });
+    expect(plan.calorieTarget).toBe(3118);
   });
 
-  it("adult, extreme_discipline: surplus reaches 400 (unchanged) — the 'extreme' path", () => {
+  it("adult, extreme_discipline: commitment does not change the 15% surplus", () => {
     const p = profile({
       age: 30, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 90,
       activityLevel: "moderate", commitmentLevel: "extreme_discipline", goals: ["gain weight and muscle"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ muscleGainSurplus: 400 });
-    expect(plan.calorieTarget).toBe(3111);
+    expect(breakdown).toMatchObject({ muscleGainSurplus: 407 });
+    expect(plan.calorieTarget).toBe(3118);
   });
 
-  it("under-18, committed: surplus is capped at 300 max (never 400)", () => {
+  it("under-18, committed: surplus is 15% of maintenance", () => {
     const p = profile({
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 90,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["gain weight and muscle"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ ageGroup: "under_18", muscleGainSurplus: 300 });
-    expect(plan.calorieTarget).toBe(3843);
+    expect(breakdown).toMatchObject({ ageGroup: "under_18", muscleGainSurplus: 531 });
+    expect(plan.calorieTarget).toBe(4074);
   });
 
-  it("under-18, extreme_discipline: has NO extreme path — surplus is still 300, same as 'committed'", () => {
+  it("under-18, extreme_discipline: commitment does not change the 15% surplus", () => {
     const committed = captureBreakdown(profile({
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 90,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["gain weight and muscle"],
@@ -291,43 +292,43 @@ describe("age-aware calorie safety — muscle gain surplus caps", () => {
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 90,
       activityLevel: "moderate", commitmentLevel: "extreme_discipline", goals: ["gain weight and muscle"],
     }));
-    expect(extreme.breakdown).toMatchObject({ muscleGainSurplus: 300 });
+    expect(extreme.breakdown).toMatchObject({ muscleGainSurplus: 531 });
     expect(extreme.plan.calorieTarget).toBe(committed.plan.calorieTarget);
-    expect(extreme.plan.calorieTarget).toBe(3843);
+    expect(extreme.plan.calorieTarget).toBe(4074);
   });
 
-  it("under-18, casual: surplus is 200", () => {
+  it("under-18, casual: commitment does not change the 15% surplus", () => {
     const p = profile({
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 90,
       activityLevel: "moderate", commitmentLevel: "casual", goals: ["gain weight and muscle"],
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ muscleGainSurplus: 200 });
-    expect(plan.calorieTarget).toBe(3743);
+    expect(breakdown).toMatchObject({ muscleGainSurplus: 531 });
+    expect(plan.calorieTarget).toBe(4074);
   });
 
-  it("under-18 timeline-driven pace is capped at 0.5 lb/week (not the adult 0.8 lb/week)", () => {
+  it("under-18 timeline pressure does not override the universal 15% surplus", () => {
     const p = profile({
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 70, goalWeightKg: 80,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["gain weight and muscle"],
       targetDate: daysFromNow(35),
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ muscleGainSurplus: 250 });
-    expect(plan.calorieTarget).toBe(3588);
-    expect(plan.warnings).toMatch(/0\.5 lb\/week/i);
+    expect(breakdown).toMatchObject({ muscleGainSurplus: 501 });
+    expect(plan.calorieTarget).toBe(3839);
+    expect(plan.warnings).toMatch(/15% calorie surplus/i);
   });
 
-  it("adult timeline-driven pace is still capped at 0.8 lb/week (unchanged)", () => {
+  it("adult timeline pressure does not override the universal 15% surplus", () => {
     const p = profile({
       age: 30, gender: "male", heightCm: 175, currentWeightKg: 70, goalWeightKg: 80,
       activityLevel: "moderate", commitmentLevel: "committed", goals: ["gain weight and muscle"],
       targetDate: daysFromNow(35),
     });
     const { plan, breakdown } = captureBreakdown(p);
-    expect(breakdown).toMatchObject({ muscleGainSurplus: 400 });
-    expect(plan.calorieTarget).toBe(2956);
-    expect(plan.warnings).toMatch(/0\.8 lb\/week/i);
+    expect(breakdown).toMatchObject({ muscleGainSurplus: 383 });
+    expect(plan.calorieTarget).toBe(2939);
+    expect(plan.warnings).toMatch(/15% calorie surplus/i);
   });
 });
 
