@@ -34,6 +34,17 @@ export interface GeneratedPlan {
   dailyCalorieTargets: Record<string, number> | null;
 }
 
+export interface CalorieBreakdown {
+  bmr: number;
+  activityMultiplier: number;
+  baseTdee: number;
+  exerciseCaloriesAdded: number;
+  finalMaintenanceCalories: number;
+  weightLossDeficit: number;
+  finalCalorieTarget: number;
+  activityLevelSource: "profile" | "scheduled-exercise-fallback";
+}
+
 function parseGoals(goalsJson: unknown): string[] {
   // plans.ts already parses goals into an array before calling generatePlan,
   // but generatePlan may also be called with the raw JSON string. Handle both.
@@ -302,25 +313,31 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
     : 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
 
-  // NEAT-adjusted lifestyle multiplier.
-  // Represents non-exercise activity thermogenesis (NEAT) and the metabolic
-  // elevation that comes from consistent training (elevated resting metabolic rate,
-  // EPOC, and greater incidental movement in active lifestyles).
-  // Does NOT include deliberate exercise sessions — those are added separately
-  // per workout day via the day-specific calorie targets below, so there is
-  // no double-counting.
-  //   0 days   → 1.20  truly sedentary  (desk job, no structured exercise)
-  //   1-2 days → 1.30  lightly active   (1-2 easy sessions per week)
-  //   3-4 days → 1.40  moderately active (3-4 training sessions per week)
-  //   5+ days  → 1.50  very active      (5+ sessions; higher EPOC + RMR adaptation)
-  const wkDays = profile.workoutDaysPerWeek ?? 0;
-  const activityMult =
-    wkDays === 0 ? 1.20 :
-    wkDays <= 2  ? 1.30 :
-    wkDays <= 4  ? 1.40 :
-                   1.50;
+  // A standard activity level already includes the user's usual workouts.
+  // Therefore, when one is available, do not add workout calories again.
+  // Older profiles have no activity level; those use a sedentary base and add
+  // explicitly scheduled exercise calories only on the relevant day.
+  const rawActivityLevel = String((profile as UserProfile & { activityLevel?: unknown }).activityLevel ?? "").toLowerCase().trim();
+  const activityMultipliers: Record<string, number> = {
+    sedentary: 1.20,
+    lightly_active: 1.375,
+    light: 1.375,
+    moderately_active: 1.55,
+    moderate: 1.55,
+    very_active: 1.725,
+    high: 1.725,
+    extra_active: 1.90,
+    extremely_active: 1.90,
+  };
+  const normalizedActivityLevel = rawActivityLevel.replace(/[\s-]+/g, "_");
+  const profileActivityMultiplier = activityMultipliers[normalizedActivityLevel];
+  const activityMult = profileActivityMultiplier ?? 1.20;
+  const activityLevelSource = profileActivityMultiplier === undefined
+    ? "scheduled-exercise-fallback" as const
+    : "profile" as const;
 
-  const tdee = Math.round(bmr * activityMult);
+  const baseTdee = Math.round(bmr * activityMult);
+  const tdee = baseTdee;
 
   // Commitment level affects intensity — but never below safe floors
   const commitment = profile.commitmentLevel ?? "casual";
@@ -333,6 +350,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   let proteinTargetG: number;
   let weeklyPace: string;
   let warnings: string | null = null;
+  let weightLossDeficit = 0;
 
   // Safe calorie floors by sex
   const calorieFloor = isMale ? 1500 : 1200;
@@ -353,6 +371,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
       deficit = isCasual ? 300 : 500;
     }
 
+    weightLossDeficit = deficit;
     calorieTarget = Math.max(calorieFloor, tdee - deficit);
     // Protein from the lower of current or goal weight, capped at 2.2g/kg (1.0g/lb)
     const proteinBaseKg = Math.min(weightKg, profile.goalWeightKg);
@@ -627,7 +646,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   // Exercise calories are added on top per day so they are never double-counted:
   //
   //   rest day:     calorieTarget                   (goal-adjusted, lifestyle only)
-  //   active day:   calorieTarget + Σ activityBurns  (one burn per scheduled activity)
+  //   active day:   calorieTarget + Σ activityBurns  (fallback profiles only)
   //
   // New path  — customWorkoutSchedule (new per-day per-activity format):
   //   dailyCalorieTargets[day] = calorieTarget + Σ estimateActivityBurn(activity, kg)
@@ -644,10 +663,11 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   let practiceDayCalorieTarget: number | null = null;
   let gameDayCalorieTarget: number | null = null;
   let dailyCalorieTargets: Record<string, number> | null = null;
+  let exerciseCaloriesAdded = 0;
 
   // ── New path: per-day per-activity schedule ──────────────────────────────
   const exerciseSchedule = parseExerciseSchedule(profile);
-  if (exerciseSchedule && exerciseSchedule.days.length > 0) {
+  if (exerciseSchedule && exerciseSchedule.days.length > 0 && activityLevelSource === "scheduled-exercise-fallback") {
     const map: Record<string, number> = {};
     for (const day of exerciseSchedule.days) {
       if (!day.day || day.activities.length === 0) continue;
@@ -655,6 +675,7 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
         (sum, act) => sum + estimateActivityBurn(act, weightKg),
         0,
       );
+      exerciseCaloriesAdded = Math.max(exerciseCaloriesAdded, burn);
       map[day.day.toLowerCase()] = Math.max(calorieFloor, calorieTarget + burn);
     }
     if (Object.keys(map).length > 0) {
@@ -667,14 +688,14 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   // Always computed so existing users (before migration) still see correct targets.
 
   // Gym day — add one session's worth of calories on gym days.
-  if (workoutDays > 0) {
+  if (workoutDays > 0 && activityLevelSource === "scheduled-exercise-fallback") {
     const gymBurn = estimateGymCalBurn(profile.workoutFocus, weightKg);
     gymDayCalorieTarget = Math.max(calorieFloor, calorieTarget + gymBurn);
   }
 
   // Sport days — practice and game burns are additive on top of the lifestyle base.
   const sportEntry = parseSportSchedule(profile);
-  if (sportEntry) {
+  if (sportEntry && activityLevelSource === "scheduled-exercise-fallback") {
     const practiceBurn = estimateSportCalBurn(
       sportEntry.sport,
       sportEntry.durationMinutes,
@@ -725,6 +746,26 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   if (gymDayCalorieTarget !== null || practiceDayCalorieTarget !== null) {
     restDayCalorieTarget = calorieTarget;
   }
+
+  const finalMaintenanceCalories = baseTdee + exerciseCaloriesAdded;
+  const calorieBreakdown: CalorieBreakdown = {
+    bmr: Math.round(bmr),
+    activityMultiplier: activityMult,
+    baseTdee,
+    exerciseCaloriesAdded,
+    finalMaintenanceCalories,
+    weightLossDeficit,
+    finalCalorieTarget: calorieTarget,
+    activityLevelSource,
+  };
+  console.info("[calorie-breakdown]", {
+    ...calorieBreakdown,
+    age,
+    gender: profile.gender,
+    weightKg,
+    heightCm,
+    goalType,
+  });
 
   return {
     goalType,

@@ -64,6 +64,34 @@ describe("lifestyle TDEE invariant — no exercise in base", () => {
   });
 });
 
+describe("calorie audit — 16-year-old high-activity weight loss profile", () => {
+  it("uses high-activity TDEE once and does not add gym calories again", () => {
+    const p = profile({
+      age: 16,
+      gender: "male",
+      heightCm: 167.64, // 5'6"
+      currentWeightKg: 72.6, // 160 lb
+      goalWeightKg: 63.5,
+      goals: ["lose weight"],
+      workoutFocus: "lose_fat",
+      workoutDaysPerWeek: 1, // Gym Today is represented by the schedule below
+      activityLevel: "high",
+      customWorkoutSchedule: JSON.stringify({
+        days: [
+          { day: "monday", activities: [{ type: "gym", durationMinutes: 60, intensity: "moderate" }] },
+        ],
+      }),
+    });
+
+    const plan = generatePlan(p);
+    // Mifflin–St Jeor: 10(72.6) + 6.25(167.64) - 5(16) + 5 = 1,699 kcal.
+    // High activity: 1,699 × 1.725 = 2,930 kcal; weight-loss deficit = 500.
+    expect(plan.calorieTarget).toBe(2430);
+    expect(plan.dailyCalorieTargets).toBeNull();
+    expect(plan.gymDayCalorieTarget).toBeNull();
+  });
+});
+
 // ─── 2. Goal adjustment preserved in base ─────────────────────────────────────
 
 describe("goal-adjusted base (deficit/surplus) — preserved in all day targets", () => {
