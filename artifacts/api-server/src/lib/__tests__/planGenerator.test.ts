@@ -363,9 +363,52 @@ describe("age-aware calorie safety — recomp surplus", () => {
     expect(committed.plan.calorieTarget).toBe(3618);
     expect(extreme.plan.calorieTarget).toBe(3618);
   });
+
+  it("fat-to-muscle recomp has a protein target and a supportive calorie target", () => {
+    const { plan, breakdown } = captureBreakdown(profile({
+      age: 30,
+      gender: "male",
+      currentWeightKg: 80,
+      goalWeightKg: 82,
+      activityLevel: "moderate",
+      commitmentLevel: "committed",
+      goals: ["gain muscle"],
+    }));
+
+    expect(plan.goalType).toBe("recomp");
+    expect(plan.proteinTargetG).toBe(145); // 82kg = 181lb × 0.8g/lb, rounded to 5g
+    expect(plan.proteinTargetG).toBeGreaterThan(0);
+    expect(breakdown).toMatchObject({
+      muscleGainSurplus: 100,
+      proteinTargetG: 145,
+    });
+    expect(plan.calorieTarget).toBeGreaterThan(Number(breakdown!.finalMaintenanceCalories));
+  });
 });
 
 describe("unified goal-based protein targets — age-independent", () => {
+  it("160 lb to 140 lb fat-loss cut at 5'6 uses fat-loss calories and 140g protein", () => {
+    const { plan, breakdown } = captureBreakdown(profile({
+      age: 25,
+      gender: "male",
+      heightCm: 167.64,
+      currentWeightKg: 72.6,
+      goalWeightKg: 63.5,
+      activityLevel: "moderate",
+      goals: ["lose weight"],
+    }));
+
+    expect(plan.goalType).toBe("fat_loss");
+    expect(plan.proteinTargetG).toBe(140);
+    expect(breakdown).toMatchObject({
+      weightLossDeficit: 513,
+      finalCalorieTarget: 2050,
+      proteinTargetG: 140,
+    });
+    expect(plan.calorieTarget).toBe(2050);
+    expect(plan.calorieTarget).toBeLessThan(Number(breakdown!.finalMaintenanceCalories));
+  });
+
   it("fat loss: protein = goal weight × 1.0 g/lb for minors and adults", () => {
     const p = profile({
       age: 16, gender: "male", heightCm: 175, currentWeightKg: 80, goalWeightKg: 60, // large goal-weight gap
@@ -395,6 +438,41 @@ describe("unified goal-based protein targets — age-independent", () => {
     }));
     expect(minor.proteinTargetG).toBe(140);
     expect(adult.proteinTargetG).toBe(140);
+  });
+
+  it("every onboarding goal produces a positive protein target", () => {
+    const goals = [
+      "lose weight",
+      "gain muscle",
+      "gain weight and muscle",
+      "stay fit",
+    ];
+
+    for (const goal of goals) {
+      const plan = generatePlan(profile({
+        currentWeightKg: 80,
+        goalWeightKg: goal === "lose weight" ? 75 : goal === "gain weight and muscle" ? 90 : 80,
+        activityLevel: "moderate",
+        goals: [goal],
+      }));
+
+      expect(plan.proteinTargetG, goal).toBeGreaterThan(0);
+      expect(plan.proteinTargetG, goal).toBeLessThanOrEqual(250);
+      expect(plan.keyHabits.some((habit) => habit.includes(`${plan.proteinTargetG}g protein`)), goal).toBe(true);
+    }
+  });
+
+  it("non-weight goals still receive a protein target", () => {
+    const plan = generatePlan(profile({
+      currentWeightKg: 80,
+      goalWeightKg: 80,
+      activityLevel: "moderate",
+      goals: ["better skin"],
+    }));
+
+    expect(plan.goalType).toBe("maintain");
+    expect(plan.proteinTargetG).toBe(140);
+    expect(plan.proteinTargetG).toBeGreaterThan(0);
   });
 });
 

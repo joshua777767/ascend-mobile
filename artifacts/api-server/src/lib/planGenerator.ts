@@ -146,6 +146,17 @@ const FAT_LOSS_DEFICIT_CAP = 750;
 const GAIN_SURPLUS_RATE = 0.15;
 const GAIN_SURPLUS_CAP = 600;
 
+function proteinTargetForGoal(goalType: string, targetWeightKg: number): number {
+  // Fat loss and muscle gain/recomposition all need a deliberate protein
+  // target. Recomposition uses the maintenance rate because the goal is to
+  // improve body composition without intentionally driving scale weight up.
+  const gramsPerPound = goalType === "fat_loss" || goalType === "muscle_gain" ? 1 : 0.8;
+  return Math.min(
+    Math.round((targetWeightKg * 2.20462 * gramsPerPound) / 5) * 5,
+    250,
+  );
+}
+
 // Order goals so a combined daily mission reads sensibly
 const GOAL_ORDER = [
   "lose weight", "lose fat", "gain weight and muscle", "gain weight", "gain muscle",
@@ -449,10 +460,6 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
       : false;
     weightLossDeficit = deficit;
     calorieTarget = Math.max(calorieFloor, tdee - deficit);
-    // Unified goal-weight protein rule: use the upper end of the requested
-    // 0.8–1.0 g/lb range during fat loss to support lean-mass retention.
-    proteinTargetG = Math.min(Math.round(profile.goalWeightKg * 2.20462), 250);
-
     const actualLbsPerWeek = deficit / 500;
     const paceStr = actualLbsPerWeek >= 1.85 ? "~2 lb / week"
       : actualLbsPerWeek >= 1.35 ? "~1.5 lb / week"
@@ -477,10 +484,6 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
 
     muscleGainSurplus = surplus;
     calorieTarget = tdee + surplus;
-    // Unified goal-weight protein rule: use the upper end of the requested
-    // 0.8–1.0 g/lb range while building muscle.
-    proteinTargetG = Math.min(Math.round(profile.goalWeightKg * 2.20462), 250);
-
     const actualLbsPerWeek = surplus / 500;
     const paceStr = actualLbsPerWeek >= 0.85 ? "~1 lb / week (lean bulk)"
       : actualLbsPerWeek >= 0.45 ? "~0.5 lb / week (lean bulk)"
@@ -496,11 +499,9 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
     const surplus = isMinor ? 75 : (isCasual ? 75 : 100);
     muscleGainSurplus = surplus;
     calorieTarget = tdee + surplus;
-    proteinTargetG = Math.min(Math.round(profile.goalWeightKg * 0.8 * 2.20462), 250);
     weeklyPace = "Recomp: build muscle & reduce body fat simultaneously";
   } else {
     calorieTarget = tdee;
-    proteinTargetG = Math.min(Math.round(profile.goalWeightKg * 0.8 * 2.20462), 250);
     weeklyPace = "Maintain current weight";
   }
 
@@ -510,10 +511,9 @@ export function generatePlan(profile: UserProfile): GeneratedPlan {
   // breakdown, while the served target never falls below the floor.
   calorieTarget = Math.max(calorieFloor, calorieTarget);
 
-  // Protein is intentionally age-independent. The goal branches above use
-  // the upper end of the requested 0.8–1.0 g/lb range for fat loss/muscle
-  // gain and the lower end (0.8 g/lb) for maintenance/recomp.
-  proteinTargetG = Math.min(Math.round(proteinTargetG / 5) * 5, 250);
+  // Every goal path receives a protein target. This is intentionally
+  // age-independent and rounded to 5g, with a 250g safety cap.
+  proteinTargetG = proteinTargetForGoal(goalType, profile.goalWeightKg);
 
   // ── Sanity guard ─────────────────────────────────────────────────────────────
   // Catches implausible outputs before they reach any user.

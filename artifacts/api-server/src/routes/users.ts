@@ -165,6 +165,7 @@ router.patch("/users/profile", async (req, res): Promise<void> => {
         coachNotes: newPlan.coachNotes,
         warnings: newPlan.warnings,
         restDayCalorieTarget: newPlan.restDayCalorieTarget,
+        gymDayCalorieTarget: newPlan.gymDayCalorieTarget,
         practiceDayCalorieTarget: newPlan.practiceDayCalorieTarget,
         gameDayCalorieTarget: newPlan.gameDayCalorieTarget,
         dailyCalorieTargets: newPlan.dailyCalorieTargets

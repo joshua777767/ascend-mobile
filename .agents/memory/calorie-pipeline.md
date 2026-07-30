@@ -17,6 +17,8 @@ Minors (age < 18) use the National Academies Dietary Reference Intakes (2023) ad
 - Recomp surplus: adults 75(casual)/100. Minors always flat 75 regardless of commitment.
 - Calorie floor: adults 1500(M)/1200(F). Minors 1800(M)/1600(F).
 - Protein is age-independent and goal-based: fat loss/muscle gain use 0.8–1.0 g/lb of goal/target weight (current implementation uses 1.0 g/lb), while maintenance/recomp uses 0.8 g/lb; targets round to the nearest 5g and cap at 250g.
+- Every generated plan path, including recomp/fat-to-muscle and non-weight goals, must pass through one centralized protein-target calculation so no goal can silently omit protein.
+- The current-plan endpoint must select and self-heal the newest saved plan from the current profile; otherwise an older recomp plan can display stale calories/protein after a goal change.
 
 **Why:** The prior implementation intentionally avoided a pediatric equation because it had not been verified. The authoritative DRI source is now verified and directly matches the app's available inputs (age, sex, height, weight, activity category), so using it is safer and more appropriate than substituting Mifflin-St Jeor for adolescents. The equation source is https://www.canada.ca/en/health-canada/services/food-nutrition/healthy-eating/dietary-reference-intakes/tables/equations-estimate-energy-requirement.html, under “Children and adolescents 3 to 18 years” → the “Age 9 years to <14 years” and “Age 14 years to <19 years” tables.
 
