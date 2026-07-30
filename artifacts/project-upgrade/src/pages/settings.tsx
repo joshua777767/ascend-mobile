@@ -13,8 +13,33 @@ import {
   getGetCurrentPlanQueryKey,
   getGetTodayWorkoutQueryKey,
 } from "@workspace/api-client-react";
-import { LogOut, RotateCcw, AlertTriangle, Save, CheckCircle2, FileDown, Shield, ScrollText, CreditCard, ExternalLink } from "lucide-react";
+import {
+  LogOut,
+  RotateCcw,
+  AlertTriangle,
+  Save,
+  CheckCircle2,
+  FileDown,
+  Shield,
+  ScrollText,
+  CreditCard,
+  ExternalLink,
+  BookOpen,
+  Utensils,
+  Target,
+  Dumbbell,
+  CalendarCheck2,
+  MessageCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -156,6 +181,94 @@ function SaveBtn({
         </>
       )}
     </button>
+  );
+}
+
+const HOW_TO_USE_SECTIONS = [
+  {
+    title: "Log your meals",
+    icon: Utensils,
+    color: "text-orange-500",
+    copy:
+      "Open Meals from the main navigation and log what you eat throughout the day. Add meals as you go so your calorie and protein totals stay current. Honest, consistent logging gives Ascend the clearest picture of your progress.",
+  },
+  {
+    title: "Use your calorie and protein targets",
+    icon: Target,
+    color: "text-primary",
+    copy:
+      "Your daily targets are personalized from your goals, body details, activity, and training schedule. Calories guide your overall energy intake; protein supports recovery and muscle. Use the dashboard totals as a daily guide, not a reason to undereat or chase perfection.",
+  },
+  {
+    title: "Follow your workouts",
+    icon: Dumbbell,
+    color: "text-violet-500",
+    copy:
+      "Check your workout for today from the dashboard or Schedule. Complete the exercises at your own level, and keep your training schedule up to date in Settings so your plan reflects your real routine.",
+  },
+  {
+    title: "Complete weekly check-ins",
+    icon: CalendarCheck2,
+    color: "text-emerald-500",
+    copy:
+      "Once a week, answer the check-in for each active goal and share how things are going. Check-ins help you notice trends, keep your plan honest, and give Ascend useful context. If you miss one, it will stay due until you complete it.",
+  },
+  {
+    title: "Talk to the AI coach",
+    icon: MessageCircle,
+    color: "text-sky-500",
+    copy:
+      "Ask Coach about meals, workouts, motivation, or how to adjust your day. Include specific details—what you ate, how you trained, or what feels difficult—for more useful guidance. The coach supports your plan but does not replace a qualified healthcare professional.",
+  },
+] as const;
+
+function HowToUseDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="flex items-center gap-3 w-full rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3.5 text-left transition-colors hover:bg-primary/15 focus:outline-none focus:ring-2 focus:ring-primary/50 active:scale-[0.99]"
+          data-testid="button-how-to-use"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <BookOpen className="h-5 w-5" strokeWidth={2} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-foreground">How to Use Ascend</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              A quick guide to getting the most from your plan
+            </span>
+          </span>
+          <span className="text-primary text-lg" aria-hidden="true">→</span>
+        </button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[min(88vh,760px)] overflow-y-auto rounded-2xl p-5 sm:p-6">
+        <DialogHeader className="pr-7 text-left">
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <BookOpen className="h-5 w-5 text-primary" strokeWidth={2} />
+            How to Use Ascend
+          </DialogTitle>
+          <DialogDescription>
+            Small, consistent actions make your personalized plan work for you.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          {HOW_TO_USE_SECTIONS.map(({ title, icon: Icon, color, copy }) => (
+            <section key={title} className="rounded-xl border border-border bg-elevated/60 p-4">
+              <div className="flex items-start gap-3">
+                <Icon className={cn("mt-0.5 h-5 w-5 shrink-0", color)} strokeWidth={2} />
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+                  <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{copy}</p>
+                </div>
+              </div>
+            </section>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -562,6 +675,8 @@ export default function SettingsPage() {
         <div className="hidden md:block">
           <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         </div>
+
+        <HowToUseDialog />
 
         {/* Account */}
         <section className="rounded-2xl bg-card border border-border p-5 space-y-3">
