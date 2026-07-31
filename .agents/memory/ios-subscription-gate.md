@@ -27,6 +27,10 @@ signup made everyone look "in trial" and bypassed the paywall.
   `Purchases.logOut()` and clear `customerInfo`/`packages`; hold `isLoading` true
   across the switch. Otherwise the prior user's entitlement leaks to the next
   account and misclassifies them as Pro.
+- RevenueCat must not initialize anonymously for new accounts: wait for the
+  authenticated WebView user ID, configure with `appUserID`, and explicitly call
+  `Purchases.logIn(userId)` for each authenticated account. Existing anonymous
+  customers remain untouched.
 - `AuthContext.logout()` calls `queryClient.clear()` so the previous account's
   profile/plan cache can't drive routing for the next user (profile query key is
   global/unscoped).

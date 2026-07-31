@@ -22,10 +22,8 @@ const queryClient = new QueryClient();
 /**
  * Wait until the persisted userId has been read from AsyncStorage before
  * mounting SubscriptionProvider. Without this guard, UserContext starts with
- * userId=null on every relaunch and SubscriptionProvider immediately calls
- * Purchases.logOut(), stripping RC entitlements until AUTH_STATE fires from
- * the WebView — causing a window where an active Pro user appears to have no
- * access.
+ * userId=null on every relaunch and the subscription provider can clear the
+ * current RevenueCat account before AUTH_STATE fires from the WebView.
  */
 function RootLayoutNav() {
   const { userId, isLoaded } = useUser();

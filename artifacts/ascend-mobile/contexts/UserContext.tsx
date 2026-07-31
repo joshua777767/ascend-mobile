@@ -15,7 +15,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [userId, setUserIdState] = useState<string | null>(null);
   // isLoaded flips to true once we've attempted to read the persisted userId.
   // SubscriptionProvider waits for this before initialising RevenueCat so we
-  // never call Purchases.logOut() for a user who is already authenticated.
+  // never clear RevenueCat for a user who is already authenticated.
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {

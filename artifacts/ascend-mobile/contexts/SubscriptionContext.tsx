@@ -145,15 +145,15 @@ export function SubscriptionProvider({
     };
   }, [applyCustomerInfo]);
 
-  // ── Startup: configure → logIn → getCustomerInfo ─────────────────────────
+  // ── Authenticated startup: configure → logIn → getCustomerInfo ────────────
   // Strictly sequential. SUBSCRIPTION_STATUS is sent to the WebView exactly
   // ONCE — at the very end, after all RC calls have settled. It is never sent
   // with a default/guessed value while userId or RC status is still unresolved.
   //
   // Order:
-  //   1. Configure RC SDK (once per process).
-  //   2. Wait for Ascend userId from the WebView AUTH_STATE message.
-  //   3. logIn(userId) only if RC is anonymous or a different user.
+  //   1. Wait for Ascend userId from the WebView AUTH_STATE message.
+  //   2. Configure RC SDK with that authenticated user ID (once per process).
+  //   3. Always call logIn(userId) after authentication.
   //   4. getCustomerInfo() — authoritative entitlement check.
   //   5. syncPurchasesForResult() if not-Pro, as fallback receipt sync.
   //   6. applyCustomerInfo() — post SUBSCRIPTION_STATUS exactly once.
@@ -165,7 +165,26 @@ export function SubscriptionProvider({
       setOfferingsError(null);
       setOfferingsDiagnostic(null);
 
-      // Step 1: Configure the SDK exactly once per process lifetime.
+      // Step 1: Do not initialize RevenueCat anonymously. New authenticated
+      // accounts must be identified by their Ascend account ID from the start.
+      if (!userId) {
+        if (configured.current) {
+          try { await Purchases.logOut(); } catch {}
+        }
+        appUserIdRef.current = null;
+        if (!cancelled) {
+          setAppUserId(null);
+          setCustomerInfo(null);
+          setPackages([]);
+          setSubscriptionResolved(false);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // Step 2: Configure the SDK exactly once per process lifetime, with the
+      // authenticated Ascend ID. Existing anonymous RevenueCat customers are
+      // left untouched; they are not used for new authenticated accounts.
       if (!configured.current) {
         const apiKey = getApiKey();
         if (!apiKey) {
@@ -179,7 +198,7 @@ export function SubscriptionProvider({
         }
         try { Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO); } catch {}
         try {
-          Purchases.configure({ apiKey });
+          Purchases.configure({ apiKey, appUserID: String(userId) });
           configured.current = true;
         } catch (e) {
           const msg = `configure() threw: ${String(e)}`;
@@ -192,48 +211,19 @@ export function SubscriptionProvider({
         }
       }
 
-      // Step 2: Wait for Ascend userId from WebView AUTH_STATE.
-      // Keep spinner. Never send SUBSCRIPTION_STATUS with a default while waiting.
-      if (!userId) {
-        if (!cancelled) setIsLoading(false);
-        return;
-      }
+      // Keep RevenueCat's normal cache behavior. Existing anonymous customers
+      // are not migrated or deleted by this authenticated-user flow.
 
-      // NOTE: invalidateCustomerInfoCache() intentionally NOT called here.
-      // The RC SDK cache holds the correct merged subscription data (anonymous →
-      // userId merge). Invalidating forces a raw server fetch for userId which
-      // does not see the subscription (it lives under the original anonymous ID
-      // server-side). RC manages cache expiry automatically. Let it use the cache.
-
-      // Step 3: logIn(userId) only when the SDK doesn't already know this user.
-      //
-      // WHY: logIn() always makes a server round-trip. The server returns CustomerInfo
-      // for the numerical userId, which may not include the subscription (it lives
-      // under the original anonymous RC ID). That server response then overwrites
-      // the SDK's local cache — which DID have the correct merged data — causing
-      // every subsequent getCustomerInfo() to return not-Pro.
-      //
-      // If the SDK is already identified as this Ascend userId, we skip logIn()
-      // entirely and go straight to getCustomerInfo(), which uses the cached
-      // (correct) data. logIn() is only needed on first launch (anonymous → userId
-      // migration) or if a different user somehow became active.
+      // Step 3: Explicitly identify every authenticated account. This is
+      // intentional even when configure() received the same ID: the login
+      // call is the auth boundary requested by the app and handles account
+      // switches after logout.
       let rcAppUserId = String(userId);
       try {
-        const currentRcId = await Purchases.getAppUserID();
-        rcAppUserId = currentRcId;
-        appUserIdRef.current = currentRcId;
-        if (!cancelled) setAppUserId(currentRcId);
-        const isAnonymous = currentRcId.startsWith("$RCAnonymousID:");
-        const isWrongUser = !isAnonymous && currentRcId !== String(userId);
-
-        if (isAnonymous || isWrongUser) {
-          const { customerInfo: loginInfo } = await Purchases.logIn(String(userId));
-          if (cancelled) return;
-          rcAppUserId = await Purchases.getAppUserID().catch(() => String(userId));
-          appUserIdRef.current = rcAppUserId;
-          if (!cancelled) setAppUserId(rcAppUserId);
-          void loginInfo; // result used only for side-effect (SDK cache update)
-        }
+        await Purchases.logIn(String(userId));
+        rcAppUserId = await Purchases.getAppUserID().catch(() => String(userId));
+        appUserIdRef.current = rcAppUserId;
+        if (!cancelled) setAppUserId(rcAppUserId);
       } catch {
         // non-fatal: continue to getCustomerInfo()
       }
@@ -298,9 +288,8 @@ export function SubscriptionProvider({
         const finalIsPro = finalInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
         applyCustomerInfo(finalInfo);
 
-        // Step 7: If Pro confirmed — fire a silent background receipt sync so RC's server
-        // records the userId→subscription mapping for future sessions. After this, server
-        // fetches for this userId will return Pro without relying on the anonymous-ID alias.
+      // Step 7: If Pro confirmed, refresh RevenueCat's server-side record for
+      // this authenticated app user for future sessions.
         if (finalIsPro) {
           Purchases.syncPurchasesForResult().catch(() => {});
         }
@@ -315,27 +304,12 @@ export function SubscriptionProvider({
   // ── App foreground refresh ────────────────────────────────────────────────
   // Called whenever the app returns to the foreground (AppState "active").
   //
-  // NOTE: invalidateCustomerInfoCache() is intentionally NOT called — it forces
-  // a raw server fetch for the numerical userId which misses the subscription
-  // (stored under the original anonymous RC ID server-side).
-  //
-  // NOTE: If getCustomerInfo() returns not-Pro but we are currently Pro, we do
-  // NOT downgrade. The RC server-side fetch for the numerical userId omits the
-  // anonymous-merged entitlement once the SDK cache expires (5-min TTL). The
-  // RC SDK's addCustomerInfoUpdateListener fires for genuine expirations — we
-  // rely on that for real downgrades, not on foreground polls.
+  // RevenueCat is identified with the authenticated app user, so foreground
+  // refreshes can use the SDK's current CustomerInfo directly.
   const refresh = useCallback(async () => {
     try {
       const info = await Purchases.getCustomerInfo();
       const isProNow = info.entitlements.active[ENTITLEMENT_ID]?.isActive === true;
-
-      if (!isProNow && isProRef.current) {
-        // Server returned not-Pro but we're currently Pro. This is the known
-        // anonymous-ID cache issue: once the SDK cache expires the server fetch
-        // returns not-Pro for the numerical userId. Do NOT downgrade — the RC
-        // listener handles real expirations.
-        return;
-      }
 
       applyCustomerInfo(info);
     } catch {
