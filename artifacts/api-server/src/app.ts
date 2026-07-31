@@ -42,18 +42,31 @@ app.use(
   }),
 );
 
-const allowedDomains: string[] = [
+function normalizeOrigin(value: string): string {
+  try {
+    return new URL(value.includes("://") ? value : `https://${value}`).origin;
+  } catch {
+    return value.replace(/\/+$/, "");
+  }
+}
+
+const allowedOrigins: string[] = [
+  process.env.APP_BASE_URL,
+  process.env.WEB_APP_URL,
+  ...(process.env.CORS_ORIGINS?.split(",").map((s) => s.trim()) ?? []),
   process.env.REPLIT_INTERNAL_APP_DOMAIN,
   process.env.REPLIT_DEV_DOMAIN,
   ...(process.env.REPLIT_DOMAINS?.split(",").map((s) => s.trim()) ?? []),
-].filter((d): d is string => !!d);
+]
+  .filter((d): d is string => !!d)
+  .map(normalizeOrigin);
 
 app.use(
   cors({
     origin: (origin, callback) => {
       // Native apps, curl, server-to-server requests have no Origin header
       if (!origin) return callback(null, true);
-      const ok = allowedDomains.some((d) => origin.includes(d));
+      const ok = allowedOrigins.includes(origin);
       callback(null, ok);
     },
     credentials: true,

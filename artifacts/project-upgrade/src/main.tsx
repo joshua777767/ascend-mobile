@@ -1,6 +1,12 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import { setBaseUrl } from "@workspace/api-client-react";
+
+// Railway can host the static web app and API as separate services. When a
+// frontend API URL is supplied at build time, generated API requests use it;
+// otherwise same-origin requests continue to work on Replit and local dev.
+setBaseUrl(import.meta.env.VITE_API_BASE_URL?.trim() || null);
 
 // ── Service worker handling ─────────────────────────────────────────────────
 // In development we must NEVER let a service worker cache bundles — a stale

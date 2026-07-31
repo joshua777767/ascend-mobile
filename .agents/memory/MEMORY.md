@@ -30,3 +30,4 @@
 - [GitHub push fallback](github-push-fallback.md) — when Replit Git source-control credentials are unavailable, the authorized GitHub connector can publish repository file changes securely.
 - [Railway pnpm workspace sync](railway-pnpm-workspace-sync.md) — frozen installs validate every workspace manifest; package.json files and pnpm-lock.yaml must be published together.
 - [Railway health checks](railway-health-checks.md) — keep the health endpoint before database-backed session middleware so startup checks do not depend on DB availability.
+- [Railway runtime variables](railway-runtime-variables.md) — a Railway service with 0 Variables crashes before listening; provision DB, auth, AI, email, and app URL variables before health checks.
