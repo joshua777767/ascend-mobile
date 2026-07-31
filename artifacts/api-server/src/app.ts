@@ -15,6 +15,13 @@ if (!process.env.SESSION_SECRET) {
 const app: Express = express();
 app.set("trust proxy", 1);
 
+// Keep the platform health check independent of the database-backed session
+// store. Railway must be able to verify that the process is listening even
+// while the database connection is starting or temporarily unavailable.
+app.get("/api/healthz", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
 app.use(
   pinoHttp({
     logger,
