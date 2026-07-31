@@ -28,3 +28,4 @@
 - [Calorie pipeline](calorie-pipeline.md) — profile activity includes usual workouts; adolescents use verified DRI EER equations plus separate safety caps/floors.
 - [Weekly check-in scheduling](weekly-check-in-scheduling.md) — cadence is account-creation/completion driven; dismissal never counts as completion and missed due dates remain due.
 - [GitHub push fallback](github-push-fallback.md) — when Replit Git source-control credentials are unavailable, the authorized GitHub connector can publish repository file changes securely.
+- [Railway pnpm workspace sync](railway-pnpm-workspace-sync.md) — frozen installs validate every workspace manifest; package.json files and pnpm-lock.yaml must be published together.
