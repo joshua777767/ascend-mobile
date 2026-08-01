@@ -41,6 +41,7 @@ import {
   getGetMeQueryKey,
   getListGoalCheckInsQueryKey,
   getWeeklyCheckInSchedule,
+  WEEKLY_CHECK_IN_INTERVAL_MS,
 } from "@workspace/api-client-react";
 import { useTrialDay } from "@/hooks/use-trial";
 import { initializeRevenueCat, Purchases } from "@/lib/revenuecat";
@@ -444,7 +445,10 @@ function ProtectedApp() {
   // Check-ins are due from persisted completion timestamps. Dismissing the
   // modal does not advance the schedule, so missed check-ins remain due.
   useEffect(() => {
-    const accountCreatedAt = me?.createdAt ?? profile?.createdAt;
+    // Do not fall back to profile.createdAt here. The profile can be created
+    // or loaded at a different time than the account, and using it during the
+    // auth/profile loading race can make a fresh login look overdue.
+    const accountCreatedAt = me?.createdAt;
     if (!accountCreatedAt || !goalCheckIns) return;
     const schedule = getWeeklyCheckInSchedule({
       accountCreatedAt,
@@ -465,18 +469,26 @@ function ProtectedApp() {
     showWeeklyCheckIn,
   ]);
 
-  // Weekly review: show after 7 days, then every 7 days after.
+  // Weekly review: show after 7 days from account creation, then every 7
+  // days after the last review. A missing localStorage value must not mean
+  // "due immediately" on a fresh login or a new device.
   useEffect(() => {
-    if (!profile || isPro) return;
+    if (!profile || !me?.createdAt || isPro) return;
     const lastReview = localStorage.getItem("ascend.lastWeeklyReview");
-    const reviewDue = !lastReview || (Date.now() - new Date(lastReview).getTime()) / (1000 * 60 * 60 * 24) >= 7;
-    const reviewedToday = !!lastReview && new Date(lastReview).toDateString() === new Date().toDateString();
+    const accountCreatedAt = new Date(me.createdAt).getTime();
+    const lastReviewAt = lastReview ? new Date(lastReview).getTime() : Number.NaN;
+    const nextReviewAt = Number.isFinite(lastReviewAt)
+      ? lastReviewAt + WEEKLY_CHECK_IN_INTERVAL_MS
+      : accountCreatedAt + WEEKLY_CHECK_IN_INTERVAL_MS;
+    const reviewDue = Number.isFinite(accountCreatedAt) && Date.now() >= nextReviewAt;
+    const reviewedToday = Number.isFinite(lastReviewAt)
+      && new Date(lastReviewAt).toDateString() === new Date().toDateString();
     if (reviewDue && !reviewedToday) {
       const t = setTimeout(() => setShowWeeklyReview(true), 2500);
       return () => clearTimeout(t);
     }
     return;
-  }, [profile, isPro]);
+  }, [profile, me?.createdAt, isPro]);
 
   const undecided = !profile && (isLoading || isFetching);
   if (useFirstLoadSpinner(undecided) || (isFetching && !profile)) return <FullScreenSpinner />;
@@ -511,7 +523,7 @@ function ProtectedApp() {
       <WeeklyCheckInModal
         open={showWeeklyCheckIn}
         onClose={() => {
-          const accountCreatedAt = me?.createdAt ?? profile?.createdAt;
+          const accountCreatedAt = me?.createdAt;
           if (accountCreatedAt && goalCheckIns) {
             const schedule = getWeeklyCheckInSchedule({
               accountCreatedAt,
