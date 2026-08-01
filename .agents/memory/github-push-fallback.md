@@ -1,6 +1,6 @@
 ---
 name: GitHub push fallback
-description: Secure repository publishing when the normal Replit Git push credential is unavailable
+description: Secure repository publishing when normal Git push credentials are unavailable
 ---
 
 When the normal Git push helper reports missing GitHub source-control credentials, an already-authorized GitHub connector may still have repository write access. Use its authenticated GitHub API to update only the intended files and verify the resulting remote branch and commit.

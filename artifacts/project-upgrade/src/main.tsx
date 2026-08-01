@@ -3,9 +3,8 @@ import App from "./App";
 import "./index.css";
 import { setBaseUrl } from "@workspace/api-client-react";
 
-// Railway can host the static web app and API as separate services. When a
-// frontend API URL is supplied at build time, generated API requests use it;
-// otherwise same-origin requests continue to work on Replit and local dev.
+// Railway serves the frontend and API from one origin in production. A
+// build-time API URL remains available for local development or a split host.
 setBaseUrl(import.meta.env.VITE_API_BASE_URL?.trim() || null);
 
 // ── Service worker handling ─────────────────────────────────────────────────

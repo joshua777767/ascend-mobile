@@ -11,23 +11,23 @@
 - [Password reset tokens](password-reset-tokens.md) — TTL is 1hr (single source of truth); validation returns distinct invalid/used/expired errors; new request invalidates prior links.
 - [Prod vs dev environment](prod-vs-dev-environment.md) — prod has its own DB and runs the last-published build; dev-correct code can fail in prod until re-published. Check prod DB + deploy logs separately.
 - [Stripe removal](stripe-removal.md) — Stripe fully removed from API server; auth.ts now uses DB-only subscription check; RevenueCat/IAP unaffected. Stub routes kept so frontend degrades gracefully.
-- [EAS build env vars must be explicit](eas-build-env-vars.md) — EXPO_PUBLIC_ Replit secrets are NOT forwarded to EAS cloud builds; must be in eas.json env block or features silently break at runtime.
+ - [EAS build env vars must be explicit](eas-build-env-vars.md) — EXPO_PUBLIC_ values must be listed in eas.json env blocks or features silently break in cloud builds.
 - [iOS subscription hard-gate](ios-subscription-gate.md) — gate uses ONLY trialEndDate + fresh RC entitlement "pro"; backendIsFreePro/nativeProConfirmed excluded (both can be stale). PURCHASE_CONFIRMED invalidates RC query; gate refetches and opens only when entitlement confirmed.
 - [RevenueCat entitlement key is display name](revenuecat-entitlement-key.md) — RC uses the display name ("Ascend: AI Fitness Pro") as the key in entitlements.active, not the machine ID (entl67aca298cd). Always verify with live device debug, not RC dashboard IDs.
 - [Local type vs generated type drift](local-type-drift.md) — mobile component local types (MealEntry) can drift from generated API types; always use the generated hook's inferred type or check the OpenAPI spec field names. e.g. meals use `loggedAt` not `createdAt`.
 - [Coach fetch fallback field name](coach-fetch-fallback.md) — coach.tsx once tried SSE streaming from a JSON endpoint (always empty `full`), then called sendMessage as fallback but read `result.message` not `result.reply`. Remove streaming logic; API returns `{ reply, timestamp }`.
 - [Protein cap + weight validation](protein-cap-weight-validation.md) — planGenerator has no protein ceiling by default; add Math.min(calc, 250) for all 4 goal types. users.ts POST/PATCH profile should reject weights outside 20–300 kg.
-- [EAS Update skip fingerprint](eas-skip-fingerprint.md) — must pass EAS_SKIP_AUTO_FINGERPRINT=1 + GIT_OPTIONAL_LOCKS=0 + --platform ios for eas update to succeed from Replit (git write ops blocked otherwise).
+- [EAS Update skip fingerprint](eas-skip-fingerprint.md) — use the documented fingerprint flags when publishing OTA updates from a restricted CI workspace.
 - [ASC p8 key PEM format for eas submit](asc-p8-pem-format.md) — secret stored as raw base64 (no headers, spaces instead of newlines); must reformat with python before use.
 - [WebView shell architecture](webview-shell.md) — native app is a WebView wrapper around ascendfit.fitness; bridge via __ascendBridge / CustomEvent; key patterns documented.
 - [New-user trial funnel](new-user-trial-funnel.md) — access gate must exempt /intro, /onboarding, /pricing; RC intro offer IS the trial; LockedPaywall copy branches on isNewUser.
-- [iOS WKWebView session cookie](ios-webview-cookie.md) — SameSite=Lax is dropped in WKWebView (app origin ≠ website); must use SameSite=None + secure:true. trust proxy:1 already set so always-HTTPS Replit proxy satisfies secure.
+- [iOS WKWebView session cookie](ios-webview-cookie.md) — SameSite=Lax is dropped in WKWebView (app origin ≠ website); use SameSite=None + secure:true behind HTTPS.
 - [Refresh token architecture](refresh-token-architecture.md) — ascend.rt cookie (1yr, httpOnly, SameSite=None); customFetch intercepts 401→POST /auth/refresh→retry; token rotation on every use; cookie-parser required before session middleware.
 - [RC invalidateCustomerInfoCache destroys merge data](rc-invalidate-cache-bug.md) — never call invalidateCustomerInfoCache in startup/refresh; it nukes the anonymous→userId merged cache and the server returns not-Pro.
-- [OTA bundle picks up Replit EXPO_PUBLIC_ secrets](ota-entitlement-id-pollution.md) — eas update builds locally; Replit secrets pollute OTA bundles. ENTITLEMENT_ID must be hardcoded, not from env var.
+- [OTA bundle environment](ota-entitlement-id-pollution.md) — entitlement IDs must be hardcoded so local environment variables cannot pollute OTA bundles.
 - [Calorie pipeline](calorie-pipeline.md) — profile activity includes usual workouts; adolescents use verified DRI EER equations plus separate safety caps/floors.
 - [Weekly check-in scheduling](weekly-check-in-scheduling.md) — cadence is account-creation/completion driven; dismissal never counts as completion and missed due dates remain due.
-- [GitHub push fallback](github-push-fallback.md) — when Replit Git source-control credentials are unavailable, the authorized GitHub connector can publish repository file changes securely.
+- [GitHub push fallback](github-push-fallback.md) — when normal Git source-control credentials are unavailable, use the authorized GitHub connector securely.
 - [Railway pnpm workspace sync](railway-pnpm-workspace-sync.md) — frozen installs validate every workspace manifest; package.json files and pnpm-lock.yaml must be published together.
 - [Railway health checks](railway-health-checks.md) — keep the health endpoint before database-backed session middleware so startup checks do not depend on DB availability.
 - [Railway runtime variables](railway-runtime-variables.md) — a Railway service with 0 Variables crashes before listening; provision DB, auth, AI, email, and app URL variables before health checks.

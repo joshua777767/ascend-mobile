@@ -1,14 +1,14 @@
 ---
 name: EAS Update — skip auto-fingerprint flag
-description: eas update requires EAS_SKIP_AUTO_FINGERPRINT=1 in Replit to avoid a blocked git tagging step that kills the publish.
+description: eas update may need fingerprint flags in a restricted workspace to avoid a blocked git tagging step.
 ---
 
-# EAS Update in Replit
+# EAS Update in a restricted workspace
 
 ## Rule
-Always pass `EAS_SKIP_AUTO_FINGERPRINT=1` when running `eas update` from Replit.
+Pass `EAS_SKIP_AUTO_FINGERPRINT=1` when running `eas update` from a workspace where git tag writes are blocked.
 
-**Why:** `eas update` tries to write a git tag / commit fingerprint metadata at the end of the publish step. Replit's main-agent sandbox blocks all destructive git operations, so without the flag the command exits with error code 254 after uploading the bundle — the publish never finalises.
+**Why:** `eas update` tries to write a git tag / commit fingerprint metadata at the end of the publish step. A restricted workspace can block that operation, causing the command to exit after uploading the bundle — the publish never finalises.
 
 **How to apply:**
 ```bash

@@ -3,6 +3,8 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import pinoHttp from "pino-http";
 import { pool } from "@workspace/db";
 import router from "./routes";
@@ -51,12 +53,9 @@ function normalizeOrigin(value: string): string {
 }
 
 const allowedOrigins: string[] = [
-  process.env.APP_BASE_URL,
+  process.env.APP_BASE_URL || "https://ascendfit.fitness",
   process.env.WEB_APP_URL,
   ...(process.env.CORS_ORIGINS?.split(",").map((s) => s.trim()) ?? []),
-  process.env.REPLIT_INTERNAL_APP_DOMAIN,
-  process.env.REPLIT_DEV_DOMAIN,
-  ...(process.env.REPLIT_DOMAINS?.split(",").map((s) => s.trim()) ?? []),
 ]
   .filter((d): d is string => !!d)
   .map(normalizeOrigin);
@@ -92,7 +91,7 @@ app.use(
     rolling: true,
     cookie: {
       httpOnly: true,
-      // Always secure — server runs behind the Replit HTTPS proxy in all envs.
+      // Railway serves production traffic over HTTPS.
       // trust proxy: 1 is set above so Express correctly sees the forwarded scheme.
       secure: true,
       // SameSite=None is required for iOS WKWebView: the native app shell does not
@@ -106,5 +105,16 @@ app.use(
 );
 
 app.use("/api", router);
+
+// Railway serves the React app and API from the same service. Keeping the
+// fallback after /api ensures API 404s are not mistaken for SPA routes.
+const frontendDist = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../project-upgrade/dist/public",
+);
+app.use(express.static(frontendDist));
+app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
+  res.sendFile(join(frontendDist, "index.html"));
+});
 
 export default app;

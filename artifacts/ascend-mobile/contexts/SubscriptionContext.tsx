@@ -16,9 +16,7 @@ import { Platform, AppState } from "react-native";
 import { postToWebFromNative } from "./webview-bridge";
 
 // The entitlement identifier configured in RevenueCat dashboard.
-// Hardcoded — do NOT use an env var here. EXPO_PUBLIC_ env vars in Replit
-// get baked into OTA bundles and the Replit secret "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID"
-// is set to "pro" which does NOT match the actual RC key. The RC dashboard uses
+// Hardcoded — do NOT use an env var here. The RC dashboard uses
 // the display name as the key in customerInfo.entitlements.active.
 export const ENTITLEMENT_ID = "Ascend: AI Fitness Pro";
 

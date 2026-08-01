@@ -9,6 +9,6 @@ auth.ts: `checkStripeSubscription` replaced from an async live-API call to a syn
 
 app.ts: Stripe webhook middleware removed (was required before express.json()). index.ts: runMigrations + getStripeSync + initStripe() removed.
 
-**Why:** The Replit publish UI blocked with "Finish Stripe sandbox setup." iOS IAP (RevenueCat) is the monetization path, so Stripe is not needed.
+**Why:** iOS IAP (RevenueCat) is the monetization path, so Stripe is not needed.
 
-**How to re-add:** Restore the four deleted files, restore initStripe() in index.ts, restore the webhook in app.ts, restore the live checkStripeSubscription in auth.ts, and reconnect the Stripe integration in the Replit Integrations tab.
+**How to re-add:** Restore the four deleted files, restore initStripe() in index.ts, restore the webhook in app.ts, and restore the live checkStripeSubscription in auth.ts.

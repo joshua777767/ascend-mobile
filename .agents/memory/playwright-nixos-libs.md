@@ -1,11 +1,11 @@
 ---
 name: Playwright NixOS LD_LIBRARY_PATH
-description: How to make Playwright/Chromium headless work on Replit NixOS — the complete nix store lib paths and the pattern for injecting them.
+description: How to make Playwright/Chromium headless work on NixOS — the complete nix store lib paths and the pattern for injecting them.
 ---
 
 Playwright's downloaded Chromium binary is a standard Linux ELF; NixOS doesn't expose libs at /usr/lib. Must set LD_LIBRARY_PATH manually from nix store paths, at the top of playwright.config.ts before defineConfig.
 
-**Why:** Replit NixOS doesn't use /usr/lib; packages from replit.nix are in /nix/store/... but are NOT automatically added to LD_LIBRARY_PATH. apt-get is blocked. nix-build/nix-env --installed don't expose a profile lib dir.
+**Why:** NixOS doesn't use /usr/lib; packages from the Nix environment are in /nix/store/... but are NOT automatically added to LD_LIBRARY_PATH. apt-get is blocked. nix-build/nix-env --installed don't expose a profile lib dir.
 
 **How to apply:** In playwright.config.ts, build a NIX_LIBS array of known store paths, join with ":", and set process.env.LD_LIBRARY_PATH before the export. Also switch mobile project from iPhone 13 (WebKit — not installed) to Pixel 5 (Chromium).
 

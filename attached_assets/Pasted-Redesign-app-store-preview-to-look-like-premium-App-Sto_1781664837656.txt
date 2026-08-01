@@ -18,7 +18,7 @@ Global design direction:
 * Each screenshot should feel different, not the same repeated layout
 * Make it look like a real App Store preview/ad, not a webpage
 * Exported PNGs must be clean 1290x2796 vertical App Store images
-* Exported PNGs must not include browser UI, scrollbars, address bars, Export buttons, Replit UI, or page controls
+* Exported PNGs must not include browser UI, scrollbars, address bars, Export buttons, or page controls
 
 Make the screenshots like this:
 

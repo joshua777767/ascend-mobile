@@ -34,7 +34,7 @@
       [
         "expo-router",
         {
-          "origin": "https://replit.com/"
+          "origin": "https://ascendfit.fitness"
         }
       ],
       "expo-font",
