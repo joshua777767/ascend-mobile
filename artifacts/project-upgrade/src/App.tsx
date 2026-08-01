@@ -707,8 +707,10 @@ function AuthenticatedGate() {
 
   let hasAccess: boolean;
   if (isNative) {
-    // Native: the ONLY valid Pro signals are trial and nativeIsPro (from RC via bridge).
-    hasAccess = isTrialActive || nativeIsPro;
+    // Native subscriptions are verified through RevenueCat. The server-side
+    // lifetime grant is also valid, so owner/lifetime accounts are not locked
+    // behind an App Store purchase.
+    hasAccess = isTrialActive || nativeIsPro || !!me?.isFreePro;
   } else {
     // Browser: backend freePro grant or Capacitor RC entitlement.
     const hasActiveProEntitlement =

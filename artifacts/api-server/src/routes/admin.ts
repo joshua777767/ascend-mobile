@@ -15,6 +15,7 @@ import {
 } from "@workspace/db";
 import { getUserId } from "../middlewares/auth";
 import { logger } from "../lib/logger";
+import { isLifetimeProAccount } from "../lib/access";
 
 const OWNER_EMAILS = ["jquag7@gmail.com", "joshquag2010@icloud.com"];
 
@@ -135,7 +136,7 @@ router.get("/admin/stats", async (req, res): Promise<void> => {
 
   const userList = allUsers.map(u => {
     const p = profileMap.get(u.id);
-    const isFreePro = u.freePro && (!u.freeProExpiresAt || u.freeProExpiresAt > new Date());
+    const isFreePro = isLifetimeProAccount(u.email) || (u.freePro && (!u.freeProExpiresAt || u.freeProExpiresAt > new Date()));
     const msPerDay = 1000 * 60 * 60 * 24;
     const daysSince = Math.floor((Date.now() - new Date(u.createdAt).getTime()) / msPerDay);
     const trialDay = Math.min(7, daysSince + 1);

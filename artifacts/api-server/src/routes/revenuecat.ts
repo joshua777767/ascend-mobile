@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { getUserId } from "../middlewares/auth";
 import { logger } from "../lib/logger";
+import { isLifetimeProAccount } from "../lib/access";
 
 const router: IRouter = Router();
 
@@ -79,9 +80,10 @@ router.get("/revenuecat/status", async (req, res): Promise<void> => {
     return;
   }
 
+  const lifetimePro = isLifetimeProAccount(user.email);
   res.json({
-    isPro: user.freePro,
-    freePro: user.freePro,
+    isPro: lifetimePro || user.freePro,
+    freePro: lifetimePro || user.freePro,
     expiresAt: user.freeProExpiresAt,
   });
 });

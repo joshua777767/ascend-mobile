@@ -11,6 +11,7 @@ import {
 import { SignupBody, LoginBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { sendEmail, buildPasswordResetEmail } from "../lib/email";
+import { isLifetimeProAccount } from "../lib/access";
 import type { Response } from "express";
 
 const router: IRouter = Router();
@@ -59,9 +60,9 @@ function publicUser(
   },
   isPaidSubscriber = false
 ) {
-  const isFreePro = user.freePro && (
+  const isFreePro = isLifetimeProAccount(user.email) || (user.freePro && (
     !user.freeProExpiresAt || user.freeProExpiresAt > new Date()
-  );
+  ));
   const now = new Date();
   const hasTrialDates = !!user.trialStartDate && !!user.trialEndDate;
   const trialExpired = hasTrialDates ? now > user.trialEndDate! : true;
