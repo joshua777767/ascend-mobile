@@ -15,8 +15,9 @@ import {
 } from "@workspace/db";
 import { getUserId } from "../middlewares/auth";
 import { logger } from "../lib/logger";
+import { isLifetimeProAccount } from "../lib/access";
 
-const OWNER_EMAIL = "joshquag2010@icloud.com";
+const OWNER_EMAILS = ["jquag7@gmail.com", "joshquag2010@icloud.com"];
 
 const router = Router();
 
@@ -26,7 +27,7 @@ const weekAgo = sql`now() - interval '7 days'`;
 async function requireOwner(req: any, res: any): Promise<boolean> {
   const userId = getUserId(req);
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  if (!user || user.email.toLowerCase() !== OWNER_EMAIL) {
+  if (!user || !OWNER_EMAILS.includes(user.email.toLowerCase())) {
     res.status(403).json({ error: "Access denied" });
     return false;
   }
@@ -135,7 +136,7 @@ router.get("/admin/stats", async (req, res): Promise<void> => {
 
   const userList = allUsers.map(u => {
     const p = profileMap.get(u.id);
-    const isFreePro = u.freePro && (!u.freeProExpiresAt || u.freeProExpiresAt > new Date());
+    const isFreePro = isLifetimeProAccount(u.email) || (u.freePro && (!u.freeProExpiresAt || u.freeProExpiresAt > new Date()));
     const msPerDay = 1000 * 60 * 60 * 24;
     const daysSince = Math.floor((Date.now() - new Date(u.createdAt).getTime()) / msPerDay);
     const trialDay = Math.min(7, daysSince + 1);
@@ -211,52 +212,20 @@ router.get("/admin/users", async (req, res): Promise<void> => {
   });
 });
 
-router.post("/admin/grant-free-pro", async (req, res): Promise<void> => {
+router.post("/admin/users/:id/revoke-pro", async (req, res): Promise<void> => {
   if (!(await requireOwner(req, res))) return;
 
-  const { userId, expiresAt } = req.body as { userId?: number; expiresAt?: string | null };
-  if (!userId || typeof userId !== "number") {
-    res.status(400).json({ error: "userId is required" });
+  const userId = parseInt(req.params.id, 10);
+  if (Number.isNaN(userId)) {
+    res.status(400).json({ error: "Invalid user ID" });
     return;
   }
 
-  const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, userId));
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
-
-  const expiresAtDate = expiresAt ? new Date(expiresAt) : null;
-  await db
-    .update(usersTable)
-    .set({ freePro: true, freeProExpiresAt: expiresAtDate })
-    .where(eq(usersTable.id, userId));
-
-  logger.info({ userId, expiresAt: expiresAtDate }, "Admin granted Free Pro");
-  res.json({ ok: true });
-});
-
-router.post("/admin/revoke-free-pro", async (req, res): Promise<void> => {
-  if (!(await requireOwner(req, res))) return;
-
-  const { userId } = req.body as { userId?: number };
-  if (!userId || typeof userId !== "number") {
-    res.status(400).json({ error: "userId is required" });
-    return;
-  }
-
-  const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, userId));
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
-
-  await db
-    .update(usersTable)
+  await db.update(usersTable)
     .set({ freePro: false, freeProExpiresAt: null })
     .where(eq(usersTable.id, userId));
 
-  logger.info({ userId }, "Admin revoked Free Pro");
+  logger.info({ userId }, "Admin revoked free pro");
   res.json({ ok: true });
 });
 
