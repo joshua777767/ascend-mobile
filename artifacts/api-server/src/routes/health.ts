@@ -11,7 +11,13 @@ router.get("/healthz", (_req, res) => {
 
 router.get("/healthz/db", async (_req, res) => {
   try {
-    await pool.query("select 1");
+    await pool.query(`
+      select 1
+      from users
+      cross join password_reset_tokens
+      cross join "session"
+      limit 1
+    `);
     res.json({ status: "ok", database: "ok" });
   } catch {
     res.status(503).json({ status: "error", database: "unavailable" });

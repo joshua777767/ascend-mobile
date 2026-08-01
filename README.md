@@ -35,5 +35,6 @@ Required API environment variables:
 - `REVENUECAT_WEBHOOK_SECRET` for subscription webhook verification
 
 Railway supplies `PORT`. The database migration/schema files are in
-`lib/db` and the API’s database readiness check is available at
-`/api/healthz/db`.
+`lib/db`; Railway applies the schema before starting the API. The API’s
+database readiness check is available at `/api/healthz/db` and verifies the
+authentication tables are present.
