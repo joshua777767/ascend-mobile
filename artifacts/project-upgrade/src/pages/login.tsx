@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useLogin,
+  getMe,
   getGetMeQueryKey,
   getGetUserProfileQueryKey,
 } from "@workspace/api-client-react";
@@ -31,10 +32,18 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     try {
-      const user = await login.mutateAsync({ data: { email, password } });
+      await login.mutateAsync({ data: { email, password } });
+
+      // Confirm the session cookie is usable before navigating. This avoids a
+      // race where the router mounts /dashboard while its first /auth/me check
+      // still has the pre-login 401 cached, making users submit the form again.
+      const user = await getMe();
       queryClient.setQueryData(getGetMeQueryKey(), user);
       queryClient.removeQueries({ queryKey: getGetUserProfileQueryKey() });
-      setLocation("/dashboard");
+
+      // Start the authenticated app from a clean document so every auth
+      // consumer sees the confirmed session and no stale public-route state.
+      window.location.replace("/dashboard");
     } catch (err: any) {
       setError(err?.data?.error ?? "Invalid email or password");
     }
